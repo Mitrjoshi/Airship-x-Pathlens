@@ -1,0 +1,9 @@
+node_modules/
+.pnpm-store/
+.turbo/
+dist/
+package-lock.json
+pnpm-lock.yaml
+src/routeTree.gen.ts
+apps/*/src/routeTree.gen.ts
+apps/*/drizzle/

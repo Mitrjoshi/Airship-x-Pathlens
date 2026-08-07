@@ -1,0 +1,13 @@
+node_modules/
+.pnpm-store/
+.turbo/
+dist/
+dist-ssr/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+
+# Keep nested repository metadata out of the workspace index.
+**/.git/

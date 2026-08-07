@@ -1,0 +1,1 @@
+DROP TABLE "heatmap_jobs" CASCADE;
