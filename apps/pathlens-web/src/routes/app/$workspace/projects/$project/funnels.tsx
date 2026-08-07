@@ -14,6 +14,7 @@ import {
   type Funnel,
   type FunnelRange,
 } from '@/queries/funnels'
+import { getWorkspacesOptions } from '@/queries/workspace'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -174,9 +175,16 @@ function RouteComponent() {
       range,
     })
   )
+  const { data: workspaceData } = useQuery(getWorkspacesOptions())
   const createFunnel = useCreateFunnel()
   const updateFunnel = useUpdateFunnel()
   const deleteFunnel = useDeleteFunnel()
+  const currentWorkspace = workspaceData?.data.find(
+    (item) => item.id === workspace
+  )
+  const canManageFunnels =
+    currentWorkspace?.role === 'owner' ||
+    currentWorkspace?.permissions.includes('analytics.funnels.manage')
 
   const funnels = data?.data ?? []
   const selectedFunnel =
@@ -294,7 +302,7 @@ function RouteComponent() {
           title="Funnels"
           description="Track conversion through key user journeys using your captured events."
           actions={
-            <Button onClick={openCreateDialog}>
+            <Button onClick={openCreateDialog} disabled={!canManageFunnels}>
               <Plus className="mr-2 h-4 w-4" />
               New Funnel
             </Button>
@@ -397,7 +405,11 @@ function RouteComponent() {
             </form>
 
             <DialogFooter>
-              <Button type="submit" form="funnel-form" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                form="funnel-form"
+                disabled={isSubmitting || !canManageFunnels}
+              >
                 {isSubmitting
                   ? 'Saving...'
                   : editingFunnelId
@@ -483,7 +495,11 @@ function RouteComponent() {
                 Create a funnel with page paths or event types to measure real
                 visitor progression.
               </p>
-              <Button className="mt-5" onClick={openCreateDialog}>
+              <Button
+                className="mt-5"
+                onClick={openCreateDialog}
+                disabled={!canManageFunnels}
+              >
                 <Plus className="mr-2 size-4" />
                 Create your first funnel
               </Button>
@@ -525,6 +541,7 @@ function RouteComponent() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
+                          disabled={!canManageFunnels}
                           onClick={(event) => event.stopPropagation()}
                         />
                       }

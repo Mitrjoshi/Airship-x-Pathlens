@@ -1,10 +1,13 @@
 import { AppLayout } from '@/components/common/app-layout'
-import { createFileRoute } from '@tanstack/react-router'
+import { NotificationsPopover } from '@/components/common/notifications-popover'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import {
   Check,
   CreditCard,
   Download,
+  ArrowLeft,
+  LogOut,
   Sparkles,
   Users,
   Globe,
@@ -142,79 +145,161 @@ function RouteComponent() {
     'monthly'
   )
 
+  const handleLogout = () => {
+    localStorage.removeItem('pathlens-token')
+    window.location.href = '/login'
+  }
+
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Plans & Billing</h1>
-          <p className="text-muted-foreground">
-            Manage your subscription, usage, and invoices.
-          </p>
+    <AppLayout className="mx-auto min-h-screen w-full max-w-5xl gap-0 px-5 py-8 sm:px-8">
+      <div className="flex items-center justify-between border-b pb-6">
+        <div className="flex items-center gap-2 font-semibold tracking-tight">
+          <img
+            src="/logo.png"
+            alt="PathLens"
+            className="size-7 rounded-md object-contain"
+          />
+          PathLens
         </div>
 
-        {/* Current Plan */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            render={<Link to="/app" />}
+            className="hidden sm:inline-flex"
+          >
+            <ArrowLeft />
+            Workspaces
+          </Button>
+          <NotificationsPopover />
+          <Button variant="ghost" onClick={handleLogout}>
+            <LogOut />
+            <span className="hidden sm:inline">Log out</span>
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-8 pt-8">
+        <div className="flex flex-col gap-5 border-b pb-8 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-muted-foreground text-xs font-medium tracking-[0.18em] uppercase">
+              Account
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+              Plans & billing.
+            </h1>
+            <p className="text-muted-foreground mt-3 max-w-lg text-sm leading-6">
+              Manage your subscription, usage, and invoices from one place.
+            </p>
+          </div>
+
+          <Badge variant="outline" className="w-fit">
+            {currentPlan.name} plan · {currentPlan.status}
+          </Badge>
+        </div>
+
+        <Card className="py-0">
+          <CardHeader className="flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <CardTitle>Current Plan</CardTitle>
+                <CardTitle>Current plan</CardTitle>
                 <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
                   {currentPlan.status}
                 </Badge>
               </div>
-              <CardDescription>
-                Renews on {currentPlan.renewsOn}
+              <CardDescription className="mt-2">
+                Your subscription is active and renews automatically.
               </CardDescription>
             </div>
 
-            <Button variant="outline">
-              <CreditCard className="mr-2 h-4 w-4" />
-              Update Payment Method
+            <Button variant="outline" className="self-start">
+              <CreditCard />
+              Update payment method
             </Button>
           </CardHeader>
 
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <Sparkles className="text-muted-foreground h-5 w-5" />
-              <span className="text-2xl font-bold">{currentPlan.name}</span>
-              <span className="text-muted-foreground">
-                ${currentPlan.price}/
-                {currentPlan.billingCycle === 'monthly' ? 'mo' : 'yr'}
-              </span>
+          <CardContent className="grid gap-5 p-5 sm:grid-cols-3">
+            <div className="bg-muted/40 rounded-xl p-4">
+              <p className="text-muted-foreground flex items-center gap-2 text-xs">
+                <Sparkles className="size-3.5" />
+                Plan
+              </p>
+              <p className="mt-2 text-2xl font-semibold tracking-tight">
+                {currentPlan.name}
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Built for growing products
+              </p>
+            </div>
+            <div className="rounded-xl border p-4">
+              <p className="text-muted-foreground text-xs">Price</p>
+              <p className="mt-2 text-2xl font-semibold tracking-tight">
+                ${currentPlan.price}
+                <span className="text-muted-foreground text-sm font-normal">
+                  /{currentPlan.billingCycle === 'monthly' ? 'mo' : 'yr'}
+                </span>
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Billed {currentPlan.billingCycle}
+              </p>
+            </div>
+            <div className="rounded-xl border p-4">
+              <p className="text-muted-foreground text-xs">Next renewal</p>
+              <p className="mt-2 text-2xl font-semibold tracking-tight">
+                Aug 26
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {currentPlan.renewsOn}
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Usage */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Usage</CardTitle>
-            <CardDescription>
-              Current billing period usage against your plan limits.
-            </CardDescription>
+        <Card className="py-0">
+          <CardHeader className="border-b px-5 py-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Usage this period</CardTitle>
+                <CardDescription>
+                  Current usage against your Pro plan limits.
+                </CardDescription>
+              </div>
+              <Badge variant="outline">Resets Aug 26, 2026</Badge>
+            </div>
           </CardHeader>
 
-          <CardContent className="grid gap-6 md:grid-cols-2">
+          <CardContent className="grid gap-3 p-5 md:grid-cols-2">
             {usage.map((item) => {
               const Icon = item.icon
               const percent = Math.round((item.used / item.limit) * 100)
 
               return (
-                <div key={item.label}>
-                  <div className="mb-2 flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <Icon className="text-muted-foreground h-4 w-4" />
-                      <span className="font-medium">{item.label}</span>
+                <div key={item.label} className="rounded-xl border p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
+                        <Icon className="size-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {item.label}
+                        </p>
+                        <p className="text-muted-foreground mt-1 text-xs">
+                          {formatNumber(item.used)} of{' '}
+                          {formatNumber(item.limit)}
+                        </p>
+                      </div>
                     </div>
-
-                    <span className="text-muted-foreground">
-                      {formatNumber(item.used)} / {formatNumber(item.limit)}
+                    <span className="text-muted-foreground text-xs tabular-nums">
+                      {percent}%
                     </span>
                   </div>
-
                   <Progress
                     value={percent}
-                    className={cn(percent >= 90 && '[&>div]:bg-destructive')}
+                    className={cn(
+                      'mt-4',
+                      percent >= 90 && '[&>div]:bg-destructive'
+                    )}
                   />
                 </div>
               )
@@ -222,36 +307,42 @@ function RouteComponent() {
           </CardContent>
         </Card>
 
-        {/* Pricing Tiers */}
-        <div>
-          <div className="mb-4 flex items-center justify-between">
+        <div className="space-y-5">
+          <div className="flex flex-col gap-4 border-b pb-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Available Plans</h2>
-              <p className="text-muted-foreground text-sm">
-                Upgrade or downgrade at any time.
+              <p className="text-muted-foreground text-xs font-medium tracking-[0.18em] uppercase">
+                Compare
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                Choose the right plan.
+              </h2>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Upgrade or downgrade whenever your team changes.
               </p>
             </div>
 
-            <div className="bg-muted flex items-center gap-1 rounded-lg p-1">
+            <div className="bg-muted/50 flex w-fit items-center gap-1 rounded-xl border p-1">
               <Button
+                size="sm"
                 variant={billingCycle === 'monthly' ? 'default' : 'ghost'}
                 onClick={() => setBillingCycle('monthly')}
               >
                 Monthly
               </Button>
               <Button
+                size="sm"
                 variant={billingCycle === 'yearly' ? 'default' : 'ghost'}
                 onClick={() => setBillingCycle('yearly')}
               >
                 Yearly
-                <Badge variant="outline" className="ml-2">
+                <Badge variant="outline" className="ml-1.5">
                   -20%
                 </Badge>
               </Button>
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3">
             {tiers.map((tier) => {
               const price =
                 billingCycle === 'yearly'
@@ -261,19 +352,29 @@ function RouteComponent() {
               return (
                 <Card
                   key={tier.name}
-                  className={cn(tier.highlighted && 'border-primary shadow-md')}
+                  className={cn(
+                    'py-0',
+                    tier.highlighted &&
+                      'border-foreground/40 ring-foreground/10 ring-1'
+                  )}
                 >
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
+                  <CardHeader className="border-b px-5 py-5">
+                    <div className="flex items-center justify-between gap-3">
                       <CardTitle>{tier.name}</CardTitle>
-                      {tier.current && <Badge>Current Plan</Badge>}
+                      {tier.current ? (
+                        <Badge>Current</Badge>
+                      ) : tier.highlighted ? (
+                        <Badge variant="outline">Popular</Badge>
+                      ) : null}
                     </div>
-                    <CardDescription>{tier.description}</CardDescription>
+                    <CardDescription className="mt-2">
+                      {tier.description}
+                    </CardDescription>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-5 p-5">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold">
+                      <span className="text-3xl font-semibold tracking-tight">
                         {price === 0 ? 'Free' : `$${price}`}
                       </span>
                       {price > 0 && (
@@ -285,26 +386,26 @@ function RouteComponent() {
 
                     <Separator />
 
-                    <ul className="space-y-2.5">
+                    <ul className="space-y-3">
                       {tier.features.map((feature) => (
                         <li
                           key={feature}
                           className="flex items-start gap-2 text-sm"
                         >
-                          <Check className="text-primary mt-0.5 h-4 w-4 shrink-0" />
-                          {feature}
+                          <Check className="text-primary mt-0.5 size-4 shrink-0" />
+                          <span>{feature}</span>
                         </li>
                       ))}
                     </ul>
                   </CardContent>
 
-                  <CardFooter>
+                  <CardFooter className="border-t px-5 py-4">
                     <Button
                       className="w-full"
                       variant={tier.current ? 'outline' : 'default'}
                       disabled={tier.current}
                     >
-                      {tier.current ? 'Current Plan' : 'Upgrade'}
+                      {tier.current ? 'Current plan' : 'Upgrade'}
                     </Button>
                   </CardFooter>
                 </Card>
@@ -313,49 +414,54 @@ function RouteComponent() {
           </div>
         </div>
 
-        {/* Invoices */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Billing History</CardTitle>
+        <Card className="py-0">
+          <CardHeader className="border-b px-5 py-5">
+            <CardTitle>Billing history</CardTitle>
             <CardDescription>
               Download past invoices for your records.
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]" />
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {invoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell className="font-mono text-sm">
-                      {invoice.id}
-                    </TableCell>
-                    <TableCell>{invoice.date}</TableCell>
-                    <TableCell>${invoice.amount.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
-                        {invoice.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[640px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-5">Invoice</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[50px]" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+
+                <TableBody>
+                  {invoices.map((invoice) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell className="pl-5 font-mono text-sm">
+                        {invoice.id}
+                      </TableCell>
+                      <TableCell>{invoice.date}</TableCell>
+                      <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
+                          {invoice.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Download ${invoice.id}`}
+                        >
+                          <Download />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

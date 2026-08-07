@@ -94,8 +94,7 @@ export function NotificationsPopover() {
                   </p>
                   <p className="text-muted-foreground mt-1 text-xs">
                     {notification.workspaceName} ·{' '}
-                    {notification.role.charAt(0).toUpperCase() +
-                      notification.role.slice(1)}
+                    {notification.permissionProfileName ?? 'Permission profile'}
                   </p>
                 </div>
                 <Button

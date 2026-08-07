@@ -26,6 +26,7 @@ import {
 import { Input } from '@workspace/ui/components/input'
 import { Label } from '@workspace/ui/components/label'
 import { useDeleteWorkspace, useUpdateWorkspace } from '@/mutations/workspace'
+import type { Permission } from '@workspace/contracts'
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
@@ -97,16 +98,25 @@ function RouteComponent() {
   const currentWorkspace = workspacesData?.data.find(
     (item) => item.id === workspace
   )
-  const canManageMembers =
-    currentWorkspace?.role === 'owner' || currentWorkspace?.role === 'admin'
-  const canDeleteWorkspace = currentWorkspace?.role === 'owner'
+  const hasPermission = (permission: Permission) =>
+    currentWorkspace?.role === 'owner' ||
+    currentWorkspace?.permissions.includes(permission)
+  const canEditWorkspace = hasPermission('workspace.settings.update')
+  const canViewMembers = hasPermission('workspace.members.view')
+  const canInviteMembers = hasPermission('workspace.members.invite')
+  const canViewPermissionProfiles =
+    hasPermission('workspace.permission_profiles.view') ||
+    hasPermission('workspace.permission_profiles.create') ||
+    hasPermission('workspace.permission_profiles.update') ||
+    hasPermission('workspace.permission_profiles.delete')
+  const canDeleteWorkspace = hasPermission('workspace.delete')
   const canConfirmDelete =
     Boolean(currentWorkspace) &&
     deleteConfirmation.trim() === currentWorkspace?.name
   const roleLabel = currentWorkspace
-    ? (currentWorkspace.role ?? 'member').replace(/^./, (letter) =>
-        letter.toUpperCase()
-      )
+    ? currentWorkspace.role === 'owner'
+      ? 'Owner'
+      : (currentWorkspace.permissionProfileName ?? 'Unassigned profile')
     : '—'
   const form = useForm({
     defaultValues: {
@@ -172,7 +182,7 @@ function RouteComponent() {
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
                         disabled={
-                          !canManageMembers || updateWorkspace.isPending
+                          !canEditWorkspace || updateWorkspace.isPending
                         }
                         placeholder={currentWorkspace?.name ?? 'Workspace name'}
                       />
@@ -193,7 +203,7 @@ function RouteComponent() {
                         !canSubmit ||
                         isSubmitting ||
                         workspacesPending ||
-                        !canManageMembers ||
+                        !canEditWorkspace ||
                         updateWorkspace.isPending
                       }
                     >
@@ -239,33 +249,49 @@ function RouteComponent() {
                 <div className="rounded-xl border p-4">
                   <p className="text-muted-foreground flex items-center gap-2 text-xs">
                     <ShieldCheckIcon className="size-3.5" />
-                    Your role
+                    Your access profile
                   </p>
                   <Badge className="mt-3" variant="outline">
                     {roleLabel}
                   </Badge>
                   <p className="text-muted-foreground mt-2 text-xs">
-                    {canManageMembers
-                      ? 'You can manage workspace access.'
-                      : 'Contact an admin to change access.'}
+                    {canViewMembers
+                      ? 'You can view workspace access.'
+                      : 'Contact the workspace owner to change access.'}
                   </p>
                 </div>
               </CardContent>
 
               <CardFooter className="flex flex-wrap justify-end gap-2 border-t px-5 py-4">
-                <Button
-                  variant="outline"
-                  render={
-                    <Link
-                      to="/app/$workspace/projects/$project/members"
-                      params={{ workspace, project }}
-                    />
-                  }
-                >
-                  <UsersIcon />
-                  Manage members
-                </Button>
-                {canManageMembers && (
+                {canViewMembers && (
+                  <Button
+                    variant="outline"
+                    render={
+                      <Link
+                        to="/app/$workspace/projects/$project/members"
+                        params={{ workspace, project }}
+                      />
+                    }
+                  >
+                    <UsersIcon />
+                    Manage members
+                  </Button>
+                )}
+                {canViewPermissionProfiles && (
+                  <Button
+                    variant="outline"
+                    render={
+                      <Link
+                        to="/app/$workspace/projects/$project/permission-profiles"
+                        params={{ workspace, project }}
+                      />
+                    }
+                  >
+                    <ShieldCheckIcon />
+                    Permission profiles
+                  </Button>
+                )}
+                {canInviteMembers && (
                   <Button
                     render={
                       <Link

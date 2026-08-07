@@ -13,6 +13,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { Permission } from "@workspace/contracts";
 
 /* -------------------------------------------------------------------------- */
 /*                                    USERS                                   */
@@ -69,6 +70,48 @@ export const workspaces = pgTable(
 /*                              WORKSPACE MEMBERS                             */
 /* -------------------------------------------------------------------------- */
 
+export const permissionProfiles = pgTable(
+  "permission_profiles",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, {
+        onDelete: "cascade",
+      }),
+
+    name: text("name").notNull(),
+
+    description: text("description"),
+
+    permissions: jsonb("permissions").$type<Permission[]>().notNull(),
+
+    isSystem: boolean("is_system").notNull().default(false),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    workspaceIdx: index("permission_profiles_workspace_idx").on(
+      table.workspaceId
+    ),
+    workspaceNameIdx: uniqueIndex("permission_profiles_workspace_name_idx").on(
+      table.workspaceId,
+      table.name
+    ),
+  })
+);
+
 export const workspaceMembers = pgTable(
   "workspace_members",
   {
@@ -85,6 +128,13 @@ export const workspaceMembers = pgTable(
       }),
 
     role: text("role").notNull().default("member"),
+
+    permissionProfileId: uuid("permission_profile_id").references(
+      () => permissionProfiles.id,
+      {
+        onDelete: "set null",
+      }
+    ),
 
     createdAt: timestamp("created_at", {
       withTimezone: true,
@@ -132,6 +182,13 @@ export const notifications = pgTable(
     type: text("type").notNull().default("workspace_invite"),
 
     role: text("role").notNull().default("member"),
+
+    permissionProfileId: uuid("permission_profile_id").references(
+      () => permissionProfiles.id,
+      {
+        onDelete: "set null",
+      }
+    ),
 
     readAt: timestamp("read_at", {
       withTimezone: true,

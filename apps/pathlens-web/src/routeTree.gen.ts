@@ -17,7 +17,6 @@ import { Route as authPasswordResetRouteImport } from './routes/(auth)/password-
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppAccountRouteImport } from './routes/app/account'
-import { Route as AppBillingRouteImport } from './routes/app/billing'
 import { Route as AppPlansRouteImport } from './routes/app/plans'
 import { Route as AppWorkspaceIndexRouteImport } from './routes/app/$workspace/index'
 import { Route as AppWorkspaceProjectsIndexRouteImport } from './routes/app/$workspace/projects/index'
@@ -25,6 +24,7 @@ import { Route as AppWorkspaceProjectsProjectRouteRouteImport } from './routes/a
 import { Route as AppWorkspaceProjectsProjectIndexRouteImport } from './routes/app/$workspace/projects/$project/index'
 import { Route as AppWorkspaceProjectsProjectAiInsightsRouteImport } from './routes/app/$workspace/projects/$project/ai-insights'
 import { Route as AppWorkspaceProjectsProjectAnalyticsRouteImport } from './routes/app/$workspace/projects/$project/analytics'
+import { Route as AppWorkspaceProjectsProjectBillingRouteImport } from './routes/app/$workspace/projects/$project/billing'
 import { Route as AppWorkspaceProjectsProjectDashboardRouteImport } from './routes/app/$workspace/projects/$project/dashboard'
 import { Route as AppWorkspaceProjectsProjectEventsRouteImport } from './routes/app/$workspace/projects/$project/events'
 import { Route as AppWorkspaceProjectsProjectFunnelsRouteImport } from './routes/app/$workspace/projects/$project/funnels'
@@ -33,6 +33,7 @@ import { Route as AppWorkspaceProjectsProjectInviteRouteImport } from './routes/
 import { Route as AppWorkspaceProjectsProjectKeysRouteImport } from './routes/app/$workspace/projects/$project/keys'
 import { Route as AppWorkspaceProjectsProjectMembersRouteImport } from './routes/app/$workspace/projects/$project/members'
 import { Route as AppWorkspaceProjectsProjectPerformanceRouteImport } from './routes/app/$workspace/projects/$project/performance'
+import { Route as AppWorkspaceProjectsProjectPermissionProfilesRouteImport } from './routes/app/$workspace/projects/$project/permission-profiles'
 import { Route as AppWorkspaceProjectsProjectReportsRouteImport } from './routes/app/$workspace/projects/$project/reports'
 import { Route as AppWorkspaceProjectsProjectSessionReplayRouteImport } from './routes/app/$workspace/projects/$project/session-replay'
 import { Route as AppWorkspaceProjectsProjectSettingsRouteImport } from './routes/app/$workspace/projects/$project/settings'
@@ -78,11 +79,6 @@ const AppAccountRoute = AppAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppBillingRoute = AppBillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppPlansRoute = AppPlansRouteImport.update({
   id: '/plans',
   path: '/plans',
@@ -121,6 +117,12 @@ const AppWorkspaceProjectsProjectAnalyticsRoute =
   AppWorkspaceProjectsProjectAnalyticsRouteImport.update({
     id: '/analytics',
     path: '/analytics',
+    getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
+  } as any)
+const AppWorkspaceProjectsProjectBillingRoute =
+  AppWorkspaceProjectsProjectBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
     getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
   } as any)
 const AppWorkspaceProjectsProjectDashboardRoute =
@@ -171,6 +173,12 @@ const AppWorkspaceProjectsProjectPerformanceRoute =
     path: '/performance',
     getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
   } as any)
+const AppWorkspaceProjectsProjectPermissionProfilesRoute =
+  AppWorkspaceProjectsProjectPermissionProfilesRouteImport.update({
+    id: '/permission-profiles',
+    path: '/permission-profiles',
+    getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
+  } as any)
 const AppWorkspaceProjectsProjectReportsRoute =
   AppWorkspaceProjectsProjectReportsRouteImport.update({
     id: '/reports',
@@ -209,7 +217,6 @@ export interface FileRoutesByFullPath {
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/app/account': typeof AppAccountRoute
-  '/app/billing': typeof AppBillingRoute
   '/app/plans': typeof AppPlansRoute
   '/app/': typeof AppIndexRoute
   '/app/$workspace/': typeof AppWorkspaceIndexRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspace/projects/': typeof AppWorkspaceProjectsIndexRoute
   '/app/$workspace/projects/$project/ai-insights': typeof AppWorkspaceProjectsProjectAiInsightsRoute
   '/app/$workspace/projects/$project/analytics': typeof AppWorkspaceProjectsProjectAnalyticsRoute
+  '/app/$workspace/projects/$project/billing': typeof AppWorkspaceProjectsProjectBillingRoute
   '/app/$workspace/projects/$project/dashboard': typeof AppWorkspaceProjectsProjectDashboardRoute
   '/app/$workspace/projects/$project/events': typeof AppWorkspaceProjectsProjectEventsRoute
   '/app/$workspace/projects/$project/funnels': typeof AppWorkspaceProjectsProjectFunnelsRoute
@@ -225,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspace/projects/$project/keys': typeof AppWorkspaceProjectsProjectKeysRoute
   '/app/$workspace/projects/$project/members': typeof AppWorkspaceProjectsProjectMembersRoute
   '/app/$workspace/projects/$project/performance': typeof AppWorkspaceProjectsProjectPerformanceRoute
+  '/app/$workspace/projects/$project/permission-profiles': typeof AppWorkspaceProjectsProjectPermissionProfilesRoute
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
   '/app/$workspace/projects/$project/session-replay': typeof AppWorkspaceProjectsProjectSessionReplayRoute
   '/app/$workspace/projects/$project/settings': typeof AppWorkspaceProjectsProjectSettingsRoute
@@ -238,13 +247,13 @@ export interface FileRoutesByTo {
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/app/account': typeof AppAccountRoute
-  '/app/billing': typeof AppBillingRoute
   '/app/plans': typeof AppPlansRoute
   '/app': typeof AppIndexRoute
   '/app/$workspace': typeof AppWorkspaceIndexRoute
   '/app/$workspace/projects': typeof AppWorkspaceProjectsIndexRoute
   '/app/$workspace/projects/$project/ai-insights': typeof AppWorkspaceProjectsProjectAiInsightsRoute
   '/app/$workspace/projects/$project/analytics': typeof AppWorkspaceProjectsProjectAnalyticsRoute
+  '/app/$workspace/projects/$project/billing': typeof AppWorkspaceProjectsProjectBillingRoute
   '/app/$workspace/projects/$project/dashboard': typeof AppWorkspaceProjectsProjectDashboardRoute
   '/app/$workspace/projects/$project/events': typeof AppWorkspaceProjectsProjectEventsRoute
   '/app/$workspace/projects/$project/funnels': typeof AppWorkspaceProjectsProjectFunnelsRoute
@@ -253,6 +262,7 @@ export interface FileRoutesByTo {
   '/app/$workspace/projects/$project/keys': typeof AppWorkspaceProjectsProjectKeysRoute
   '/app/$workspace/projects/$project/members': typeof AppWorkspaceProjectsProjectMembersRoute
   '/app/$workspace/projects/$project/performance': typeof AppWorkspaceProjectsProjectPerformanceRoute
+  '/app/$workspace/projects/$project/permission-profiles': typeof AppWorkspaceProjectsProjectPermissionProfilesRoute
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
   '/app/$workspace/projects/$project/session-replay': typeof AppWorkspaceProjectsProjectSessionReplayRoute
   '/app/$workspace/projects/$project/settings': typeof AppWorkspaceProjectsProjectSettingsRoute
@@ -269,7 +279,6 @@ export interface FileRoutesById {
   '/(auth)/password-reset': typeof authPasswordResetRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/app/account': typeof AppAccountRoute
-  '/app/billing': typeof AppBillingRoute
   '/app/plans': typeof AppPlansRoute
   '/app/': typeof AppIndexRoute
   '/app/$workspace/': typeof AppWorkspaceIndexRoute
@@ -277,6 +286,7 @@ export interface FileRoutesById {
   '/app/$workspace/projects/': typeof AppWorkspaceProjectsIndexRoute
   '/app/$workspace/projects/$project/ai-insights': typeof AppWorkspaceProjectsProjectAiInsightsRoute
   '/app/$workspace/projects/$project/analytics': typeof AppWorkspaceProjectsProjectAnalyticsRoute
+  '/app/$workspace/projects/$project/billing': typeof AppWorkspaceProjectsProjectBillingRoute
   '/app/$workspace/projects/$project/dashboard': typeof AppWorkspaceProjectsProjectDashboardRoute
   '/app/$workspace/projects/$project/events': typeof AppWorkspaceProjectsProjectEventsRoute
   '/app/$workspace/projects/$project/funnels': typeof AppWorkspaceProjectsProjectFunnelsRoute
@@ -285,6 +295,7 @@ export interface FileRoutesById {
   '/app/$workspace/projects/$project/keys': typeof AppWorkspaceProjectsProjectKeysRoute
   '/app/$workspace/projects/$project/members': typeof AppWorkspaceProjectsProjectMembersRoute
   '/app/$workspace/projects/$project/performance': typeof AppWorkspaceProjectsProjectPerformanceRoute
+  '/app/$workspace/projects/$project/permission-profiles': typeof AppWorkspaceProjectsProjectPermissionProfilesRoute
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
   '/app/$workspace/projects/$project/session-replay': typeof AppWorkspaceProjectsProjectSessionReplayRoute
   '/app/$workspace/projects/$project/settings': typeof AppWorkspaceProjectsProjectSettingsRoute
@@ -301,7 +312,6 @@ export interface FileRouteTypes {
     | '/password-reset'
     | '/sign-up'
     | '/app/account'
-    | '/app/billing'
     | '/app/plans'
     | '/app/'
     | '/app/$workspace/'
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/'
     | '/app/$workspace/projects/$project/ai-insights'
     | '/app/$workspace/projects/$project/analytics'
+    | '/app/$workspace/projects/$project/billing'
     | '/app/$workspace/projects/$project/dashboard'
     | '/app/$workspace/projects/$project/events'
     | '/app/$workspace/projects/$project/funnels'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/keys'
     | '/app/$workspace/projects/$project/members'
     | '/app/$workspace/projects/$project/performance'
+    | '/app/$workspace/projects/$project/permission-profiles'
     | '/app/$workspace/projects/$project/reports'
     | '/app/$workspace/projects/$project/session-replay'
     | '/app/$workspace/projects/$project/settings'
@@ -330,13 +342,13 @@ export interface FileRouteTypes {
     | '/password-reset'
     | '/sign-up'
     | '/app/account'
-    | '/app/billing'
     | '/app/plans'
     | '/app'
     | '/app/$workspace'
     | '/app/$workspace/projects'
     | '/app/$workspace/projects/$project/ai-insights'
     | '/app/$workspace/projects/$project/analytics'
+    | '/app/$workspace/projects/$project/billing'
     | '/app/$workspace/projects/$project/dashboard'
     | '/app/$workspace/projects/$project/events'
     | '/app/$workspace/projects/$project/funnels'
@@ -345,6 +357,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/keys'
     | '/app/$workspace/projects/$project/members'
     | '/app/$workspace/projects/$project/performance'
+    | '/app/$workspace/projects/$project/permission-profiles'
     | '/app/$workspace/projects/$project/reports'
     | '/app/$workspace/projects/$project/session-replay'
     | '/app/$workspace/projects/$project/settings'
@@ -360,7 +373,6 @@ export interface FileRouteTypes {
     | '/(auth)/password-reset'
     | '/(auth)/sign-up'
     | '/app/account'
-    | '/app/billing'
     | '/app/plans'
     | '/app/'
     | '/app/$workspace/'
@@ -368,6 +380,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/'
     | '/app/$workspace/projects/$project/ai-insights'
     | '/app/$workspace/projects/$project/analytics'
+    | '/app/$workspace/projects/$project/billing'
     | '/app/$workspace/projects/$project/dashboard'
     | '/app/$workspace/projects/$project/events'
     | '/app/$workspace/projects/$project/funnels'
@@ -376,6 +389,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/keys'
     | '/app/$workspace/projects/$project/members'
     | '/app/$workspace/projects/$project/performance'
+    | '/app/$workspace/projects/$project/permission-profiles'
     | '/app/$workspace/projects/$project/reports'
     | '/app/$workspace/projects/$project/session-replay'
     | '/app/$workspace/projects/$project/settings'
@@ -448,13 +462,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/app/billing': {
-      id: '/app/billing'
-      path: '/billing'
-      fullPath: '/app/billing'
-      preLoaderRoute: typeof AppBillingRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
     '/app/plans': {
       id: '/app/plans'
       path: '/plans'
@@ -502,6 +509,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/app/$workspace/projects/$project/analytics'
       preLoaderRoute: typeof AppWorkspaceProjectsProjectAnalyticsRouteImport
+      parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
+    }
+    '/app/$workspace/projects/$project/billing': {
+      id: '/app/$workspace/projects/$project/billing'
+      path: '/billing'
+      fullPath: '/app/$workspace/projects/$project/billing'
+      preLoaderRoute: typeof AppWorkspaceProjectsProjectBillingRouteImport
       parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
     }
     '/app/$workspace/projects/$project/dashboard': {
@@ -558,6 +572,13 @@ declare module '@tanstack/react-router' {
       path: '/performance'
       fullPath: '/app/$workspace/projects/$project/performance'
       preLoaderRoute: typeof AppWorkspaceProjectsProjectPerformanceRouteImport
+      parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
+    }
+    '/app/$workspace/projects/$project/permission-profiles': {
+      id: '/app/$workspace/projects/$project/permission-profiles'
+      path: '/permission-profiles'
+      fullPath: '/app/$workspace/projects/$project/permission-profiles'
+      preLoaderRoute: typeof AppWorkspaceProjectsProjectPermissionProfilesRouteImport
       parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
     }
     '/app/$workspace/projects/$project/reports': {
@@ -617,6 +638,7 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 interface AppWorkspaceProjectsProjectRouteRouteChildren {
   AppWorkspaceProjectsProjectAiInsightsRoute: typeof AppWorkspaceProjectsProjectAiInsightsRoute
   AppWorkspaceProjectsProjectAnalyticsRoute: typeof AppWorkspaceProjectsProjectAnalyticsRoute
+  AppWorkspaceProjectsProjectBillingRoute: typeof AppWorkspaceProjectsProjectBillingRoute
   AppWorkspaceProjectsProjectDashboardRoute: typeof AppWorkspaceProjectsProjectDashboardRoute
   AppWorkspaceProjectsProjectEventsRoute: typeof AppWorkspaceProjectsProjectEventsRoute
   AppWorkspaceProjectsProjectFunnelsRoute: typeof AppWorkspaceProjectsProjectFunnelsRoute
@@ -625,6 +647,7 @@ interface AppWorkspaceProjectsProjectRouteRouteChildren {
   AppWorkspaceProjectsProjectKeysRoute: typeof AppWorkspaceProjectsProjectKeysRoute
   AppWorkspaceProjectsProjectMembersRoute: typeof AppWorkspaceProjectsProjectMembersRoute
   AppWorkspaceProjectsProjectPerformanceRoute: typeof AppWorkspaceProjectsProjectPerformanceRoute
+  AppWorkspaceProjectsProjectPermissionProfilesRoute: typeof AppWorkspaceProjectsProjectPermissionProfilesRoute
   AppWorkspaceProjectsProjectReportsRoute: typeof AppWorkspaceProjectsProjectReportsRoute
   AppWorkspaceProjectsProjectSessionReplayRoute: typeof AppWorkspaceProjectsProjectSessionReplayRoute
   AppWorkspaceProjectsProjectSettingsRoute: typeof AppWorkspaceProjectsProjectSettingsRoute
@@ -639,6 +662,8 @@ const AppWorkspaceProjectsProjectRouteRouteChildren: AppWorkspaceProjectsProject
       AppWorkspaceProjectsProjectAiInsightsRoute,
     AppWorkspaceProjectsProjectAnalyticsRoute:
       AppWorkspaceProjectsProjectAnalyticsRoute,
+    AppWorkspaceProjectsProjectBillingRoute:
+      AppWorkspaceProjectsProjectBillingRoute,
     AppWorkspaceProjectsProjectDashboardRoute:
       AppWorkspaceProjectsProjectDashboardRoute,
     AppWorkspaceProjectsProjectEventsRoute:
@@ -654,6 +679,8 @@ const AppWorkspaceProjectsProjectRouteRouteChildren: AppWorkspaceProjectsProject
       AppWorkspaceProjectsProjectMembersRoute,
     AppWorkspaceProjectsProjectPerformanceRoute:
       AppWorkspaceProjectsProjectPerformanceRoute,
+    AppWorkspaceProjectsProjectPermissionProfilesRoute:
+      AppWorkspaceProjectsProjectPermissionProfilesRoute,
     AppWorkspaceProjectsProjectReportsRoute:
       AppWorkspaceProjectsProjectReportsRoute,
     AppWorkspaceProjectsProjectSessionReplayRoute:
@@ -675,7 +702,6 @@ const AppWorkspaceProjectsProjectRouteRouteWithChildren =
 
 interface AppRouteRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
-  AppBillingRoute: typeof AppBillingRoute
   AppPlansRoute: typeof AppPlansRoute
   AppIndexRoute: typeof AppIndexRoute
   AppWorkspaceIndexRoute: typeof AppWorkspaceIndexRoute
@@ -685,7 +711,6 @@ interface AppRouteRouteChildren {
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAccountRoute: AppAccountRoute,
-  AppBillingRoute: AppBillingRoute,
   AppPlansRoute: AppPlansRoute,
   AppIndexRoute: AppIndexRoute,
   AppWorkspaceIndexRoute: AppWorkspaceIndexRoute,

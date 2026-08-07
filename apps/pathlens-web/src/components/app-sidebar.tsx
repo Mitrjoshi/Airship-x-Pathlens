@@ -22,10 +22,12 @@ import {
   MousePointerClickIcon,
   PlusIcon,
   SettingsIcon,
+  ShieldCheckIcon,
   SquareKanbanIcon,
   UsersIcon,
   WorkflowIcon,
 } from 'lucide-react'
+import type { Permission } from '@workspace/contracts'
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -96,6 +98,9 @@ export function AppSidebar({
     logo: <SquareKanbanIcon />,
     plan: workspace.isDefault ? 'Default workspace' : 'Workspace',
   }))
+  const activeWorkspace = workspaceList.find(
+    (workspace) => workspace.id === workspaceId
+  )
   const projectBasePath = `/app/${workspaceId}/projects/${projectId}`
 
   const navMain = [
@@ -105,6 +110,7 @@ export function AppSidebar({
       icon: <GaugeIcon />,
       isActive: pathname === `${projectBasePath}/dashboard`,
       isNew: false,
+      permission: 'analytics.dashboard.view' as const,
     },
     {
       title: 'Analytics',
@@ -112,6 +118,7 @@ export function AppSidebar({
       icon: <ChartColumnIncreasingIcon />,
       isActive: pathname === `${projectBasePath}/analytics`,
       isNew: false,
+      permission: 'analytics.analytics.view' as const,
     },
     {
       title: 'Visitors',
@@ -119,6 +126,7 @@ export function AppSidebar({
       icon: <UsersIcon />,
       isActive: pathname === `${projectBasePath}/visitors`,
       isNew: false,
+      permission: 'analytics.visitors.view' as const,
     },
     {
       title: 'Performance',
@@ -126,6 +134,7 @@ export function AppSidebar({
       icon: <GaugeIcon />,
       isActive: pathname === `${projectBasePath}/performance`,
       isNew: true,
+      permission: 'analytics.performance.view' as const,
     },
     {
       title: 'Session Replay',
@@ -133,6 +142,7 @@ export function AppSidebar({
       icon: <ClapperboardIcon />,
       isActive: pathname === `${projectBasePath}/session-replay`,
       isNew: false,
+      permission: 'analytics.session_replay.view' as const,
     },
     {
       title: 'Events',
@@ -140,6 +150,7 @@ export function AppSidebar({
       icon: <MousePointerClickIcon />,
       isActive: pathname === `${projectBasePath}/events`,
       isNew: true,
+      permission: 'analytics.events.view' as const,
     },
     {
       title: 'Funnels',
@@ -147,6 +158,7 @@ export function AppSidebar({
       icon: <WorkflowIcon />,
       isActive: pathname === `${projectBasePath}/funnels`,
       isNew: true,
+      permission: 'analytics.funnels.view' as const,
     },
     {
       title: 'Goals',
@@ -154,6 +166,7 @@ export function AppSidebar({
       icon: <GoalIcon />,
       isActive: pathname === `${projectBasePath}/goals`,
       isNew: true,
+      permission: 'analytics.goals.view' as const,
     },
     {
       title: 'AI Insights',
@@ -161,6 +174,7 @@ export function AppSidebar({
       icon: <BotIcon />,
       isActive: pathname === `${projectBasePath}/ai-insights`,
       isNew: true,
+      permission: 'analytics.ai_insights.view' as const,
     },
     {
       title: 'Reports',
@@ -168,6 +182,7 @@ export function AppSidebar({
       icon: <BarChart3Icon />,
       isActive: pathname === `${projectBasePath}/reports`,
       isNew: false,
+      permission: 'analytics.reports.view' as const,
     },
     {
       title: 'API Keys',
@@ -175,6 +190,7 @@ export function AppSidebar({
       icon: <KeyRoundIcon />,
       isActive: pathname === `${projectBasePath}/keys`,
       isNew: false,
+      permission: 'project.api_keys.view' as const,
     },
     {
       title: 'Settings',
@@ -182,6 +198,7 @@ export function AppSidebar({
       icon: <SettingsIcon />,
       isActive: pathname === `${projectBasePath}/settings`,
       isNew: false,
+      permission: 'project.settings.view' as const,
     },
   ]
 
@@ -191,9 +208,18 @@ export function AppSidebar({
         <WorkspaceSwitcher teams={workspaces} activeWorkspaceId={workspaceId} />
       </SidebarHeader>
       <SidebarContent>
-        <WorkspaceNav workspaceId={workspaceId} projectId={projectId} />
+        <WorkspaceNav
+          workspaceId={workspaceId}
+          projectId={projectId}
+          role={activeWorkspace?.role}
+          permissions={activeWorkspace?.permissions ?? []}
+        />
         <NavMain
-          items={navMain}
+          items={navMain.filter(
+            (item) =>
+              activeWorkspace?.role === 'owner' ||
+              activeWorkspace?.permissions?.includes(item.permission)
+          )}
           workspaceId={workspaceId}
           projectId={projectId}
         />
@@ -226,7 +252,7 @@ export function WorkspaceSwitcher({
             render={
               <SidebarMenuButton
                 size="lg"
-                className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground data-open:hidden"
+                className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
               />
             }
           >
@@ -286,7 +312,10 @@ export function WorkspaceSwitcher({
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
-      <SidebarTrigger render={<Button variant="secondary" />} />
+      <SidebarTrigger
+        className={'duration-200 group-data-[state=collapsed]:hidden'}
+        render={<Button variant="secondary" />}
+      />
     </SidebarMenu>
   )
 }
@@ -294,44 +323,82 @@ export function WorkspaceSwitcher({
 function WorkspaceNav({
   workspaceId,
   projectId,
+  role,
+  permissions,
 }: {
   workspaceId: string
   projectId: string
+  role?: string
+  permissions: Permission[]
 }) {
   const { pathname } = useLocation()
+  const canViewMembers =
+    role === 'owner' || permissions.includes('workspace.members.view')
+  const canViewPermissionProfiles =
+    role === 'owner' ||
+    permissions.some((permission) =>
+      [
+        'workspace.permission_profiles.view',
+        'workspace.permission_profiles.create',
+        'workspace.permission_profiles.update',
+        'workspace.permission_profiles.delete',
+      ].includes(permission)
+    )
+  const canViewSettings =
+    role === 'owner' || permissions.includes('workspace.settings.view')
 
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Workspace</SidebarGroupLabel>
       <SidebarMenu className="space-y-1">
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={pathname.includes('/members')}
-            render={
-              <Link
-                to="/app/$workspace/projects/$project/members"
-                params={{ workspace: workspaceId, project: projectId }}
-              />
-            }
-          >
-            <UsersIcon />
-            <span>Members</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={pathname.includes('/workspace-settings')}
-            render={
-              <Link
-                to="/app/$workspace/projects/$project/workspace-settings"
-                params={{ workspace: workspaceId, project: projectId }}
-              />
-            }
-          >
-            <Columns3CogIcon />
-            <span>Settings</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+        {canViewMembers && (
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname.includes('/members')}
+              render={
+                <Link
+                  to="/app/$workspace/projects/$project/members"
+                  params={{ workspace: workspaceId, project: projectId }}
+                />
+              }
+            >
+              <UsersIcon />
+              <span>Members</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+        {canViewPermissionProfiles && (
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname.includes('/permission-profiles')}
+              render={
+                <Link
+                  to="/app/$workspace/projects/$project/permission-profiles"
+                  params={{ workspace: workspaceId, project: projectId }}
+                />
+              }
+            >
+              <ShieldCheckIcon />
+              <span>Permission profiles</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+        {canViewSettings && (
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname.includes('/workspace-settings')}
+              render={
+                <Link
+                  to="/app/$workspace/projects/$project/workspace-settings"
+                  params={{ workspace: workspaceId, project: projectId }}
+                />
+              }
+            >
+              <Columns3CogIcon />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
       </SidebarMenu>
     </SidebarGroup>
   )
@@ -429,6 +496,7 @@ function NavMain({
     icon: React.ReactNode
     isActive: boolean
     isNew: boolean
+    permission: Permission
   }[]
   workspaceId: string
   projectId: string

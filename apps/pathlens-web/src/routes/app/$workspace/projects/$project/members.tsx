@@ -25,9 +25,11 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
+import type { Permission } from '@workspace/contracts'
 import {
   getWorkspaceInvitationsOptions,
   getWorkspaceMembersOptions,
+  getWorkspacePermissionProfilesOptions,
   getWorkspacesOptions,
   type T_WorkspaceInvitation,
   type T_WorkspaceMember,
@@ -71,10 +73,6 @@ function getInitials(name: string) {
     .toUpperCase()
 }
 
-function formatRole(role: string) {
-  return role.charAt(0).toUpperCase() + role.slice(1)
-}
-
 export const Route = createFileRoute(
   '/app/$workspace/projects/$project/members'
 )({
@@ -88,7 +86,7 @@ function RouteComponent() {
   )
   const [memberToRemove, setMemberToRemove] =
     useState<T_WorkspaceMember | null>(null)
-  const [memberRole, setMemberRole] = useState<'admin' | 'member'>('member')
+  const [memberPermissionProfileId, setMemberPermissionProfileId] = useState('')
 
   const {
     data: membersData,
@@ -100,6 +98,9 @@ function RouteComponent() {
     isPending: invitationsPending,
     isError: invitationsError,
   } = useQuery(getWorkspaceInvitationsOptions(workspace))
+  const { data: profilesData, isPending: profilesPending } = useQuery(
+    getWorkspacePermissionProfilesOptions(workspace)
+  )
   const updateMember = useUpdateWorkspaceMember(workspace)
   const removeMember = useRemoveWorkspaceMember(workspace)
   const members = membersData?.data ?? []
@@ -111,8 +112,22 @@ function RouteComponent() {
     (item) => item.id === workspace
   )
 
-  const canManageMembers =
-    currentWorkspace?.role === 'owner' || currentWorkspace?.role === 'admin'
+  const hasPermission = (permission: Permission) =>
+    currentWorkspace?.role === 'owner' ||
+    currentWorkspace?.permissions.includes(permission)
+  const canInviteMembers = hasPermission('workspace.members.invite')
+  const canUpdateMembers = hasPermission('workspace.members.update')
+  const canRemoveMembers = hasPermission('workspace.members.remove')
+  const profiles = profilesData?.data ?? []
+
+  const getProfileLabel = (profileId: string | null, role: string) => {
+    if (role === 'owner') return 'Owner'
+
+    return (
+      profiles.find((profile) => profile.id === profileId)?.name ??
+      'Unassigned profile'
+    )
+  }
 
   return (
     <ProjectPageLayout>
@@ -133,7 +148,7 @@ function RouteComponent() {
               </CardDescription>
             </div>
 
-            {canManageMembers && (
+            {canInviteMembers && (
               <Button
                 render={
                   <Link
@@ -153,7 +168,7 @@ function RouteComponent() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="pl-6">Member</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Access profile</TableHead>
                     <TableHead className="w-[180px]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -218,17 +233,18 @@ function RouteComponent() {
                                 member.role === 'owner' ? 'default' : 'outline'
                               }
                             >
-                              {formatRole(member.role)}
+                              {getProfileLabel(
+                                member.permissionProfileId,
+                                member.role
+                              )}
                             </Badge>
                           </TableCell>
 
                           <TableCell>
                             <div className="flex items-center justify-between gap-2">
                               <Badge variant="default">Active</Badge>
-                              {canManageMembers &&
-                                member.role !== 'owner' &&
-                                (currentWorkspace?.role === 'owner' ||
-                                  member.role === 'member') && (
+                              {(canUpdateMembers || canRemoveMembers) &&
+                                member.role !== 'owner' && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger
                                       render={
@@ -242,26 +258,28 @@ function RouteComponent() {
                                       className={'w-fit'}
                                       align="end"
                                     >
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setMemberToEdit(member)
-                                          setMemberRole(
-                                            member.role === 'admin'
-                                              ? 'admin'
-                                              : 'member'
-                                          )
-                                        }}
-                                      >
-                                        Change Role
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        className="text-destructive"
-                                        onClick={() =>
-                                          setMemberToRemove(member)
-                                        }
-                                      >
-                                        Remove Member
-                                      </DropdownMenuItem>
+                                      {canUpdateMembers && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setMemberToEdit(member)
+                                            setMemberPermissionProfileId(
+                                              member.permissionProfileId ?? ''
+                                            )
+                                          }}
+                                        >
+                                          Change permission profile
+                                        </DropdownMenuItem>
+                                      )}
+                                      {canRemoveMembers && (
+                                        <DropdownMenuItem
+                                          className="text-destructive"
+                                          onClick={() =>
+                                            setMemberToRemove(member)
+                                          }
+                                        >
+                                          Remove Member
+                                        </DropdownMenuItem>
+                                      )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 )}
@@ -297,7 +315,8 @@ function RouteComponent() {
 
                           <TableCell>
                             <Badge variant="outline">
-                              {formatRole(invitation.role)}
+                              {invitation.permissionProfileName ??
+                                'Unassigned profile'}
                             </Badge>
                           </TableCell>
 
@@ -325,28 +344,32 @@ function RouteComponent() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change member role</DialogTitle>
+            <DialogTitle>Change permission profile</DialogTitle>
             <DialogDescription>
-              Update the role for {memberToEdit?.name}.
+              Choose the access profile for {memberToEdit?.name}.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
-            <Label htmlFor="member-role">Role</Label>
+            <Label htmlFor="member-permission-profile">
+              Permission profile
+            </Label>
             <Select
-              value={memberRole}
+              value={memberPermissionProfileId}
               onValueChange={(value) => {
-                if (value === 'admin' || value === 'member') {
-                  setMemberRole(value)
-                }
+                if (value) setMemberPermissionProfileId(value)
               }}
+              disabled={profilesPending || profiles.length === 0}
             >
-              <SelectTrigger id="member-role" className="w-full">
-                <SelectValue />
+              <SelectTrigger id="member-permission-profile" className="w-full">
+                <SelectValue placeholder="Choose a permission profile" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="member">Member</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                {profiles.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -356,12 +379,19 @@ function RouteComponent() {
               Cancel
             </Button>
             <Button
-              disabled={!memberToEdit || updateMember.isPending}
+              disabled={
+                !memberToEdit ||
+                !memberPermissionProfileId ||
+                updateMember.isPending
+              }
               onClick={() => {
                 if (!memberToEdit) return
 
                 updateMember.mutate(
-                  { userId: memberToEdit.id, role: memberRole },
+                  {
+                    userId: memberToEdit.id,
+                    permissionProfileId: memberPermissionProfileId,
+                  },
                   {
                     onSuccess: (data) => {
                       if (data.success) setMemberToEdit(null)
@@ -373,7 +403,7 @@ function RouteComponent() {
               {updateMember.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Save role
+              Save permissions
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
+import type { Permission } from '@workspace/contracts'
 
 import apiClient from '@/lib/apiClient'
 
@@ -124,7 +125,7 @@ type CreateInviteResponse = {
 
 type CreateInvitationPayload = {
   email: string
-  role: 'admin' | 'member'
+  permissionProfileId: string
 }
 
 export const useCreateWorkspaceInvitation = (workspaceId: string) => {
@@ -157,7 +158,7 @@ export const useCreateWorkspaceInvitation = (workspaceId: string) => {
 
 type WorkspaceMemberPayload = {
   userId: string
-  role: 'admin' | 'member'
+  permissionProfileId: string
 }
 
 type WorkspaceMemberResponse = {
@@ -179,7 +180,7 @@ export const useUpdateWorkspaceMember = (workspaceId: string) => {
     ): Promise<WorkspaceMemberResponse> => {
       const response = await apiClient.patch(
         `/workspaces/${workspaceId}/members/${payload.userId}`,
-        { role: payload.role }
+        { permissionProfileId: payload.permissionProfileId }
       )
 
       return response.data
@@ -192,7 +193,10 @@ export const useUpdateWorkspaceMember = (workspaceId: string) => {
       await queryClient.invalidateQueries({
         queryKey: ['WORKSPACE_MEMBERS', workspaceId],
       })
-      toast.success('Member role updated.')
+      await queryClient.invalidateQueries({
+        queryKey: ['WORKSPACE_PERMISSION_PROFILES', workspaceId],
+      })
+      toast.success('Member permissions updated.')
     },
     onError: (error) => toast.error(error.message),
   })
@@ -224,7 +228,116 @@ export const useRemoveWorkspaceMember = (workspaceId: string) => {
       await queryClient.invalidateQueries({
         queryKey: ['WORKSPACE_MEMBERS', workspaceId],
       })
+      await queryClient.invalidateQueries({
+        queryKey: ['WORKSPACE_PERMISSION_PROFILES', workspaceId],
+      })
       toast.success('Member removed.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+type PermissionProfilePayload = {
+  name: string
+  description: string | null
+  permissions: Permission[]
+}
+
+type PermissionProfileResponse = {
+  success: boolean
+  data?: {
+    id: string
+  }
+  message?: string
+}
+
+export const useCreateWorkspacePermissionProfile = (workspaceId: string) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (
+      payload: PermissionProfilePayload
+    ): Promise<PermissionProfileResponse> => {
+      const response = await apiClient.post(
+        `/workspaces/${workspaceId}/permission-profiles`,
+        payload
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to create permission profile.')
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['WORKSPACE_PERMISSION_PROFILES', workspaceId],
+      })
+      toast.success('Permission profile created.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export const useUpdateWorkspacePermissionProfile = (workspaceId: string) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      profileId,
+      payload,
+    }: {
+      profileId: string
+      payload: PermissionProfilePayload
+    }): Promise<PermissionProfileResponse> => {
+      const response = await apiClient.patch(
+        `/workspaces/${workspaceId}/permission-profiles/${profileId}`,
+        payload
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to update permission profile.')
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['WORKSPACE_PERMISSION_PROFILES', workspaceId],
+      })
+      toast.success('Permission profile updated.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+type DeletePermissionProfileResponse = {
+  success: boolean
+  message?: string
+}
+
+export const useDeleteWorkspacePermissionProfile = (workspaceId: string) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (
+      profileId: string
+    ): Promise<DeletePermissionProfileResponse> => {
+      const response = await apiClient.delete(
+        `/workspaces/${workspaceId}/permission-profiles/${profileId}`
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to delete permission profile.')
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['WORKSPACE_PERMISSION_PROFILES', workspaceId],
+      })
+      toast.success('Permission profile deleted.')
     },
     onError: (error) => toast.error(error.message),
   })

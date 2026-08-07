@@ -20,7 +20,10 @@ import {
   SelectValue,
 } from '@workspace/ui/components/select'
 import { useCreateWorkspaceInvitation } from '@/mutations/workspace'
-import { getWorkspacesOptions } from '@/queries/workspace'
+import {
+  getWorkspacePermissionProfilesOptions,
+  getWorkspacesOptions,
+} from '@/queries/workspace'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
@@ -48,29 +51,47 @@ const emailSchema = z.email()
 function RouteComponent() {
   const { workspace, project } = Route.useParams()
   const { data: workspacesData } = useQuery(getWorkspacesOptions())
+  const { data: profilesData, isPending: profilesPending } = useQuery(
+    getWorkspacePermissionProfilesOptions(workspace)
+  )
   const createInvitation = useCreateWorkspaceInvitation(workspace)
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'admin' | 'member'>('member')
+  const [permissionProfileId, setPermissionProfileId] = useState('')
 
   const workspaceName =
     workspacesData?.data.find((item) => item.id === workspace)?.name ??
     'this workspace'
   const isEmailValid = emailSchema.safeParse(email.trim()).success
+  const profiles = profilesData?.data ?? []
+  const defaultProfile =
+    profiles.find((profile) => profile.name === 'Viewer') ?? profiles[0]
+  const selectedPermissionProfileId =
+    permissionProfileId || defaultProfile?.id || ''
+  const selectedProfile = profiles.find(
+    (profile) => profile.id === selectedPermissionProfileId
+  )
 
   const submitInvitation = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const recipientEmail = email.trim()
-    if (!emailSchema.safeParse(recipientEmail).success) return
+    if (
+      !emailSchema.safeParse(recipientEmail).success ||
+      !selectedPermissionProfileId
+    ) {
+      return
+    }
 
     createInvitation.mutate(
-      { email: recipientEmail, role },
+      {
+        email: recipientEmail,
+        permissionProfileId: selectedPermissionProfileId,
+      },
       {
         onSuccess: (data) => {
           if (!data.success) return
 
           setEmail('')
-          setRole('member')
         },
       }
     )
@@ -133,32 +154,51 @@ function RouteComponent() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="invite-role">Role</Label>
+                  <Label htmlFor="invite-permission-profile">
+                    Permission profile
+                  </Label>
                   <Select
-                    value={role}
+                    value={selectedPermissionProfileId}
                     onValueChange={(value) => {
-                      if (value === 'admin' || value === 'member') {
-                        setRole(value)
-                      }
+                      if (value) setPermissionProfileId(value)
                     }}
+                    disabled={profilesPending || profiles.length === 0}
                   >
-                    <SelectTrigger id="invite-role" className="w-full">
-                      <SelectValue />
+                    <SelectTrigger
+                      id="invite-permission-profile"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="Choose a permission profile" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      {profiles.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-muted-foreground text-xs leading-5">
-                    Admins can invite other users and manage workspace access.
-                  </p>
+                  {selectedProfile ? (
+                    <p className="text-muted-foreground text-xs leading-5">
+                      {selectedProfile.description ??
+                        `${selectedProfile.permissions.length} permissions assigned.`}
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground text-xs leading-5">
+                      Create a permission profile before inviting teammates.
+                    </p>
+                  )}
                 </div>
 
                 <Button
                   type="submit"
                   className="w-full sm:w-auto"
-                  disabled={!isEmailValid || createInvitation.isPending}
+                  disabled={
+                    !isEmailValid ||
+                    !selectedPermissionProfileId ||
+                    profilesPending ||
+                    createInvitation.isPending
+                  }
                 >
                   {createInvitation.isPending && (
                     <Loader2Icon className="animate-spin" />

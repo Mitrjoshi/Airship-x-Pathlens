@@ -12,6 +12,7 @@ import {
   type GoalRange,
   type GoalType,
 } from '@/queries/goals'
+import { getWorkspacesOptions } from '@/queries/workspace'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -165,9 +166,16 @@ function RouteComponent() {
       range,
     })
   )
+  const { data: workspaceData } = useQuery(getWorkspacesOptions())
   const createGoal = useCreateGoal()
   const updateGoal = useUpdateGoal()
   const deleteGoal = useDeleteGoal()
+  const currentWorkspace = workspaceData?.data.find(
+    (item) => item.id === workspace
+  )
+  const canManageGoals =
+    currentWorkspace?.role === 'owner' ||
+    currentWorkspace?.permissions.includes('analytics.goals.manage')
 
   const goals = data?.data ?? []
   const filteredGoals =
@@ -322,7 +330,7 @@ function RouteComponent() {
                 </SelectContent>
               </Select>
 
-              <Button onClick={openCreateDialog}>
+              <Button onClick={openCreateDialog} disabled={!canManageGoals}>
                 <Plus className="mr-2 h-4 w-4" />
                 New Goal
               </Button>
@@ -452,7 +460,11 @@ function RouteComponent() {
             </form>
 
             <DialogFooter>
-              <Button type="submit" form="goal-form" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                form="goal-form"
+                disabled={isSubmitting || !canManageGoals}
+              >
                 {isSubmitting
                   ? 'Saving...'
                   : editingGoalId
@@ -545,7 +557,11 @@ function RouteComponent() {
                   : 'Choose another status filter to view your goals.'}
               </p>
               {goals.length === 0 && (
-                <Button className="mt-5" onClick={openCreateDialog}>
+                <Button
+                  className="mt-5"
+                  onClick={openCreateDialog}
+                  disabled={!canManageGoals}
+                >
                   <Plus className="mr-2 size-4" />
                   Create your first goal
                 </Button>
@@ -588,6 +604,7 @@ function RouteComponent() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
+                              disabled={!canManageGoals}
                             />
                           }
                         >

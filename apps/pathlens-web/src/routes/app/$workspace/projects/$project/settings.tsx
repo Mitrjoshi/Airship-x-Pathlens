@@ -19,6 +19,7 @@ import { Switch } from '@workspace/ui/components/switch'
 import { Textarea } from '@workspace/ui/components/textarea'
 import { useDeleteProject } from '@/mutations/projects'
 import { getProjectsOptions } from '@/queries/projects'
+import { getWorkspacesOptions } from '@/queries/workspace'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
@@ -37,10 +38,17 @@ function RouteComponent() {
       project_id: project,
     })
   )
+  const { data: workspaceData } = useQuery(getWorkspacesOptions())
 
   const { mutate: deleteMutate, isPending: deletePending } = useDeleteProject()
 
   const projectData = data?.data[0]
+  const currentWorkspace = workspaceData?.data.find(
+    (item) => item.id === workspace
+  )
+  const canDeleteProject =
+    currentWorkspace?.role === 'owner' ||
+    currentWorkspace?.permissions.includes('projects.delete')
 
   return (
     <ProjectPageLayout>
@@ -190,7 +198,7 @@ function RouteComponent() {
                 })
               }}
               variant="destructive"
-              disabled={deletePending}
+              disabled={deletePending || !canDeleteProject}
             >
               <LoadingSwap isLoading={deletePending}>
                 Delete Project

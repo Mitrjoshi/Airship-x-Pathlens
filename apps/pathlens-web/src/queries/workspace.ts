@@ -1,4 +1,5 @@
 import apiClient from '@/lib/apiClient'
+import type { Permission } from '@workspace/contracts'
 import { queryOptions } from '@tanstack/react-query'
 
 export type T_Workspace = {
@@ -8,6 +9,9 @@ export type T_Workspace = {
   isDefault: boolean
   createdAt: string
   role?: string
+  permissionProfileId: string | null
+  permissionProfileName: string | null
+  permissions: Permission[]
   projectCount: number
   memberCount: number
 }
@@ -35,6 +39,8 @@ export type T_WorkspaceMember = {
   email: string
   avatar: string | null
   role: string
+  permissionProfileId: string | null
+  permissionProfileName: string | null
   joinedAt: string | null
 }
 
@@ -44,6 +50,8 @@ export type T_WorkspaceInvitation = {
   email: string
   avatar: string | null
   role: string
+  permissionProfileId: string | null
+  permissionProfileName: string | null
   createdAt: string | null
 }
 
@@ -79,10 +87,43 @@ export const getWorkspaceInvitationsOptions = (workspaceId: string) =>
     enabled: Boolean(workspaceId),
   })
 
+export type T_PermissionProfile = {
+  id: string
+  workspaceId: string
+  name: string
+  description: string | null
+  permissions: Permission[]
+  isSystem: boolean
+  createdAt: string
+  updatedAt: string
+  memberCount: number
+  pendingInvitationCount: number
+}
+
+interface PermissionProfilesResponse {
+  success: boolean
+  data: T_PermissionProfile[]
+}
+
+export const getWorkspacePermissionProfilesOptions = (workspaceId: string) =>
+  queryOptions({
+    queryKey: ['WORKSPACE_PERMISSION_PROFILES', workspaceId],
+    queryFn: async (): Promise<PermissionProfilesResponse> => {
+      const response = await apiClient.get(
+        `/workspaces/${workspaceId}/permission-profiles`
+      )
+
+      return response.data
+    },
+    enabled: Boolean(workspaceId),
+  })
+
 export type T_WorkspaceNotification = {
   id: string
   type: string
   role: string
+  permissionProfileId: string | null
+  permissionProfileName: string | null
   workspaceId: string
   workspaceName: string
   senderName: string

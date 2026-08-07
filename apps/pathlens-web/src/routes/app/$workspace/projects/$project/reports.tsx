@@ -42,6 +42,7 @@ import {
   type AnalyticsRange,
   type T_Analytics,
 } from '@/queries/analytics'
+import { getWorkspacesOptions } from '@/queries/workspace'
 import { formatNumber } from '@/utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -252,6 +253,7 @@ function RouteComponent() {
   const { workspace, project } = Route.useParams()
   const [range, setRange] = useState<AnalyticsRange>('30d')
   const [device, setDevice] = useState<AnalyticsDevice>('all')
+  const { data: workspaceData } = useQuery(getWorkspacesOptions())
 
   const {
     data: analyticsData,
@@ -269,6 +271,12 @@ function RouteComponent() {
 
   const analytics = analyticsData?.data
   const summary = analytics?.summary
+  const currentWorkspace = workspaceData?.data.find(
+    (item) => item.id === workspace
+  )
+  const canExport =
+    currentWorkspace?.role === 'owner' ||
+    currentWorkspace?.permissions.includes('analytics.reports.export')
 
   return (
     <ProjectPageLayout>
@@ -317,7 +325,7 @@ function RouteComponent() {
 
               <Button
                 variant="outline"
-                disabled={!analytics}
+                disabled={!analytics || !canExport}
                 onClick={() => {
                   if (analytics) downloadReport(analytics, range, device)
                 }}

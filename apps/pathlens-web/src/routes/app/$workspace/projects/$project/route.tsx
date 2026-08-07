@@ -63,6 +63,8 @@ function RouteComponent() {
                 email: user?.email ?? '',
                 avatar: user?.avatar,
               }}
+              workspace={workspace}
+              project={project}
             />
           </div>
         </header>
@@ -75,12 +77,16 @@ function RouteComponent() {
 
 function NavUser({
   user,
+  workspace,
+  project,
 }: {
   user: {
     name: string
     email: string
     avatar: string | null
   }
+  workspace: string
+  project: string
 }) {
   const navigate = useNavigate()
 
@@ -125,7 +131,14 @@ function NavUser({
             <BadgeCheckIcon />
             Account
           </DropdownMenuItem>
-          <DropdownMenuItem render={<Link to="/app/billing" />}>
+          <DropdownMenuItem
+            render={
+              <Link
+                to="/app/$workspace/projects/$project/billing"
+                params={{ workspace, project }}
+              />
+            }
+          >
             <CreditCardIcon />
             Billing
           </DropdownMenuItem>

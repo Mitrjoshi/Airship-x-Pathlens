@@ -284,6 +284,15 @@ export const getProjectIDByApiKeyModel = async (apiKey: string) => {
     .orderBy(desc(projects.createdAt));
 };
 
+export const getProjectWorkspaceIdModel = async (projectId: string) => {
+  const [project] = await db
+    .select({ workspaceId: projects.workspaceId })
+    .from(projects)
+    .where(eq(projects.id, projectId));
+
+  return project?.workspaceId ?? null;
+};
+
 export const deleteProjectModel = async (project_id: string) => {
   await db.delete(projects).where(eq(projects.id, project_id));
 };

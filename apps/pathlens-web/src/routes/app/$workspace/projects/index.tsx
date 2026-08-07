@@ -32,6 +32,7 @@ import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { useCreateProject } from '@/mutations/projects'
 import { useQuery } from '@tanstack/react-query'
 import { getProjectsOptions } from '@/queries/projects'
+import { getWorkspacesOptions } from '@/queries/workspace'
 import { ProjectCard } from './-components/project-card'
 
 export const Route = createFileRoute('/app/$workspace/projects/')({
@@ -50,6 +51,7 @@ const formSchema = z.object({
 function RouteComponent() {
   const { mutate: createProject, isPending } = useCreateProject()
   const { workspace } = Route.useParams()
+  const { data: workspaceData } = useQuery(getWorkspacesOptions())
 
   const {
     data,
@@ -82,6 +84,12 @@ function RouteComponent() {
 
   const projects = data?.data ?? []
   const firstProject = projects[0]
+  const currentWorkspace = workspaceData?.data.find(
+    (item) => item.id === workspace
+  )
+  const canCreateProject =
+    currentWorkspace?.role === 'owner' ||
+    currentWorkspace?.permissions.includes('projects.create')
 
   return (
     <AppLayout className="mx-auto min-h-screen w-full max-w-5xl gap-0 px-5 py-8 sm:px-8">
@@ -132,7 +140,7 @@ function RouteComponent() {
             <Dialog>
               <DialogTrigger
                 render={
-                  <Button>
+                  <Button disabled={!canCreateProject}>
                     <PlusIcon />
                     New project
                   </Button>

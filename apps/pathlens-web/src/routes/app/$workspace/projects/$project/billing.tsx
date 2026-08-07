@@ -1,4 +1,8 @@
-import { AppLayout } from '@/components/common/app-layout'
+import {
+  ProjectPageHeader,
+  ProjectPageLayout,
+  ProjectPanel,
+} from '@/components/common/project-page'
 import { createFileRoute } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
@@ -13,7 +17,6 @@ import {
 } from 'lucide-react'
 
 import {
-  Card,
   CardContent,
   CardDescription,
   CardFooter,
@@ -55,7 +58,9 @@ import {
   SelectValue,
 } from '@workspace/ui/components/select'
 
-export const Route = createFileRoute('/app/billing')({
+export const Route = createFileRoute(
+  '/app/$workspace/projects/$project/billing'
+)({
   component: RouteComponent,
   staticData: {
     breadcrumb: 'Billing',
@@ -189,21 +194,29 @@ function RouteComponent() {
   })
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
-          <p className="text-muted-foreground">
-            Manage payment methods, billing address, and invoices.
-          </p>
-        </div>
+    <ProjectPageLayout>
+      <div className="mx-auto w-full space-y-8">
+        <ProjectPageHeader
+          eyebrow="Project billing"
+          title="Billing & invoices."
+          description="Manage payment methods, billing address, and invoices."
+          actions={
+            <Badge variant="outline" className="w-fit">
+              Pro plan · Active
+            </Badge>
+          }
+        />
 
         {/* Upcoming Invoice */}
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
+        <ProjectPanel>
+          <CardHeader className="border-b px-5 py-5">
+            <CardTitle>Upcoming invoice</CardTitle>
+            <CardDescription>Your next subscription payment.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
             <div className="flex items-center gap-3">
-              <div className="bg-muted rounded-full p-2.5">
-                <Receipt className="text-muted-foreground h-5 w-5" />
+              <div className="bg-muted flex size-10 items-center justify-center rounded-xl">
+                <Receipt className="text-muted-foreground size-5" />
               </div>
 
               <div>
@@ -214,15 +227,15 @@ function RouteComponent() {
               </div>
             </div>
 
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-semibold tracking-tight">
               ${upcomingInvoice.amount.toFixed(2)}
             </div>
           </CardContent>
-        </Card>
+        </ProjectPanel>
 
         {/* Payment Methods */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <ProjectPanel>
+          <CardHeader className="flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle>Payment Methods</CardTitle>
               <CardDescription>
@@ -233,8 +246,8 @@ function RouteComponent() {
             <Dialog>
               <DialogTrigger
                 render={
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
+                  <Button className="self-start">
+                    <Plus />
                     Add Card
                   </Button>
                 }
@@ -275,15 +288,15 @@ function RouteComponent() {
             </Dialog>
           </CardHeader>
 
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 p-5">
             {paymentMethods.map((method) => (
               <div
                 key={method.id}
-                className="flex items-center justify-between rounded-lg border p-4"
+                className="flex items-center justify-between rounded-xl border p-4"
               >
                 <div className="flex items-center gap-3">
-                  <div className="bg-muted rounded-md p-2">
-                    <CreditCard className="text-muted-foreground h-5 w-5" />
+                  <div className="bg-muted flex size-10 items-center justify-center rounded-xl">
+                    <CreditCard className="text-muted-foreground size-5" />
                   </div>
 
                   <div>
@@ -320,10 +333,10 @@ function RouteComponent() {
               </div>
             ))}
           </CardContent>
-        </Card>
+        </ProjectPanel>
 
         {/* Billing Address */}
-        <Card>
+        <ProjectPanel>
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -331,14 +344,14 @@ function RouteComponent() {
               addressForm.handleSubmit()
             }}
           >
-            <CardHeader>
+            <CardHeader className="border-b px-5 py-5">
               <CardTitle>Billing Address</CardTitle>
               <CardDescription>
                 Used on your invoices and for tax calculation.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-5 p-5">
               <addressForm.Field name="companyName">
                 {(field) => (
                   <div className="space-y-2">
@@ -459,7 +472,7 @@ function RouteComponent() {
               </div>
             </CardContent>
 
-            <CardFooter className="justify-end border-t">
+            <CardFooter className="justify-end border-t px-5 py-4">
               <addressForm.Subscribe
                 selector={(state) => [state.canSubmit, state.isSubmitting]}
               >
@@ -474,22 +487,22 @@ function RouteComponent() {
               </addressForm.Subscribe>
             </CardFooter>
           </form>
-        </Card>
+        </ProjectPanel>
 
         {/* Invoice History */}
-        <Card>
-          <CardHeader>
+        <ProjectPanel>
+          <CardHeader className="border-b px-5 py-5">
             <CardTitle>Invoice History</CardTitle>
             <CardDescription>
               All past invoices for this workspace.
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
-            <Table>
+          <CardContent className="overflow-x-auto p-0">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Invoice</TableHead>
+                  <TableHead className="pl-5">Invoice</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Amount</TableHead>
@@ -501,7 +514,7 @@ function RouteComponent() {
               <TableBody>
                 {invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
-                    <TableCell className="font-mono text-sm">
+                    <TableCell className="pl-5 font-mono text-sm">
                       {invoice.id}
                     </TableCell>
                     <TableCell>{invoice.date}</TableCell>
@@ -524,8 +537,8 @@ function RouteComponent() {
               </TableBody>
             </Table>
           </CardContent>
-        </Card>
+        </ProjectPanel>
       </div>
-    </AppLayout>
+    </ProjectPageLayout>
   )
 }
