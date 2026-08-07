@@ -379,7 +379,7 @@ function WorkspaceNav({
               }
             >
               <ShieldCheckIcon />
-              <span>Permission profiles</span>
+              <span>Permissions</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         )}

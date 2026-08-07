@@ -12,7 +12,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsup src/index.ts --format iife --global-name PathLens --watch",
+    "dev": "npx serve .",
     "build": "tsup",
     "clean": "rimraf dist",
     "typecheck": "tsc --noEmit"

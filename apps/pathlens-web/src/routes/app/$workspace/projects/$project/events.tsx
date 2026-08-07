@@ -12,21 +12,15 @@ import {
 import { Input } from '@workspace/ui/components/input'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@workspace/ui/components/tabs'
-import { getEventsOptions } from '@/queries/events'
+import { getEventsOptions, type ProjectEvent } from '@/queries/events'
 import { formatNumber, formatRelativeTime } from '@/utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import {
   Activity,
-  AlertTriangle,
-  Eye,
   FormInput,
-  Gauge,
-  MoreHorizontal,
-  Mouse,
   MousePointerClick,
   Search,
-  ScrollText,
   type LucideIcon,
 } from 'lucide-react'
 import { useDeferredValue, useState } from 'react'
@@ -48,24 +42,18 @@ function renderEventIcon(type: string) {
   const className = 'text-primary h-5 w-5'
 
   if (type === 'click') return <MousePointerClick className={className} />
-  if (type === 'page_view') return <Eye className={className} />
-  if (type === 'scroll') return <ScrollText className={className} />
-  if (type === 'mousemove') return <Mouse className={className} />
   if (type === 'form_submit') return <FormInput className={className} />
 
   return <Activity className={className} />
 }
 
-type EventFilter =
-  | 'all'
-  | 'click'
-  | 'mousemove'
-  | 'scroll'
-  | 'page_view'
-  | 'forms'
-  | 'errors'
-  | 'performance'
-  | 'other'
+type EventFilter = 'important' | 'click' | 'forms'
+
+function isImportantEvent(event: ProjectEvent): boolean {
+  if (event.type === 'form_submit' || event.type === 'custom') return true
+
+  return event.type === 'click' && Boolean(event.text?.trim())
+}
 
 interface EventFilterConfig {
   value: EventFilter
@@ -75,56 +63,30 @@ interface EventFilterConfig {
 }
 
 const eventFilters: EventFilterConfig[] = [
-  { value: 'all', label: 'All', icon: Activity },
+  {
+    value: 'important',
+    label: 'Important',
+    icon: Activity,
+    types: ['click', 'form_submit', 'custom'],
+  },
   {
     value: 'click',
-    label: 'Clicks',
+    label: 'Actions',
     icon: MousePointerClick,
     types: ['click'],
-  },
-  {
-    value: 'mousemove',
-    label: 'Mouse',
-    icon: Mouse,
-    types: ['mousemove'],
-  },
-  { value: 'scroll', label: 'Scroll', icon: ScrollText, types: ['scroll'] },
-  {
-    value: 'page_view',
-    label: 'Pages',
-    icon: Eye,
-    types: ['page_view'],
   },
   {
     value: 'forms',
     label: 'Forms',
     icon: FormInput,
-    types: ['form_submit', 'input_change'],
-  },
-  {
-    value: 'errors',
-    label: 'Errors',
-    icon: AlertTriangle,
-    types: ['javascript_error', 'promise_rejection'],
-  },
-  {
-    value: 'performance',
-    label: 'Performance',
-    icon: Gauge,
-    types: ['performance'],
-  },
-  {
-    value: 'other',
-    label: 'Other',
-    icon: MoreHorizontal,
-    types: ['session_start', 'session_end', 'resize', 'custom'],
+    types: ['form_submit'],
   },
 ]
 
 function RouteComponent() {
   const { workspace, project } = Route.useParams()
   const [search, setSearch] = useState('')
-  const [eventFilter, setEventFilter] = useState<EventFilter>('all')
+  const [eventFilter, setEventFilter] = useState<EventFilter>('important')
   const deferredSearch = useDeferredValue(search)
 
   const { data, isError, isPending, isFetching } = useQuery(
@@ -140,13 +102,14 @@ function RouteComponent() {
 
   const eventData = data?.data
   const events = eventData?.events ?? []
+  const importantEvents = events.filter(isImportantEvent)
   const selectedFilter = eventFilters.find(
     (filter) => filter.value === eventFilter
   )
   const filterTypes = selectedFilter?.types
   const filteredEvents = filterTypes
-    ? events.filter((event) => filterTypes.includes(event.type))
-    : events
+    ? importantEvents.filter((event) => filterTypes.includes(event.type))
+    : importantEvents
 
   return (
     <ProjectPageLayout>
@@ -154,7 +117,7 @@ function RouteComponent() {
         <ProjectPageHeader
           eyebrow="Activity"
           title="Events"
-          description="Monitor all tracked user events in real time."
+          description="Monitor the user actions that matter most."
           actions={
             <div className="relative w-full sm:w-64">
               <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -180,8 +143,8 @@ function RouteComponent() {
             {isFetching && (
               <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
             )}
-            {formatNumber(eventData?.summary.totalEvents ?? 0)} events ·{' '}
-            {formatNumber(eventData?.summary.totalVisitors ?? 0)} visitors
+            {formatNumber(eventData?.summary.totalEvents ?? 0)} captured events
+            · {formatNumber(eventData?.summary.totalVisitors ?? 0)} visitors
           </span>
         </div>
 
@@ -209,7 +172,7 @@ function RouteComponent() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Events</CardTitle>
+            <CardTitle>Important Events</CardTitle>
           </CardHeader>
 
           <CardContent>
@@ -275,7 +238,8 @@ function RouteComponent() {
                 ))
               ) : (
                 <div className="text-muted-foreground rounded-lg border border-dashed px-5 py-12 text-center text-sm">
-                  No events match this filter and search in the last 24 hours.
+                  No important actions match this filter and search in the last
+                  24 hours.
                 </div>
               )}
             </div>
