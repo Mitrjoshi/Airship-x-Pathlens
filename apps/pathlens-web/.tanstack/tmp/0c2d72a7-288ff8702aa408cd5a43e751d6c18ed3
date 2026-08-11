@@ -17,9 +17,9 @@ import { Route as authPasswordResetRouteImport } from './routes/(auth)/password-
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppAccountRouteImport } from './routes/app/account'
+import { Route as AppBillingRouteImport } from './routes/app/billing'
 import { Route as AppPlansRouteImport } from './routes/app/plans'
 import { Route as AppWorkspaceIndexRouteImport } from './routes/app/$workspace/index'
-import { Route as AppWorkspaceBillingRouteImport } from './routes/app/$workspace/billing'
 import { Route as AppWorkspaceInviteRouteImport } from './routes/app/$workspace/invite'
 import { Route as AppWorkspaceMembersRouteImport } from './routes/app/$workspace/members'
 import { Route as AppWorkspacePermissionProfilesRouteImport } from './routes/app/$workspace/permission-profiles'
@@ -79,6 +79,11 @@ const AppAccountRoute = AppAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppPlansRoute = AppPlansRouteImport.update({
   id: '/plans',
   path: '/plans',
@@ -87,11 +92,6 @@ const AppPlansRoute = AppPlansRouteImport.update({
 const AppWorkspaceIndexRoute = AppWorkspaceIndexRouteImport.update({
   id: '/$workspace/',
   path: '/$workspace/',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppWorkspaceBillingRoute = AppWorkspaceBillingRouteImport.update({
-  id: '/$workspace/billing',
-  path: '/$workspace/billing',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppWorkspaceInviteRoute = AppWorkspaceInviteRouteImport.update({
@@ -214,9 +214,9 @@ export interface FileRoutesByFullPath {
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/app/account': typeof AppAccountRoute
+  '/app/billing': typeof AppBillingRoute
   '/app/plans': typeof AppPlansRoute
   '/app/': typeof AppIndexRoute
-  '/app/$workspace/billing': typeof AppWorkspaceBillingRoute
   '/app/$workspace/invite': typeof AppWorkspaceInviteRoute
   '/app/$workspace/members': typeof AppWorkspaceMembersRoute
   '/app/$workspace/permission-profiles': typeof AppWorkspacePermissionProfilesRoute
@@ -244,9 +244,9 @@ export interface FileRoutesByTo {
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/app/account': typeof AppAccountRoute
+  '/app/billing': typeof AppBillingRoute
   '/app/plans': typeof AppPlansRoute
   '/app': typeof AppIndexRoute
-  '/app/$workspace/billing': typeof AppWorkspaceBillingRoute
   '/app/$workspace/invite': typeof AppWorkspaceInviteRoute
   '/app/$workspace/members': typeof AppWorkspaceMembersRoute
   '/app/$workspace/permission-profiles': typeof AppWorkspacePermissionProfilesRoute
@@ -276,9 +276,9 @@ export interface FileRoutesById {
   '/(auth)/password-reset': typeof authPasswordResetRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/app/account': typeof AppAccountRoute
+  '/app/billing': typeof AppBillingRoute
   '/app/plans': typeof AppPlansRoute
   '/app/': typeof AppIndexRoute
-  '/app/$workspace/billing': typeof AppWorkspaceBillingRoute
   '/app/$workspace/invite': typeof AppWorkspaceInviteRoute
   '/app/$workspace/members': typeof AppWorkspaceMembersRoute
   '/app/$workspace/permission-profiles': typeof AppWorkspacePermissionProfilesRoute
@@ -309,9 +309,9 @@ export interface FileRouteTypes {
     | '/password-reset'
     | '/sign-up'
     | '/app/account'
+    | '/app/billing'
     | '/app/plans'
     | '/app/'
-    | '/app/$workspace/billing'
     | '/app/$workspace/invite'
     | '/app/$workspace/members'
     | '/app/$workspace/permission-profiles'
@@ -339,9 +339,9 @@ export interface FileRouteTypes {
     | '/password-reset'
     | '/sign-up'
     | '/app/account'
+    | '/app/billing'
     | '/app/plans'
     | '/app'
-    | '/app/$workspace/billing'
     | '/app/$workspace/invite'
     | '/app/$workspace/members'
     | '/app/$workspace/permission-profiles'
@@ -370,9 +370,9 @@ export interface FileRouteTypes {
     | '/(auth)/password-reset'
     | '/(auth)/sign-up'
     | '/app/account'
+    | '/app/billing'
     | '/app/plans'
     | '/app/'
-    | '/app/$workspace/billing'
     | '/app/$workspace/invite'
     | '/app/$workspace/members'
     | '/app/$workspace/permission-profiles'
@@ -459,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/billing': {
+      id: '/app/billing'
+      path: '/billing'
+      fullPath: '/app/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/plans': {
       id: '/app/plans'
       path: '/plans'
@@ -471,13 +478,6 @@ declare module '@tanstack/react-router' {
       path: '/$workspace'
       fullPath: '/app/$workspace/'
       preLoaderRoute: typeof AppWorkspaceIndexRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/$workspace/billing': {
-      id: '/app/$workspace/billing'
-      path: '/$workspace/billing'
-      fullPath: '/app/$workspace/billing'
-      preLoaderRoute: typeof AppWorkspaceBillingRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/app/$workspace/invite': {
@@ -684,9 +684,9 @@ const AppWorkspaceProjectsProjectRouteRouteWithChildren =
 
 interface AppRouteRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
+  AppBillingRoute: typeof AppBillingRoute
   AppPlansRoute: typeof AppPlansRoute
   AppIndexRoute: typeof AppIndexRoute
-  AppWorkspaceBillingRoute: typeof AppWorkspaceBillingRoute
   AppWorkspaceInviteRoute: typeof AppWorkspaceInviteRoute
   AppWorkspaceMembersRoute: typeof AppWorkspaceMembersRoute
   AppWorkspacePermissionProfilesRoute: typeof AppWorkspacePermissionProfilesRoute
@@ -698,9 +698,9 @@ interface AppRouteRouteChildren {
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAccountRoute: AppAccountRoute,
+  AppBillingRoute: AppBillingRoute,
   AppPlansRoute: AppPlansRoute,
   AppIndexRoute: AppIndexRoute,
-  AppWorkspaceBillingRoute: AppWorkspaceBillingRoute,
   AppWorkspaceInviteRoute: AppWorkspaceInviteRoute,
   AppWorkspaceMembersRoute: AppWorkspaceMembersRoute,
   AppWorkspacePermissionProfilesRoute: AppWorkspacePermissionProfilesRoute,

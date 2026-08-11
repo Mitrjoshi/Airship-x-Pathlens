@@ -4,6 +4,7 @@ import {
   ProjectPageHeader,
   ProjectPageLayout,
   ProjectPanel,
+  PageToolbar,
 } from '@/components/common/project-page'
 import {
   Card,
@@ -39,6 +40,7 @@ import {
   type DashboardDevice,
 } from '@/queries/dashboard'
 import { formatNumber } from '@/utils/utils'
+import { navigationIcons } from '@/config/navigation-icons'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import {
@@ -46,12 +48,9 @@ import {
   Globe,
   Laptop,
   MonitorSmartphone,
-  MousePointerClick,
   Smartphone,
   TrendingDown,
   TrendingUp,
-  Users,
-  Zap,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
@@ -135,19 +134,19 @@ function RouteComponent() {
     {
       label: 'Visitors',
       value: formatNumber(dashboard?.visitors ?? 0),
-      icon: Users,
+      icon: navigationIcons.visitors,
       change: dashboard?.weeklyChange.visitors,
     },
     {
       label: 'Sessions',
       value: formatNumber(dashboard?.sessions ?? 0),
-      icon: MousePointerClick,
+      icon: navigationIcons.sessions,
       change: dashboard?.weeklyChange.sessions,
     },
     {
       label: 'Events',
       value: formatNumber(dashboard?.events ?? 0),
-      icon: Zap,
+      icon: navigationIcons.events,
       change: dashboard?.weeklyChange.events,
     },
     {
@@ -165,44 +164,43 @@ function RouteComponent() {
           eyebrow="Overview"
           title="Dashboard"
           description="Traffic, engagement, and conversion overview."
-          actions={
-            <>
-              <Select
-                value={range}
-                onValueChange={(value) => {
-                  if (value) setRange(value as DashboardRange)
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="24h">Last 24 hours</SelectItem>
-                  <SelectItem value="7d">Last 7 days</SelectItem>
-                  <SelectItem value="30d">Last 30 days</SelectItem>
-                  <SelectItem value="90d">Last 90 days</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={device}
-                onValueChange={(value) => {
-                  if (value) setDevice(value as DashboardDevice)
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Device" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Devices</SelectItem>
-                  <SelectItem value="desktop">Desktop</SelectItem>
-                  <SelectItem value="mobile">Mobile</SelectItem>
-                  <SelectItem value="tablet">Tablet</SelectItem>
-                </SelectContent>
-              </Select>
-            </>
-          }
         />
+
+        <PageToolbar className="justify-end">
+          <Select
+            value={range}
+            onValueChange={(value) => {
+              if (value) setRange(value as DashboardRange)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Date range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="24h">Last 24 hours</SelectItem>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="90d">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={device}
+            onValueChange={(value) => {
+              if (value) setDevice(value as DashboardDevice)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Device" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Devices</SelectItem>
+              <SelectItem value="desktop">Desktop</SelectItem>
+              <SelectItem value="mobile">Mobile</SelectItem>
+              <SelectItem value="tablet">Tablet</SelectItem>
+            </SelectContent>
+          </Select>
+        </PageToolbar>
 
         <ProjectMetricStrip className="lg:grid-cols-4">
           {summary.map(({ label, value, icon: Icon, change }) => (

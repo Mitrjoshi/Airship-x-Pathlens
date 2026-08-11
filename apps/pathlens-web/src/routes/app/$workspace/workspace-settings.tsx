@@ -1,8 +1,8 @@
 import {
   ProjectPageHeader,
-  ProjectPageLayout,
   ProjectPanel,
 } from '@/components/common/project-page'
+import { WorkspacePageLayout } from '@/components/app-sidebar'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -46,9 +46,7 @@ import {
 import { getWorkspacesOptions } from '@/queries/workspace'
 import { formatNumber } from '@/utils/utils'
 
-export const Route = createFileRoute(
-  '/app/$workspace/projects/$project/workspace-settings'
-)({
+export const Route = createFileRoute('/app/$workspace/workspace-settings')({
   component: RouteComponent,
   staticData: {
     breadcrumb: 'Settings',
@@ -87,7 +85,7 @@ function FieldError({
 }
 
 function RouteComponent() {
-  const { workspace, project } = Route.useParams()
+  const { workspace } = Route.useParams()
   const { data: workspacesData, isPending: workspacesPending } = useQuery(
     getWorkspacesOptions()
   )
@@ -145,7 +143,7 @@ function RouteComponent() {
   }, [currentWorkspace, form, workspace])
 
   return (
-    <ProjectPageLayout>
+    <WorkspacePageLayout workspaceId={workspace}>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Workspace"
@@ -268,8 +266,8 @@ function RouteComponent() {
                     variant="outline"
                     render={
                       <Link
-                        to="/app/$workspace/projects/$project/members"
-                        params={{ workspace, project }}
+                        to="/app/$workspace/members"
+                        params={{ workspace }}
                       />
                     }
                   >
@@ -282,8 +280,8 @@ function RouteComponent() {
                     variant="outline"
                     render={
                       <Link
-                        to="/app/$workspace/projects/$project/permission-profiles"
-                        params={{ workspace, project }}
+                        to="/app/$workspace/permission-profiles"
+                        params={{ workspace }}
                       />
                     }
                   >
@@ -295,8 +293,8 @@ function RouteComponent() {
                   <Button
                     render={
                       <Link
-                        to="/app/$workspace/projects/$project/invite"
-                        params={{ workspace, project }}
+                        to="/app/$workspace/invite"
+                        params={{ workspace }}
                       />
                     }
                   >
@@ -348,12 +346,7 @@ function RouteComponent() {
               <CardFooter className="justify-end border-t px-5 py-4">
                 <Button
                   variant="outline"
-                  render={
-                    <Link
-                      to="/app/$workspace/projects"
-                      params={{ workspace }}
-                    />
-                  }
+                  render={<Link to="/app/$workspace" params={{ workspace }} />}
                 >
                   View projects
                   <ArrowUpRight />
@@ -466,6 +459,6 @@ function RouteComponent() {
           </ProjectPanel>
         </div>
       </div>
-    </ProjectPageLayout>
+    </WorkspacePageLayout>
   )
 }

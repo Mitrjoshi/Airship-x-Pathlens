@@ -1,6 +1,5 @@
 import {
   ProjectPageHeader,
-  ProjectPageLayout,
   ProjectPanel,
 } from '@/components/common/project-page'
 import { createFileRoute } from '@tanstack/react-router'
@@ -57,10 +56,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select'
+import { WorkspacePageLayout } from '@/components/app-sidebar'
 
-export const Route = createFileRoute(
-  '/app/$workspace/projects/$project/billing'
-)({
+export const Route = createFileRoute('/app/$workspace/billing')({
   component: RouteComponent,
   staticData: {
     breadcrumb: 'Billing',
@@ -171,6 +169,7 @@ function statusVariant(status: Invoice['status']) {
 
 function RouteComponent() {
   const [isSaving, setIsSaving] = useState(false)
+  const { workspace } = Route.useParams()
 
   const addressForm = useForm({
     defaultValues: {
@@ -194,7 +193,7 @@ function RouteComponent() {
   })
 
   return (
-    <ProjectPageLayout>
+    <WorkspacePageLayout workspaceId={workspace}>
       <div className="mx-auto w-full space-y-8">
         <ProjectPageHeader
           eyebrow="Project billing"
@@ -539,6 +538,6 @@ function RouteComponent() {
           </CardContent>
         </ProjectPanel>
       </div>
-    </ProjectPageLayout>
+    </WorkspacePageLayout>
   )
 }

@@ -11,6 +11,7 @@ import goalsRouter from "./goals.route";
 import performanceRouter from "./performance.route";
 import workspacesRouter from "./workspaces.route";
 import notificationsRouter from "./notifications.route";
+import feedbackRouter from "./feedback.route";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
 
 const router = Router();
@@ -22,6 +23,7 @@ router.use(ApiKeyMiddleware);
 router.use("/auth", usersRouter);
 router.use("/workspaces", workspacesRouter);
 router.use("/notifications", notificationsRouter);
+router.use("/feedback", feedbackRouter);
 router.use("/projects", projectsRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/analytics", analyticsRouter);

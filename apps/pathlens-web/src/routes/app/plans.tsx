@@ -1,17 +1,13 @@
-import { AppLayout } from '@/components/common/app-layout'
-import { NotificationsPopover } from '@/components/common/notifications-popover'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { AppHeader } from '@/components/common/app-header'
+import { PageHeader, PageLayout } from '@/components/common/page-layout'
+import { createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { useState } from 'react'
 import {
   Check,
   CreditCard,
   Download,
-  ArrowLeft,
-  LogOut,
   Sparkles,
-  Users,
   Globe,
-  MousePointerClick,
   Database,
 } from 'lucide-react'
 
@@ -37,6 +33,7 @@ import {
 } from '@workspace/ui/components/table'
 import { cn } from '@workspace/ui/lib/utils'
 import { formatNumber } from '@/utils/utils'
+import { navigationIcons } from '@/config/navigation-icons'
 
 export const Route = createFileRoute('/app/plans')({
   component: RouteComponent,
@@ -64,7 +61,7 @@ const usage = [
     label: 'Events',
     used: 128_400,
     limit: 250_000,
-    icon: MousePointerClick,
+    icon: navigationIcons.events,
   },
   {
     label: 'Projects',
@@ -76,7 +73,7 @@ const usage = [
     label: 'Team Members',
     used: 3,
     limit: 5,
-    icon: Users,
+    icon: navigationIcons.members,
   },
 ]
 
@@ -141,330 +138,299 @@ const invoices = [
 ]
 
 function RouteComponent() {
+  const user = useRouteContext({
+    from: '/app',
+    select: (context) => context.user,
+  })
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
     'monthly'
   )
 
-  const handleLogout = () => {
-    localStorage.removeItem('pathlens-token')
-    window.location.href = '/login'
-  }
-
   return (
-    <AppLayout className="mx-auto min-h-screen w-full max-w-5xl gap-0 px-5 py-8 sm:px-8">
-      <div className="flex items-center justify-between border-b pb-6">
-        <div className="flex items-center gap-2 font-semibold tracking-tight">
-          <img
-            src="/logo.png"
-            alt="PathLens"
-            className="size-7 rounded-md object-contain"
-          />
-          PathLens
-        </div>
+    <PageLayout>
+      <AppHeader
+        user={{
+          name: user?.name ?? 'PathLens user',
+          email: user?.email ?? '',
+          avatar: user?.avatar,
+        }}
+        backToWorkspaces
+      />
 
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            render={<Link to="/app" />}
-            className="hidden sm:inline-flex"
-          >
-            <ArrowLeft />
-            Workspaces
-          </Button>
-          <NotificationsPopover />
-          <Button variant="ghost" onClick={handleLogout}>
-            <LogOut />
-            <span className="hidden sm:inline">Log out</span>
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-8 pt-8">
-        <div className="flex flex-col gap-5 border-b pb-8 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-muted-foreground text-xs font-medium tracking-[0.18em] uppercase">
-              Account
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
-              Plans & billing.
-            </h1>
-            <p className="text-muted-foreground mt-3 max-w-lg text-sm leading-6">
-              Manage your subscription, usage, and invoices from one place.
-            </p>
-          </div>
-
+      <PageHeader
+        eyebrow="Account"
+        title="Plans & billing."
+        description="Manage your subscription, usage, and invoices from one place."
+        actions={
           <Badge variant="outline" className="w-fit">
             {currentPlan.name} plan · {currentPlan.status}
           </Badge>
-        </div>
+        }
+      />
 
-        <Card className="py-0">
-          <CardHeader className="flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+      <Card className="py-0">
+        <CardHeader className="flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <CardTitle>Current plan</CardTitle>
+              <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
+                {currentPlan.status}
+              </Badge>
+            </div>
+            <CardDescription className="mt-2">
+              Your subscription is active and renews automatically.
+            </CardDescription>
+          </div>
+
+          <Button variant="outline" className="self-start">
+            <CreditCard />
+            Update payment method
+          </Button>
+        </CardHeader>
+
+        <CardContent className="grid gap-5 p-5 sm:grid-cols-3">
+          <div className="bg-muted/40 rounded-xl p-4">
+            <p className="text-muted-foreground flex items-center gap-2 text-xs">
+              <Sparkles className="size-3.5" />
+              Plan
+            </p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">
+              {currentPlan.name}
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Built for growing products
+            </p>
+          </div>
+          <div className="rounded-xl border p-4">
+            <p className="text-muted-foreground text-xs">Price</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">
+              ${currentPlan.price}
+              <span className="text-muted-foreground text-sm font-normal">
+                /{currentPlan.billingCycle === 'monthly' ? 'mo' : 'yr'}
+              </span>
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Billed {currentPlan.billingCycle}
+            </p>
+          </div>
+          <div className="rounded-xl border p-4">
+            <p className="text-muted-foreground text-xs">Next renewal</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">Aug 26</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              {currentPlan.renewsOn}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="py-0">
+        <CardHeader className="border-b px-5 py-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <CardTitle>Current plan</CardTitle>
-                <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
-                  {currentPlan.status}
-                </Badge>
-              </div>
-              <CardDescription className="mt-2">
-                Your subscription is active and renews automatically.
+              <CardTitle>Usage this period</CardTitle>
+              <CardDescription>
+                Current usage against your Pro plan limits.
               </CardDescription>
             </div>
+            <Badge variant="outline">Resets Aug 26, 2026</Badge>
+          </div>
+        </CardHeader>
 
-            <Button variant="outline" className="self-start">
-              <CreditCard />
-              Update payment method
-            </Button>
-          </CardHeader>
+        <CardContent className="grid gap-3 p-5 md:grid-cols-2">
+          {usage.map((item) => {
+            const Icon = item.icon
+            const percent = Math.round((item.used / item.limit) * 100)
 
-          <CardContent className="grid gap-5 p-5 sm:grid-cols-3">
-            <div className="bg-muted/40 rounded-xl p-4">
-              <p className="text-muted-foreground flex items-center gap-2 text-xs">
-                <Sparkles className="size-3.5" />
-                Plan
-              </p>
-              <p className="mt-2 text-2xl font-semibold tracking-tight">
-                {currentPlan.name}
-              </p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Built for growing products
-              </p>
-            </div>
-            <div className="rounded-xl border p-4">
-              <p className="text-muted-foreground text-xs">Price</p>
-              <p className="mt-2 text-2xl font-semibold tracking-tight">
-                ${currentPlan.price}
-                <span className="text-muted-foreground text-sm font-normal">
-                  /{currentPlan.billingCycle === 'monthly' ? 'mo' : 'yr'}
-                </span>
-              </p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Billed {currentPlan.billingCycle}
-              </p>
-            </div>
-            <div className="rounded-xl border p-4">
-              <p className="text-muted-foreground text-xs">Next renewal</p>
-              <p className="mt-2 text-2xl font-semibold tracking-tight">
-                Aug 26
-              </p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                {currentPlan.renewsOn}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="py-0">
-          <CardHeader className="border-b px-5 py-5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <CardTitle>Usage this period</CardTitle>
-                <CardDescription>
-                  Current usage against your Pro plan limits.
-                </CardDescription>
-              </div>
-              <Badge variant="outline">Resets Aug 26, 2026</Badge>
-            </div>
-          </CardHeader>
-
-          <CardContent className="grid gap-3 p-5 md:grid-cols-2">
-            {usage.map((item) => {
-              const Icon = item.icon
-              const percent = Math.round((item.used / item.limit) * 100)
-
-              return (
-                <div key={item.label} className="rounded-xl border p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
-                        <Icon className="size-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
-                          {item.label}
-                        </p>
-                        <p className="text-muted-foreground mt-1 text-xs">
-                          {formatNumber(item.used)} of{' '}
-                          {formatNumber(item.limit)}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-muted-foreground text-xs tabular-nums">
-                      {percent}%
+            return (
+              <div key={item.label} className="rounded-xl border p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
+                      <Icon className="size-4" />
                     </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {item.label}
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        {formatNumber(item.used)} of {formatNumber(item.limit)}
+                      </p>
+                    </div>
                   </div>
-                  <Progress
-                    value={percent}
-                    className={cn(
-                      'mt-4',
-                      percent >= 90 && '[&>div]:bg-destructive'
-                    )}
-                  />
+                  <span className="text-muted-foreground text-xs tabular-nums">
+                    {percent}%
+                  </span>
                 </div>
-              )
-            })}
-          </CardContent>
-        </Card>
+                <Progress
+                  value={percent}
+                  className={cn(
+                    'mt-4',
+                    percent >= 90 && '[&>div]:bg-destructive'
+                  )}
+                />
+              </div>
+            )
+          })}
+        </CardContent>
+      </Card>
 
-        <div className="space-y-5">
-          <div className="flex flex-col gap-4 border-b pb-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-muted-foreground text-xs font-medium tracking-[0.18em] uppercase">
-                Compare
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                Choose the right plan.
-              </h2>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Upgrade or downgrade whenever your team changes.
-              </p>
-            </div>
-
-            <div className="bg-muted/50 flex w-fit items-center gap-1 rounded-xl border p-1">
-              <Button
-                size="sm"
-                variant={billingCycle === 'monthly' ? 'default' : 'ghost'}
-                onClick={() => setBillingCycle('monthly')}
-              >
-                Monthly
-              </Button>
-              <Button
-                size="sm"
-                variant={billingCycle === 'yearly' ? 'default' : 'ghost'}
-                onClick={() => setBillingCycle('yearly')}
-              >
-                Yearly
-                <Badge variant="outline" className="ml-1.5">
-                  -20%
-                </Badge>
-              </Button>
-            </div>
+      <div className="space-y-5">
+        <div className="flex flex-col gap-4 border-b pb-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-muted-foreground text-xs font-medium tracking-[0.18em] uppercase">
+              Compare
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+              Choose the right plan.
+            </h2>
+            <p className="text-muted-foreground mt-2 text-sm">
+              Upgrade or downgrade whenever your team changes.
+            </p>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            {tiers.map((tier) => {
-              const price =
-                billingCycle === 'yearly'
-                  ? Math.round(tier.price * 12 * 0.8)
-                  : tier.price
-
-              return (
-                <Card
-                  key={tier.name}
-                  className={cn(
-                    'py-0',
-                    tier.highlighted &&
-                      'border-foreground/40 ring-foreground/10 ring-1'
-                  )}
-                >
-                  <CardHeader className="border-b px-5 py-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <CardTitle>{tier.name}</CardTitle>
-                      {tier.current ? (
-                        <Badge>Current</Badge>
-                      ) : tier.highlighted ? (
-                        <Badge variant="outline">Popular</Badge>
-                      ) : null}
-                    </div>
-                    <CardDescription className="mt-2">
-                      {tier.description}
-                    </CardDescription>
-                  </CardHeader>
-
-                  <CardContent className="space-y-5 p-5">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-semibold tracking-tight">
-                        {price === 0 ? 'Free' : `$${price}`}
-                      </span>
-                      {price > 0 && (
-                        <span className="text-muted-foreground text-sm">
-                          /{billingCycle === 'monthly' ? 'mo' : 'yr'}
-                        </span>
-                      )}
-                    </div>
-
-                    <Separator />
-
-                    <ul className="space-y-3">
-                      {tier.features.map((feature) => (
-                        <li
-                          key={feature}
-                          className="flex items-start gap-2 text-sm"
-                        >
-                          <Check className="text-primary mt-0.5 size-4 shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-
-                  <CardFooter className="border-t px-5 py-4">
-                    <Button
-                      className="w-full"
-                      variant={tier.current ? 'outline' : 'default'}
-                      disabled={tier.current}
-                    >
-                      {tier.current ? 'Current plan' : 'Upgrade'}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              )
-            })}
+          <div className="bg-muted/50 flex w-fit items-center gap-1 rounded-xl border p-1">
+            <Button
+              size="sm"
+              variant={billingCycle === 'monthly' ? 'default' : 'ghost'}
+              onClick={() => setBillingCycle('monthly')}
+            >
+              Monthly
+            </Button>
+            <Button
+              size="sm"
+              variant={billingCycle === 'yearly' ? 'default' : 'ghost'}
+              onClick={() => setBillingCycle('yearly')}
+            >
+              Yearly
+              <Badge variant="outline" className="ml-1.5">
+                -20%
+              </Badge>
+            </Button>
           </div>
         </div>
 
-        <Card className="py-0">
-          <CardHeader className="border-b px-5 py-5">
-            <CardTitle>Billing history</CardTitle>
-            <CardDescription>
-              Download past invoices for your records.
-            </CardDescription>
-          </CardHeader>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {tiers.map((tier) => {
+            const price =
+              billingCycle === 'yearly'
+                ? Math.round(tier.price * 12 * 0.8)
+                : tier.price
 
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[640px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-5">Invoice</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px]" />
-                  </TableRow>
-                </TableHeader>
+            return (
+              <Card
+                key={tier.name}
+                className={cn(
+                  'py-0',
+                  tier.highlighted &&
+                    'border-foreground/40 ring-foreground/10 ring-1'
+                )}
+              >
+                <CardHeader className="border-b px-5 py-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <CardTitle>{tier.name}</CardTitle>
+                    {tier.current ? (
+                      <Badge>Current</Badge>
+                    ) : tier.highlighted ? (
+                      <Badge variant="outline">Popular</Badge>
+                    ) : null}
+                  </div>
+                  <CardDescription className="mt-2">
+                    {tier.description}
+                  </CardDescription>
+                </CardHeader>
 
-                <TableBody>
-                  {invoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="pl-5 font-mono text-sm">
-                        {invoice.id}
-                      </TableCell>
-                      <TableCell>{invoice.date}</TableCell>
-                      <TableCell>${invoice.amount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
-                          {invoice.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Download ${invoice.id}`}
-                        >
-                          <Download />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                <CardContent className="space-y-5 p-5">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-semibold tracking-tight">
+                      {price === 0 ? 'Free' : `$${price}`}
+                    </span>
+                    {price > 0 && (
+                      <span className="text-muted-foreground text-sm">
+                        /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                      </span>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <ul className="space-y-3">
+                    {tier.features.map((feature) => (
+                      <li
+                        key={feature}
+                        className="flex items-start gap-2 text-sm"
+                      >
+                        <Check className="text-primary mt-0.5 size-4 shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+
+                <CardFooter className="border-t px-5 py-4">
+                  <Button
+                    className="w-full"
+                    variant={tier.current ? 'outline' : 'default'}
+                    disabled={tier.current}
+                  >
+                    {tier.current ? 'Current plan' : 'Upgrade'}
+                  </Button>
+                </CardFooter>
+              </Card>
+            )
+          })}
+        </div>
       </div>
-    </AppLayout>
+
+      <Card className="py-0">
+        <CardHeader className="border-b px-5 py-5">
+          <CardTitle>Billing history</CardTitle>
+          <CardDescription>
+            Download past invoices for your records.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table className="min-w-[640px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-5">Invoice</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[50px]" />
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {invoices.map((invoice) => (
+                  <TableRow key={invoice.id}>
+                    <TableCell className="pl-5 font-mono text-sm">
+                      {invoice.id}
+                    </TableCell>
+                    <TableCell>{invoice.date}</TableCell>
+                    <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
+                        {invoice.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Download ${invoice.id}`}
+                      >
+                        <Download />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </PageLayout>
   )
 }

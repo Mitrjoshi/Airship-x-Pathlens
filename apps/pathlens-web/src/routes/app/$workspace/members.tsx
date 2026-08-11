@@ -1,8 +1,8 @@
 import {
   ProjectPageHeader,
-  ProjectPageLayout,
   ProjectPanel,
 } from '@/components/common/project-page'
+import { WorkspacePageLayout } from '@/components/app-sidebar'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Badge } from '@workspace/ui/components/badge'
 import {
@@ -73,14 +73,12 @@ function getInitials(name: string) {
     .toUpperCase()
 }
 
-export const Route = createFileRoute(
-  '/app/$workspace/projects/$project/members'
-)({
+export const Route = createFileRoute('/app/$workspace/members')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const { workspace, project } = Route.useParams()
+  const { workspace } = Route.useParams()
   const [memberToEdit, setMemberToEdit] = useState<T_WorkspaceMember | null>(
     null
   )
@@ -130,12 +128,23 @@ function RouteComponent() {
   }
 
   return (
-    <ProjectPageLayout>
+    <WorkspacePageLayout workspaceId={workspace}>
       <div>
         <ProjectPageHeader
           eyebrow="Team"
           title="Workspace members"
           description="Manage your members and access preferences."
+          actions={
+            canInviteMembers ? (
+              <Button
+                render={
+                  <Link to="/app/$workspace/invite" params={{ workspace }} />
+                }
+              >
+                Invite member
+              </Button>
+            ) : undefined
+          }
         />
 
         {/* Members */}
@@ -147,19 +156,6 @@ function RouteComponent() {
                 Manage who has access to this workspace.
               </CardDescription>
             </div>
-
-            {canInviteMembers && (
-              <Button
-                render={
-                  <Link
-                    to="/app/$workspace/projects/$project/invite"
-                    params={{ workspace, project }}
-                  />
-                }
-              >
-                Invite Member
-              </Button>
-            )}
           </CardHeader>
 
           <CardContent className="p-0">
@@ -448,6 +444,6 @@ function RouteComponent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </ProjectPageLayout>
+    </WorkspacePageLayout>
   )
 }

@@ -3,6 +3,7 @@ import {
   ProjectMetricStrip,
   ProjectPageHeader,
   ProjectPageLayout,
+  PageToolbar,
 } from '@/components/common/project-page'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
@@ -286,59 +287,59 @@ function RouteComponent() {
           title="Reports"
           description="Turn the events collected by this project into a clear, filterable traffic report."
           actions={
-            <>
-              <Select
-                value={range}
-                onValueChange={(value) => {
-                  if (value) setRange(value as AnalyticsRange)
-                }}
-              >
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rangeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={device}
-                onValueChange={(value) => {
-                  if (value) setDevice(value as AnalyticsDevice)
-                }}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Device" />
-                </SelectTrigger>
-                <SelectContent>
-                  {deviceOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Button
-                variant="outline"
-                disabled={!analytics || !canExport}
-                onClick={() => {
-                  if (analytics) downloadReport(analytics, range, device)
-                }}
-              >
-                <Download />
-                Export CSV
-              </Button>
-            </>
+            <Button
+              variant="outline"
+              disabled={!analytics || !canExport}
+              onClick={() => {
+                if (analytics) downloadReport(analytics, range, device)
+              }}
+            >
+              <Download />
+              Export CSV
+            </Button>
           }
         />
 
+        <PageToolbar className="justify-end">
+          <Select
+            value={range}
+            onValueChange={(value) => {
+              if (value) setRange(value as AnalyticsRange)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Date range" />
+            </SelectTrigger>
+            <SelectContent>
+              {rangeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={device}
+            onValueChange={(value) => {
+              if (value) setDevice(value as AnalyticsDevice)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-32">
+              <SelectValue placeholder="Device" />
+            </SelectTrigger>
+            <SelectContent>
+              {deviceOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </PageToolbar>
+
         {isError && (
-          <p className="text-destructive -mt-4 text-sm">
+          <p className="text-destructive text-sm">
             Unable to load report data for the selected filters.
           </p>
         )}

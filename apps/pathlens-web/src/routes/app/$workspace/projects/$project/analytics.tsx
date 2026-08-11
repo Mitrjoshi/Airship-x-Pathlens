@@ -3,6 +3,7 @@ import {
   ProjectMetricStrip,
   ProjectPageHeader,
   ProjectPageLayout,
+  PageToolbar,
 } from '@/components/common/project-page'
 import { createFileRoute } from '@tanstack/react-router'
 import {
@@ -10,9 +11,7 @@ import {
   Globe,
   Laptop,
   MonitorSmartphone,
-  MousePointerClick,
   Smartphone,
-  Users,
 } from 'lucide-react'
 
 import {
@@ -54,6 +53,7 @@ import {
   YAxis,
 } from 'recharts'
 import { formatNumber } from '@/utils/utils'
+import { navigationIcons } from '@/config/navigation-icons'
 import { useQuery } from '@tanstack/react-query'
 import {
   getAnalyticsOptions,
@@ -111,12 +111,12 @@ function RouteComponent() {
     {
       title: 'Visitors',
       value: formatNumber(analytics?.summary.visitors ?? 0),
-      icon: Users,
+      icon: navigationIcons.visitors,
     },
     {
       title: 'Sessions',
       value: formatNumber(analytics?.summary.sessions ?? 0),
-      icon: MousePointerClick,
+      icon: navigationIcons.sessions,
     },
     {
       title: 'Bounce Rate',
@@ -137,47 +137,46 @@ function RouteComponent() {
           eyebrow="Audience"
           title="Analytics"
           description="Deep dive into traffic, devices, and audience behaviour."
-          actions={
-            <>
-              <Select
-                value={range}
-                onValueChange={(value) => {
-                  if (value) setRange(value as AnalyticsRange)
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="24h">Last 24 hours</SelectItem>
-                  <SelectItem value="7d">Last 7 days</SelectItem>
-                  <SelectItem value="30d">Last 30 days</SelectItem>
-                  <SelectItem value="90d">Last 90 days</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={device}
-                onValueChange={(value) => {
-                  if (value) setDevice(value as AnalyticsDevice)
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Device" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Devices</SelectItem>
-                  <SelectItem value="desktop">Desktop</SelectItem>
-                  <SelectItem value="mobile">Mobile</SelectItem>
-                  <SelectItem value="tablet">Tablet</SelectItem>
-                </SelectContent>
-              </Select>
-            </>
-          }
         />
 
+        <PageToolbar className="justify-end">
+          <Select
+            value={range}
+            onValueChange={(value) => {
+              if (value) setRange(value as AnalyticsRange)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Date range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="24h">Last 24 hours</SelectItem>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="90d">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={device}
+            onValueChange={(value) => {
+              if (value) setDevice(value as AnalyticsDevice)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Device" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Devices</SelectItem>
+              <SelectItem value="desktop">Desktop</SelectItem>
+              <SelectItem value="mobile">Mobile</SelectItem>
+              <SelectItem value="tablet">Tablet</SelectItem>
+            </SelectContent>
+          </Select>
+        </PageToolbar>
+
         {isError && (
-          <p className="text-destructive -mt-4 text-sm">
+          <p className="text-destructive text-sm">
             Unable to load analytics for the selected filters.
           </p>
         )}

@@ -4,6 +4,7 @@ import {
   ProjectPageHeader,
   ProjectPageLayout,
   ProjectPanel,
+  PageToolbar,
 } from '@/components/common/project-page'
 import { useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/mutations/goals'
 import {
@@ -298,45 +299,45 @@ function RouteComponent() {
           title="Goals"
           description="Set and track targets against real events collected by your project."
           actions={
-            <>
-              <Select
-                value={range}
-                onValueChange={(value) => setRange(value as GoalRange)}
-              >
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rangeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={filter}
-                onValueChange={(value) => setFilter(value as GoalFilter)}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Goals</SelectItem>
-                  <SelectItem value="On Track">On Track</SelectItem>
-                  <SelectItem value="At Risk">At Risk</SelectItem>
-                  <SelectItem value="Achieved">Achieved</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button onClick={openCreateDialog} disabled={!canManageGoals}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Goal
-              </Button>
-            </>
+            <Button onClick={openCreateDialog} disabled={!canManageGoals}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Goal
+            </Button>
           }
         />
+
+        <PageToolbar className="justify-end">
+          <Select
+            value={range}
+            onValueChange={(value) => setRange(value as GoalRange)}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Date range" />
+            </SelectTrigger>
+            <SelectContent>
+              {rangeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filter}
+            onValueChange={(value) => setFilter(value as GoalFilter)}
+          >
+            <SelectTrigger className="w-full sm:w-32">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Goals</SelectItem>
+              <SelectItem value="On Track">On Track</SelectItem>
+              <SelectItem value="At Risk">At Risk</SelectItem>
+              <SelectItem value="Achieved">Achieved</SelectItem>
+            </SelectContent>
+          </Select>
+        </PageToolbar>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="w-full max-w-lg!">
@@ -505,7 +506,7 @@ function RouteComponent() {
         </AlertDialog>
 
         {isError && (
-          <p className="text-destructive -mt-4 text-sm">
+          <p className="text-destructive text-sm">
             Unable to load goals for this project.
           </p>
         )}

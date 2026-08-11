@@ -450,7 +450,7 @@ function RouteComponent() {
         </AlertDialog>
 
         {isError && (
-          <p className="text-destructive -mt-4 text-sm">
+          <p className="text-destructive text-sm">
             Unable to load funnels for this project.
           </p>
         )}

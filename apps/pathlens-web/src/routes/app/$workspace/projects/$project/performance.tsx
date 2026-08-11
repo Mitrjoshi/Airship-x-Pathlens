@@ -3,6 +3,7 @@ import {
   ProjectMetricStrip,
   ProjectPageHeader,
   ProjectPageLayout,
+  PageToolbar,
 } from '@/components/common/project-page'
 import { createFileRoute } from '@tanstack/react-router'
 import { Gauge, Timer, Zap, Activity } from 'lucide-react'
@@ -125,47 +126,46 @@ function RouteComponent() {
           eyebrow="Performance"
           title="Performance"
           description="Monitor Core Web Vitals, page load times, and rendering performance."
-          actions={
-            <>
-              <Select
-                value={range}
-                onValueChange={(value) => {
-                  if (value) setRange(value as PerformanceRange)
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="24h">Last 24 hours</SelectItem>
-                  <SelectItem value="7d">Last 7 days</SelectItem>
-                  <SelectItem value="30d">Last 30 days</SelectItem>
-                  <SelectItem value="90d">Last 90 days</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={device}
-                onValueChange={(value) => {
-                  if (value) setDevice(value as PerformanceDevice)
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Device" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Devices</SelectItem>
-                  <SelectItem value="desktop">Desktop</SelectItem>
-                  <SelectItem value="mobile">Mobile</SelectItem>
-                  <SelectItem value="tablet">Tablet</SelectItem>
-                </SelectContent>
-              </Select>
-            </>
-          }
         />
 
+        <PageToolbar className="justify-end">
+          <Select
+            value={range}
+            onValueChange={(value) => {
+              if (value) setRange(value as PerformanceRange)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Date range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="24h">Last 24 hours</SelectItem>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="90d">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={device}
+            onValueChange={(value) => {
+              if (value) setDevice(value as PerformanceDevice)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Device" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Devices</SelectItem>
+              <SelectItem value="desktop">Desktop</SelectItem>
+              <SelectItem value="mobile">Mobile</SelectItem>
+              <SelectItem value="tablet">Tablet</SelectItem>
+            </SelectContent>
+          </Select>
+        </PageToolbar>
+
         {isError && (
-          <p className="text-destructive -mt-4 text-sm">
+          <p className="text-destructive text-sm">
             Unable to load performance data for the selected filters.
           </p>
         )}

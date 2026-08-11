@@ -4,6 +4,7 @@ import {
   ProjectPageHeader,
   ProjectPageLayout,
   ProjectPanel,
+  PageToolbar,
 } from '@/components/common/project-page'
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
@@ -162,37 +163,33 @@ function RouteComponent() {
           title="AI Insights"
           description="Automatically generated observations across your projects."
           actions={
-            <>
-              <Select
-                value={typeFilter}
-                onValueChange={(value) => {
-                  if (value) setTypeFilter(value)
-                }}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Insights</SelectItem>
-                  <SelectItem value="trend">Trends</SelectItem>
-                  <SelectItem value="anomaly">Anomalies</SelectItem>
-                  <SelectItem value="opportunity">Opportunities</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button
-                variant="outline"
-                onClick={refresh}
-                disabled={isRefreshing}
-              >
-                <RefreshCw
-                  className={cn('mr-2 h-4 w-4', isRefreshing && 'animate-spin')}
-                />
-                Refresh
-              </Button>
-            </>
+            <Button variant="outline" onClick={refresh} disabled={isRefreshing}>
+              <RefreshCw
+                className={cn('mr-2 h-4 w-4', isRefreshing && 'animate-spin')}
+              />
+              Refresh
+            </Button>
           }
         />
+
+        <PageToolbar className="justify-end">
+          <Select
+            value={typeFilter}
+            onValueChange={(value) => {
+              if (value) setTypeFilter(value)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Insights</SelectItem>
+              <SelectItem value="trend">Trends</SelectItem>
+              <SelectItem value="anomaly">Anomalies</SelectItem>
+              <SelectItem value="opportunity">Opportunities</SelectItem>
+            </SelectContent>
+          </Select>
+        </PageToolbar>
 
         {/* Summary */}
         <ProjectMetricStrip className="lg:grid-cols-3">

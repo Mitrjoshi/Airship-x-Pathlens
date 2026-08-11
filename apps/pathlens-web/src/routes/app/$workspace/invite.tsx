@@ -1,8 +1,8 @@
 import {
   ProjectPageHeader,
-  ProjectPageLayout,
   ProjectPanel,
 } from '@/components/common/project-page'
+import { WorkspacePageLayout } from '@/components/app-sidebar'
 import { Button } from '@workspace/ui/components/button'
 import {
   CardContent,
@@ -37,9 +37,7 @@ import {
 import { useState } from 'react'
 import { z } from 'zod'
 
-export const Route = createFileRoute(
-  '/app/$workspace/projects/$project/invite'
-)({
+export const Route = createFileRoute('/app/$workspace/invite')({
   component: RouteComponent,
   staticData: {
     breadcrumb: 'Invite members',
@@ -49,7 +47,7 @@ export const Route = createFileRoute(
 const emailSchema = z.email()
 
 function RouteComponent() {
-  const { workspace, project } = Route.useParams()
+  const { workspace } = Route.useParams()
   const { data: workspacesData } = useQuery(getWorkspacesOptions())
   const { data: profilesData, isPending: profilesPending } = useQuery(
     getWorkspacePermissionProfilesOptions(workspace)
@@ -98,7 +96,7 @@ function RouteComponent() {
   }
 
   return (
-    <ProjectPageLayout>
+    <WorkspacePageLayout workspaceId={workspace}>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Workspace members"
@@ -110,8 +108,8 @@ function RouteComponent() {
 
               render={
                 <Link
-                  to="/app/$workspace/projects/$project/workspace-settings"
-                  params={{ workspace, project }}
+                  to="/app/$workspace/workspace-settings"
+                  params={{ workspace }}
                 />
               }
             >
@@ -258,6 +256,6 @@ function RouteComponent() {
           </ProjectPanel>
         </div>
       </div>
-    </ProjectPageLayout>
+    </WorkspacePageLayout>
   )
 }

@@ -244,6 +244,51 @@ export const projects = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*                                  FEEDBACK                                  */
+/* -------------------------------------------------------------------------- */
+
+export const feedback = pgTable(
+  "feedback",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "set null",
+    }),
+
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+
+    category: text("category").notNull(),
+
+    message: text("message").notNull(),
+
+    pageUrl: text("page_url"),
+
+    status: text("status").notNull().default("new"),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdx: index("feedback_user_idx").on(table.userId),
+    workspaceIdx: index("feedback_workspace_idx").on(table.workspaceId),
+    projectIdx: index("feedback_project_idx").on(table.projectId),
+    createdIdx: index("feedback_created_idx").on(table.createdAt),
+  })
+);
+
+/* -------------------------------------------------------------------------- */
 /*                                  FUNNELS                                   */
 /* -------------------------------------------------------------------------- */
 

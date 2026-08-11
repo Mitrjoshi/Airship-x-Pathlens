@@ -3,6 +3,7 @@ import {
   ProjectMetricStrip,
   ProjectPageHeader,
   ProjectPageLayout,
+  PageToolbar,
 } from '@/components/common/project-page'
 import { SessionReplayPlayer } from '@/components/common/session-replay-player'
 import { Badge } from '@workspace/ui/components/badge'
@@ -115,7 +116,7 @@ function RouteComponent() {
         />
 
         {isError && (
-          <p className="text-destructive -mt-4 text-sm">
+          <p className="text-destructive text-sm">
             Unable to load session replays for the selected filters.
           </p>
         )}
@@ -131,61 +132,55 @@ function RouteComponent() {
           ))}
         </ProjectMetricStrip>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-          </CardHeader>
+        <PageToolbar className="bg-muted/20 rounded-xl border p-3">
+          <div className="relative min-w-0 flex-1">
+            <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
 
-          <CardContent className="flex flex-col gap-4 lg:flex-row">
-            <div className="relative flex-1">
-              <SearchIcon className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
+            <Input
+              className="pl-9"
+              placeholder="Search visitor, path, or source..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
 
-              <Input
-                className="pl-9"
-                placeholder="Search visitor, path, or source..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
+          <Select
+            value={device}
+            onValueChange={(value) => {
+              if (value) setDevice(value as SessionReplayDevice)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Device" />
+            </SelectTrigger>
 
-            <Select
-              value={device}
-              onValueChange={(value) => {
-                if (value) setDevice(value as SessionReplayDevice)
-              }}
-            >
-              <SelectTrigger className="w-full lg:w-44">
-                <SelectValue placeholder="Device" />
-              </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Devices</SelectItem>
+              <SelectItem value="desktop">Desktop</SelectItem>
+              <SelectItem value="mobile">Mobile</SelectItem>
+              <SelectItem value="tablet">Tablet</SelectItem>
+            </SelectContent>
+          </Select>
 
-              <SelectContent>
-                <SelectItem value="all">All Devices</SelectItem>
-                <SelectItem value="desktop">Desktop</SelectItem>
-                <SelectItem value="mobile">Mobile</SelectItem>
-                <SelectItem value="tablet">Tablet</SelectItem>
-              </SelectContent>
-            </Select>
+          <Select
+            value={range}
+            onValueChange={(value) => {
+              if (value) setRange(value as SessionReplayRange)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-44">
+              <CalendarIcon className="mr-2 size-4" />
+              <SelectValue placeholder="Date range" />
+            </SelectTrigger>
 
-            <Select
-              value={range}
-              onValueChange={(value) => {
-                if (value) setRange(value as SessionReplayRange)
-              }}
-            >
-              <SelectTrigger className="w-full lg:w-44">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Date range" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="24h">Last 24 hours</SelectItem>
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 90 days</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+            <SelectContent>
+              <SelectItem value="24h">Last 24 hours</SelectItem>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="90d">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </PageToolbar>
 
         <Card>
           <CardHeader>

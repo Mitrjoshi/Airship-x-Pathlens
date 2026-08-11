@@ -1,13 +1,8 @@
 import type { T_Projects } from '@/queries/projects'
 import { Card, CardContent } from '@workspace/ui/components/card'
 import { Link } from '@tanstack/react-router'
-import {
-  ActivityIcon,
-  ArrowUpRightIcon,
-  GlobeIcon,
-  MousePointerClickIcon,
-  UsersIcon,
-} from 'lucide-react'
+import { ArrowUpRightIcon, GlobeIcon } from 'lucide-react'
+import { navigationIcons } from '@/config/navigation-icons'
 import { formatNumber } from '@/utils/utils'
 
 interface I_Props {
@@ -51,17 +46,17 @@ export const ProjectCard = ({ project, workspace }: I_Props) => {
             <ProjectMetric
               label="Visitors"
               value={formatNumber(project.stats.visitors || 0)}
-              icon={UsersIcon}
+              icon={navigationIcons.visitors}
             />
             <ProjectMetric
               label="Sessions"
               value={formatNumber(project.stats.sessions || 0)}
-              icon={MousePointerClickIcon}
+              icon={navigationIcons.sessions}
             />
             <ProjectMetric
               label="Events"
               value={formatNumber(project.stats.events || 0)}
-              icon={ActivityIcon}
+              icon={navigationIcons.events}
             />
             <ProjectMetric
               label="Conversion"

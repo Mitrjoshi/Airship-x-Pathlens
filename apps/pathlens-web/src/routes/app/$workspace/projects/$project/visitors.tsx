@@ -4,6 +4,7 @@ import {
   ProjectPageHeader,
   ProjectPageLayout,
   ProjectPanel,
+  PageToolbar,
 } from '@/components/common/project-page'
 import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
 import { Badge } from '@workspace/ui/components/badge'
@@ -34,6 +35,7 @@ import {
 import { getVisitorsOptions } from '@/queries/visitors'
 import type { VisitorStatus, VisitorsRange } from '@/queries/visitors'
 import { formatNumber, formatRelativeTime } from '@/utils/utils'
+import { navigationIcons } from '@/config/navigation-icons'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import {
@@ -49,7 +51,6 @@ import {
   SearchIcon,
   Smartphone,
   UserPlus,
-  Users,
   XIcon,
 } from 'lucide-react'
 import { useDeferredValue, useState } from 'react'
@@ -108,7 +109,7 @@ function RouteComponent() {
     {
       label: 'Total visitors',
       value: formatNumber(summary?.totalVisitors ?? 0),
-      icon: Users,
+      icon: navigationIcons.visitors,
     },
     {
       label: 'New visitors',
@@ -145,46 +146,45 @@ function RouteComponent() {
           eyebrow="Audience"
           title="Visitors"
           description="Understand who is visiting, where they come from, and how they move through your site."
-          actions={
-            <>
-              <Select
-                value={range}
-                onValueChange={(value) => {
-                  setRange(value as VisitorsRange)
-                  setPage(1)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-36">
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rangeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={status}
-                onValueChange={(value) => {
-                  setStatus(value as VisitorStatus)
-                  setPage(1)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-36">
-                  <SelectValue placeholder="Visitor status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All visitors</SelectItem>
-                  <SelectItem value="online">Online now</SelectItem>
-                  <SelectItem value="offline">Offline</SelectItem>
-                </SelectContent>
-              </Select>
-            </>
-          }
         />
+
+        <PageToolbar className="justify-end">
+          <Select
+            value={range}
+            onValueChange={(value) => {
+              setRange(value as VisitorsRange)
+              setPage(1)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Date range" />
+            </SelectTrigger>
+            <SelectContent>
+              {rangeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={status}
+            onValueChange={(value) => {
+              setStatus(value as VisitorStatus)
+              setPage(1)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="Visitor status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All visitors</SelectItem>
+              <SelectItem value="online">Online now</SelectItem>
+              <SelectItem value="offline">Offline</SelectItem>
+            </SelectContent>
+          </Select>
+        </PageToolbar>
 
         <ProjectMetricStrip className="lg:grid-cols-5">
           {summaryMetrics.map(({ label, value, icon }) => (
@@ -271,7 +271,7 @@ function RouteComponent() {
           ) : visitors.length === 0 ? (
             <CardContent className="px-5 py-16 text-center">
               <div className="bg-muted text-muted-foreground mx-auto flex size-10 items-center justify-center rounded-full">
-                <Users className="size-5" />
+                <navigationIcons.visitors className="size-5" />
               </div>
               <p className="mt-4 text-sm font-medium">
                 {hasActiveFilters

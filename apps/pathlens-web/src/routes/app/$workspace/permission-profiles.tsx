@@ -1,8 +1,8 @@
 import {
   ProjectPageHeader,
-  ProjectPageLayout,
   ProjectPanel,
 } from '@/components/common/project-page'
+import { WorkspacePageLayout } from '@/components/app-sidebar'
 import {
   useCreateWorkspacePermissionProfile,
   useDeleteWorkspacePermissionProfile,
@@ -63,9 +63,7 @@ import {
 } from 'lucide-react'
 import { type Dispatch, type SetStateAction, useState } from 'react'
 
-export const Route = createFileRoute(
-  '/app/$workspace/projects/$project/permission-profiles'
-)({
+export const Route = createFileRoute('/app/$workspace/permission-profiles')({
   component: RouteComponent,
   staticData: {
     breadcrumb: 'Permission profiles',
@@ -288,7 +286,7 @@ function ProfileEditor({
 }
 
 function RouteComponent() {
-  const { workspace, project } = Route.useParams()
+  const { workspace } = Route.useParams()
   const { data: workspaceData } = useQuery(getWorkspacesOptions())
   const {
     data: profilesData,
@@ -372,7 +370,7 @@ function RouteComponent() {
     createProfile.isPending || updateProfile.isPending
 
   return (
-    <ProjectPageLayout>
+    <WorkspacePageLayout workspaceId={workspace}>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Workspace access"
@@ -383,10 +381,7 @@ function RouteComponent() {
               <Button
                 variant="outline"
                 render={
-                  <Link
-                    to="/app/$workspace/projects/$project/members"
-                    params={{ workspace, project }}
-                  />
+                  <Link to="/app/$workspace/members" params={{ workspace }} />
                 }
               >
                 <ArrowLeftIcon />
@@ -579,7 +574,7 @@ function RouteComponent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </ProjectPageLayout>
+    </WorkspacePageLayout>
   )
 }
 

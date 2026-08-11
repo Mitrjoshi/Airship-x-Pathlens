@@ -1,6 +1,7 @@
 import {
   ProjectPageHeader,
   ProjectPageLayout,
+  PageToolbar,
 } from '@/components/common/project-page'
 import { Badge } from '@workspace/ui/components/badge'
 import {
@@ -118,35 +119,19 @@ function RouteComponent() {
           eyebrow="Activity"
           title="Events"
           description="Monitor the user actions that matter most."
-          actions={
-            <div className="relative w-full sm:w-64">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                placeholder="Search events"
-                className="pl-9"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
-          }
         />
 
-        {isError && (
-          <p className="text-destructive -mt-4 text-sm">
-            Unable to load recent events for this project.
-          </p>
-        )}
-
-        <div className="flex items-center justify-between border-y py-4 text-xs">
-          <span className="text-muted-foreground">Last 24 hours</span>
-          <span className="text-muted-foreground flex items-center gap-2">
-            {isFetching && (
-              <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-            )}
-            {formatNumber(eventData?.summary.totalEvents ?? 0)} captured events
-            · {formatNumber(eventData?.summary.totalVisitors ?? 0)} visitors
-          </span>
-        </div>
+        <PageToolbar>
+          <div className="relative w-full sm:ml-auto sm:max-w-xs">
+            <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+            <Input
+              placeholder="Search events"
+              className="pl-9"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+        </PageToolbar>
 
         <Tabs
           value={eventFilter}
@@ -169,6 +154,23 @@ function RouteComponent() {
             ))}
           </TabsList>
         </Tabs>
+
+        {isError && (
+          <p className="text-destructive text-sm">
+            Unable to load recent events for this project.
+          </p>
+        )}
+
+        <div className="flex items-center justify-between border-y py-4 text-xs">
+          <span className="text-muted-foreground">Last 24 hours</span>
+          <span className="text-muted-foreground flex items-center gap-2">
+            {isFetching && (
+              <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+            )}
+            {formatNumber(eventData?.summary.totalEvents ?? 0)} captured events
+            · {formatNumber(eventData?.summary.totalVisitors ?? 0)} visitors
+          </span>
+        </div>
 
         <Card>
           <CardHeader>
