@@ -97,6 +97,10 @@ function RouteComponent() {
       value: formatNumber(sessionReplay?.stats.replayAvailable ?? 0),
     },
     {
+      title: 'Live Now',
+      value: formatNumber(sessionReplay?.stats.liveSessions ?? 0),
+    },
+    {
       title: 'Avg Session',
       value: sessionReplay?.stats.avgSession ?? '0s',
     },
@@ -121,7 +125,7 @@ function RouteComponent() {
           </p>
         )}
 
-        <ProjectMetricStrip className="lg:grid-cols-4">
+        <ProjectMetricStrip className="lg:grid-cols-5">
           {stats.map((stat) => (
             <ProjectMetric
               key={stat.title}
@@ -257,15 +261,25 @@ function RouteComponent() {
                         <TableCell>{session.source}</TableCell>
 
                         <TableCell>
-                          <Badge variant="secondary">
-                            {formatRelativeTime(session.recordedAt)}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">
+                              {formatRelativeTime(session.recordedAt)}
+                            </Badge>
+                            {session.isLive && (
+                              <Badge variant="destructive">Live</Badge>
+                            )}
+                          </div>
                         </TableCell>
 
                         <TableCell className="text-right">
-                          <Button onClick={() => setSelectedSession(session)}>
+                          <Button
+                            disabled={!session.isReplayAvailable}
+                            onClick={() => setSelectedSession(session)}
+                          >
                             <PlayCircleIcon className="mr-2 h-4 w-4" />
-                            Replay
+                            {session.isReplayAvailable
+                              ? 'Replay'
+                              : 'Unavailable'}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -290,6 +304,8 @@ function RouteComponent() {
       <SessionReplayPlayer
         key={selectedSession?.id ?? 'closed'}
         open={Boolean(selectedSession)}
+        workspaceId={workspace}
+        projectId={project}
         session={selectedSession}
         detail={replayDetailQuery.data?.data}
         isLoading={replayDetailQuery.isPending || replayDetailQuery.isFetching}

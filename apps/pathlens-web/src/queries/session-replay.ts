@@ -1,4 +1,5 @@
 import apiClient from '@/lib/apiClient'
+import type { ReplayEvent } from '@workspace/contracts'
 import { queryOptions } from '@tanstack/react-query'
 
 export type SessionReplayRange = '24h' | '7d' | '30d' | '90d'
@@ -15,6 +16,8 @@ export interface SessionReplaySession {
   source: string
   recordedAt: string
   eventCount: number
+  isReplayAvailable: boolean
+  isLive: boolean
 }
 
 export interface SessionReplayResponse {
@@ -23,6 +26,7 @@ export interface SessionReplayResponse {
     stats: {
       recordedSessions: number
       replayAvailable: number
+      liveSessions: number
       avgSession: string
       storageUsed: string
     }
@@ -68,6 +72,13 @@ export interface SessionReplayDetail {
   totalEvents: number
   hasMoreEvents: boolean
   events: SessionReplayEvent[]
+  replay: {
+    available: boolean
+    events: ReplayEvent[]
+    hasMoreEvents: boolean
+    lastSequence: number
+    isLive: boolean
+  }
 }
 
 export interface SessionReplayDetailResponse {
@@ -91,6 +102,17 @@ export interface SessionReplayDetailParams {
   session_id: string
 }
 
+export interface SessionReplayChunkUpdate {
+  sequence: number
+  events: ReplayEvent[]
+  isFinal: boolean
+}
+
+export interface SessionReplayStreamHandlers {
+  onChunk: (update: SessionReplayChunkUpdate) => void
+  onReady: (data: { sequence: number; isLive: boolean }) => void
+}
+
 const getSessionReplay = async (
   params: SessionReplayParams
 ): Promise<SessionReplayResponse> => {
@@ -104,7 +126,7 @@ export const getSessionReplayOptions = (params: SessionReplayParams) =>
     queryKey: ['SESSION_REPLAY', params],
     queryFn: () => getSessionReplay(params),
     enabled: Boolean(params.workspace_id && params.project_id),
-    refetchInterval: 30_000,
+    refetchInterval: 5_000,
   })
 
 const getSessionReplayDetail = async (
@@ -133,3 +155,70 @@ export const getSessionReplayDetailOptions = (
       params.workspace_id && params.project_id && params.session_id
     ),
   })
+
+export async function streamSessionReplay(
+  params: SessionReplayDetailParams,
+  since: number,
+  handlers: SessionReplayStreamHandlers,
+  signal: AbortSignal
+): Promise<void> {
+  const url = apiClient.getUri({
+    url: `/session-replay/${encodeURIComponent(params.session_id)}/stream`,
+    params: {
+      workspace_id: params.workspace_id,
+      project_id: params.project_id,
+      since,
+    },
+  })
+  const token = localStorage.getItem('pathlens-token')
+  const response = await fetch(url, {
+    headers: {
+      'x-api-key': import.meta.env.VITE_API_KEY,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    signal,
+  })
+
+  if (!response.ok) {
+    throw new Error('Unable to connect to the replay stream.')
+  }
+
+  if (!response.body) {
+    throw new Error('Replay streaming is not supported by this browser.')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const messages = buffer.split('\n\n')
+    buffer = messages.pop() ?? ''
+
+    for (const message of messages) {
+      let event = 'message'
+      let data = ''
+
+      for (const line of message.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim()
+        if (line.startsWith('data:')) data += line.slice(5).trim()
+      }
+
+      if (!data) continue
+
+      const parsed = JSON.parse(data) as
+        SessionReplayChunkUpdate | { sequence: number; isLive: boolean }
+
+      if (event === 'chunk') {
+        handlers.onChunk(parsed as SessionReplayChunkUpdate)
+      } else if (event === 'ready') {
+        handlers.onReady(parsed as { sequence: number; isLive: boolean })
+      }
+    }
+  }
+}

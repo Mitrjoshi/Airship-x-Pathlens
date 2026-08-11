@@ -3,6 +3,18 @@
 import type { PathLensTracker } from "./tracker";
 import { throttle } from "./utils";
 
+function getSafeClickText(element: HTMLElement): string {
+  if (
+    element.closest(
+      "[data-pathlens-mask], [data-pathlens-block], input, textarea, select"
+    )
+  ) {
+    return "[masked]";
+  }
+
+  return element.innerText.substring(0, 100);
+}
+
 export function registerEvents(tracker: PathLensTracker): void {
   pageView(tracker);
 
@@ -37,10 +49,14 @@ function registerClicks(tracker: PathLensTracker) {
       pageY: e.pageY,
       scrollX: window.scrollX,
       scrollY: window.scrollY,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
       tag: el.tagName,
       id: el.id,
       className: el.className,
-      text: el.innerText.substring(0, 100),
+      text: getSafeClickText(el),
     });
   });
 }
@@ -59,6 +75,10 @@ function registerScroll(tracker: PathLensTracker) {
       tracker.track("scroll", {
         scrollY: window.scrollY,
         percentage: Math.round(percentage),
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
       });
     }, 500)
   );
@@ -204,6 +224,6 @@ function registerUnload(tracker: PathLensTracker) {
       totalEvents: tracker.queue.length,
     });
 
-    tracker.flush();
+    tracker.destroy();
   });
 }

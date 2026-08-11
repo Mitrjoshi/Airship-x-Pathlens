@@ -33,6 +33,7 @@ import { Route as AppWorkspaceProjectsProjectDashboardRouteImport } from './rout
 import { Route as AppWorkspaceProjectsProjectEventsRouteImport } from './routes/app/$workspace/projects/$project/events'
 import { Route as AppWorkspaceProjectsProjectFunnelsRouteImport } from './routes/app/$workspace/projects/$project/funnels'
 import { Route as AppWorkspaceProjectsProjectGoalsRouteImport } from './routes/app/$workspace/projects/$project/goals'
+import { Route as AppWorkspaceProjectsProjectHeatmapsRouteImport } from './routes/app/$workspace/projects/$project/heatmaps'
 import { Route as AppWorkspaceProjectsProjectKeysRouteImport } from './routes/app/$workspace/projects/$project/keys'
 import { Route as AppWorkspaceProjectsProjectPerformanceRouteImport } from './routes/app/$workspace/projects/$project/performance'
 import { Route as AppWorkspaceProjectsProjectReportsRouteImport } from './routes/app/$workspace/projects/$project/reports'
@@ -170,6 +171,12 @@ const AppWorkspaceProjectsProjectGoalsRoute =
     path: '/goals',
     getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
   } as any)
+const AppWorkspaceProjectsProjectHeatmapsRoute =
+  AppWorkspaceProjectsProjectHeatmapsRouteImport.update({
+    id: '/heatmaps',
+    path: '/heatmaps',
+    getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
+  } as any)
 const AppWorkspaceProjectsProjectKeysRoute =
   AppWorkspaceProjectsProjectKeysRouteImport.update({
     id: '/keys',
@@ -230,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspace/projects/$project/events': typeof AppWorkspaceProjectsProjectEventsRoute
   '/app/$workspace/projects/$project/funnels': typeof AppWorkspaceProjectsProjectFunnelsRoute
   '/app/$workspace/projects/$project/goals': typeof AppWorkspaceProjectsProjectGoalsRoute
+  '/app/$workspace/projects/$project/heatmaps': typeof AppWorkspaceProjectsProjectHeatmapsRoute
   '/app/$workspace/projects/$project/keys': typeof AppWorkspaceProjectsProjectKeysRoute
   '/app/$workspace/projects/$project/performance': typeof AppWorkspaceProjectsProjectPerformanceRoute
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
@@ -259,6 +267,7 @@ export interface FileRoutesByTo {
   '/app/$workspace/projects/$project/events': typeof AppWorkspaceProjectsProjectEventsRoute
   '/app/$workspace/projects/$project/funnels': typeof AppWorkspaceProjectsProjectFunnelsRoute
   '/app/$workspace/projects/$project/goals': typeof AppWorkspaceProjectsProjectGoalsRoute
+  '/app/$workspace/projects/$project/heatmaps': typeof AppWorkspaceProjectsProjectHeatmapsRoute
   '/app/$workspace/projects/$project/keys': typeof AppWorkspaceProjectsProjectKeysRoute
   '/app/$workspace/projects/$project/performance': typeof AppWorkspaceProjectsProjectPerformanceRoute
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
@@ -292,6 +301,7 @@ export interface FileRoutesById {
   '/app/$workspace/projects/$project/events': typeof AppWorkspaceProjectsProjectEventsRoute
   '/app/$workspace/projects/$project/funnels': typeof AppWorkspaceProjectsProjectFunnelsRoute
   '/app/$workspace/projects/$project/goals': typeof AppWorkspaceProjectsProjectGoalsRoute
+  '/app/$workspace/projects/$project/heatmaps': typeof AppWorkspaceProjectsProjectHeatmapsRoute
   '/app/$workspace/projects/$project/keys': typeof AppWorkspaceProjectsProjectKeysRoute
   '/app/$workspace/projects/$project/performance': typeof AppWorkspaceProjectsProjectPerformanceRoute
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/events'
     | '/app/$workspace/projects/$project/funnels'
     | '/app/$workspace/projects/$project/goals'
+    | '/app/$workspace/projects/$project/heatmaps'
     | '/app/$workspace/projects/$project/keys'
     | '/app/$workspace/projects/$project/performance'
     | '/app/$workspace/projects/$project/reports'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/events'
     | '/app/$workspace/projects/$project/funnels'
     | '/app/$workspace/projects/$project/goals'
+    | '/app/$workspace/projects/$project/heatmaps'
     | '/app/$workspace/projects/$project/keys'
     | '/app/$workspace/projects/$project/performance'
     | '/app/$workspace/projects/$project/reports'
@@ -386,6 +398,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/events'
     | '/app/$workspace/projects/$project/funnels'
     | '/app/$workspace/projects/$project/goals'
+    | '/app/$workspace/projects/$project/heatmaps'
     | '/app/$workspace/projects/$project/keys'
     | '/app/$workspace/projects/$project/performance'
     | '/app/$workspace/projects/$project/reports'
@@ -571,6 +584,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceProjectsProjectGoalsRouteImport
       parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
     }
+    '/app/$workspace/projects/$project/heatmaps': {
+      id: '/app/$workspace/projects/$project/heatmaps'
+      path: '/heatmaps'
+      fullPath: '/app/$workspace/projects/$project/heatmaps'
+      preLoaderRoute: typeof AppWorkspaceProjectsProjectHeatmapsRouteImport
+      parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
+    }
     '/app/$workspace/projects/$project/keys': {
       id: '/app/$workspace/projects/$project/keys'
       path: '/keys'
@@ -639,6 +659,7 @@ interface AppWorkspaceProjectsProjectRouteRouteChildren {
   AppWorkspaceProjectsProjectEventsRoute: typeof AppWorkspaceProjectsProjectEventsRoute
   AppWorkspaceProjectsProjectFunnelsRoute: typeof AppWorkspaceProjectsProjectFunnelsRoute
   AppWorkspaceProjectsProjectGoalsRoute: typeof AppWorkspaceProjectsProjectGoalsRoute
+  AppWorkspaceProjectsProjectHeatmapsRoute: typeof AppWorkspaceProjectsProjectHeatmapsRoute
   AppWorkspaceProjectsProjectKeysRoute: typeof AppWorkspaceProjectsProjectKeysRoute
   AppWorkspaceProjectsProjectPerformanceRoute: typeof AppWorkspaceProjectsProjectPerformanceRoute
   AppWorkspaceProjectsProjectReportsRoute: typeof AppWorkspaceProjectsProjectReportsRoute
@@ -662,6 +683,8 @@ const AppWorkspaceProjectsProjectRouteRouteChildren: AppWorkspaceProjectsProject
       AppWorkspaceProjectsProjectFunnelsRoute,
     AppWorkspaceProjectsProjectGoalsRoute:
       AppWorkspaceProjectsProjectGoalsRoute,
+    AppWorkspaceProjectsProjectHeatmapsRoute:
+      AppWorkspaceProjectsProjectHeatmapsRoute,
     AppWorkspaceProjectsProjectKeysRoute: AppWorkspaceProjectsProjectKeysRoute,
     AppWorkspaceProjectsProjectPerformanceRoute:
       AppWorkspaceProjectsProjectPerformanceRoute,

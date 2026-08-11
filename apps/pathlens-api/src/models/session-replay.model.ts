@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client";
+import { getReplayDataModel, type ReplayData } from "./replay.model";
 
 export type SessionReplayRange = "24h" | "7d" | "30d" | "90d";
 export type SessionReplayDevice = "all" | "desktop" | "mobile" | "tablet";
@@ -17,6 +18,7 @@ export interface SessionReplayFilters {
 export interface SessionReplayStats {
   recordedSessions: number;
   replayAvailable: number;
+  liveSessions: number;
   avgSession: string;
   storageUsed: string;
 }
@@ -32,6 +34,8 @@ export interface SessionReplaySession {
   source: string;
   recordedAt: string;
   eventCount: number;
+  isReplayAvailable: boolean;
+  isLive: boolean;
 }
 
 export interface SessionReplayResponse {
@@ -83,6 +87,7 @@ export interface SessionReplayDetail {
   totalEvents: number;
   hasMoreEvents: boolean;
   events: SessionReplayEvent[];
+  replay: ReplayData;
 }
 
 interface SessionReplayRow extends Record<string, unknown> {
@@ -96,6 +101,8 @@ interface SessionReplayRow extends Record<string, unknown> {
   source: string | null;
   recorded_at: Date | string | null;
   event_count: number | string | null;
+  is_replay_available: boolean | null;
+  is_live: boolean | null;
 }
 
 interface CountRow extends Record<string, unknown> {
@@ -105,6 +112,7 @@ interface CountRow extends Record<string, unknown> {
 interface StatsRow extends Record<string, unknown> {
   recorded_sessions: number | string | null;
   replay_available: number | string | null;
+  live_sessions: number | string | null;
   avg_session_seconds: number | string | null;
   storage_bytes: number | string | null;
 }
@@ -379,9 +387,16 @@ export async function getSessionReplayModel(
         sr.pages,
         COALESCE(NULLIF(le.referrer_domain, ''), 'Direct') AS source,
         sr.ended_at AS recorded_at,
-        sr.event_count
+        sr.event_count,
+        replay.id IS NOT NULL AS is_replay_available,
+        replay.ended_at IS NULL
+          AND replay.last_seen_at >= NOW() - INTERVAL '15 seconds' AS is_live
       FROM session_rollups sr
       INNER JOIN latest_session_events le ON le.session_id = sr.session_id
+      LEFT JOIN replay_sessions replay
+        ON replay.id = sr.session_id
+        AND replay.workspace_id = ${filters.workspaceId}
+        AND replay.project_id = ${filters.projectId}
       WHERE sr.replay_event_count > 0
         ${searchFilter}
       ORDER BY sr.ended_at DESC
@@ -400,13 +415,19 @@ export async function getSessionReplayModel(
       ${sessionCtes}
       SELECT
         COUNT(*)::int AS recorded_sessions,
-        COUNT(*) FILTER (WHERE replay_event_count > 0)::int AS replay_available,
+        COUNT(replay.id)::int AS replay_available,
+        COUNT(replay.id) FILTER (
+          WHERE replay.ended_at IS NULL
+            AND replay.last_seen_at >= NOW() - INTERVAL '15 seconds'
+        )::int AS live_sessions,
         COALESCE(
           AVG(
             CASE
-              WHEN duration_ms IS NOT NULL
-                THEN duration_ms / 1000.0
-              ELSE EXTRACT(EPOCH FROM (ended_at - started_at))
+              WHEN session_rollups.duration_ms IS NOT NULL
+                THEN session_rollups.duration_ms / 1000.0
+              ELSE EXTRACT(
+                EPOCH FROM (session_rollups.ended_at - session_rollups.started_at)
+              )
             END
           ),
           0
@@ -415,7 +436,11 @@ export async function getSessionReplayModel(
           (SELECT SUM(pg_column_size(payload)) FROM filtered_events),
           0
         )::bigint AS storage_bytes
-      FROM session_rollups;
+      FROM session_rollups
+      LEFT JOIN replay_sessions replay
+        ON replay.id = session_rollups.session_id
+        AND replay.workspace_id = ${filters.workspaceId}
+        AND replay.project_id = ${filters.projectId};
     `),
   ]);
 
@@ -427,6 +452,7 @@ export async function getSessionReplayModel(
     stats: {
       recordedSessions: toNumber(stats?.recorded_sessions),
       replayAvailable: toNumber(stats?.replay_available),
+      liveSessions: toNumber(stats?.live_sessions),
       avgSession: formatDuration(toNumber(stats?.avg_session_seconds)),
       storageUsed: formatBytes(toNumber(stats?.storage_bytes)),
     },
@@ -441,6 +467,8 @@ export async function getSessionReplayModel(
       source: formatSource(row.source),
       recordedAt: toIso(row.recorded_at),
       eventCount: toNumber(row.event_count),
+      isReplayAvailable: Boolean(row.is_replay_available),
+      isLive: Boolean(row.is_live),
     })),
     pagination: {
       page: filters.page,
@@ -455,7 +483,7 @@ export async function getSessionReplayModel(
 export async function getSessionReplayDetailModel(
   filters: SessionReplayDetailFilters
 ): Promise<SessionReplayDetail | null> {
-  const [summaryResult] = await Promise.all([
+  const [summaryResult, replay] = await Promise.all([
     db.execute<SessionReplayDetailRow>(sql`
       SELECT
         session_id,
@@ -482,6 +510,11 @@ export async function getSessionReplayDetailModel(
       GROUP BY session_id, visitor_id
       LIMIT 1;
     `),
+    getReplayDataModel(
+      filters.workspaceId,
+      filters.projectId,
+      filters.sessionId
+    ),
   ]);
   const summary = summaryResult.rows[0];
 
@@ -554,5 +587,6 @@ export async function getSessionReplayDetailModel(
     totalEvents,
     hasMoreEvents: totalEvents > events.length,
     events,
+    replay,
   };
 }

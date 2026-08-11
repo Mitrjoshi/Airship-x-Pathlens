@@ -44,6 +44,7 @@ import { PageLayout } from '@/components/common/page-layout'
 type ProjectNavPath =
   | '/app/$workspace/projects/$project/dashboard'
   | '/app/$workspace/projects/$project/analytics'
+  | '/app/$workspace/projects/$project/heatmaps'
   | '/app/$workspace/projects/$project/visitors'
   | '/app/$workspace/projects/$project/session-replay'
   | '/app/$workspace/projects/$project/events'
@@ -108,6 +109,14 @@ export function AppSidebar({
       icon: navigationIcons.analytics,
       isActive: pathname === `${projectBasePath}/analytics`,
       isNew: false,
+      permission: 'analytics.analytics.view' as const,
+    },
+    {
+      title: 'Heatmaps',
+      url: '/app/$workspace/projects/$project/heatmaps' as const,
+      icon: navigationIcons.heatmaps,
+      isActive: pathname === `${projectBasePath}/heatmaps`,
+      isNew: true,
       permission: 'analytics.analytics.view' as const,
     },
     {

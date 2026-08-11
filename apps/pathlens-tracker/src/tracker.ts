@@ -16,7 +16,9 @@ import {
   getAnalyticsInfo,
   getPageInfo,
   now,
+  touchSession,
 } from "./utils";
+import { ReplayRecorder } from "./replay";
 
 export class PathLensTracker {
   public readonly config: PathLensConfig;
@@ -31,6 +33,8 @@ export class PathLensTracker {
 
   public readonly queue: TrackedEvent[] = [];
 
+  public readonly replayRecorder?: ReplayRecorder;
+
   private flushTimer?: number;
 
   constructor(config: PathLensConfig) {
@@ -43,10 +47,20 @@ export class PathLensTracker {
     this.sessionStart = Date.now();
 
     this.analyticsInfo = getAnalyticsInfo();
+
+    if (config.captureReplay) {
+      this.replayRecorder = new ReplayRecorder({
+        config,
+        sessionId: this.sessionId,
+        visitorId: this.visitorId,
+      });
+    }
   }
 
   init(): void {
     debug(this.config, "Initializing tracker");
+
+    this.replayRecorder?.start();
 
     this.track("session_start", {
       screen: {
@@ -71,6 +85,8 @@ export class PathLensTracker {
   }
 
   track(type: EventType, payload: EventPayload = {}): void {
+    touchSession();
+
     const event: TrackedEvent = {
       ...payload,
       ...getPageInfo(),
@@ -100,6 +116,7 @@ export class PathLensTracker {
       clearInterval(this.flushTimer);
     }
 
+    this.replayRecorder?.stop();
     this.flush();
   }
 

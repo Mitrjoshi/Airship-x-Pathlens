@@ -12,11 +12,14 @@ import performanceRouter from "./performance.route";
 import workspacesRouter from "./workspaces.route";
 import notificationsRouter from "./notifications.route";
 import feedbackRouter from "./feedback.route";
+import heatmapsRouter from "./heatmaps.route";
+import replayRouter from "./replay.route";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
 
 const router = Router();
 
 router.use("/events", eventsRouter);
+router.use("/replay", replayRouter);
 
 router.use(ApiKeyMiddleware);
 
@@ -29,6 +32,7 @@ router.use("/dashboard", dashboardRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/visitors", visitorsRouter);
 router.use("/session-replay", sessionReplayRouter);
+router.use("/heatmaps", heatmapsRouter);
 router.use("/funnels", funnelsRouter);
 router.use("/goals", goalsRouter);
 router.use("/performance", performanceRouter);

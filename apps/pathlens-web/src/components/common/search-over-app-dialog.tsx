@@ -36,6 +36,7 @@ type WorkspacePagePath =
 type ProjectPagePath =
   | '/app/$workspace/projects/$project/dashboard'
   | '/app/$workspace/projects/$project/analytics'
+  | '/app/$workspace/projects/$project/heatmaps'
   | '/app/$workspace/projects/$project/visitors'
   | '/app/$workspace/projects/$project/performance'
   | '/app/$workspace/projects/$project/session-replay'
@@ -177,6 +178,15 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.visitors,
     to: '/app/$workspace/projects/$project/visitors',
     permissions: ['analytics.visitors.view'],
+  },
+  {
+    id: 'project-heatmaps',
+    title: 'Heatmaps',
+    description: 'See where visitors click and how far they scroll',
+    keywords: 'clicks scroll behavior page maps attention',
+    icon: navigationIcons.heatmaps,
+    to: '/app/$workspace/projects/$project/heatmaps',
+    permissions: ['analytics.analytics.view'],
   },
   {
     id: 'project-performance',

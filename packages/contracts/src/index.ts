@@ -1,5 +1,7 @@
 export * from './events'
 export * from './feedback'
+export * from './heatmaps'
 export * from './pathlens-events'
 export * from './permissions'
+export * from './replay'
 export * from './tracker'

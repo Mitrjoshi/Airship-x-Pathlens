@@ -18,6 +18,11 @@ export interface PathLensConfig {
 
   flushInterval?: number
   batchSize?: number
+
+  replayApiUrl?: string
+  captureReplay?: boolean
+  replayFlushInterval?: number
+  replayBatchSize?: number
 }
 
 export type DeviceType = 'desktop' | 'mobile' | 'tablet' | 'unknown'

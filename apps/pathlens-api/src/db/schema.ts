@@ -14,6 +14,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type { Permission } from "@workspace/contracts";
+import type { ReplayEvent } from "@workspace/contracts";
 
 /* -------------------------------------------------------------------------- */
 /*                                    USERS                                   */
@@ -503,5 +504,109 @@ export const events = pgTable(
     ),
 
     occurredIdx: index("events_occurred_idx").on(table.occurredAt),
+  })
+);
+
+/* -------------------------------------------------------------------------- */
+/*                              REPLAY SESSIONS                               */
+/* -------------------------------------------------------------------------- */
+
+export const replaySessions = pgTable(
+  "replay_sessions",
+  {
+    id: text("id").primaryKey(),
+
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, {
+        onDelete: "cascade",
+      }),
+
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, {
+        onDelete: "cascade",
+      }),
+
+    visitorId: text("visitor_id").notNull(),
+
+    startedAt: timestamp("started_at", {
+      withTimezone: true,
+    }).notNull(),
+
+    lastSeenAt: timestamp("last_seen_at", {
+      withTimezone: true,
+    }).notNull(),
+
+    endedAt: timestamp("ended_at", {
+      withTimezone: true,
+    }),
+
+    screenWidth: integer("screen_width"),
+    screenHeight: integer("screen_height"),
+    viewportWidth: integer("viewport_width"),
+    viewportHeight: integer("viewport_height"),
+
+    url: text("url"),
+    path: text("path"),
+
+    lastSequence: integer("last_sequence").notNull().default(-1),
+    eventCount: integer("event_count").notNull().default(0),
+    byteCount: integer("byte_count").notNull().default(0),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    projectIdx: index("replay_sessions_project_idx").on(table.projectId),
+    workspaceIdx: index("replay_sessions_workspace_idx").on(table.workspaceId),
+    visitorIdx: index("replay_sessions_visitor_idx").on(table.visitorId),
+    lastSeenIdx: index("replay_sessions_last_seen_idx").on(table.lastSeenAt),
+  })
+);
+
+export const replayChunks = pgTable(
+  "replay_chunks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => replaySessions.id, {
+        onDelete: "cascade",
+      }),
+
+    sequence: integer("sequence").notNull(),
+
+    events: jsonb("events").$type<ReplayEvent[]>().notNull(),
+
+    firstTimestamp: timestamp("first_timestamp", {
+      withTimezone: true,
+    }).notNull(),
+
+    lastTimestamp: timestamp("last_timestamp", {
+      withTimezone: true,
+    }).notNull(),
+
+    byteCount: integer("byte_count").notNull(),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    sessionSequenceIdx: uniqueIndex("replay_chunks_session_sequence_idx").on(
+      table.sessionId,
+      table.sequence
+    ),
+    sessionTimestampIdx: index("replay_chunks_session_timestamp_idx").on(
+      table.sessionId,
+      table.firstTimestamp
+    ),
   })
 );

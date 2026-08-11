@@ -19,7 +19,7 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "5mb" }));
 app.set("trust proxy", true);
 
 app.use((req, _, next) => {

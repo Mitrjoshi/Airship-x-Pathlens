@@ -8,7 +8,11 @@ import type {
 } from "@workspace/contracts/tracker";
 
 const VISITOR_KEY = "pathlens_visitor";
+const SESSION_KEY = "pathlens_session";
+const SESSION_LAST_ACTIVE_KEY = "pathlens_session_last_active";
+const SESSION_TIMEOUT = 30 * 60 * 1000;
 const DEFAULT_API_URL = "http://localhost:8080/api/events";
+const DEFAULT_REPLAY_API_URL = "http://localhost:8080/api/replay/chunks";
 
 export function createVisitorId(): string {
   let id = localStorage.getItem(VISITOR_KEY);
@@ -22,7 +26,30 @@ export function createVisitorId(): string {
 }
 
 export function createSessionId(): string {
-  return crypto.randomUUID();
+  try {
+    const storage = window.sessionStorage;
+    const existingId = storage.getItem(SESSION_KEY);
+    const lastActive = Number(storage.getItem(SESSION_LAST_ACTIVE_KEY) ?? "0");
+
+    if (existingId && Date.now() - lastActive < SESSION_TIMEOUT) {
+      return existingId;
+    }
+
+    const id = crypto.randomUUID();
+    storage.setItem(SESSION_KEY, id);
+    storage.setItem(SESSION_LAST_ACTIVE_KEY, String(Date.now()));
+    return id;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
+export function touchSession(): void {
+  try {
+    window.sessionStorage.setItem(SESSION_LAST_ACTIVE_KEY, String(Date.now()));
+  } catch {
+    // Storage may be unavailable in privacy-restricted browser contexts.
+  }
 }
 
 export function now(): string {
@@ -269,7 +296,11 @@ export function readConfig(): PathLensConfig {
 
   return {
     projectId: dataset.projectId,
-    apiUrl: DEFAULT_API_URL,
+    apiUrl: dataset.apiUrl ?? DEFAULT_API_URL,
+    replayApiUrl: dataset.replayApiUrl ?? DEFAULT_REPLAY_API_URL,
+    captureReplay: dataset.captureReplay !== "false",
+    replayFlushInterval: Number(dataset.replayFlushInterval ?? 1500),
+    replayBatchSize: Number(dataset.replayBatchSize ?? 100),
 
     debug: dataset.debug === "true",
 
