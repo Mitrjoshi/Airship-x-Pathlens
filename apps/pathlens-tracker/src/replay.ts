@@ -1,6 +1,7 @@
 import type { ReplayChunk, ReplayEvent } from "@workspace/contracts";
 import { record } from "rrweb";
 import type { PathLensConfig } from "@workspace/contracts/tracker";
+import { postEncryptedPayload } from "./crypto";
 
 const REPLAY_CHECKOUT_INTERVAL = 60_000;
 
@@ -142,28 +143,16 @@ export class ReplayRecorder {
     chunk: ReplayChunk,
     isFinal: boolean
   ): Promise<boolean> {
-    const body = JSON.stringify(chunk);
     const apiUrl =
       this.config.replayApiUrl ?? "http://localhost:8080/api/replay/chunks";
 
-    if (isFinal && navigator.sendBeacon) {
-      const accepted = navigator.sendBeacon(
-        apiUrl,
-        new Blob([body], { type: "application/json" })
-      );
-
-      if (accepted) return true;
-    }
-
     try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body,
-        keepalive: isFinal,
-      });
+      const response = await postEncryptedPayload(
+        apiUrl,
+        this.config.projectId,
+        chunk,
+        isFinal
+      );
 
       return response.ok;
     } catch {

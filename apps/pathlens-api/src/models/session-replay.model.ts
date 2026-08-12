@@ -388,7 +388,14 @@ export async function getSessionReplayModel(
         COALESCE(NULLIF(le.referrer_domain, ''), 'Direct') AS source,
         sr.ended_at AS recorded_at,
         sr.event_count,
-        replay.id IS NOT NULL AS is_replay_available,
+         replay.id IS NOT NULL
+           AND replay.event_count >= 2
+           AND EXISTS (
+             SELECT 1
+             FROM replay_chunks replay_chunk
+             WHERE replay_chunk.session_id = replay.id
+               AND replay_chunk.events @> '[{"type": 2}]'::jsonb
+           ) AS is_replay_available,
         replay.ended_at IS NULL
           AND replay.last_seen_at >= NOW() - INTERVAL '15 seconds' AS is_live
       FROM session_rollups sr
@@ -415,7 +422,15 @@ export async function getSessionReplayModel(
       ${sessionCtes}
       SELECT
         COUNT(*)::int AS recorded_sessions,
-        COUNT(replay.id)::int AS replay_available,
+         COUNT(replay.id) FILTER (
+           WHERE replay.event_count >= 2
+             AND EXISTS (
+               SELECT 1
+               FROM replay_chunks replay_chunk
+               WHERE replay_chunk.session_id = replay.id
+                 AND replay_chunk.events @> '[{"type": 2}]'::jsonb
+             )
+         )::int AS replay_available,
         COUNT(replay.id) FILTER (
           WHERE replay.ended_at IS NULL
             AND replay.last_seen_at >= NOW() - INTERVAL '15 seconds'

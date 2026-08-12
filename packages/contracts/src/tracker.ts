@@ -110,6 +110,8 @@ export interface ClickEvent {
   className: string
 
   text: string
+
+  buttonText?: string
 }
 
 export interface ScrollEvent {

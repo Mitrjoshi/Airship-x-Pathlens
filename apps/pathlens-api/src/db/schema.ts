@@ -370,6 +370,8 @@ export const goals = pgTable(
 
     matchTarget: text("match_target").notNull(),
 
+    matchPath: text("match_path"),
+
     deadline: date("deadline", {
       mode: "string",
     }),

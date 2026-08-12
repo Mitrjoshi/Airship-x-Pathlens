@@ -9,16 +9,27 @@ import {
   type GoalType,
 } from "../models/goals.model";
 
-const goalPayloadSchema = z.object({
-  workspace_id: z.string().min(1),
-  project_id: z.string().min(1),
-  name: z.string().trim().min(1).max(100),
-  type: z.enum(["event", "revenue", "pageview"]),
-  target: z.coerce.number().finite().positive(),
-  unit: z.string().trim().min(1).max(32),
-  match_target: z.string().trim().min(1).max(255),
-  deadline: z.string().date().nullable().optional(),
-});
+const goalPayloadSchema = z
+  .object({
+    workspace_id: z.string().min(1),
+    project_id: z.string().min(1),
+    name: z.string().trim().min(1).max(100),
+    type: z.enum(["event", "revenue", "pageview", "button", "form_submit"]),
+    target: z.coerce.number().finite().positive(),
+    unit: z.string().trim().min(1).max(32),
+    match_target: z.string().trim().min(1).max(255),
+    match_path: z.string().trim().min(1).max(2048).nullable().optional(),
+    deadline: z.string().date().nullable().optional(),
+  })
+  .superRefine((payload, context) => {
+    if (payload.type === "button" && !payload.match_path) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["match_path"],
+        message: "A page path is required for button goals.",
+      });
+    }
+  });
 
 const goalsQuerySchema = z.object({
   workspace_id: z.string().min(1),
@@ -38,6 +49,12 @@ function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message;
 
   return fallback;
+}
+
+function getMatchPath(
+  payload: z.infer<typeof goalPayloadSchema>
+): string | null {
+  return payload.type === "button" ? (payload.match_path ?? null) : null;
 }
 
 export async function getGoals(req: Request, res: Response) {
@@ -74,6 +91,7 @@ export async function createGoal(req: Request, res: Response) {
       target: payload.target,
       unit: payload.unit,
       matchTarget: payload.match_target,
+      matchPath: getMatchPath(payload),
       deadline: payload.deadline ?? null,
     });
 
@@ -104,6 +122,7 @@ export async function updateGoal(req: Request, res: Response) {
       target: payload.target,
       unit: payload.unit,
       matchTarget: payload.match_target,
+      matchPath: getMatchPath(payload),
       deadline: payload.deadline ?? null,
     });
 

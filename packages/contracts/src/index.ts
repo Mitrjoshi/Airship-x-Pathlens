@@ -1,4 +1,5 @@
 export * from './events'
+export * from './encrypted-payload'
 export * from './feedback'
 export * from './heatmaps'
 export * from './pathlens-events'

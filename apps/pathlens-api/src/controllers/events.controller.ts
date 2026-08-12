@@ -11,6 +11,13 @@ const eventsQuerySchema = z.object({
   workspace_id: z.string().min(1),
   project_id: z.string().min(1),
   range: z.enum(["24h", "7d", "30d", "90d"]).default("24h"),
+  category: z
+    .enum(["high_signal", "all", "actions", "forms"])
+    .default("high_signal"),
+  device: z
+    .enum(["all", "desktop", "mobile", "tablet", "unknown"])
+    .default("all"),
+  path: z.string().trim().max(2048).optional(),
   search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(50),
@@ -48,6 +55,9 @@ export async function getEvents(req: Request, res: Response) {
       workspaceId: query.workspace_id,
       projectId: query.project_id,
       range: query.range as EventsRange,
+      category: query.category,
+      device: query.device,
+      path: query.path,
       search: query.search,
       page: query.page,
       pageSize: query.page_size,

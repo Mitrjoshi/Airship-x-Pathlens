@@ -15,6 +15,10 @@ function getSafeClickText(element: HTMLElement): string {
   return element.innerText.substring(0, 100);
 }
 
+function getNormalizedButtonText(button: HTMLButtonElement): string {
+  return getSafeClickText(button).replace(/\s+/g, " ").trim();
+}
+
 export function registerEvents(tracker: PathLensTracker): void {
   pageView(tracker);
 
@@ -42,6 +46,8 @@ function registerClicks(tracker: PathLensTracker) {
 
     if (!el) return;
 
+    const button = el.closest("button");
+
     tracker.track("click", {
       x: e.clientX,
       y: e.clientY,
@@ -57,6 +63,7 @@ function registerClicks(tracker: PathLensTracker) {
       id: el.id,
       className: el.className,
       text: getSafeClickText(el),
+      ...(button ? { buttonText: getNormalizedButtonText(button) } : {}),
     });
   });
 }

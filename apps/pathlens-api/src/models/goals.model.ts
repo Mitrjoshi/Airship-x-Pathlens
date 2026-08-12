@@ -2,17 +2,19 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { goals } from "../db/schema";
 
-export type GoalType = "event" | "revenue" | "pageview";
+export type GoalType =
+  "event" | "revenue" | "pageview" | "button" | "form_submit";
 export type GoalRange = "24h" | "7d" | "30d" | "90d";
 
 export interface Goal {
   id: string;
   name: string;
-  type: "Event" | "Revenue" | "Pageview";
+  type: "Event" | "Revenue" | "Pageview" | "Button" | "Form submit";
   target: number;
   current: number;
   unit: string;
   matchTarget: string;
+  matchPath: string | null;
   trend: "up" | "down" | "flat";
   trendValue: string;
   status: "On Track" | "At Risk" | "Achieved";
@@ -30,6 +32,7 @@ interface GoalDefinition {
   target: number;
   unit: string;
   matchTarget: string;
+  matchPath: string | null;
   deadline: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
@@ -82,8 +85,14 @@ function toTimestamp(value: unknown): number | null {
 function getTypeLabel(type: GoalType): Goal["type"] {
   if (type === "pageview") return "Pageview";
   if (type === "revenue") return "Revenue";
+  if (type === "button") return "Button";
+  if (type === "form_submit") return "Form submit";
 
   return "Event";
+}
+
+function normalizeButtonText(value: unknown): string {
+  return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 }
 
 function matchesGoal(event: GoalEventRow, goal: GoalDefinition): boolean {
@@ -91,6 +100,23 @@ function matchesGoal(event: GoalEventRow, goal: GoalDefinition): boolean {
 
   if (goal.type === "pageview") {
     return event.type === "page_view" && (event.path?.trim() || "/") === target;
+  }
+
+  if (goal.type === "button") {
+    return (
+      event.type === "click" &&
+      (event.path?.trim() || "/") === (goal.matchPath?.trim() || "/") &&
+      normalizeButtonText(event.payload?.buttonText) ===
+        normalizeButtonText(target)
+    );
+  }
+
+  if (goal.type === "form_submit") {
+    return (
+      event.type === "form_submit" &&
+      typeof event.payload?.id === "string" &&
+      event.payload.id.trim() === target
+    );
   }
 
   if (target.startsWith("/")) {
@@ -171,9 +197,14 @@ async function getGoalEvents(
   rangeDays: number
 ): Promise<GoalEventRow[]> {
   const target = definition.matchTarget.trim();
-  const targetFilter = target.startsWith("/")
-    ? sql`path = ${target}`
-    : sql`LOWER(type) = ${target.toLowerCase()}`;
+  const targetFilter =
+    definition.type === "button"
+      ? sql`type = 'click' AND path = ${definition.matchPath ?? ""}`
+      : definition.type === "form_submit"
+        ? sql`type = 'form_submit'`
+        : target.startsWith("/")
+          ? sql`path = ${target}`
+          : sql`LOWER(type) = ${target.toLowerCase()}`;
 
   const result = await db.execute<GoalEventRow>(sql`
     SELECT occurred_at, path, type, payload
@@ -223,6 +254,7 @@ async function getGoalWithStats(
     current,
     unit: definition.unit,
     matchTarget: definition.matchTarget,
+    matchPath: definition.matchPath,
     trend: trend.trend,
     trendValue: trend.trendValue,
     status: getStatus(current, definition.target, definition.deadline),
@@ -246,6 +278,7 @@ async function getGoalDefinitions(
       target: goals.target,
       unit: goals.unit,
       matchTarget: goals.matchTarget,
+      matchPath: goals.matchPath,
       deadline: goals.deadline,
       createdAt: goals.createdAt,
       updatedAt: goals.updatedAt,
@@ -277,6 +310,7 @@ export async function createGoalModel(data: {
   target: number;
   unit: string;
   matchTarget: string;
+  matchPath: string | null;
   deadline: string | null;
 }): Promise<string> {
   const [goal] = await db
@@ -289,6 +323,7 @@ export async function createGoalModel(data: {
       target: data.target,
       unit: data.unit,
       matchTarget: data.matchTarget,
+      matchPath: data.matchPath,
       deadline: data.deadline,
     })
     .returning({ id: goals.id });
@@ -305,6 +340,7 @@ export async function updateGoalModel(data: {
   target: number;
   unit: string;
   matchTarget: string;
+  matchPath: string | null;
   deadline: string | null;
 }): Promise<boolean> {
   const updated = await db
@@ -315,6 +351,7 @@ export async function updateGoalModel(data: {
       target: data.target,
       unit: data.unit,
       matchTarget: data.matchTarget,
+      matchPath: data.matchPath,
       deadline: data.deadline,
       updatedAt: new Date(),
     })

@@ -2,16 +2,18 @@ import apiClient from '@/lib/apiClient'
 import { queryOptions } from '@tanstack/react-query'
 
 export type GoalRange = '24h' | '7d' | '30d' | '90d'
-export type GoalType = 'event' | 'revenue' | 'pageview'
+export type GoalType =
+  'event' | 'revenue' | 'pageview' | 'button' | 'form_submit'
 
 export interface Goal {
   id: string
   name: string
-  type: 'Event' | 'Revenue' | 'Pageview'
+  type: 'Event' | 'Revenue' | 'Pageview' | 'Button' | 'Form submit'
   target: number
   current: number
   unit: string
   matchTarget: string
+  matchPath: string | null
   trend: 'up' | 'down' | 'flat'
   trendValue: string
   status: 'On Track' | 'At Risk' | 'Achieved'
@@ -34,6 +36,7 @@ export interface GoalPayload {
   target: number
   unit: string
   match_target: string
+  match_path: string | null
   deadline: string | null
 }
 

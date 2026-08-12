@@ -1,13 +1,22 @@
 import apiClient from '@/lib/apiClient'
 import { queryOptions } from '@tanstack/react-query'
 import type {
+  EventsCategory,
+  EventsDevice,
   EventsParams,
   EventsRange,
   EventsResponse,
   ProjectEvent,
 } from '@workspace/contracts/pathlens-events'
 
-export type { EventsParams, EventsRange, EventsResponse, ProjectEvent }
+export type {
+  EventsCategory,
+  EventsDevice,
+  EventsParams,
+  EventsRange,
+  EventsResponse,
+  ProjectEvent,
+}
 
 const getEvents = async (params: EventsParams): Promise<EventsResponse> => {
   const response = await apiClient.get('/events', { params })

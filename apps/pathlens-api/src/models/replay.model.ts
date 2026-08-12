@@ -61,6 +61,10 @@ function getChunkEvents(value: unknown): ReplayEvent[] {
   return Array.isArray(value) ? (value as ReplayEvent[]) : [];
 }
 
+function hasRenderableReplay(events: ReplayEvent[]): boolean {
+  return events.length >= 2 && events.some((event) => event.type === 2);
+}
+
 function isSessionLive(lastSeenAt: Date, endedAt: Date | null): boolean {
   return !endedAt && Date.now() - lastSeenAt.getTime() <= 15_000;
 }
@@ -207,7 +211,7 @@ export async function getReplayDataModel(
     .flatMap((row) => getChunkEvents(row.events));
 
   return {
-    available: events.length > 0,
+    available: hasRenderableReplay(events),
     events,
     hasMoreEvents,
     lastSequence: toNumber(session.lastSequence),

@@ -112,6 +112,12 @@ const rangeOptions: { label: string; value: GoalRange }[] = [
 function renderGoalIcon(type: Goal['type']) {
   if (type === 'Revenue')
     return <DollarSign className="text-muted-foreground h-4 w-4" />
+  if (type === 'Button') {
+    return <MousePointerClick className="text-muted-foreground h-4 w-4" />
+  }
+  if (type === 'Form submit') {
+    return <CheckCircle2 className="text-muted-foreground h-4 w-4" />
+  }
   if (type === 'Pageview') {
     return <MousePointerClick className="text-muted-foreground h-4 w-4" />
   }
@@ -122,8 +128,19 @@ function renderGoalIcon(type: Goal['type']) {
 function renderGoalTargetLabel(type: GoalType) {
   if (type === 'pageview') return 'Page path'
   if (type === 'revenue') return 'Revenue event type'
+  if (type === 'button') return 'Button text'
+  if (type === 'form_submit') return 'Form ID'
 
   return 'Event type or page path'
+}
+
+function getGoalType(type: Goal['type']): GoalType {
+  if (type === 'Pageview') return 'pageview'
+  if (type === 'Revenue') return 'revenue'
+  if (type === 'Button') return 'button'
+  if (type === 'Form submit') return 'form_submit'
+
+  return 'event'
 }
 
 function statusBadgeClass(status: Goal['status']) {
@@ -154,6 +171,7 @@ function RouteComponent() {
   const [target, setTarget] = useState('')
   const [unit, setUnit] = useState('events')
   const [matchTarget, setMatchTarget] = useState('')
+  const [matchPath, setMatchPath] = useState('')
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
   const [deadlinePickerOpen, setDeadlinePickerOpen] = useState(false)
   const [formError, setFormError] = useState('')
@@ -195,13 +213,14 @@ function RouteComponent() {
     setTarget('')
     setUnit('events')
     setMatchTarget('')
+    setMatchPath('')
     setDeadline(undefined)
     setFormError('')
     setDialogOpen(true)
   }
 
   const openEditDialog = (goal: Goal) => {
-    const goalType = goal.type.toLowerCase() as GoalType
+    const goalType = getGoalType(goal.type)
 
     setEditingGoalId(goal.id)
     setName(goal.name)
@@ -209,6 +228,7 @@ function RouteComponent() {
     setTarget(String(goal.target))
     setUnit(goal.unit)
     setMatchTarget(goal.matchTarget)
+    setMatchPath(goal.matchPath ?? '')
     setDeadline(goal.deadline ? parseISO(goal.deadline) : undefined)
     setFormError('')
     setDialogOpen(true)
@@ -219,6 +239,8 @@ function RouteComponent() {
     if (value === 'revenue') setUnit('$')
     if (value === 'pageview') setUnit('views')
     if (value === 'event') setUnit('events')
+    if (value === 'button') setUnit('clicks')
+    if (value === 'form_submit') setUnit('submissions')
   }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -237,6 +259,10 @@ function RouteComponent() {
       setFormError(`Enter a ${renderGoalTargetLabel(type).toLowerCase()}.`)
       return
     }
+    if (type === 'button' && !matchPath.trim()) {
+      setFormError('Enter the page path for this button goal.')
+      return
+    }
     if (!unit.trim()) {
       setFormError('Enter a unit for this goal.')
       return
@@ -250,6 +276,7 @@ function RouteComponent() {
       target: numericTarget,
       unit: unit.trim(),
       match_target: matchTarget.trim(),
+      match_path: type === 'button' ? matchPath.trim() : null,
       deadline: deadline ? format(deadline, 'yyyy-MM-dd') : null,
     }
 
@@ -377,6 +404,8 @@ function RouteComponent() {
                       <SelectItem value="event">Event</SelectItem>
                       <SelectItem value="revenue">Revenue</SelectItem>
                       <SelectItem value="pageview">Pageview</SelectItem>
+                      <SelectItem value="button">Button click</SelectItem>
+                      <SelectItem value="form_submit">Form submit</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -438,6 +467,21 @@ function RouteComponent() {
                 </div>
               </div>
 
+              {type === 'button' && (
+                <div className="space-y-2">
+                  <Label htmlFor="goal-match-path">Page path</Label>
+                  <Input
+                    id="goal-match-path"
+                    value={matchPath}
+                    onChange={(event) => setMatchPath(event.target.value)}
+                    placeholder="/pricing"
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    Use the exact pathname where the button appears.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="goal-match-target">
                   {renderGoalTargetLabel(type)}
@@ -446,12 +490,24 @@ function RouteComponent() {
                   id="goal-match-target"
                   value={matchTarget}
                   onChange={(event) => setMatchTarget(event.target.value)}
-                  placeholder={type === 'pageview' ? '/pricing' : 'signup'}
+                  placeholder={
+                    type === 'pageview'
+                      ? '/pricing'
+                      : type === 'button'
+                        ? 'Start free trial'
+                        : type === 'form_submit'
+                          ? 'signup-form'
+                          : 'signup'
+                  }
                 />
                 <p className="text-muted-foreground text-xs">
                   {type === 'revenue'
                     ? 'The matching event payload should include revenue, value, or amount.'
-                    : 'Use the exact tracked path or event type.'}
+                    : type === 'button'
+                      ? 'Button text is matched exactly after whitespace normalization.'
+                      : type === 'form_submit'
+                        ? 'Use the exact id of the submitted form.'
+                        : 'Use the exact tracked path or event type.'}
                 </p>
               </div>
 
@@ -591,6 +647,9 @@ function RouteComponent() {
                           </CardTitle>
                           <CardDescription className="truncate">
                             {goal.type} · {goal.matchTarget}
+                            {goal.type === 'Button' && goal.matchPath
+                              ? ` · ${goal.matchPath}`
+                              : ''}
                             {goal.deadline
                               ? ` · Due ${formatDate(goal.deadline)}`
                               : ''}

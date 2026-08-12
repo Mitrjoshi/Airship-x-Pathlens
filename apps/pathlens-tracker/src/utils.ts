@@ -6,6 +6,7 @@ import type {
   PathLensConfig,
   TrackedEvent,
 } from "@workspace/contracts/tracker";
+import { postEncryptedPayload } from "./crypto";
 
 const VISITOR_KEY = "pathlens_visitor";
 const SESSION_KEY = "pathlens_session";
@@ -251,34 +252,21 @@ export function flushQueue(
 ): void {
   if (!queue.length) return;
 
-  const payload = JSON.stringify(queue);
+  const events = queue.splice(0, queue.length);
 
-  debug(config, `Flushing ${queue.length} events`);
+  debug(config, `Flushing ${events.length} events`);
 
-  // if (navigator.sendBeacon) {
-  //   const blob = new Blob([payload], {
-  //     type: "application/json",
-  //   });
-
-  //   navigator.sendBeacon(config.apiUrl, blob);
-
-  //   queue.length = 0;
-
-  //   return;
-  // }
-
-  fetch(config.apiUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: payload,
-    keepalive: true,
-  }).catch((err) => {
-    console.error("[PathLens]", err);
-  });
-
-  queue.length = 0;
+  void postEncryptedPayload(config.apiUrl, config.projectId, events, true)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(
+          `Tracking request failed with status ${response.status}`
+        );
+      }
+    })
+    .catch((err) => {
+      console.error("[PathLens]", err);
+    });
 }
 
 export function readConfig(): PathLensConfig {

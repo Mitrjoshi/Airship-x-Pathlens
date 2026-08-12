@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./encrypted-payload": "./src/encrypted-payload.ts",
     "./events": "./src/events.ts",
     "./heatmaps": "./src/heatmaps.ts",
     "./replay": "./src/replay.ts",

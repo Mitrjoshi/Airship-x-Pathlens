@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@workspace/ui/components/dialog'
-import { Progress } from '@workspace/ui/components/progress'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import type {
   SessionReplayDetail,
@@ -20,6 +19,7 @@ import {
   type SessionReplayChunkUpdate,
 } from '@/queries/session-replay'
 import { Replayer } from 'rrweb'
+import { EventType, ReplayerEvents } from 'rrweb'
 import type { eventWithTime } from 'rrweb'
 import {
   ChevronLeftIcon,
@@ -39,6 +39,7 @@ interface SessionReplayPlayerProps {
   projectId: string
   session: SessionReplaySession | null
   detail: SessionReplayDetail | undefined
+  initialEventId?: string
   isLoading: boolean
   isError: boolean
   onOpenChange: (open: boolean) => void
@@ -47,6 +48,7 @@ interface SessionReplayPlayerProps {
 type StreamStatus = 'idle' | 'connecting' | 'connected' | 'error'
 
 const EMPTY_REPLAY_EVENTS: ReplayEvent[] = []
+const EMPTY_SESSION_EVENTS: SessionReplayEvent[] = []
 
 function formatEventType(type: string): string {
   return type
@@ -81,13 +83,19 @@ function getEventPath(event: SessionReplayEvent | undefined): string {
 }
 
 function getEventOffset(
-  event: SessionReplayEvent,
-  detail: SessionReplayDetail
+  event: SessionReplayEvent | undefined,
+  replayEvents: ReplayEvent[]
 ): number {
-  const startedAt = new Date(detail.startedAt).getTime()
+  if (!event) return 0
+
+  const replayStartedAt = replayEvents[0]?.timestamp
   const occurredAt = new Date(event.occurredAt).getTime()
 
-  return Math.max(0, occurredAt - startedAt)
+  if (typeof replayStartedAt === 'number' && Number.isFinite(occurredAt)) {
+    return Math.max(0, occurredAt - replayStartedAt)
+  }
+
+  return Math.max(0, event.elapsedMs)
 }
 
 function toReplayerEvent(event: ReplayEvent): eventWithTime {
@@ -142,6 +150,7 @@ export function SessionReplayPlayer({
   projectId,
   session,
   detail,
+  initialEventId,
   isLoading,
   isError,
   onOpenChange,
@@ -158,7 +167,8 @@ export function SessionReplayPlayer({
   const [liveModeOverride, setLiveModeOverride] = useState<boolean | null>(null)
   const [wantsLive, setWantsLive] = useState(false)
   const [streamStatus, setStreamStatus] = useState<StreamStatus>('idle')
-  const events = detail?.events ?? []
+  const [replayErrorKey, setReplayErrorKey] = useState<string | null>(null)
+  const events = detail?.events ?? EMPTY_SESSION_EVENTS
   const currentEvent = events[currentEventIndex]
   const initialReplayEvents = detail?.replay.events ?? EMPTY_REPLAY_EVENTS
   const replayEvents = initialReplayEvents.concat(appendedReplayEvents)
@@ -168,11 +178,15 @@ export function SessionReplayPlayer({
   const replaySessionId = detail?.id
   const isLiveMode = liveModeOverride ?? replayIsLive
   const replayDuration = getReplayDuration(replayEvents)
-  const progress = replayDuration > 0 ? (currentTime / replayDuration) * 100 : 0
-  const hasReplay = replayAvailable && replayEvents.length > 0
+  const replayKey = `${detail?.id ?? ''}:${initialReplayEvents.length}:${initialReplayEvents[0]?.timestamp ?? ''}:${initialReplayEvents[initialReplayEvents.length - 1]?.timestamp ?? ''}`
+  const hasReplayCandidate =
+    replayAvailable &&
+    initialReplayEvents.length >= 2 &&
+    initialReplayEvents.some((event) => event.type === EventType.FullSnapshot)
+  const hasReplay = hasReplayCandidate && replayErrorKey !== replayKey
 
   useEffect(() => {
-    if (!open || !replayAvailable || !initialReplayEvents.length) {
+    if (!open || !hasReplayCandidate) {
       return
     }
 
@@ -182,15 +196,32 @@ export function SessionReplayPlayer({
 
     root.replaceChildren()
 
-    const replayer = new Replayer(initialReplayEvents.map(toReplayerEvent), {
-      root,
-      skipInactive: true,
-      showWarning: false,
-      showDebug: false,
-      mouseTail: { duration: 400 },
-    })
+    let replayer: Replayer
+    let disposed = false
+
+    try {
+      replayer = new Replayer(initialReplayEvents.map(toReplayerEvent), {
+        root,
+        skipInactive: true,
+        showWarning: false,
+        showDebug: false,
+        mouseTail: { duration: 400 },
+      })
+    } catch (error) {
+      console.error('[PathLens] Unable to initialize session replay.', error)
+      window.setTimeout(() => {
+        if (!disposed) setReplayErrorKey(replayKey)
+      }, 0)
+      return
+    }
 
     replayerRef.current = replayer
+    replayer.on(ReplayerEvents.Start, () => setIsPlaying(true))
+    replayer.on(ReplayerEvents.Pause, () => setIsPlaying(false))
+    replayer.on(ReplayerEvents.Finish, () => {
+      setIsPlaying(false)
+      setCurrentTime(replayer.getMetaData().totalTime)
+    })
     const fallbackDimensions = detail?.viewport ??
       detail?.screen ?? {
         width: 1280,
@@ -214,11 +245,31 @@ export function SessionReplayPlayer({
     })
     scheduleFit()
 
+    const selectedEventIndex = initialEventId
+      ? events.findIndex((event) => event.id === initialEventId)
+      : -1
+    const selectedEvent =
+      selectedEventIndex >= 0 ? events[selectedEventIndex] : undefined
+    const initialOffset = getEventOffset(selectedEvent, initialReplayEvents)
+
+    if (selectedEventIndex >= 0) {
+      window.setTimeout(() => {
+        if (disposed) return
+
+        setCurrentEventIndex(selectedEventIndex)
+        setCurrentTime(initialOffset)
+        replayer.pause(initialOffset)
+      }, 0)
+    } else {
+      replayer.pause(0)
+    }
+
     const timer = window.setInterval(() => {
       setCurrentTime(replayer.getCurrentTime())
     }, 100)
 
     return () => {
+      disposed = true
       window.clearInterval(timer)
       resizeObserver.disconnect()
       attributeObserver.disconnect()
@@ -232,8 +283,12 @@ export function SessionReplayPlayer({
     detail?.screen,
     detail?.viewport,
     initialReplayEvents,
+    initialEventId,
     open,
     replayAvailable,
+    replayKey,
+    events,
+    hasReplayCandidate,
   ])
 
   useEffect(() => {
@@ -304,12 +359,27 @@ export function SessionReplayPlayer({
   ])
 
   const play = () => {
-    replayerRef.current?.play()
+    replayerRef.current?.play(currentTime)
     setIsPlaying(true)
   }
 
   const pause = () => {
     replayerRef.current?.pause()
+    setIsPlaying(false)
+  }
+
+  const seekToEvent = (event: SessionReplayEvent | undefined) => {
+    const offset = getEventOffset(event, replayEvents)
+
+    replayerRef.current?.pause(offset)
+    setCurrentTime(offset)
+  }
+
+  const seekToTime = (value: number) => {
+    const offset = Math.max(0, Math.min(value, replayDuration))
+
+    replayerRef.current?.pause(offset)
+    setCurrentTime(offset)
     setIsPlaying(false)
   }
 
@@ -355,9 +425,13 @@ export function SessionReplayPlayer({
           </div>
         ) : !detail || !hasReplay ? (
           <div className="text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-sm">
-            <p>This session does not contain a captured screen yet.</p>
+            <p>
+              {replayErrorKey === replayKey
+                ? 'This session replay could not be initialized.'
+                : 'This session does not contain a complete captured screen yet.'}
+            </p>
             <p className="text-xs">
-              New sessions will include a reconstructed DOM screen.
+              The recording needs a valid DOM snapshot before it can be played.
             </p>
           </div>
         ) : (
@@ -392,7 +466,10 @@ export function SessionReplayPlayer({
                     disabled={currentEventIndex === 0}
                     onClick={() => {
                       pause()
-                      setCurrentEventIndex((index) => Math.max(0, index - 1))
+                      const nextIndex = Math.max(0, currentEventIndex - 1)
+
+                      setCurrentEventIndex(nextIndex)
+                      seekToEvent(events[nextIndex])
                     }}
                   >
                     <ChevronLeftIcon />
@@ -414,16 +491,29 @@ export function SessionReplayPlayer({
                     disabled={currentEventIndex >= events.length - 1}
                     onClick={() => {
                       pause()
-                      setCurrentEventIndex((index) =>
-                        Math.min(events.length - 1, index + 1)
+                      const nextIndex = Math.min(
+                        events.length - 1,
+                        currentEventIndex + 1
                       )
+
+                      setCurrentEventIndex(nextIndex)
+                      seekToEvent(events[nextIndex])
                     }}
                   >
                     <ChevronRightIcon />
                   </Button>
-                  <Progress
-                    value={Math.min(100, progress)}
-                    className="min-w-0 flex-1"
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.max(replayDuration, 1)}
+                    step={1}
+                    value={Math.min(currentTime, replayDuration)}
+                    aria-label="Replay progress"
+                    className="accent-primary min-w-0 flex-1 cursor-grab touch-none active:cursor-grabbing"
+                    onPointerDown={pause}
+                    onChange={(event) =>
+                      seekToTime(Number(event.currentTarget.value))
+                    }
                   />
                   <span className="text-muted-foreground min-w-20 text-right text-xs tabular-nums">
                     {formatElapsed(currentTime)} /{' '}
@@ -461,7 +551,7 @@ export function SessionReplayPlayer({
                 </div>
                 <Badge variant="outline">
                   {currentEvent
-                    ? formatElapsed(currentEvent.elapsedMs)
+                    ? formatElapsed(getEventOffset(currentEvent, replayEvents))
                     : '0:00'}
                 </Badge>
               </div>
@@ -477,21 +567,12 @@ export function SessionReplayPlayer({
                       onClick={() => {
                         pause()
                         setCurrentEventIndex(index)
-                        const offset = detail
-                          ? getEventOffset(event, detail)
-                          : 0
-                        replayerRef.current?.pause(offset)
-                        setCurrentTime(offset)
+                        seekToEvent(event)
                       }}
                     >
-                      <div className="flex w-full items-center justify-between gap-2">
-                        <span className="text-xs font-medium">
-                          {formatEventType(event.type)}
-                        </span>
-                        <span className="text-muted-foreground text-[11px] tabular-nums">
-                          {formatElapsed(event.elapsedMs)}
-                        </span>
-                      </div>
+                      <span className="text-xs font-medium">
+                        {formatEventType(event.type)}
+                      </span>
                       <p className="text-muted-foreground mt-1 truncate text-xs">
                         {getEventPath(event)}
                       </p>

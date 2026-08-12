@@ -2,9 +2,13 @@ import { sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { events } from "../db/schema";
 import type {
+  EventsCategory,
+  EventsDevice,
   EventsData,
   IncomingEvent,
   ProjectEvent,
+  ProjectEventCategory,
+  ProjectEventDetailValue,
 } from "@workspace/contracts";
 import { getProjectIDByApiKeyModel } from "./projects.model";
 
@@ -14,6 +18,9 @@ export interface EventsFilters {
   workspaceId: string;
   projectId: string;
   range: EventsRange;
+  category: EventsCategory;
+  device: EventsDevice;
+  path?: string;
   search?: string;
   page: number;
   pageSize: number;
@@ -22,13 +29,24 @@ export interface EventsFilters {
 interface EventRow extends Record<string, unknown> {
   event_id: string;
   type: string;
+  session_id: string;
   path: string | null;
+  url: string | null;
+  title: string | null;
+  referrer: string | null;
+  referrer_domain: string | null;
   visitor_id: string;
   device: string | null;
+  browser: string | null;
+  browser_version: string | null;
+  os: string | null;
+  os_version: string | null;
   country: string | null;
   country_code: string | null;
   event_tag: string | null;
   event_text: string | null;
+  payload: Record<string, unknown> | null;
+  replay_available: boolean | null;
   occurred_at: Date | string | null;
 }
 
@@ -40,6 +58,7 @@ interface SummaryRow extends Record<string, unknown> {
   total_events: number | string | null;
   total_sessions: number | string | null;
   total_visitors: number | string | null;
+  high_signal_actions: number | string | null;
 }
 
 const RANGE_DAYS: Record<EventsRange, number> = {
@@ -100,6 +119,169 @@ function getReferrerDomain(referrer?: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+function getEventCategory(type: string): ProjectEventCategory {
+  if (["click"].includes(type)) return "action";
+  if (["form_submit", "form_success", "form_error"].includes(type)) {
+    return "form";
+  }
+  if (type === "page_view") return "navigation";
+  if (["javascript_error", "promise_rejection"].includes(type)) {
+    return "error";
+  }
+  if (type === "performance") return "performance";
+  if (type === "custom") return "custom";
+
+  return "system";
+}
+
+function getStringDetail(
+  payload: Record<string, unknown> | null,
+  key: string,
+  maximum = 512
+): string | null {
+  const value = payload?.[key];
+
+  return typeof value === "string" ? value.slice(0, maximum) : null;
+}
+
+function getNumberDetail(
+  payload: Record<string, unknown> | null,
+  key: string
+): number | null {
+  const value = payload?.[key];
+
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  return null;
+}
+
+function getEventDetails(
+  type: string,
+  payload: Record<string, unknown> | null
+): Record<string, ProjectEventDetailValue> {
+  const details: Record<string, ProjectEventDetailValue> = {};
+  const addString = (key: string, sourceKey = key) => {
+    const value = getStringDetail(payload, sourceKey);
+
+    if (value) details[key] = value;
+  };
+  const addNumber = (key: string, sourceKey = key) => {
+    const value = getNumberDetail(payload, sourceKey);
+
+    if (value !== null) details[key] = value;
+  };
+
+  if (type === "click") {
+    addString("element", "tag");
+    addString("elementId", "id");
+    addString("buttonText");
+    addString("text");
+    addString("className");
+    addNumber("x");
+    addNumber("y");
+    addNumber("pageX");
+    addNumber("pageY");
+  } else if (
+    type === "form_submit" ||
+    type === "form_success" ||
+    type === "form_error"
+  ) {
+    addString("formId", "id");
+    addString("action");
+    addString("method");
+    addString("errorType");
+    addString("message");
+  } else if (type === "javascript_error") {
+    addString("message");
+    addString("file");
+    addNumber("line");
+    addNumber("column");
+  } else if (type === "promise_rejection") {
+    addString("reason", "reason");
+  } else if (type === "performance") {
+    for (const key of ["dns", "tcp", "ttfb", "domLoaded", "load"]) {
+      addNumber(key);
+    }
+  } else if (type === "custom" && payload) {
+    const ignoredKeys = new Set([
+      "projectId",
+      "visitorId",
+      "sessionId",
+      "timestamp",
+      "url",
+      "path",
+      "title",
+    ]);
+
+    for (const [key, value] of Object.entries(payload)) {
+      if (ignoredKeys.has(key) || key in details) continue;
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean" ||
+        value === null
+      ) {
+        details[key] = typeof value === "string" ? value.slice(0, 512) : value;
+      }
+    }
+  }
+
+  return details;
+}
+
+function getEventDescription(
+  type: string,
+  path: string,
+  payload: Record<string, unknown> | null
+): string {
+  const text = getStringDetail(payload, "text");
+  const buttonText = getStringDetail(payload, "buttonText");
+  const formId = getStringDetail(payload, "id");
+
+  if (type === "click") {
+    const target = buttonText || text;
+
+    return target ? `Clicked "${target}"` : "Clicked an element";
+  }
+  if (type === "form_submit") {
+    return formId ? `Submitted "${formId}"` : "Submitted a form";
+  }
+  if (type === "form_success") {
+    return formId ? `Form "${formId}" succeeded` : "Form succeeded";
+  }
+  if (type === "form_error") {
+    return formId ? `Form "${formId}" failed` : "Form failed";
+  }
+  if (type === "page_view") return `Viewed ${path}`;
+  if (type === "javascript_error") return "JavaScript error occurred";
+  if (type === "promise_rejection") return "Unhandled promise rejection";
+  if (type === "performance") return "Performance measured";
+  if (type === "custom") return "Custom event recorded";
+
+  return type
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getCategoryFilter(category: EventsCategory) {
+  if (category === "actions") {
+    return sql` AND type IN ('click', 'page_view', 'custom')`;
+  }
+  if (category === "forms") {
+    return sql` AND type IN ('form_submit', 'form_success', 'form_error')`;
+  }
+  if (category === "high_signal") {
+    return sql` AND type IN (
+      'click', 'page_view', 'form_submit', 'form_success', 'form_error',
+      'custom', 'javascript_error', 'promise_rejection', 'performance'
+    )`;
+  }
+
+  return sql``;
 }
 
 export async function createEvents(
@@ -198,19 +380,30 @@ export async function getEventsModel(
   const searchPattern = search ? `%${search}%` : null;
   const searchFilter = searchPattern
     ? sql` AND (
-        LOWER(COALESCE(type, '')) LIKE ${searchPattern}
-        OR LOWER(COALESCE(path, '')) LIKE ${searchPattern}
-        OR LOWER(COALESCE(visitor_id, '')) LIKE ${searchPattern}
-        OR LOWER(COALESCE(device, '')) LIKE ${searchPattern}
-        OR LOWER(COALESCE(country, '')) LIKE ${searchPattern}
-        OR LOWER(COALESCE(country_code, '')) LIKE ${searchPattern}
-        OR LOWER(payload::text) LIKE ${searchPattern}
+        LOWER(COALESCE(events.type, '')) LIKE ${searchPattern}
+        OR LOWER(COALESCE(events.path, '')) LIKE ${searchPattern}
+        OR LOWER(COALESCE(events.visitor_id, '')) LIKE ${searchPattern}
+        OR LOWER(COALESCE(events.device, '')) LIKE ${searchPattern}
+        OR LOWER(COALESCE(events.country, '')) LIKE ${searchPattern}
+        OR LOWER(COALESCE(events.country_code, '')) LIKE ${searchPattern}
+        OR LOWER(events.payload::text) LIKE ${searchPattern}
       )`
     : sql``;
+  const categoryFilter = getCategoryFilter(filters.category);
+  const deviceFilter =
+    filters.device !== "all"
+      ? sql` AND LOWER(COALESCE(events.device, 'unknown')) = ${filters.device}`
+      : sql``;
+  const pathFilter = filters.path
+    ? sql` AND COALESCE(NULLIF(events.path, ''), '/') = ${filters.path.trim()}`
+    : sql``;
   const eventWhere = sql`
-    workspace_id = ${filters.workspaceId}
-    AND project_id = ${filters.projectId}
-    AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+    events.workspace_id = ${filters.workspaceId}
+    AND events.project_id = ${filters.projectId}
+    AND events.occurred_at >= NOW() - make_interval(days => ${rangeDays})
+    ${categoryFilter}
+    ${deviceFilter}
+    ${pathFilter}
     ${searchFilter}
   `;
   const offset = (filters.page - 1) * filters.pageSize;
@@ -218,19 +411,41 @@ export async function getEventsModel(
   const [eventsResult, countResult, summaryResult] = await Promise.all([
     db.execute<EventRow>(sql`
       SELECT
-        id::text AS event_id,
-        type,
-        path,
-        visitor_id,
-        device,
-        country,
-        country_code,
-        payload->>'tag' AS event_tag,
-        payload->>'text' AS event_text,
-        occurred_at
+        events.id::text AS event_id,
+        events.type,
+        events.session_id,
+        events.path,
+        events.url,
+        events.title,
+        events.referrer,
+        events.referrer_domain,
+        events.visitor_id,
+        events.device,
+        events.browser,
+        events.browser_version,
+        events.os,
+        events.os_version,
+        events.country,
+        events.country_code,
+        events.payload->>'tag' AS event_tag,
+        events.payload->>'text' AS event_text,
+        events.payload,
+        replay.id IS NOT NULL
+          AND replay.event_count >= 2
+          AND EXISTS (
+            SELECT 1
+            FROM replay_chunks replay_chunk
+            WHERE replay_chunk.session_id = replay.id
+              AND replay_chunk.events @> '[{"type": 2}]'::jsonb
+          ) AS replay_available,
+        events.occurred_at
       FROM events
+      LEFT JOIN replay_sessions replay
+        ON replay.id = events.session_id
+        AND replay.workspace_id = ${filters.workspaceId}
+        AND replay.project_id = ${filters.projectId}
       WHERE ${eventWhere}
-      ORDER BY occurred_at DESC, id DESC
+      ORDER BY events.occurred_at DESC, events.id DESC
       LIMIT ${filters.pageSize}
       OFFSET ${offset};
     `),
@@ -242,8 +457,13 @@ export async function getEventsModel(
     db.execute<SummaryRow>(sql`
       SELECT
         COUNT(*)::int AS total_events,
-        COUNT(DISTINCT session_id)::int AS total_sessions,
-        COUNT(DISTINCT visitor_id)::int AS total_visitors
+        COUNT(DISTINCT events.session_id)::int AS total_sessions,
+        COUNT(DISTINCT events.visitor_id)::int AS total_visitors,
+        COUNT(*) FILTER (
+          WHERE events.type IN (
+            'click', 'form_submit', 'form_success', 'form_error', 'custom'
+          )
+        )::int AS high_signal_actions
       FROM events
       WHERE ${eventWhere};
     `),
@@ -257,18 +477,37 @@ export async function getEventsModel(
     events: eventsResult.rows.map((event) => ({
       id: event.event_id,
       type: event.type,
+      category: getEventCategory(event.type),
+      description: getEventDescription(
+        event.type,
+        event.path?.trim() || "/",
+        event.payload
+      ),
+      sessionId: event.session_id,
       path: event.path?.trim() || "/",
+      url: event.url,
+      title: event.title,
+      referrer: event.referrer,
+      referrerDomain: event.referrer_domain,
       visitorId: event.visitor_id,
       device: formatDevice(event.device),
       country: formatCountry(event.country, event.country_code),
+      countryCode: event.country_code?.trim().toUpperCase() || "--",
+      browser: event.browser,
+      browserVersion: event.browser_version,
+      os: event.os,
+      osVersion: event.os_version,
       tag: event.event_tag,
       text: event.event_text,
+      details: getEventDetails(event.type, event.payload),
+      replayAvailable: Boolean(event.replay_available),
       occurredAt: toIso(event.occurred_at),
     })),
     summary: {
       totalEvents: toNumber(summary?.total_events),
       totalSessions: toNumber(summary?.total_sessions),
       totalVisitors: toNumber(summary?.total_visitors),
+      highSignalActions: toNumber(summary?.high_signal_actions),
     },
     pagination: {
       page: filters.page,

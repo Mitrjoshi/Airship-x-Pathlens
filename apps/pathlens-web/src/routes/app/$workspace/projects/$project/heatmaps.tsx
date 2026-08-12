@@ -135,6 +135,7 @@ function ClickHeatmap({ page }: { page: HeatmapPageDetail }) {
             <HeatmapReplayPreview
               events={page.replayEvents}
               points={page.clickPoints}
+              url={page.url}
               viewport={page.viewport}
             />
             <div className="mt-4">
@@ -248,6 +249,7 @@ function ScrollHeatmap({ page }: { page: HeatmapPageDetail }) {
         <CardContent>
           <HeatmapReplayPreview
             events={page.replayEvents}
+            url={page.url}
             viewport={page.viewport}
           />
         </CardContent>
