@@ -35,10 +35,13 @@ apiClient.interceptors.response.use(
       const message = error.response.data?.message || 'Something went wrong'
 
       // e.g. handle 401
+      const isLoginRequest = error.config?.url?.endsWith('/auth/login')
+
       if (
-        error.response.status === 401 ||
-        error.response.status === 403 ||
-        error.response.status === 404
+        !isLoginRequest &&
+        (error.response.status === 401 ||
+          error.response.status === 403 ||
+          error.response.status === 404)
       ) {
         localStorage.removeItem('pathlens-token')
         window.location.href = '/login'
