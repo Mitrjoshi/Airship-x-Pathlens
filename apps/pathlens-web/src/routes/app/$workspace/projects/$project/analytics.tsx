@@ -107,26 +107,38 @@ function RouteComponent() {
   )
 
   const analytics = analyticsData?.data
+  const topDevice = analytics?.devices[0]
   const summary = [
-    {
-      title: 'Visitors',
-      value: formatNumber(analytics?.summary.visitors ?? 0),
-      icon: navigationIcons.visitors,
-    },
     {
       title: 'Sessions',
       value: formatNumber(analytics?.summary.sessions ?? 0),
       icon: navigationIcons.sessions,
+      detail: 'Visits in selected audience',
     },
     {
-      title: 'Bounce Rate',
+      title: 'Bounce rate',
       value: `${analytics?.summary.bounceRate ?? 0}%`,
       icon: Globe,
+      detail: 'Single-page sessions',
     },
     {
-      title: 'Avg. Duration',
+      title: 'Avg. duration',
       value: analytics?.summary.avgDuration ?? '0s',
       icon: Clock3,
+      detail: 'Time per session',
+    },
+    {
+      title: 'Leading device',
+      value: topDevice?.name ?? '—',
+      icon:
+        topDevice?.name === 'Mobile'
+          ? Smartphone
+          : topDevice?.name === 'Tablet'
+            ? MonitorSmartphone
+            : Laptop,
+      detail: topDevice
+        ? `${topDevice.value}% of sessions`
+        : 'No device data yet',
     },
   ]
 
@@ -134,45 +146,51 @@ function RouteComponent() {
     <ProjectPageLayout>
       <div className="space-y-8">
         <ProjectPageHeader
-          eyebrow="Audience"
+          eyebrow="Audience · Diagnostics"
           title="Analytics"
-          description="Deep dive into traffic, devices, and audience behaviour."
+          description="Investigate audience quality, acquisition, and environment beyond the overview."
         />
 
-        <PageToolbar className="justify-end">
-          <Select
-            value={range}
-            onValueChange={(value) => {
-              if (value) setRange(value as AnalyticsRange)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Date range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="24h">Last 24 hours</SelectItem>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
+        <PageToolbar>
+          <div className="text-muted-foreground flex items-center gap-2 text-xs">
+            <span className="bg-muted-foreground size-1.5 rounded-full" />
+            Diagnostic view · compare audience dimensions
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Select
+              value={range}
+              onValueChange={(value) => {
+                if (value) setRange(value as AnalyticsRange)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue placeholder="Date range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="24h">Last 24 hours</SelectItem>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={device}
-            onValueChange={(value) => {
-              if (value) setDevice(value as AnalyticsDevice)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Device" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Devices</SelectItem>
-              <SelectItem value="desktop">Desktop</SelectItem>
-              <SelectItem value="mobile">Mobile</SelectItem>
-              <SelectItem value="tablet">Tablet</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select
+              value={device}
+              onValueChange={(value) => {
+                if (value) setDevice(value as AnalyticsDevice)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue placeholder="Device" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Devices</SelectItem>
+                <SelectItem value="desktop">Desktop</SelectItem>
+                <SelectItem value="mobile">Mobile</SelectItem>
+                <SelectItem value="tablet">Tablet</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </PageToolbar>
 
         {isError && (
@@ -181,7 +199,6 @@ function RouteComponent() {
           </p>
         )}
 
-        {/* Summary Cards */}
         <ProjectMetricStrip className="lg:grid-cols-4">
           {summary.map((stat) => {
             const Icon = stat.icon
@@ -193,17 +210,19 @@ function RouteComponent() {
                 value={stat.value}
                 icon={Icon}
                 isLoading={isPending}
+                detail={stat.detail}
               />
             )
           })}
         </ProjectMetricStrip>
 
-        {/* Charts */}
         <div className="grid gap-4 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader>
-              <CardTitle>Visitors vs Sessions</CardTitle>
-              <CardDescription>Traffic over the selected range</CardDescription>
+              <CardTitle>Audience volume</CardTitle>
+              <CardDescription>
+                Compare unique people with visits across the selected range
+              </CardDescription>
             </CardHeader>
 
             <CardContent>
@@ -239,8 +258,10 @@ function RouteComponent() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Devices</CardTitle>
-              <CardDescription>Sessions by device type</CardDescription>
+              <CardTitle>Device composition</CardTitle>
+              <CardDescription>
+                How the audience is distributed by device
+              </CardDescription>
             </CardHeader>
 
             <CardContent>
@@ -287,12 +308,11 @@ function RouteComponent() {
           </Card>
         </div>
 
-        {/* Top Lists */}
         <div className="grid gap-4 xl:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle>Top Referrers</CardTitle>
-              <CardDescription>Where visitors come from</CardDescription>
+              <CardTitle>Acquisition sources</CardTitle>
+              <CardDescription>Where the audience originated</CardDescription>
             </CardHeader>
 
             <CardContent>
@@ -329,8 +349,8 @@ function RouteComponent() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Countries</CardTitle>
-              <CardDescription>Visitor geography</CardDescription>
+              <CardTitle>Geography</CardTitle>
+              <CardDescription>Where the audience is located</CardDescription>
             </CardHeader>
 
             <CardContent>
@@ -372,8 +392,8 @@ function RouteComponent() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Browsers</CardTitle>
-              <CardDescription>Browser breakdown</CardDescription>
+              <CardTitle>Browser environment</CardTitle>
+              <CardDescription>Which browsers visitors use</CardDescription>
             </CardHeader>
 
             <CardContent>

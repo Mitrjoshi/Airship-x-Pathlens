@@ -39,6 +39,7 @@ import { Route as AppWorkspaceProjectsProjectPerformanceRouteImport } from './ro
 import { Route as AppWorkspaceProjectsProjectReportsRouteImport } from './routes/app/$workspace/projects/$project/reports'
 import { Route as AppWorkspaceProjectsProjectSessionReplayRouteImport } from './routes/app/$workspace/projects/$project/session-replay'
 import { Route as AppWorkspaceProjectsProjectSettingsRouteImport } from './routes/app/$workspace/projects/$project/settings'
+import { Route as AppWorkspaceProjectsProjectUserJourneyRouteImport } from './routes/app/$workspace/projects/$project/user-journey'
 import { Route as AppWorkspaceProjectsProjectVisitorsRouteImport } from './routes/app/$workspace/projects/$project/visitors'
 
 const IndexRoute = IndexRouteImport.update({
@@ -207,6 +208,12 @@ const AppWorkspaceProjectsProjectSettingsRoute =
     path: '/settings',
     getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
   } as any)
+const AppWorkspaceProjectsProjectUserJourneyRoute =
+  AppWorkspaceProjectsProjectUserJourneyRouteImport.update({
+    id: '/user-journey',
+    path: '/user-journey',
+    getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
+  } as any)
 const AppWorkspaceProjectsProjectVisitorsRoute =
   AppWorkspaceProjectsProjectVisitorsRouteImport.update({
     id: '/visitors',
@@ -243,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
   '/app/$workspace/projects/$project/session-replay': typeof AppWorkspaceProjectsProjectSessionReplayRoute
   '/app/$workspace/projects/$project/settings': typeof AppWorkspaceProjectsProjectSettingsRoute
+  '/app/$workspace/projects/$project/user-journey': typeof AppWorkspaceProjectsProjectUserJourneyRoute
   '/app/$workspace/projects/$project/visitors': typeof AppWorkspaceProjectsProjectVisitorsRoute
   '/app/$workspace/projects/$project/': typeof AppWorkspaceProjectsProjectIndexRoute
 }
@@ -273,6 +281,7 @@ export interface FileRoutesByTo {
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
   '/app/$workspace/projects/$project/session-replay': typeof AppWorkspaceProjectsProjectSessionReplayRoute
   '/app/$workspace/projects/$project/settings': typeof AppWorkspaceProjectsProjectSettingsRoute
+  '/app/$workspace/projects/$project/user-journey': typeof AppWorkspaceProjectsProjectUserJourneyRoute
   '/app/$workspace/projects/$project/visitors': typeof AppWorkspaceProjectsProjectVisitorsRoute
   '/app/$workspace/projects/$project': typeof AppWorkspaceProjectsProjectIndexRoute
 }
@@ -307,6 +316,7 @@ export interface FileRoutesById {
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
   '/app/$workspace/projects/$project/session-replay': typeof AppWorkspaceProjectsProjectSessionReplayRoute
   '/app/$workspace/projects/$project/settings': typeof AppWorkspaceProjectsProjectSettingsRoute
+  '/app/$workspace/projects/$project/user-journey': typeof AppWorkspaceProjectsProjectUserJourneyRoute
   '/app/$workspace/projects/$project/visitors': typeof AppWorkspaceProjectsProjectVisitorsRoute
   '/app/$workspace/projects/$project/': typeof AppWorkspaceProjectsProjectIndexRoute
 }
@@ -341,6 +351,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/reports'
     | '/app/$workspace/projects/$project/session-replay'
     | '/app/$workspace/projects/$project/settings'
+    | '/app/$workspace/projects/$project/user-journey'
     | '/app/$workspace/projects/$project/visitors'
     | '/app/$workspace/projects/$project/'
   fileRoutesByTo: FileRoutesByTo
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/reports'
     | '/app/$workspace/projects/$project/session-replay'
     | '/app/$workspace/projects/$project/settings'
+    | '/app/$workspace/projects/$project/user-journey'
     | '/app/$workspace/projects/$project/visitors'
     | '/app/$workspace/projects/$project'
   id:
@@ -404,6 +416,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/reports'
     | '/app/$workspace/projects/$project/session-replay'
     | '/app/$workspace/projects/$project/settings'
+    | '/app/$workspace/projects/$project/user-journey'
     | '/app/$workspace/projects/$project/visitors'
     | '/app/$workspace/projects/$project/'
   fileRoutesById: FileRoutesById
@@ -626,6 +639,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceProjectsProjectSettingsRouteImport
       parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
     }
+    '/app/$workspace/projects/$project/user-journey': {
+      id: '/app/$workspace/projects/$project/user-journey'
+      path: '/user-journey'
+      fullPath: '/app/$workspace/projects/$project/user-journey'
+      preLoaderRoute: typeof AppWorkspaceProjectsProjectUserJourneyRouteImport
+      parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
+    }
     '/app/$workspace/projects/$project/visitors': {
       id: '/app/$workspace/projects/$project/visitors'
       path: '/visitors'
@@ -665,6 +685,7 @@ interface AppWorkspaceProjectsProjectRouteRouteChildren {
   AppWorkspaceProjectsProjectReportsRoute: typeof AppWorkspaceProjectsProjectReportsRoute
   AppWorkspaceProjectsProjectSessionReplayRoute: typeof AppWorkspaceProjectsProjectSessionReplayRoute
   AppWorkspaceProjectsProjectSettingsRoute: typeof AppWorkspaceProjectsProjectSettingsRoute
+  AppWorkspaceProjectsProjectUserJourneyRoute: typeof AppWorkspaceProjectsProjectUserJourneyRoute
   AppWorkspaceProjectsProjectVisitorsRoute: typeof AppWorkspaceProjectsProjectVisitorsRoute
   AppWorkspaceProjectsProjectIndexRoute: typeof AppWorkspaceProjectsProjectIndexRoute
 }
@@ -694,6 +715,8 @@ const AppWorkspaceProjectsProjectRouteRouteChildren: AppWorkspaceProjectsProject
       AppWorkspaceProjectsProjectSessionReplayRoute,
     AppWorkspaceProjectsProjectSettingsRoute:
       AppWorkspaceProjectsProjectSettingsRoute,
+    AppWorkspaceProjectsProjectUserJourneyRoute:
+      AppWorkspaceProjectsProjectUserJourneyRoute,
     AppWorkspaceProjectsProjectVisitorsRoute:
       AppWorkspaceProjectsProjectVisitorsRoute,
     AppWorkspaceProjectsProjectIndexRoute:

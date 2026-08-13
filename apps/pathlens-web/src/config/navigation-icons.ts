@@ -13,6 +13,7 @@ import {
   ScanSearchIcon,
   SettingsIcon,
   ShieldCheckIcon,
+  RouteIcon,
   UsersIcon,
   WorkflowIcon,
 } from 'lucide-react'
@@ -31,6 +32,7 @@ export const navigationIcons = {
   aiInsights: BotIcon,
   reports: BarChart3Icon,
   performance: ActivityIcon,
+  userJourney: RouteIcon,
   apiKeys: KeyRoundIcon,
   settings: SettingsIcon,
   members: UsersIcon,

@@ -44,15 +44,16 @@ import { PageLayout } from '@/components/common/page-layout'
 type ProjectNavPath =
   | '/app/$workspace/projects/$project/dashboard'
   | '/app/$workspace/projects/$project/analytics'
-  | '/app/$workspace/projects/$project/heatmaps'
-  | '/app/$workspace/projects/$project/visitors'
-  | '/app/$workspace/projects/$project/session-replay'
-  | '/app/$workspace/projects/$project/events'
+  | '/app/$workspace/projects/$project/user-journey'
   | '/app/$workspace/projects/$project/funnels'
   | '/app/$workspace/projects/$project/goals'
-  | '/app/$workspace/projects/$project/ai-insights'
-  | '/app/$workspace/projects/$project/reports'
+  | '/app/$workspace/projects/$project/events'
+  | '/app/$workspace/projects/$project/session-replay'
+  | '/app/$workspace/projects/$project/heatmaps'
+  | '/app/$workspace/projects/$project/visitors'
   | '/app/$workspace/projects/$project/performance'
+  | '/app/$workspace/projects/$project/reports'
+  | '/app/$workspace/projects/$project/ai-insights'
   | '/app/$workspace/projects/$project/keys'
   | '/app/$workspace/projects/$project/settings'
 
@@ -112,6 +113,46 @@ export function AppSidebar({
       permission: 'analytics.analytics.view' as const,
     },
     {
+      title: 'User Journey',
+      url: '/app/$workspace/projects/$project/user-journey' as const,
+      icon: navigationIcons.userJourney,
+      isActive: pathname === `${projectBasePath}/user-journey`,
+      isNew: true,
+      permission: 'analytics.analytics.view' as const,
+    },
+    {
+      title: 'Funnels',
+      url: '/app/$workspace/projects/$project/funnels' as const,
+      icon: navigationIcons.funnels,
+      isActive: pathname === `${projectBasePath}/funnels`,
+      isNew: true,
+      permission: 'analytics.funnels.view' as const,
+    },
+    {
+      title: 'Goals',
+      url: '/app/$workspace/projects/$project/goals' as const,
+      icon: navigationIcons.goals,
+      isActive: pathname === `${projectBasePath}/goals`,
+      isNew: true,
+      permission: 'analytics.goals.view' as const,
+    },
+    {
+      title: 'Events',
+      url: '/app/$workspace/projects/$project/events' as const,
+      icon: navigationIcons.events,
+      isActive: pathname === `${projectBasePath}/events`,
+      isNew: true,
+      permission: 'analytics.events.view' as const,
+    },
+    {
+      title: 'Session Replay',
+      url: '/app/$workspace/projects/$project/session-replay' as const,
+      icon: navigationIcons.sessionReplay,
+      isActive: pathname === `${projectBasePath}/session-replay`,
+      isNew: false,
+      permission: 'analytics.session_replay.view' as const,
+    },
+    {
       title: 'Heatmaps',
       url: '/app/$workspace/projects/$project/heatmaps' as const,
       icon: navigationIcons.heatmaps,
@@ -136,36 +177,12 @@ export function AppSidebar({
       permission: 'analytics.performance.view' as const,
     },
     {
-      title: 'Session Replay',
-      url: '/app/$workspace/projects/$project/session-replay' as const,
-      icon: navigationIcons.sessionReplay,
-      isActive: pathname === `${projectBasePath}/session-replay`,
+      title: 'Reports',
+      url: '/app/$workspace/projects/$project/reports' as const,
+      icon: navigationIcons.reports,
+      isActive: pathname === `${projectBasePath}/reports`,
       isNew: false,
-      permission: 'analytics.session_replay.view' as const,
-    },
-    {
-      title: 'Events',
-      url: '/app/$workspace/projects/$project/events' as const,
-      icon: navigationIcons.events,
-      isActive: pathname === `${projectBasePath}/events`,
-      isNew: true,
-      permission: 'analytics.events.view' as const,
-    },
-    {
-      title: 'Funnels',
-      url: '/app/$workspace/projects/$project/funnels' as const,
-      icon: navigationIcons.funnels,
-      isActive: pathname === `${projectBasePath}/funnels`,
-      isNew: true,
-      permission: 'analytics.funnels.view' as const,
-    },
-    {
-      title: 'Goals',
-      url: '/app/$workspace/projects/$project/goals' as const,
-      icon: navigationIcons.goals,
-      isActive: pathname === `${projectBasePath}/goals`,
-      isNew: true,
-      permission: 'analytics.goals.view' as const,
+      permission: 'analytics.reports.view' as const,
     },
     {
       title: 'AI Insights',
@@ -174,14 +191,6 @@ export function AppSidebar({
       isActive: pathname === `${projectBasePath}/ai-insights`,
       isNew: true,
       permission: 'analytics.ai_insights.view' as const,
-    },
-    {
-      title: 'Reports',
-      url: '/app/$workspace/projects/$project/reports' as const,
-      icon: navigationIcons.reports,
-      isActive: pathname === `${projectBasePath}/reports`,
-      isNew: false,
-      permission: 'analytics.reports.view' as const,
     },
     {
       title: 'API Keys',

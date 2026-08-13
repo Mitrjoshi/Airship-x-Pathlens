@@ -39,6 +39,7 @@ type ProjectPagePath =
   | '/app/$workspace/projects/$project/heatmaps'
   | '/app/$workspace/projects/$project/visitors'
   | '/app/$workspace/projects/$project/performance'
+  | '/app/$workspace/projects/$project/user-journey'
   | '/app/$workspace/projects/$project/session-replay'
   | '/app/$workspace/projects/$project/events'
   | '/app/$workspace/projects/$project/funnels'
@@ -196,6 +197,15 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.performance,
     to: '/app/$workspace/projects/$project/performance',
     permissions: ['analytics.performance.view'],
+  },
+  {
+    id: 'project-user-journey',
+    title: 'User Journey',
+    description: 'Explore the paths visitors take through your site',
+    keywords: 'path analysis journey flow paths navigation behavior',
+    icon: navigationIcons.userJourney,
+    to: '/app/$workspace/projects/$project/user-journey',
+    permissions: ['analytics.analytics.view'],
   },
   {
     id: 'project-session-replay',
