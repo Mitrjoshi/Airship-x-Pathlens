@@ -1,6 +1,7 @@
 // src/utils.ts
 
 import type {
+  CampaignAttribution,
   ClientAnalyticsInfo,
   DeviceType,
   PathLensConfig,
@@ -11,6 +12,8 @@ import { postEncryptedPayload } from "./crypto";
 const VISITOR_KEY = "pathlens_visitor";
 const SESSION_KEY = "pathlens_session";
 const SESSION_LAST_ACTIVE_KEY = "pathlens_session_last_active";
+const CAMPAIGN_KEY_PREFIX = "pathlens_campaign:";
+const CAMPAIGN_VALUE_LIMIT = 512;
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 const DEFAULT_API_URL = "http://localhost:8080/api/events";
 const DEFAULT_REPLAY_API_URL = "http://localhost:8080/api/replay/chunks";
@@ -51,6 +54,85 @@ export function touchSession(): void {
   } catch {
     // Storage may be unavailable in privacy-restricted browser contexts.
   }
+}
+
+function normalizeCampaignValue(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+
+  const normalized = value.trim().slice(0, CAMPAIGN_VALUE_LIMIT);
+
+  return normalized || undefined;
+}
+
+function getCampaignFromSearch(search: string): CampaignAttribution {
+  const params = new URLSearchParams(search);
+  const attribution: CampaignAttribution = {};
+  const values = {
+    utmSource: params.get("utm_source"),
+    utmMedium: params.get("utm_medium"),
+    utmCampaign: params.get("utm_campaign"),
+    utmTerm: params.get("utm_term"),
+    utmContent: params.get("utm_content"),
+  };
+
+  for (const [key, value] of Object.entries(values)) {
+    const normalized = normalizeCampaignValue(value);
+
+    if (normalized) {
+      attribution[key as keyof CampaignAttribution] = normalized;
+    }
+  }
+
+  return attribution;
+}
+
+function getStoredCampaign(value: string | null): CampaignAttribution {
+  if (!value) return {};
+
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    const attribution: CampaignAttribution = {};
+
+    for (const key of [
+      "utmSource",
+      "utmMedium",
+      "utmCampaign",
+      "utmTerm",
+      "utmContent",
+    ] as const) {
+      const normalized = normalizeCampaignValue(parsed[key]);
+
+      if (normalized) attribution[key] = normalized;
+    }
+
+    return attribution;
+  } catch {
+    return {};
+  }
+}
+
+export function getCampaignAttribution(projectId: string): CampaignAttribution {
+  const storageKey = `${CAMPAIGN_KEY_PREFIX}${projectId}`;
+
+  try {
+    const stored = getStoredCampaign(localStorage.getItem(storageKey));
+
+    if (Object.keys(stored).length > 0) return stored;
+  } catch {
+    // Storage may be unavailable in privacy-restricted browser contexts.
+  }
+
+  const current = getCampaignFromSearch(window.location.search);
+
+  if (Object.keys(current).length > 0) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(current));
+    } catch {
+      // Storage may be unavailable in privacy-restricted browser contexts.
+    }
+  }
+
+  return current;
 }
 
 export function now(): string {

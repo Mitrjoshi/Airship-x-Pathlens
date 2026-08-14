@@ -1,5 +1,7 @@
 import { Router } from "express";
 import eventsRouter from "./events.route";
+import errorsRouter from "./errors.route";
+import campaignsRouter from "./campaigns.route";
 import usersRouter from "./users.route";
 import projectsRouter from "./projects.route";
 import dashboardRouter from "./dashboard.route";
@@ -14,6 +16,7 @@ import notificationsRouter from "./notifications.route";
 import feedbackRouter from "./feedback.route";
 import heatmapsRouter from "./heatmaps.route";
 import replayRouter from "./replay.route";
+import userJourneyRouter from "./user-journey.route";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
 
 const router = Router();
@@ -24,6 +27,8 @@ router.use("/replay", replayRouter);
 router.use(ApiKeyMiddleware);
 
 router.use("/auth", usersRouter);
+router.use("/errors", errorsRouter);
+router.use("/campaigns", campaignsRouter);
 router.use("/workspaces", workspacesRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/feedback", feedbackRouter);
@@ -32,6 +37,7 @@ router.use("/dashboard", dashboardRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/visitors", visitorsRouter);
 router.use("/session-replay", sessionReplayRouter);
+router.use("/user-journey", userJourneyRouter);
 router.use("/heatmaps", heatmapsRouter);
 router.use("/funnels", funnelsRouter);
 router.use("/goals", goalsRouter);

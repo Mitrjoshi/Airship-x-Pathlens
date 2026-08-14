@@ -6,9 +6,15 @@ export type T_Projects = {
   workspaceId: string
   name: string
   domain: string | null
-  description: string
+  description: string | null
   apiKey: string
   createdAt: string
+  snapshot: {
+    status: 'pending' | 'processing' | 'ready' | 'stale' | 'failed'
+    url: string | null
+    capturedAt: string | null
+    isStale: boolean
+  }
   stats: {
     visitors: number
     sessions: number

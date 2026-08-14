@@ -260,15 +260,14 @@ function RouteComponent() {
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
-                className="bg-card flex items-center gap-4 rounded-xl border p-4 sm:p-5"
+                className="bg-card grid gap-4 rounded-xl border p-4 sm:grid-cols-[13rem_minmax(0,1fr)_minmax(18rem,auto)] sm:items-center sm:p-5"
               >
-                <Skeleton className="size-2 rounded-full" />
-                <div className="flex-1 space-y-2">
+                <Skeleton className="aspect-video w-full rounded-lg" />
+                <div className="min-w-0 space-y-2">
                   <Skeleton className="h-4 w-44" />
                   <Skeleton className="h-3 w-32" />
                 </div>
-                <Skeleton className="hidden h-8 w-44 sm:block" />
-                <Skeleton className="size-4" />
+                <Skeleton className="h-8 w-full sm:w-44" />
               </div>
             ))}
           </div>

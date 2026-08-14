@@ -2,6 +2,7 @@
 
 import { registerEvents } from "./events";
 import type {
+  CampaignAttribution,
   ClientAnalyticsInfo,
   EventPayload,
   EventType,
@@ -14,6 +15,7 @@ import {
   debug,
   flushQueue,
   getAnalyticsInfo,
+  getCampaignAttribution,
   getPageInfo,
   now,
   touchSession,
@@ -35,6 +37,8 @@ export class PathLensTracker {
 
   public readonly replayRecorder?: ReplayRecorder;
 
+  private campaignAttribution: CampaignAttribution;
+
   private flushTimer?: number;
 
   constructor(config: PathLensConfig) {
@@ -47,6 +51,7 @@ export class PathLensTracker {
     this.sessionStart = Date.now();
 
     this.analyticsInfo = getAnalyticsInfo();
+    this.campaignAttribution = getCampaignAttribution(config.projectId);
 
     if (config.captureReplay) {
       this.replayRecorder = new ReplayRecorder({
@@ -87,10 +92,15 @@ export class PathLensTracker {
   track(type: EventType, payload: EventPayload = {}): void {
     touchSession();
 
+    if (Object.keys(this.campaignAttribution).length === 0) {
+      this.campaignAttribution = getCampaignAttribution(this.config.projectId);
+    }
+
     const event: TrackedEvent = {
       ...payload,
       ...getPageInfo(),
       ...this.analyticsInfo,
+      ...this.campaignAttribution,
       type,
       timestamp: now(),
       projectId: this.config.projectId,

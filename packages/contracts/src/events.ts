@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 const optionalText = z.string().max(2048).nullable().optional()
+const optionalStack = z.string().max(16384).nullable().optional()
 const optionalDimension = z.number().finite().nonnegative().optional()
 
 export const incomingEventSchema = z
@@ -26,6 +27,18 @@ export const incomingEventSchema = z
     timezone: z.string().max(128).nullable().optional(),
     language: z.string().max(32).nullable().optional(),
     userAgent: z.string().max(2048).nullable().optional(),
+    name: z.string().max(128).nullable().optional(),
+    message: optionalText,
+    reason: optionalText,
+    file: z.string().max(2048).nullable().optional(),
+    line: z.number().finite().nonnegative().optional(),
+    column: z.number().finite().nonnegative().optional(),
+    stack: optionalStack,
+    utmSource: z.string().trim().max(512).nullable().optional(),
+    utmMedium: z.string().trim().max(512).nullable().optional(),
+    utmCampaign: z.string().trim().max(512).nullable().optional(),
+    utmTerm: z.string().trim().max(512).nullable().optional(),
+    utmContent: z.string().trim().max(512).nullable().optional(),
     screen: z
       .object({
         width: optionalDimension,

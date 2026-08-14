@@ -25,6 +25,14 @@ export interface PathLensConfig {
   replayBatchSize?: number
 }
 
+export interface CampaignAttribution {
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+  utmTerm?: string
+  utmContent?: string
+}
+
 export type DeviceType = 'desktop' | 'mobile' | 'tablet' | 'unknown'
 
 export interface ClientAnalyticsInfo {
@@ -91,6 +99,12 @@ export interface BaseEvent {
   userAgent: string
 
   referrer: string
+
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+  utmTerm?: string
+  utmContent?: string
 }
 
 export interface ClickEvent {
@@ -155,6 +169,7 @@ export interface InputChangeEvent {
 }
 
 export interface JavaScriptErrorEvent {
+  name?: string
   message: string
 
   file: string
@@ -162,10 +177,15 @@ export interface JavaScriptErrorEvent {
   line: number
 
   column: number
+
+  stack?: string
 }
 
 export interface PromiseRejectionEvent {
+  name?: string
   reason: string
+
+  stack?: string
 }
 
 export interface PerformanceEvent {

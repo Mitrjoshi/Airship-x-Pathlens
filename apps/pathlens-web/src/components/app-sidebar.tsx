@@ -48,6 +48,8 @@ type ProjectNavPath =
   | '/app/$workspace/projects/$project/funnels'
   | '/app/$workspace/projects/$project/goals'
   | '/app/$workspace/projects/$project/events'
+  | '/app/$workspace/projects/$project/errors'
+  | '/app/$workspace/projects/$project/campaigns'
   | '/app/$workspace/projects/$project/session-replay'
   | '/app/$workspace/projects/$project/heatmaps'
   | '/app/$workspace/projects/$project/visitors'
@@ -145,6 +147,22 @@ export function AppSidebar({
       permission: 'analytics.events.view' as const,
     },
     {
+      title: 'Errors',
+      url: '/app/$workspace/projects/$project/errors' as const,
+      icon: navigationIcons.errors,
+      isActive: pathname === `${projectBasePath}/errors`,
+      isNew: true,
+      permission: 'analytics.analytics.view' as const,
+    },
+    {
+      title: 'Campaigns',
+      url: '/app/$workspace/projects/$project/campaigns' as const,
+      icon: navigationIcons.campaigns,
+      isActive: pathname === `${projectBasePath}/campaigns`,
+      isNew: true,
+      permission: 'analytics.goals.view' as const,
+    },
+    {
       title: 'Session Replay',
       url: '/app/$workspace/projects/$project/session-replay' as const,
       icon: navigationIcons.sessionReplay,
@@ -238,7 +256,7 @@ export function AppSidebar({
 
       <SidebarRail />
 
-      <SidebarFooter>
+      <SidebarFooter className="border-t">
         <div className="flow-row flex items-center justify-between">
           <NavUser
             user={{
@@ -323,7 +341,7 @@ export function WorkspaceSwitcher({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
-            className="group-data-[collapsible=icon]:hidden"
+            className="w-60 group-data-[collapsible=icon]:hidden"
             side={'bottom'}
             align="start"
           >

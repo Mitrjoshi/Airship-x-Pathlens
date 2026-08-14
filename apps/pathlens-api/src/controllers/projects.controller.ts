@@ -4,7 +4,9 @@ import { generateApiKey } from "../utils/utils";
 import {
   createProjectModel,
   deleteProjectModel,
+  getEmptyProjectSnapshot,
   getProjectsModel,
+  getProjectSnapshotsModel,
   getProjectStatsModel,
 } from "../models/projects.model";
 
@@ -80,6 +82,9 @@ export async function getProjects(req: Request, res: Response) {
     const { workspace_id, project_id } = getProjectSchema.parse(req.query);
 
     const projects = await getProjectsModel(workspace_id, project_id);
+    const snapshots = await getProjectSnapshotsModel(
+      projects.map((project) => project.id)
+    );
 
     const projectsWithStats = await Promise.all(
       projects.map(async (project) => {
@@ -90,6 +95,7 @@ export async function getProjects(req: Request, res: Response) {
 
         return {
           ...project,
+          snapshot: snapshots.get(project.id) ?? getEmptyProjectSnapshot(),
           stats,
         };
       })

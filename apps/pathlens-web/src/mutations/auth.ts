@@ -80,3 +80,60 @@ export const useSignUp = () => {
     },
   })
 }
+
+interface PasswordResetRequestPayload {
+  email: string
+}
+
+interface PasswordResetConfirmPayload {
+  token: string
+  password: string
+  confirmPassword: string
+}
+
+interface PasswordResetResponse {
+  success: boolean
+  message: string
+}
+
+const requestPasswordReset = async (payload: PasswordResetRequestPayload) => {
+  const res = await apiClient.post<PasswordResetResponse>(
+    '/auth/password-reset/request',
+    payload
+  )
+  return res.data
+}
+
+const confirmPasswordReset = async (payload: PasswordResetConfirmPayload) => {
+  const res = await apiClient.post<PasswordResetResponse>(
+    '/auth/password-reset/confirm',
+    payload
+  )
+  return res.data
+}
+
+export const useRequestPasswordReset = () => {
+  return useMutation({
+    mutationFn: (payload: PasswordResetRequestPayload) =>
+      requestPasswordReset(payload),
+    onSuccess: (data) => {
+      if (!data.success) throw new Error(data.message)
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
+export const useConfirmPasswordReset = () => {
+  return useMutation({
+    mutationFn: (payload: PasswordResetConfirmPayload) =>
+      confirmPasswordReset(payload),
+    onSuccess: (data) => {
+      if (!data.success) throw new Error(data.message)
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+}

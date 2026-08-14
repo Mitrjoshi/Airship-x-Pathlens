@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { events } from "../db/schema";
+import { events, visitorCampaignAttribution } from "../db/schema";
 import type {
   EventsCategory,
   EventsDevice,
@@ -284,6 +284,55 @@ function getCategoryFilter(category: EventsCategory) {
   return sql``;
 }
 
+function normalizeCampaignValue(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+
+  const normalized = value.trim().slice(0, 512);
+
+  return normalized || null;
+}
+
+function getLandingUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+
+    url.search = "";
+    url.hash = "";
+
+    return url.toString();
+  } catch {
+    return value.split(/[?#]/, 1)[0] || null;
+  }
+}
+
+function getCampaignAttribution(
+  event: IncomingEvent,
+  workspaceId: string,
+  projectId: string,
+  occurredAt: Date
+): typeof visitorCampaignAttribution.$inferInsert | null {
+  const attribution = {
+    utmSource: normalizeCampaignValue(event.utmSource),
+    utmMedium: normalizeCampaignValue(event.utmMedium),
+    utmCampaign: normalizeCampaignValue(event.utmCampaign),
+    utmTerm: normalizeCampaignValue(event.utmTerm),
+    utmContent: normalizeCampaignValue(event.utmContent),
+  };
+
+  if (!Object.values(attribution).some(Boolean)) return null;
+
+  return {
+    workspaceId,
+    projectId,
+    visitorId: event.visitorId,
+    ...attribution,
+    landingUrl: getLandingUrl(event.url),
+    firstSeenAt: occurredAt,
+  };
+}
+
 export async function createEvents(
   incomingEvents: IncomingEvent[],
   ip?: string
@@ -298,6 +347,10 @@ export async function createEvents(
   >();
 
   const rows: Array<typeof events.$inferInsert> = [];
+  const attributionRows = new Map<
+    string,
+    typeof visitorCampaignAttribution.$inferInsert
+  >();
 
   for (const event of incomingEvents) {
     let project = projectCache.get(event.projectId);
@@ -321,6 +374,26 @@ export async function createEvents(
 
     if (Number.isNaN(occurredAt.getTime())) {
       throw new Error("Invalid event timestamp.");
+    }
+
+    const attribution = getCampaignAttribution(
+      event,
+      project.workspaceId,
+      project.projectId,
+      occurredAt
+    );
+
+    if (attribution) {
+      const attributionKey = `${project.projectId}:${event.visitorId}`;
+      const existingAttribution = attributionRows.get(attributionKey);
+
+      if (
+        !existingAttribution ||
+        occurredAt.getTime() <
+          new Date(existingAttribution.firstSeenAt).getTime()
+      ) {
+        attributionRows.set(attributionKey, attribution);
+      }
     }
 
     rows.push({
@@ -369,7 +442,34 @@ export async function createEvents(
     });
   }
 
-  await db.insert(events).values(rows);
+  await db.transaction(async (transaction) => {
+    await transaction.insert(events).values(rows);
+
+    if (attributionRows.size > 0) {
+      await transaction
+        .insert(visitorCampaignAttribution)
+        .values(Array.from(attributionRows.values()))
+        .onConflictDoUpdate({
+          target: [
+            visitorCampaignAttribution.workspaceId,
+            visitorCampaignAttribution.projectId,
+            visitorCampaignAttribution.visitorId,
+          ],
+          set: {
+            utmSource: sql`excluded.utm_source`,
+            utmMedium: sql`excluded.utm_medium`,
+            utmCampaign: sql`excluded.utm_campaign`,
+            utmTerm: sql`excluded.utm_term`,
+            utmContent: sql`excluded.utm_content`,
+            landingUrl: sql`excluded.landing_url`,
+            firstSeenAt: sql`excluded.first_seen_at`,
+          },
+          setWhere: sql`
+            excluded.first_seen_at < ${visitorCampaignAttribution.firstSeenAt}
+          `,
+        });
+    }
+  });
 }
 
 export async function getEventsModel(

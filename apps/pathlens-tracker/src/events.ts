@@ -3,6 +3,40 @@
 import type { PathLensTracker } from "./tracker";
 import { throttle } from "./utils";
 
+const MAX_ERROR_MESSAGE_LENGTH = 2048;
+const MAX_ERROR_STACK_LENGTH = 16384;
+
+interface ErrorDetails {
+  name?: string;
+  message?: string;
+  stack?: string;
+}
+
+function truncate(
+  value: string | undefined,
+  maximum: number
+): string | undefined {
+  if (!value) return undefined;
+
+  return value.length > maximum
+    ? `${value.slice(0, maximum)}\n[truncated]`
+    : value;
+}
+
+function getErrorDetails(value: unknown): ErrorDetails | null {
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: value.message,
+      stack: value.stack,
+    };
+  }
+
+  if (typeof value === "string") return { message: value };
+
+  return null;
+}
+
 function getSafeClickText(element: HTMLElement): string {
   if (
     element.closest(
@@ -164,17 +198,37 @@ function registerErrors(tracker: PathLensTracker) {
   if (!tracker.config.captureErrors) return;
 
   window.addEventListener("error", (e) => {
+    // Resource loading errors do not have an Error object or a useful message.
+    if (!e.error && !e.message) return;
+
+    const details = getErrorDetails(e.error);
+
     tracker.track("javascript_error", {
-      message: e.message,
+      message:
+        truncate(details?.message ?? e.message, MAX_ERROR_MESSAGE_LENGTH) ??
+        "Unknown JavaScript error",
       file: e.filename,
       line: e.lineno,
       column: e.colno,
+      ...(details?.name ? { name: details.name.slice(0, 128) } : {}),
+      ...(details?.stack
+        ? { stack: truncate(details.stack, MAX_ERROR_STACK_LENGTH) }
+        : {}),
     });
   });
 
   window.addEventListener("unhandledrejection", (e) => {
+    const details = getErrorDetails(e.reason);
+    const reason =
+      details?.message ??
+      (typeof e.reason === "string" ? e.reason : String(e.reason));
+
     tracker.track("promise_rejection", {
-      reason: String(e.reason),
+      reason: truncate(reason, MAX_ERROR_MESSAGE_LENGTH) ?? "Unknown rejection",
+      ...(details?.name ? { name: details.name.slice(0, 128) } : {}),
+      ...(details?.stack
+        ? { stack: truncate(details.stack, MAX_ERROR_STACK_LENGTH) }
+        : {}),
     });
   });
 }

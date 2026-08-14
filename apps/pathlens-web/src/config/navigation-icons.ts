@@ -1,6 +1,7 @@
 import {
   ActivityIcon,
   BarChart3Icon,
+  BugIcon,
   BotIcon,
   ChartColumnIncreasingIcon,
   ClapperboardIcon,
@@ -9,6 +10,7 @@ import {
   GaugeIcon,
   GoalIcon,
   KeyRoundIcon,
+  MegaphoneIcon,
   MousePointerClickIcon,
   ScanSearchIcon,
   SettingsIcon,
@@ -16,13 +18,17 @@ import {
   RouteIcon,
   UsersIcon,
   WorkflowIcon,
+  PanelsTopLeft,
 } from 'lucide-react'
 
 export const navigationIcons = {
+  overview: PanelsTopLeft,
   dashboard: GaugeIcon,
   projects: FolderClosedIcon,
   analytics: ChartColumnIncreasingIcon,
   events: MousePointerClickIcon,
+  errors: BugIcon,
+  campaigns: MegaphoneIcon,
   sessions: ActivityIcon,
   visitors: UsersIcon,
   sessionReplay: ClapperboardIcon,

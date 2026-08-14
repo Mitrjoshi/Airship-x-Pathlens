@@ -1,9 +1,14 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { goals } from "../db/schema";
+import {
+  getRevenueValue,
+  matchesGoal,
+  type GoalEventRow,
+  type GoalType,
+} from "./goal-matching";
 
-export type GoalType =
-  "event" | "revenue" | "pageview" | "button" | "form_submit";
+export type { GoalType } from "./goal-matching";
 export type GoalRange = "24h" | "7d" | "30d" | "90d";
 
 export interface Goal {
@@ -38,31 +43,12 @@ interface GoalDefinition {
   updatedAt: Date | string;
 }
 
-interface GoalEventRow extends Record<string, unknown> {
-  occurred_at: Date | string | null;
-  path: string | null;
-  type: string;
-  payload: Record<string, unknown> | null;
-}
-
 const RANGE_DAYS: Record<GoalRange, number> = {
   "24h": 1,
   "7d": 7,
   "30d": 30,
   "90d": 90,
 };
-
-function toNumber(value: unknown): number {
-  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-
-  if (typeof value === "string") {
-    const number = Number(value);
-
-    return Number.isFinite(number) ? number : 0;
-  }
-
-  return 0;
-}
 
 function toIso(value: unknown): string {
   if (value instanceof Date) return value.toISOString();
@@ -89,51 +75,6 @@ function getTypeLabel(type: GoalType): Goal["type"] {
   if (type === "form_submit") return "Form submit";
 
   return "Event";
-}
-
-function normalizeButtonText(value: unknown): string {
-  return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
-}
-
-function matchesGoal(event: GoalEventRow, goal: GoalDefinition): boolean {
-  const target = goal.matchTarget.trim();
-
-  if (goal.type === "pageview") {
-    return event.type === "page_view" && (event.path?.trim() || "/") === target;
-  }
-
-  if (goal.type === "button") {
-    return (
-      event.type === "click" &&
-      (event.path?.trim() || "/") === (goal.matchPath?.trim() || "/") &&
-      normalizeButtonText(event.payload?.buttonText) ===
-        normalizeButtonText(target)
-    );
-  }
-
-  if (goal.type === "form_submit") {
-    return (
-      event.type === "form_submit" &&
-      typeof event.payload?.id === "string" &&
-      event.payload.id.trim() === target
-    );
-  }
-
-  if (target.startsWith("/")) {
-    return (event.path?.trim() || "/") === target;
-  }
-
-  return event.type.toLowerCase() === target.toLowerCase();
-}
-
-function getRevenueValue(payload: Record<string, unknown> | null): number {
-  if (!payload) return 0;
-
-  const cents = payload.revenue_cents ?? payload.amount_cents;
-
-  if (cents !== undefined) return toNumber(cents) / 100;
-
-  return toNumber(payload.revenue ?? payload.value ?? payload.amount);
 }
 
 function calculateGoalValue(

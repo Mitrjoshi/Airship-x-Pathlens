@@ -85,7 +85,10 @@ function RouteComponent() {
 
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea rows={4} defaultValue={projectData?.description} />
+              <Textarea
+                rows={4}
+                defaultValue={projectData?.description ?? undefined}
+              />
             </div>
           </CardContent>
         </ProjectPanel>

@@ -36,6 +36,43 @@ export const users = pgTable("users", {
 });
 
 /* -------------------------------------------------------------------------- */
+/*                          PASSWORD RESET TOKENS                            */
+/* -------------------------------------------------------------------------- */
+
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    tokenHash: text("token_hash").notNull().unique(),
+
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+    }).notNull(),
+
+    usedAt: timestamp("used_at", {
+      withTimezone: true,
+    }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdx: index("password_reset_tokens_user_idx").on(table.userId),
+    expiryIdx: index("password_reset_tokens_expiry_idx").on(table.expiresAt),
+  })
+);
+
+/* -------------------------------------------------------------------------- */
 /*                                 WORKSPACES                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -241,6 +278,63 @@ export const projects = pgTable(
   (table) => ({
     workspaceIdx: index("projects_workspace_idx").on(table.workspaceId),
     apiKeyIdx: uniqueIndex("projects_api_key_idx").on(table.apiKey),
+  })
+);
+
+/* -------------------------------------------------------------------------- */
+/*                              PROJECT SNAPSHOTS                             */
+/* -------------------------------------------------------------------------- */
+
+export const projectSnapshots = pgTable(
+  "project_snapshots",
+  {
+    projectId: uuid("project_id")
+      .primaryKey()
+      .references(() => projects.id, {
+        onDelete: "cascade",
+      }),
+
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, {
+        onDelete: "cascade",
+      }),
+
+    sourceDomain: text("source_domain"),
+
+    status: text("status").notNull().default("pending"),
+
+    storagePath: text("storage_path"),
+
+    capturedAt: timestamp("captured_at", {
+      withTimezone: true,
+    }),
+
+    requestedAt: timestamp("requested_at", {
+      withTimezone: true,
+    }),
+
+    lastAttemptAt: timestamp("last_attempt_at", {
+      withTimezone: true,
+    }),
+
+    nextAttemptAt: timestamp("next_attempt_at", {
+      withTimezone: true,
+    }),
+
+    lastError: text("last_error"),
+
+    failureCount: integer("failure_count").notNull().default(0),
+  },
+  (table) => ({
+    workspaceIdx: index("project_snapshots_workspace_idx").on(
+      table.workspaceId
+    ),
+    dueIdx: index("project_snapshots_due_idx").on(
+      table.status,
+      table.nextAttemptAt,
+      table.capturedAt
+    ),
   })
 );
 
@@ -506,6 +600,63 @@ export const events = pgTable(
     ),
 
     occurredIdx: index("events_occurred_idx").on(table.occurredAt),
+  })
+);
+
+/* -------------------------------------------------------------------------- */
+/*                         VISITOR CAMPAIGN ATTRIBUTION                      */
+/* -------------------------------------------------------------------------- */
+
+export const visitorCampaignAttribution = pgTable(
+  "visitor_campaign_attribution",
+  {
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, {
+        onDelete: "cascade",
+      }),
+
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, {
+        onDelete: "cascade",
+      }),
+
+    visitorId: text("visitor_id").notNull(),
+
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
+    utmTerm: text("utm_term"),
+    utmContent: text("utm_content"),
+
+    landingUrl: text("landing_url"),
+
+    firstSeenAt: timestamp("first_seen_at", {
+      withTimezone: true,
+    }).notNull(),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    primaryKey: primaryKey({
+      columns: [table.workspaceId, table.projectId, table.visitorId],
+      name: "visitor_campaign_attribution_pk",
+    }),
+    projectIdx: index("visitor_campaign_attribution_project_idx").on(
+      table.projectId
+    ),
+    campaignIdx: index("visitor_campaign_attribution_campaign_idx").on(
+      table.projectId,
+      table.utmCampaign
+    ),
+    firstSeenIdx: index("visitor_campaign_attribution_first_seen_idx").on(
+      table.firstSeenAt
+    ),
   })
 );
 

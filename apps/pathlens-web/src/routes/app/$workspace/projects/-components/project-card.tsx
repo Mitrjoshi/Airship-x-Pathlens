@@ -1,9 +1,15 @@
 import type { T_Projects } from '@/queries/projects'
 import { Card, CardContent } from '@workspace/ui/components/card'
 import { Link } from '@tanstack/react-router'
-import { ArrowUpRightIcon, GlobeIcon } from 'lucide-react'
+import {
+  ArrowUpRightIcon,
+  GlobeIcon,
+  ImageOffIcon,
+  LoaderCircleIcon,
+} from 'lucide-react'
 import { navigationIcons } from '@/config/navigation-icons'
 import { formatNumber } from '@/utils/utils'
+import { useState } from 'react'
 
 interface I_Props {
   project: T_Projects
@@ -12,6 +18,14 @@ interface I_Props {
 
 export const ProjectCard = ({ project, workspace }: I_Props) => {
   const isActive = project.stats.status === 'active'
+  const snapshotUrl = project.snapshot?.url ?? null
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const showSnapshot = Boolean(snapshotUrl && failedUrl !== snapshotUrl)
+  const snapshotStatus = project.snapshot?.status ?? 'pending'
+  const snapshotUnavailable =
+    snapshotStatus === 'failed' || (snapshotStatus === 'ready' && !snapshotUrl)
+  const isPreparing =
+    snapshotStatus === 'pending' || snapshotStatus === 'processing'
 
   return (
     <Link
@@ -23,7 +37,47 @@ export const ProjectCard = ({ project, workspace }: I_Props) => {
       className="group focus-visible:ring-ring/50 block rounded-xl outline-none focus-visible:ring-3"
     >
       <Card className="group-hover:border-foreground/30 group-hover:bg-muted/20 py-0 transition-colors">
-        <CardContent className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-5 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(18rem,auto)_auto] sm:items-center sm:p-5">
+        <CardContent className="grid gap-5 p-4 sm:grid-cols-[13rem_minmax(0,1fr)_minmax(18rem,auto)_auto] sm:items-center sm:p-5">
+          <div className="bg-muted relative aspect-video overflow-hidden rounded-lg border">
+            {showSnapshot ? (
+              <img
+                src={snapshotUrl ?? undefined}
+                alt={`${project.name} website preview`}
+                className="size-full object-cover object-top"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                onError={() => setFailedUrl(snapshotUrl)}
+                onLoad={() => setFailedUrl(null)}
+              />
+            ) : (
+              <div className="text-muted-foreground flex size-full flex-col items-center justify-center gap-2 p-3 text-center">
+                {snapshotUnavailable ? (
+                  <ImageOffIcon className="size-5" />
+                ) : (
+                  <GlobeIcon className="size-5" />
+                )}
+                <span className="text-[11px]">
+                  {isPreparing
+                    ? 'Preparing preview'
+                    : snapshotUnavailable
+                      ? 'Preview unavailable'
+                      : 'No preview yet'}
+                </span>
+              </div>
+            )}
+            {isPreparing && (
+              <span className="bg-background/90 text-muted-foreground absolute bottom-2 left-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] shadow-sm">
+                <LoaderCircleIcon className="size-3 animate-spin" />
+                Preparing
+              </span>
+            )}
+            {project.snapshot?.isStale && snapshotUrl && (
+              <span className="bg-background/90 text-muted-foreground absolute bottom-2 left-2 rounded-md px-2 py-1 text-[10px] shadow-sm">
+                Stale preview
+              </span>
+            )}
+          </div>
+
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span
@@ -42,7 +96,7 @@ export const ProjectCard = ({ project, workspace }: I_Props) => {
             </p>
           </div>
 
-          <div className="col-span-2 grid grid-cols-2 gap-x-6 gap-y-3 sm:col-span-1 sm:grid-cols-4 sm:gap-x-5">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 sm:gap-x-5">
             <ProjectMetric
               label="Visitors"
               value={formatNumber(project.stats.visitors || 0)}
@@ -64,7 +118,7 @@ export const ProjectCard = ({ project, workspace }: I_Props) => {
             />
           </div>
 
-          <ArrowUpRightIcon className="text-muted-foreground col-start-2 row-start-1 size-4 justify-self-end transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 sm:col-auto sm:row-auto sm:justify-self-auto" />
+          <ArrowUpRightIcon className="text-muted-foreground size-4 justify-self-end transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 sm:justify-self-auto" />
         </CardContent>
       </Card>
     </Link>

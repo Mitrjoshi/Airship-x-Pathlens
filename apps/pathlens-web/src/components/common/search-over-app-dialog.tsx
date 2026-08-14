@@ -42,6 +42,8 @@ type ProjectPagePath =
   | '/app/$workspace/projects/$project/user-journey'
   | '/app/$workspace/projects/$project/session-replay'
   | '/app/$workspace/projects/$project/events'
+  | '/app/$workspace/projects/$project/errors'
+  | '/app/$workspace/projects/$project/campaigns'
   | '/app/$workspace/projects/$project/funnels'
   | '/app/$workspace/projects/$project/goals'
   | '/app/$workspace/projects/$project/ai-insights'
@@ -224,6 +226,25 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.events,
     to: '/app/$workspace/projects/$project/events',
     permissions: ['analytics.events.view'],
+  },
+  {
+    id: 'project-errors',
+    title: 'Errors',
+    description: 'Monitor JavaScript errors and rejected promises',
+    keywords: 'errors exceptions bugs stack traces crashes monitoring',
+    icon: navigationIcons.errors,
+    to: '/app/$workspace/projects/$project/errors',
+    permissions: ['analytics.analytics.view'],
+  },
+  {
+    id: 'project-campaigns',
+    title: 'Campaigns',
+    description: 'Track UTM campaigns from visitors to revenue',
+    keywords:
+      'utm source medium campaign attribution visitors conversion revenue',
+    icon: navigationIcons.campaigns,
+    to: '/app/$workspace/projects/$project/campaigns',
+    permissions: ['analytics.goals.view'],
   },
   {
     id: 'project-funnels',

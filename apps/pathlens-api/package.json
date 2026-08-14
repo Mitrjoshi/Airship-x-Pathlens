@@ -10,10 +10,14 @@
     "clean": "rimraf dist",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
+    "backfill:campaigns": "tsx --env-file=.env src/scripts/backfill-campaign-attribution.ts",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "@workspace/backend-types": "workspace:*",
+    "@workspace/contracts": "workspace:*",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
@@ -21,9 +25,7 @@
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.22.0",
     "xss": "^1.0.15",
-    "zod": "^4.4.3",
-    "@workspace/backend-types": "workspace:*",
-    "@workspace/contracts": "workspace:*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

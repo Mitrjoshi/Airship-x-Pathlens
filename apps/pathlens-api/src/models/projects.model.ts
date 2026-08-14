@@ -1,6 +1,7 @@
-import { and, count, countDistinct, desc, eq, sql } from "drizzle-orm";
+import { and, count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { events, projects } from "../db/schema";
+import { events, projectSnapshots, projects } from "../db/schema";
+import { createSnapshotSignedUrl } from "../lib/supabase";
 
 interface I_CreateProjectPayload {
   name: string;
@@ -33,6 +34,23 @@ export interface ProjectStats {
   lastActivityAt: string | null;
   performance: ProjectPerformanceMetric[];
   recentActivity: ProjectActivity[];
+}
+
+export type ProjectSnapshotStatus =
+  "pending" | "processing" | "ready" | "stale" | "failed";
+
+export interface ProjectSnapshot {
+  status: ProjectSnapshotStatus;
+  url: string | null;
+  capturedAt: string | null;
+  isStale: boolean;
+}
+
+interface ProjectSnapshotRow {
+  projectId: string;
+  status: string;
+  storagePath: string | null;
+  capturedAt: Date | string | null;
 }
 
 interface PerformanceRow extends Record<string, unknown> {
@@ -125,17 +143,95 @@ function formatActivityMeta(event: ActivityRow): string {
 export const createProjectModel = async (
   data: I_CreateProjectPayload
 ): Promise<{ id: string }[]> => {
-  return await db
-    .insert(projects)
-    .values({
-      apiKey: data.api_key,
-      name: data.name,
-      description: data.description,
-      workspaceId: data.workspace_id,
-      domain: data.domain,
-    })
-    .returning({ id: projects.id });
+  return await db.transaction(async (transaction) => {
+    const createdProjects = await transaction
+      .insert(projects)
+      .values({
+        apiKey: data.api_key,
+        name: data.name,
+        description: data.description,
+        workspaceId: data.workspace_id,
+        domain: data.domain,
+      })
+      .returning({ id: projects.id });
+    const project = createdProjects[0];
+
+    if (project) {
+      const now = new Date();
+
+      await transaction.insert(projectSnapshots).values({
+        projectId: project.id,
+        workspaceId: data.workspace_id,
+        sourceDomain: data.domain,
+        status: data.domain ? "pending" : "stale",
+        requestedAt: data.domain ? now : null,
+        nextAttemptAt: data.domain ? now : null,
+      });
+    }
+
+    return createdProjects;
+  });
 };
+
+function getSnapshotStatus(value: string): ProjectSnapshotStatus {
+  if (
+    value === "processing" ||
+    value === "ready" ||
+    value === "stale" ||
+    value === "failed"
+  ) {
+    return value;
+  }
+
+  return "pending";
+}
+
+export function getEmptyProjectSnapshot(): ProjectSnapshot {
+  return {
+    status: "pending",
+    url: null,
+    capturedAt: null,
+    isStale: false,
+  };
+}
+
+export async function getProjectSnapshotsModel(
+  projectIds: string[]
+): Promise<Map<string, ProjectSnapshot>> {
+  if (projectIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      projectId: projectSnapshots.projectId,
+      status: projectSnapshots.status,
+      storagePath: projectSnapshots.storagePath,
+      capturedAt: projectSnapshots.capturedAt,
+    })
+    .from(projectSnapshots)
+    .where(inArray(projectSnapshots.projectId, projectIds));
+
+  const snapshots = await Promise.all(
+    (rows as ProjectSnapshotRow[]).map(async (row) => {
+      const status = getSnapshotStatus(row.status);
+      const url =
+        row.storagePath && (status === "ready" || status === "stale")
+          ? await createSnapshotSignedUrl(row.storagePath)
+          : null;
+
+      return [
+        row.projectId,
+        {
+          status,
+          url,
+          capturedAt: toIso(row.capturedAt),
+          isStale: status === "stale" || status === "failed",
+        },
+      ] as const;
+    })
+  );
+
+  return new Map(snapshots);
+}
 
 export const getProjectsModel = async (
   workspace_id: string,

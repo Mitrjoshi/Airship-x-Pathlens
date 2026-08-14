@@ -291,6 +291,7 @@ function RouteComponent() {
                           <FieldLabel htmlFor={field.name}>Password</FieldLabel>
                           <Link
                             to="/password-reset"
+                            search={{ token: undefined }}
                             className="text-muted-foreground hover:text-foreground text-xs transition-colors"
                           >
                             Forgot password?
