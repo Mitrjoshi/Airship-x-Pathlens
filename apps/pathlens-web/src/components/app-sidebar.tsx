@@ -43,6 +43,7 @@ import { PageLayout } from '@/components/common/page-layout'
 
 type ProjectNavPath =
   | '/app/$workspace/projects/$project/dashboard'
+  | '/app/$workspace/projects/$project/dashboards'
   | '/app/$workspace/projects/$project/analytics'
   | '/app/$workspace/projects/$project/user-journey'
   | '/app/$workspace/projects/$project/funnels'
@@ -104,6 +105,14 @@ export function AppSidebar({
       icon: navigationIcons.dashboard,
       isActive: pathname === `${projectBasePath}/dashboard`,
       isNew: false,
+      permission: 'analytics.dashboard.view' as const,
+    },
+    {
+      title: 'Dashboards',
+      url: '/app/$workspace/projects/$project/dashboards' as const,
+      icon: navigationIcons.overview,
+      isActive: pathname.startsWith(`${projectBasePath}/dashboards`),
+      isNew: true,
       permission: 'analytics.dashboard.view' as const,
     },
     {
