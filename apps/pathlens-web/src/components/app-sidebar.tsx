@@ -104,7 +104,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/dashboard' as const,
       icon: navigationIcons.dashboard,
       isActive: pathname === `${projectBasePath}/dashboard`,
-      isNew: false,
+      isPro: false,
       permission: 'analytics.dashboard.view' as const,
     },
     {
@@ -112,7 +112,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/dashboards' as const,
       icon: navigationIcons.overview,
       isActive: pathname.startsWith(`${projectBasePath}/dashboards`),
-      isNew: true,
+      isPro: false,
       permission: 'analytics.dashboard.view' as const,
     },
     {
@@ -120,7 +120,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/analytics' as const,
       icon: navigationIcons.analytics,
       isActive: pathname === `${projectBasePath}/analytics`,
-      isNew: false,
+      isPro: false,
       permission: 'analytics.analytics.view' as const,
     },
     {
@@ -128,7 +128,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/user-journey' as const,
       icon: navigationIcons.userJourney,
       isActive: pathname === `${projectBasePath}/user-journey`,
-      isNew: true,
+      isPro: false,
       permission: 'analytics.analytics.view' as const,
     },
     {
@@ -136,7 +136,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/funnels' as const,
       icon: navigationIcons.funnels,
       isActive: pathname === `${projectBasePath}/funnels`,
-      isNew: true,
+      isPro: false,
       permission: 'analytics.funnels.view' as const,
     },
     {
@@ -144,7 +144,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/goals' as const,
       icon: navigationIcons.goals,
       isActive: pathname === `${projectBasePath}/goals`,
-      isNew: true,
+      isPro: false,
       permission: 'analytics.goals.view' as const,
     },
     {
@@ -152,7 +152,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/events' as const,
       icon: navigationIcons.events,
       isActive: pathname === `${projectBasePath}/events`,
-      isNew: true,
+      isPro: false,
       permission: 'analytics.events.view' as const,
     },
     {
@@ -160,7 +160,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/errors' as const,
       icon: navigationIcons.errors,
       isActive: pathname === `${projectBasePath}/errors`,
-      isNew: true,
+      isPro: false,
       permission: 'analytics.analytics.view' as const,
     },
     {
@@ -168,7 +168,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/campaigns' as const,
       icon: navigationIcons.campaigns,
       isActive: pathname === `${projectBasePath}/campaigns`,
-      isNew: true,
+      isPro: false,
       permission: 'analytics.goals.view' as const,
     },
     {
@@ -176,7 +176,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/session-replay' as const,
       icon: navigationIcons.sessionReplay,
       isActive: pathname === `${projectBasePath}/session-replay`,
-      isNew: false,
+      isPro: true,
       permission: 'analytics.session_replay.view' as const,
     },
     {
@@ -184,7 +184,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/heatmaps' as const,
       icon: navigationIcons.heatmaps,
       isActive: pathname === `${projectBasePath}/heatmaps`,
-      isNew: true,
+      isPro: true,
       permission: 'analytics.analytics.view' as const,
     },
     {
@@ -192,7 +192,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/visitors' as const,
       icon: navigationIcons.visitors,
       isActive: pathname === `${projectBasePath}/visitors`,
-      isNew: false,
+      isPro: false,
       permission: 'analytics.visitors.view' as const,
     },
     {
@@ -200,7 +200,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/performance' as const,
       icon: navigationIcons.performance,
       isActive: pathname === `${projectBasePath}/performance`,
-      isNew: true,
+      isPro: false,
       permission: 'analytics.performance.view' as const,
     },
     {
@@ -208,7 +208,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/reports' as const,
       icon: navigationIcons.reports,
       isActive: pathname === `${projectBasePath}/reports`,
-      isNew: false,
+      isPro: false,
       permission: 'analytics.reports.view' as const,
     },
     {
@@ -216,7 +216,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/ai-insights' as const,
       icon: navigationIcons.aiInsights,
       isActive: pathname === `${projectBasePath}/ai-insights`,
-      isNew: true,
+      isPro: true,
       permission: 'analytics.ai_insights.view' as const,
     },
     {
@@ -224,7 +224,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/keys' as const,
       icon: navigationIcons.apiKeys,
       isActive: pathname === `${projectBasePath}/keys`,
-      isNew: false,
+      isPro: false,
       permission: 'project.api_keys.view' as const,
     },
     {
@@ -232,7 +232,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/settings' as const,
       icon: navigationIcons.settings,
       isActive: pathname === `${projectBasePath}/settings`,
-      isNew: false,
+      isPro: false,
       permission: 'project.settings.view' as const,
     },
   ]
@@ -602,7 +602,7 @@ function NavMain({
     url: ProjectNavPath
     icon: LucideIcon
     isActive: boolean
-    isNew: boolean
+    isPro: boolean
     permission: Permission
   }[]
   workspaceId: string
@@ -628,7 +628,14 @@ function NavMain({
                 <item.icon className="size-4 shrink-0" />
                 <span>{item.title}</span>
               </div>
-              {item.isNew && <Badge variant="secondary">New</Badge>}
+              {item.isPro && (
+                <Badge
+                  variant="outline"
+                  className="border-green-60 border-3 bg-green-400/20"
+                >
+                  Pro
+                </Badge>
+              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
