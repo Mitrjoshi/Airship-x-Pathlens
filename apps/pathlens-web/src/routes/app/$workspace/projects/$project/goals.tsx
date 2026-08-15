@@ -6,6 +6,7 @@ import {
   ProjectPanel,
   PageToolbar,
 } from '@/components/common/project-page'
+import { PlanLimitNotice } from '@/components/common/plan-gate'
 import { useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/mutations/goals'
 import {
   getGoalsOptions,
@@ -14,6 +15,7 @@ import {
   type GoalType,
 } from '@/queries/goals'
 import { getWorkspacesOptions } from '@/queries/workspace'
+import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -161,6 +163,10 @@ function formatValue(value: number, unit: string) {
 }
 
 function RouteComponent() {
+  return <PageContent />
+}
+
+function PageContent() {
   const { workspace, project } = Route.useParams()
   const [range, setRange] = useState<GoalRange>('30d')
   const [filter, setFilter] = useState<GoalFilter>('all')
@@ -197,6 +203,10 @@ function RouteComponent() {
     currentWorkspace?.permissions.includes('analytics.goals.manage')
 
   const goals = data?.data ?? []
+  const currentPlanId = useWorkspacePlan(workspace)
+  const currentPlan = getPlanDefinition(currentPlanId)
+  const goalLimit = currentPlan.limits.goals
+  const goalLimitReached = goalLimit !== null && goals.length >= goalLimit
   const filteredGoals =
     filter === 'all' ? goals : goals.filter((goal) => goal.status === filter)
   const achievedCount = goals.filter(
@@ -245,6 +255,14 @@ function RouteComponent() {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
+    if (!editingGoalId && goalLimitReached && goalLimit !== null) {
+      setFormError(
+        `Your ${currentPlan.name} plan allows ${goalLimit} goal. Upgrade to create more.`
+      )
+      return
+    }
+
     const numericTarget = Number(target)
 
     if (!name.trim()) {
@@ -326,12 +344,23 @@ function RouteComponent() {
           title="Goals"
           description="Set and track targets against real events collected by your project."
           actions={
-            <Button onClick={openCreateDialog} disabled={!canManageGoals}>
+            <Button
+              onClick={openCreateDialog}
+              disabled={!canManageGoals || goalLimitReached}
+            >
               <Plus className="mr-2 h-4 w-4" />
               New Goal
             </Button>
           }
         />
+
+        {goalLimitReached && goalLimit !== null && (
+          <PlanLimitNotice
+            workspaceId={workspace}
+            resource="goal"
+            limit={goalLimit}
+          />
+        )}
 
         <PageToolbar className="justify-end">
           <Select

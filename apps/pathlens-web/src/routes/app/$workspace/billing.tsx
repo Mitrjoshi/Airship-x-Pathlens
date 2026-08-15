@@ -2,11 +2,12 @@ import {
   ProjectPageHeader,
   ProjectPanel,
 } from '@/components/common/project-page'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 import { useState } from 'react'
 import {
+  Check,
   CreditCard,
   Download,
   Loader2,
@@ -57,6 +58,7 @@ import {
   SelectValue,
 } from '@workspace/ui/components/select'
 import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { getPlanDefinition, PLAN_TIERS, useWorkspacePlan } from '@/lib/billing'
 
 export const Route = createFileRoute('/app/$workspace/billing')({
   component: RouteComponent,
@@ -110,8 +112,6 @@ const paymentMethods: PaymentMethod[] = [
 interface Invoice {
   id: string
   date: string
-  description: string
-  amount: number
   status: 'Paid' | 'Pending' | 'Failed'
 }
 
@@ -119,44 +119,32 @@ const invoices: Invoice[] = [
   {
     id: 'INV-2026-007',
     date: 'Jul 1, 2026',
-    description: 'Pro Plan · Monthly',
-    amount: 49,
     status: 'Paid',
   },
   {
     id: 'INV-2026-006',
     date: 'Jun 1, 2026',
-    description: 'Pro Plan · Monthly',
-    amount: 49,
     status: 'Paid',
   },
   {
     id: 'INV-2026-005',
     date: 'May 1, 2026',
-    description: 'Pro Plan · Monthly',
-    amount: 49,
     status: 'Paid',
   },
   {
     id: 'INV-2026-004',
     date: 'Apr 1, 2026',
-    description: 'Pro Plan · Monthly',
-    amount: 49,
     status: 'Paid',
   },
   {
     id: 'INV-2026-003',
     date: 'Mar 1, 2026',
-    description: 'Pro Plan · Monthly',
-    amount: 49,
     status: 'Failed',
   },
 ]
 
 const upcomingInvoice = {
   date: 'Aug 1, 2026',
-  amount: 49,
-  plan: 'Pro Plan · Monthly',
 }
 
 function statusVariant(status: Invoice['status']) {
@@ -170,6 +158,8 @@ function statusVariant(status: Invoice['status']) {
 function RouteComponent() {
   const [isSaving, setIsSaving] = useState(false)
   const { workspace } = Route.useParams()
+  const currentPlanId = useWorkspacePlan(workspace)
+  const currentPlan = getPlanDefinition(currentPlanId)
 
   const addressForm = useForm({
     defaultValues: {
@@ -196,15 +186,73 @@ function RouteComponent() {
     <WorkspacePageLayout workspaceId={workspace}>
       <div className="mx-auto w-full space-y-8">
         <ProjectPageHeader
-          eyebrow="Project billing"
+          eyebrow="Workspace billing"
           title="Billing & invoices."
           description="Manage payment methods, billing address, and invoices."
           actions={
             <Badge variant="outline" className="w-fit">
-              Pro plan · Active
+              {currentPlan.name} plan · Active
             </Badge>
           }
         />
+
+        <ProjectPanel>
+          <CardHeader className="border-b px-5 py-5">
+            <CardTitle>Change workspace plan</CardTitle>
+            <CardDescription>
+              Upgrade or downgrade this workspace with a dummy checkout.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 p-5 md:grid-cols-3">
+            {PLAN_TIERS.map((tier) => {
+              const isCurrent = tier.id === currentPlan.id
+
+              return (
+                <div
+                  key={tier.id}
+                  className={`flex flex-col justify-between gap-4 rounded-xl border p-4 ${tier.highlighted ? 'border-foreground/40' : ''}`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium">{tier.name}</p>
+                      {isCurrent && <Badge>Current</Badge>}
+                    </div>
+                    <p className="text-muted-foreground mt-2 text-sm">
+                      {tier.price === 0 ? 'Free' : `$${tier.price}/mo`}
+                    </p>
+                    <ul className="mt-4 space-y-2 text-sm">
+                      {tier.features.slice(0, 4).map((feature) => (
+                        <li
+                          key={feature}
+                          className="text-muted-foreground flex items-start gap-2"
+                        >
+                          <Check className="text-primary mt-0.5 size-3.5 shrink-0" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {isCurrent ? (
+                    <Button variant="outline" disabled>
+                      Current plan
+                    </Button>
+                  ) : (
+                    <Button
+                      render={
+                        <Link
+                          to="/app/$workspace/checkout/$plan"
+                          params={{ workspace, plan: tier.id }}
+                        />
+                      }
+                    >
+                      {tier.id === 'starter' ? 'Switch to Starter' : 'Upgrade'}
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </CardContent>
+        </ProjectPanel>
 
         {/* Upcoming Invoice */}
         <ProjectPanel>
@@ -221,13 +269,13 @@ function RouteComponent() {
               <div>
                 <p className="text-sm font-medium">Next payment</p>
                 <p className="text-muted-foreground text-sm">
-                  {upcomingInvoice.plan} — due {upcomingInvoice.date}
+                  {currentPlan.name} Plan · Monthly — due {upcomingInvoice.date}
                 </p>
               </div>
             </div>
 
             <div className="text-2xl font-semibold tracking-tight">
-              ${upcomingInvoice.amount.toFixed(2)}
+              ${currentPlan.price.toFixed(2)}
             </div>
           </CardContent>
         </ProjectPanel>
@@ -518,9 +566,9 @@ function RouteComponent() {
                     </TableCell>
                     <TableCell>{invoice.date}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {invoice.description}
+                      {currentPlan.name} Plan · Monthly
                     </TableCell>
-                    <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+                    <TableCell>${currentPlan.price.toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge className={statusVariant(invoice.status)}>
                         {invoice.status}

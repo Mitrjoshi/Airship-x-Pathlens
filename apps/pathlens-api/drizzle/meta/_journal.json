@@ -155,6 +155,13 @@
       "when": 1786728246405,
       "tag": "0021_mysterious_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1786789187057,
+      "tag": "0022_redundant_ironclad",
+      "breakpoints": true
     }
   ]
 }

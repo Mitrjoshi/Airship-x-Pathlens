@@ -1,4 +1,5 @@
 import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { PlanLimitNotice } from '@/components/common/plan-gate'
 import { Button } from '@workspace/ui/components/button'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 
@@ -33,6 +34,7 @@ import { useCreateProject } from '@/mutations/projects'
 import { useQuery } from '@tanstack/react-query'
 import { getProjectsOptions } from '@/queries/projects'
 import { getWorkspacesOptions } from '@/queries/workspace'
+import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import { ProjectCard } from './projects/-components/project-card'
 import {
   ProjectPageHeader,
@@ -67,6 +69,24 @@ function RouteComponent() {
     })
   )
 
+  const currentWorkspace = workspaceData?.data.find(
+    (item) => item.id === workspace
+  )
+  const currentPlanId = useWorkspacePlan(workspace)
+  const currentPlan = getPlanDefinition(currentPlanId)
+  const projectLimit = currentPlan.limits.projects
+  const hasProjectCapacity =
+    projectLimit === null ||
+    Boolean(currentWorkspace && currentWorkspace.projectCount < projectLimit)
+  const canCreateProject =
+    (currentWorkspace?.role === 'owner' ||
+      currentWorkspace?.permissions.includes('projects.create')) &&
+    hasProjectCapacity
+  const projectLimitReached =
+    currentWorkspace !== undefined &&
+    projectLimit !== null &&
+    currentWorkspace.projectCount >= projectLimit
+
   const form = useForm({
     defaultValues: {
       title: '',
@@ -77,6 +97,8 @@ function RouteComponent() {
       onSubmit: formSchema,
     },
     onSubmit: ({ value }) => {
+      if (!canCreateProject) return
+
       createProject({
         name: value.title,
         description: value.description,
@@ -87,12 +109,6 @@ function RouteComponent() {
   })
 
   const projects = data?.data ?? []
-  const currentWorkspace = workspaceData?.data.find(
-    (item) => item.id === workspace
-  )
-  const canCreateProject =
-    currentWorkspace?.role === 'owner' ||
-    currentWorkspace?.permissions.includes('projects.create')
 
   return (
     <WorkspacePageLayout workspaceId={workspace}>
@@ -114,6 +130,13 @@ function RouteComponent() {
               />
             }
           />
+          {projectLimitReached && projectLimit !== null && (
+            <PlanLimitNotice
+              workspaceId={workspace}
+              resource="project"
+              limit={projectLimit}
+            />
+          )}
           <DialogContent className="w-full max-w-md">
             <DialogHeader>
               <DialogTitle>New project</DialogTitle>

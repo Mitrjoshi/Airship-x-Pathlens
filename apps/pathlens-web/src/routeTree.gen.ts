@@ -24,6 +24,7 @@ import { Route as AppWorkspaceInviteRouteImport } from './routes/app/$workspace/
 import { Route as AppWorkspaceMembersRouteImport } from './routes/app/$workspace/members'
 import { Route as AppWorkspacePermissionProfilesRouteImport } from './routes/app/$workspace/permission-profiles'
 import { Route as AppWorkspaceWorkspaceSettingsRouteImport } from './routes/app/$workspace/workspace-settings'
+import { Route as AppWorkspaceCheckoutPlanRouteImport } from './routes/app/$workspace/checkout/$plan'
 import { Route as AppWorkspaceProjectsIndexRouteImport } from './routes/app/$workspace/projects/index'
 import { Route as AppWorkspaceProjectsProjectRouteRouteImport } from './routes/app/$workspace/projects/$project/route'
 import { Route as AppWorkspaceProjectsProjectIndexRouteImport } from './routes/app/$workspace/projects/$project/index'
@@ -31,7 +32,6 @@ import { Route as AppWorkspaceProjectsProjectAiInsightsRouteImport } from './rou
 import { Route as AppWorkspaceProjectsProjectAnalyticsRouteImport } from './routes/app/$workspace/projects/$project/analytics'
 import { Route as AppWorkspaceProjectsProjectCampaignsRouteImport } from './routes/app/$workspace/projects/$project/campaigns'
 import { Route as AppWorkspaceProjectsProjectDashboardRouteImport } from './routes/app/$workspace/projects/$project/dashboard'
-import { Route as AppWorkspaceProjectsProjectDashboardsRouteImport } from './routes/app/$workspace/projects/$project/dashboards'
 import { Route as AppWorkspaceProjectsProjectErrorsRouteImport } from './routes/app/$workspace/projects/$project/errors'
 import { Route as AppWorkspaceProjectsProjectEventsRouteImport } from './routes/app/$workspace/projects/$project/events'
 import { Route as AppWorkspaceProjectsProjectFunnelsRouteImport } from './routes/app/$workspace/projects/$project/funnels'
@@ -42,10 +42,9 @@ import { Route as AppWorkspaceProjectsProjectPerformanceRouteImport } from './ro
 import { Route as AppWorkspaceProjectsProjectReportsRouteImport } from './routes/app/$workspace/projects/$project/reports'
 import { Route as AppWorkspaceProjectsProjectSessionReplayRouteImport } from './routes/app/$workspace/projects/$project/session-replay'
 import { Route as AppWorkspaceProjectsProjectSettingsRouteImport } from './routes/app/$workspace/projects/$project/settings'
+import { Route as AppWorkspaceProjectsProjectSetupRouteImport } from './routes/app/$workspace/projects/$project/setup'
 import { Route as AppWorkspaceProjectsProjectUserJourneyRouteImport } from './routes/app/$workspace/projects/$project/user-journey'
 import { Route as AppWorkspaceProjectsProjectVisitorsRouteImport } from './routes/app/$workspace/projects/$project/visitors'
-import { Route as AppWorkspaceProjectsProjectDashboardsIndexRouteImport } from './routes/app/$workspace/projects/$project/dashboards/index'
-import { Route as AppWorkspaceProjectsProjectDashboardsDashboardRouteImport } from './routes/app/$workspace/projects/$project/dashboards/$dashboard'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -123,6 +122,12 @@ const AppWorkspaceWorkspaceSettingsRoute =
     path: '/$workspace/workspace-settings',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppWorkspaceCheckoutPlanRoute =
+  AppWorkspaceCheckoutPlanRouteImport.update({
+    id: '/$workspace/checkout/$plan',
+    path: '/$workspace/checkout/$plan',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppWorkspaceProjectsIndexRoute =
   AppWorkspaceProjectsIndexRouteImport.update({
     id: '/$workspace/projects/',
@@ -163,12 +168,6 @@ const AppWorkspaceProjectsProjectDashboardRoute =
   AppWorkspaceProjectsProjectDashboardRouteImport.update({
     id: '/dashboard',
     path: '/dashboard',
-    getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
-  } as any)
-const AppWorkspaceProjectsProjectDashboardsRoute =
-  AppWorkspaceProjectsProjectDashboardsRouteImport.update({
-    id: '/dashboards',
-    path: '/dashboards',
     getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
   } as any)
 const AppWorkspaceProjectsProjectErrorsRoute =
@@ -231,6 +230,12 @@ const AppWorkspaceProjectsProjectSettingsRoute =
     path: '/settings',
     getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
   } as any)
+const AppWorkspaceProjectsProjectSetupRoute =
+  AppWorkspaceProjectsProjectSetupRouteImport.update({
+    id: '/setup',
+    path: '/setup',
+    getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
+  } as any)
 const AppWorkspaceProjectsProjectUserJourneyRoute =
   AppWorkspaceProjectsProjectUserJourneyRouteImport.update({
     id: '/user-journey',
@@ -242,18 +247,6 @@ const AppWorkspaceProjectsProjectVisitorsRoute =
     id: '/visitors',
     path: '/visitors',
     getParentRoute: () => AppWorkspaceProjectsProjectRouteRoute,
-  } as any)
-const AppWorkspaceProjectsProjectDashboardsIndexRoute =
-  AppWorkspaceProjectsProjectDashboardsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AppWorkspaceProjectsProjectDashboardsRoute,
-  } as any)
-const AppWorkspaceProjectsProjectDashboardsDashboardRoute =
-  AppWorkspaceProjectsProjectDashboardsDashboardRouteImport.update({
-    id: '/$dashboard',
-    path: '/$dashboard',
-    getParentRoute: () => AppWorkspaceProjectsProjectDashboardsRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -272,12 +265,12 @@ export interface FileRoutesByFullPath {
   '/app/$workspace/workspace-settings': typeof AppWorkspaceWorkspaceSettingsRoute
   '/app/$workspace/': typeof AppWorkspaceIndexRoute
   '/app/$workspace/projects/$project': typeof AppWorkspaceProjectsProjectRouteRouteWithChildren
+  '/app/$workspace/checkout/$plan': typeof AppWorkspaceCheckoutPlanRoute
   '/app/$workspace/projects/': typeof AppWorkspaceProjectsIndexRoute
   '/app/$workspace/projects/$project/ai-insights': typeof AppWorkspaceProjectsProjectAiInsightsRoute
   '/app/$workspace/projects/$project/analytics': typeof AppWorkspaceProjectsProjectAnalyticsRoute
   '/app/$workspace/projects/$project/campaigns': typeof AppWorkspaceProjectsProjectCampaignsRoute
   '/app/$workspace/projects/$project/dashboard': typeof AppWorkspaceProjectsProjectDashboardRoute
-  '/app/$workspace/projects/$project/dashboards': typeof AppWorkspaceProjectsProjectDashboardsRouteWithChildren
   '/app/$workspace/projects/$project/errors': typeof AppWorkspaceProjectsProjectErrorsRoute
   '/app/$workspace/projects/$project/events': typeof AppWorkspaceProjectsProjectEventsRoute
   '/app/$workspace/projects/$project/funnels': typeof AppWorkspaceProjectsProjectFunnelsRoute
@@ -288,11 +281,10 @@ export interface FileRoutesByFullPath {
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
   '/app/$workspace/projects/$project/session-replay': typeof AppWorkspaceProjectsProjectSessionReplayRoute
   '/app/$workspace/projects/$project/settings': typeof AppWorkspaceProjectsProjectSettingsRoute
+  '/app/$workspace/projects/$project/setup': typeof AppWorkspaceProjectsProjectSetupRoute
   '/app/$workspace/projects/$project/user-journey': typeof AppWorkspaceProjectsProjectUserJourneyRoute
   '/app/$workspace/projects/$project/visitors': typeof AppWorkspaceProjectsProjectVisitorsRoute
   '/app/$workspace/projects/$project/': typeof AppWorkspaceProjectsProjectIndexRoute
-  '/app/$workspace/projects/$project/dashboards/$dashboard': typeof AppWorkspaceProjectsProjectDashboardsDashboardRoute
-  '/app/$workspace/projects/$project/dashboards/': typeof AppWorkspaceProjectsProjectDashboardsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -308,6 +300,7 @@ export interface FileRoutesByTo {
   '/app/$workspace/permission-profiles': typeof AppWorkspacePermissionProfilesRoute
   '/app/$workspace/workspace-settings': typeof AppWorkspaceWorkspaceSettingsRoute
   '/app/$workspace': typeof AppWorkspaceIndexRoute
+  '/app/$workspace/checkout/$plan': typeof AppWorkspaceCheckoutPlanRoute
   '/app/$workspace/projects': typeof AppWorkspaceProjectsIndexRoute
   '/app/$workspace/projects/$project/ai-insights': typeof AppWorkspaceProjectsProjectAiInsightsRoute
   '/app/$workspace/projects/$project/analytics': typeof AppWorkspaceProjectsProjectAnalyticsRoute
@@ -323,11 +316,10 @@ export interface FileRoutesByTo {
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
   '/app/$workspace/projects/$project/session-replay': typeof AppWorkspaceProjectsProjectSessionReplayRoute
   '/app/$workspace/projects/$project/settings': typeof AppWorkspaceProjectsProjectSettingsRoute
+  '/app/$workspace/projects/$project/setup': typeof AppWorkspaceProjectsProjectSetupRoute
   '/app/$workspace/projects/$project/user-journey': typeof AppWorkspaceProjectsProjectUserJourneyRoute
   '/app/$workspace/projects/$project/visitors': typeof AppWorkspaceProjectsProjectVisitorsRoute
   '/app/$workspace/projects/$project': typeof AppWorkspaceProjectsProjectIndexRoute
-  '/app/$workspace/projects/$project/dashboards/$dashboard': typeof AppWorkspaceProjectsProjectDashboardsDashboardRoute
-  '/app/$workspace/projects/$project/dashboards': typeof AppWorkspaceProjectsProjectDashboardsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -347,12 +339,12 @@ export interface FileRoutesById {
   '/app/$workspace/workspace-settings': typeof AppWorkspaceWorkspaceSettingsRoute
   '/app/$workspace/': typeof AppWorkspaceIndexRoute
   '/app/$workspace/projects/$project': typeof AppWorkspaceProjectsProjectRouteRouteWithChildren
+  '/app/$workspace/checkout/$plan': typeof AppWorkspaceCheckoutPlanRoute
   '/app/$workspace/projects/': typeof AppWorkspaceProjectsIndexRoute
   '/app/$workspace/projects/$project/ai-insights': typeof AppWorkspaceProjectsProjectAiInsightsRoute
   '/app/$workspace/projects/$project/analytics': typeof AppWorkspaceProjectsProjectAnalyticsRoute
   '/app/$workspace/projects/$project/campaigns': typeof AppWorkspaceProjectsProjectCampaignsRoute
   '/app/$workspace/projects/$project/dashboard': typeof AppWorkspaceProjectsProjectDashboardRoute
-  '/app/$workspace/projects/$project/dashboards': typeof AppWorkspaceProjectsProjectDashboardsRouteWithChildren
   '/app/$workspace/projects/$project/errors': typeof AppWorkspaceProjectsProjectErrorsRoute
   '/app/$workspace/projects/$project/events': typeof AppWorkspaceProjectsProjectEventsRoute
   '/app/$workspace/projects/$project/funnels': typeof AppWorkspaceProjectsProjectFunnelsRoute
@@ -363,11 +355,10 @@ export interface FileRoutesById {
   '/app/$workspace/projects/$project/reports': typeof AppWorkspaceProjectsProjectReportsRoute
   '/app/$workspace/projects/$project/session-replay': typeof AppWorkspaceProjectsProjectSessionReplayRoute
   '/app/$workspace/projects/$project/settings': typeof AppWorkspaceProjectsProjectSettingsRoute
+  '/app/$workspace/projects/$project/setup': typeof AppWorkspaceProjectsProjectSetupRoute
   '/app/$workspace/projects/$project/user-journey': typeof AppWorkspaceProjectsProjectUserJourneyRoute
   '/app/$workspace/projects/$project/visitors': typeof AppWorkspaceProjectsProjectVisitorsRoute
   '/app/$workspace/projects/$project/': typeof AppWorkspaceProjectsProjectIndexRoute
-  '/app/$workspace/projects/$project/dashboards/$dashboard': typeof AppWorkspaceProjectsProjectDashboardsDashboardRoute
-  '/app/$workspace/projects/$project/dashboards/': typeof AppWorkspaceProjectsProjectDashboardsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -387,12 +378,12 @@ export interface FileRouteTypes {
     | '/app/$workspace/workspace-settings'
     | '/app/$workspace/'
     | '/app/$workspace/projects/$project'
+    | '/app/$workspace/checkout/$plan'
     | '/app/$workspace/projects/'
     | '/app/$workspace/projects/$project/ai-insights'
     | '/app/$workspace/projects/$project/analytics'
     | '/app/$workspace/projects/$project/campaigns'
     | '/app/$workspace/projects/$project/dashboard'
-    | '/app/$workspace/projects/$project/dashboards'
     | '/app/$workspace/projects/$project/errors'
     | '/app/$workspace/projects/$project/events'
     | '/app/$workspace/projects/$project/funnels'
@@ -403,11 +394,10 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/reports'
     | '/app/$workspace/projects/$project/session-replay'
     | '/app/$workspace/projects/$project/settings'
+    | '/app/$workspace/projects/$project/setup'
     | '/app/$workspace/projects/$project/user-journey'
     | '/app/$workspace/projects/$project/visitors'
     | '/app/$workspace/projects/$project/'
-    | '/app/$workspace/projects/$project/dashboards/$dashboard'
-    | '/app/$workspace/projects/$project/dashboards/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -423,6 +413,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/permission-profiles'
     | '/app/$workspace/workspace-settings'
     | '/app/$workspace'
+    | '/app/$workspace/checkout/$plan'
     | '/app/$workspace/projects'
     | '/app/$workspace/projects/$project/ai-insights'
     | '/app/$workspace/projects/$project/analytics'
@@ -438,11 +429,10 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/reports'
     | '/app/$workspace/projects/$project/session-replay'
     | '/app/$workspace/projects/$project/settings'
+    | '/app/$workspace/projects/$project/setup'
     | '/app/$workspace/projects/$project/user-journey'
     | '/app/$workspace/projects/$project/visitors'
     | '/app/$workspace/projects/$project'
-    | '/app/$workspace/projects/$project/dashboards/$dashboard'
-    | '/app/$workspace/projects/$project/dashboards'
   id:
     | '__root__'
     | '/'
@@ -461,12 +451,12 @@ export interface FileRouteTypes {
     | '/app/$workspace/workspace-settings'
     | '/app/$workspace/'
     | '/app/$workspace/projects/$project'
+    | '/app/$workspace/checkout/$plan'
     | '/app/$workspace/projects/'
     | '/app/$workspace/projects/$project/ai-insights'
     | '/app/$workspace/projects/$project/analytics'
     | '/app/$workspace/projects/$project/campaigns'
     | '/app/$workspace/projects/$project/dashboard'
-    | '/app/$workspace/projects/$project/dashboards'
     | '/app/$workspace/projects/$project/errors'
     | '/app/$workspace/projects/$project/events'
     | '/app/$workspace/projects/$project/funnels'
@@ -477,11 +467,10 @@ export interface FileRouteTypes {
     | '/app/$workspace/projects/$project/reports'
     | '/app/$workspace/projects/$project/session-replay'
     | '/app/$workspace/projects/$project/settings'
+    | '/app/$workspace/projects/$project/setup'
     | '/app/$workspace/projects/$project/user-journey'
     | '/app/$workspace/projects/$project/visitors'
     | '/app/$workspace/projects/$project/'
-    | '/app/$workspace/projects/$project/dashboards/$dashboard'
-    | '/app/$workspace/projects/$project/dashboards/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -597,6 +586,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceWorkspaceSettingsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/$workspace/checkout/$plan': {
+      id: '/app/$workspace/checkout/$plan'
+      path: '/$workspace/checkout/$plan'
+      fullPath: '/app/$workspace/checkout/$plan'
+      preLoaderRoute: typeof AppWorkspaceCheckoutPlanRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/$workspace/projects/': {
       id: '/app/$workspace/projects/'
       path: '/$workspace/projects'
@@ -644,13 +640,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/app/$workspace/projects/$project/dashboard'
       preLoaderRoute: typeof AppWorkspaceProjectsProjectDashboardRouteImport
-      parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
-    }
-    '/app/$workspace/projects/$project/dashboards': {
-      id: '/app/$workspace/projects/$project/dashboards'
-      path: '/dashboards'
-      fullPath: '/app/$workspace/projects/$project/dashboards'
-      preLoaderRoute: typeof AppWorkspaceProjectsProjectDashboardsRouteImport
       parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
     }
     '/app/$workspace/projects/$project/errors': {
@@ -723,6 +712,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceProjectsProjectSettingsRouteImport
       parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
     }
+    '/app/$workspace/projects/$project/setup': {
+      id: '/app/$workspace/projects/$project/setup'
+      path: '/setup'
+      fullPath: '/app/$workspace/projects/$project/setup'
+      preLoaderRoute: typeof AppWorkspaceProjectsProjectSetupRouteImport
+      parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
+    }
     '/app/$workspace/projects/$project/user-journey': {
       id: '/app/$workspace/projects/$project/user-journey'
       path: '/user-journey'
@@ -736,20 +732,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/$workspace/projects/$project/visitors'
       preLoaderRoute: typeof AppWorkspaceProjectsProjectVisitorsRouteImport
       parentRoute: typeof AppWorkspaceProjectsProjectRouteRoute
-    }
-    '/app/$workspace/projects/$project/dashboards/': {
-      id: '/app/$workspace/projects/$project/dashboards/'
-      path: '/'
-      fullPath: '/app/$workspace/projects/$project/dashboards/'
-      preLoaderRoute: typeof AppWorkspaceProjectsProjectDashboardsIndexRouteImport
-      parentRoute: typeof AppWorkspaceProjectsProjectDashboardsRoute
-    }
-    '/app/$workspace/projects/$project/dashboards/$dashboard': {
-      id: '/app/$workspace/projects/$project/dashboards/$dashboard'
-      path: '/$dashboard'
-      fullPath: '/app/$workspace/projects/$project/dashboards/$dashboard'
-      preLoaderRoute: typeof AppWorkspaceProjectsProjectDashboardsDashboardRouteImport
-      parentRoute: typeof AppWorkspaceProjectsProjectDashboardsRoute
     }
   }
 }
@@ -770,30 +752,11 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
   authRouteRouteChildren,
 )
 
-interface AppWorkspaceProjectsProjectDashboardsRouteChildren {
-  AppWorkspaceProjectsProjectDashboardsDashboardRoute: typeof AppWorkspaceProjectsProjectDashboardsDashboardRoute
-  AppWorkspaceProjectsProjectDashboardsIndexRoute: typeof AppWorkspaceProjectsProjectDashboardsIndexRoute
-}
-
-const AppWorkspaceProjectsProjectDashboardsRouteChildren: AppWorkspaceProjectsProjectDashboardsRouteChildren =
-  {
-    AppWorkspaceProjectsProjectDashboardsDashboardRoute:
-      AppWorkspaceProjectsProjectDashboardsDashboardRoute,
-    AppWorkspaceProjectsProjectDashboardsIndexRoute:
-      AppWorkspaceProjectsProjectDashboardsIndexRoute,
-  }
-
-const AppWorkspaceProjectsProjectDashboardsRouteWithChildren =
-  AppWorkspaceProjectsProjectDashboardsRoute._addFileChildren(
-    AppWorkspaceProjectsProjectDashboardsRouteChildren,
-  )
-
 interface AppWorkspaceProjectsProjectRouteRouteChildren {
   AppWorkspaceProjectsProjectAiInsightsRoute: typeof AppWorkspaceProjectsProjectAiInsightsRoute
   AppWorkspaceProjectsProjectAnalyticsRoute: typeof AppWorkspaceProjectsProjectAnalyticsRoute
   AppWorkspaceProjectsProjectCampaignsRoute: typeof AppWorkspaceProjectsProjectCampaignsRoute
   AppWorkspaceProjectsProjectDashboardRoute: typeof AppWorkspaceProjectsProjectDashboardRoute
-  AppWorkspaceProjectsProjectDashboardsRoute: typeof AppWorkspaceProjectsProjectDashboardsRouteWithChildren
   AppWorkspaceProjectsProjectErrorsRoute: typeof AppWorkspaceProjectsProjectErrorsRoute
   AppWorkspaceProjectsProjectEventsRoute: typeof AppWorkspaceProjectsProjectEventsRoute
   AppWorkspaceProjectsProjectFunnelsRoute: typeof AppWorkspaceProjectsProjectFunnelsRoute
@@ -804,6 +767,7 @@ interface AppWorkspaceProjectsProjectRouteRouteChildren {
   AppWorkspaceProjectsProjectReportsRoute: typeof AppWorkspaceProjectsProjectReportsRoute
   AppWorkspaceProjectsProjectSessionReplayRoute: typeof AppWorkspaceProjectsProjectSessionReplayRoute
   AppWorkspaceProjectsProjectSettingsRoute: typeof AppWorkspaceProjectsProjectSettingsRoute
+  AppWorkspaceProjectsProjectSetupRoute: typeof AppWorkspaceProjectsProjectSetupRoute
   AppWorkspaceProjectsProjectUserJourneyRoute: typeof AppWorkspaceProjectsProjectUserJourneyRoute
   AppWorkspaceProjectsProjectVisitorsRoute: typeof AppWorkspaceProjectsProjectVisitorsRoute
   AppWorkspaceProjectsProjectIndexRoute: typeof AppWorkspaceProjectsProjectIndexRoute
@@ -819,8 +783,6 @@ const AppWorkspaceProjectsProjectRouteRouteChildren: AppWorkspaceProjectsProject
       AppWorkspaceProjectsProjectCampaignsRoute,
     AppWorkspaceProjectsProjectDashboardRoute:
       AppWorkspaceProjectsProjectDashboardRoute,
-    AppWorkspaceProjectsProjectDashboardsRoute:
-      AppWorkspaceProjectsProjectDashboardsRouteWithChildren,
     AppWorkspaceProjectsProjectErrorsRoute:
       AppWorkspaceProjectsProjectErrorsRoute,
     AppWorkspaceProjectsProjectEventsRoute:
@@ -840,6 +802,8 @@ const AppWorkspaceProjectsProjectRouteRouteChildren: AppWorkspaceProjectsProject
       AppWorkspaceProjectsProjectSessionReplayRoute,
     AppWorkspaceProjectsProjectSettingsRoute:
       AppWorkspaceProjectsProjectSettingsRoute,
+    AppWorkspaceProjectsProjectSetupRoute:
+      AppWorkspaceProjectsProjectSetupRoute,
     AppWorkspaceProjectsProjectUserJourneyRoute:
       AppWorkspaceProjectsProjectUserJourneyRoute,
     AppWorkspaceProjectsProjectVisitorsRoute:
@@ -864,6 +828,7 @@ interface AppRouteRouteChildren {
   AppWorkspaceWorkspaceSettingsRoute: typeof AppWorkspaceWorkspaceSettingsRoute
   AppWorkspaceIndexRoute: typeof AppWorkspaceIndexRoute
   AppWorkspaceProjectsProjectRouteRoute: typeof AppWorkspaceProjectsProjectRouteRouteWithChildren
+  AppWorkspaceCheckoutPlanRoute: typeof AppWorkspaceCheckoutPlanRoute
   AppWorkspaceProjectsIndexRoute: typeof AppWorkspaceProjectsIndexRoute
 }
 
@@ -879,6 +844,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppWorkspaceIndexRoute: AppWorkspaceIndexRoute,
   AppWorkspaceProjectsProjectRouteRoute:
     AppWorkspaceProjectsProjectRouteRouteWithChildren,
+  AppWorkspaceCheckoutPlanRoute: AppWorkspaceCheckoutPlanRoute,
   AppWorkspaceProjectsIndexRoute: AppWorkspaceProjectsIndexRoute,
 }
 

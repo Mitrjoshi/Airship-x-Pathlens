@@ -5,6 +5,8 @@ import {
   ProjectPageLayout,
   PageToolbar,
 } from '@/components/common/project-page'
+import { PlanLimitNotice } from '@/components/common/plan-gate'
+import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import { SessionReplayPlayer } from '@/components/common/session-replay-player'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
@@ -59,7 +61,14 @@ export const Route = createFileRoute(
 })
 
 function RouteComponent() {
+  return <PageContent />
+}
+
+function PageContent() {
   const { workspace, project } = Route.useParams()
+  const currentPlanId = useWorkspacePlan(workspace)
+  const currentPlan = getPlanDefinition(currentPlanId)
+  const recordingLimit = currentPlan.limits.sessionRecordings
   const [search, setSearch] = useState('')
   const [range, setRange] = useState<SessionReplayRange>('7d')
   const [device, setDevice] = useState<SessionReplayDevice>('all')
@@ -80,6 +89,9 @@ function RouteComponent() {
   )
 
   const sessionReplay = data?.data
+  const visibleSessions = sessionReplay?.sessions.slice(0, recordingLimit) ?? []
+  const recordingLimitReached =
+    (sessionReplay?.pagination.total ?? 0) > recordingLimit
   const replayDetailQuery = useQuery(
     getSessionReplayDetailOptions({
       workspace_id: workspace,
@@ -118,6 +130,14 @@ function RouteComponent() {
           title="Session Replay"
           description="Watch recordings of visitor sessions to understand user behaviour."
         />
+
+        {recordingLimitReached && (
+          <PlanLimitNotice
+            workspaceId={workspace}
+            resource="session recording"
+            limit={recordingLimit}
+          />
+        )}
 
         {isError && (
           <p className="text-destructive text-sm">
@@ -220,8 +240,8 @@ function RouteComponent() {
                         ))}
                       </TableRow>
                     ))
-                  ) : sessionReplay?.sessions.length ? (
-                    sessionReplay.sessions.map((session) => (
+                  ) : visibleSessions.length ? (
+                    visibleSessions.map((session) => (
                       <TableRow key={session.id}>
                         <TableCell className="font-medium">
                           Anonymous #{session.visitorId.slice(0, 8)}

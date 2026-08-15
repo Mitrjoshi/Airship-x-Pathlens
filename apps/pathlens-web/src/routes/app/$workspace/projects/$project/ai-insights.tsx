@@ -6,6 +6,7 @@ import {
   ProjectPanel,
   PageToolbar,
 } from '@/components/common/project-page'
+import { PlanGate } from '@/components/common/plan-gate'
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import {
@@ -141,6 +142,16 @@ function impactClass(impact: Insight['impact']) {
 }
 
 function RouteComponent() {
+  const { workspace } = Route.useParams()
+
+  return (
+    <PlanGate workspaceId={workspace} feature="aiInsights">
+      <PageContent />
+    </PlanGate>
+  )
+}
+
+function PageContent() {
   const [typeFilter, setTypeFilter] = useState('all')
   const [isRefreshing, setIsRefreshing] = useState(false)
 

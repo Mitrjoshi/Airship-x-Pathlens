@@ -1,4 +1,5 @@
 import { AppHeader } from '@/components/common/app-header'
+import { PlanLimitNotice } from '@/components/common/plan-gate'
 import {
   PageHeader,
   PageLayout,
@@ -31,6 +32,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { formatNumber } from '@/utils/utils'
+import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 
 export const Route = createFileRoute('/app/')({
   component: RouteComponent,
@@ -47,6 +49,13 @@ function RouteComponent() {
   const [workspaceName, setWorkspaceName] = useState('')
 
   const workspaces = data?.data ?? []
+  const defaultWorkspaceId = user?.defaultWorkspace?.id ?? ''
+  const currentPlanId = useWorkspacePlan(defaultWorkspaceId)
+  const currentPlan = getPlanDefinition(currentPlanId)
+  const workspaceLimit = currentPlan.limits.workspaces
+  const workspaceLimitReached =
+    workspaceLimit !== null && workspaces.length >= workspaceLimit
+  const canCreateWorkspace = !isPending && !workspaceLimitReached
 
   return (
     <PageLayout>
@@ -63,12 +72,25 @@ function RouteComponent() {
         title="Choose where to work."
         description="Select a workspace to see its projects and analytics."
         actions={
-          <Button onClick={() => setIsCreateOpen(true)}>
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            disabled={!canCreateWorkspace}
+          >
             <PlusIcon />
             New workspace
           </Button>
         }
       />
+
+      {workspaceLimitReached &&
+        workspaceLimit !== null &&
+        defaultWorkspaceId && (
+          <PlanLimitNotice
+            workspaceId={defaultWorkspaceId}
+            resource="workspace"
+            limit={workspaceLimit}
+          />
+        )}
 
       <SectionHeader
         title="All workspaces"
@@ -200,7 +222,7 @@ function RouteComponent() {
               event.preventDefault()
               const name = workspaceName.trim()
 
-              if (name.length < 2) return
+              if (name.length < 2 || !canCreateWorkspace) return
 
               createWorkspace.mutate(
                 { name },

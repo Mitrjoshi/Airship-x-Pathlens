@@ -5,6 +5,7 @@ import {
   ProjectPageLayout,
   PageToolbar,
 } from '@/components/common/project-page'
+import { PlanGate } from '@/components/common/plan-gate'
 import { formatNumber } from '@/utils/utils'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
@@ -522,6 +523,16 @@ function TrendingMetricIcon({ type }: { type: JourneyNodeType }) {
 }
 
 function RouteComponent() {
+  const { workspace } = Route.useParams()
+
+  return (
+    <PlanGate workspaceId={workspace} feature="userJourney">
+      <PageContent />
+    </PlanGate>
+  )
+}
+
+function PageContent() {
   const { workspace, project } = Route.useParams()
   const [range, setRange] = useState<UserJourneyRange>('7d')
   const [device, setDevice] = useState<UserJourneyDevice>('all')

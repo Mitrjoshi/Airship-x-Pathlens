@@ -17,6 +17,8 @@ import { cn } from '@workspace/ui/lib/utils'
 import { MailPlusIcon, SearchIcon, SparklesIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { navigationIcons } from '@/config/navigation-icons'
+import { hasPlanFeature, useWorkspacePlan } from '@/lib/billing'
+import type { PlanFeature } from '@/lib/billing'
 import {
   useDeferredValue,
   useEffect,
@@ -61,6 +63,7 @@ interface PageDefinition<TPath extends string> {
   icon: LucideIcon
   to: TPath
   permissions?: readonly Permission[]
+  planFeature?: PlanFeature
 }
 
 type SearchCategory = 'Pages' | 'Workspaces' | 'Projects'
@@ -134,6 +137,7 @@ const workspacePageDefinitions: PageDefinition<WorkspacePagePath>[] = [
       'workspace.permission_profiles.update',
       'workspace.permission_profiles.delete',
     ],
+    planFeature: 'advancedPermissions',
   },
   {
     id: 'workspace-settings',
@@ -190,6 +194,7 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.heatmaps,
     to: '/app/$workspace/projects/$project/heatmaps',
     permissions: ['analytics.analytics.view'],
+    planFeature: 'heatmaps',
   },
   {
     id: 'project-performance',
@@ -199,6 +204,7 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.performance,
     to: '/app/$workspace/projects/$project/performance',
     permissions: ['analytics.performance.view'],
+    planFeature: 'performanceAnalytics',
   },
   {
     id: 'project-user-journey',
@@ -208,6 +214,7 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.userJourney,
     to: '/app/$workspace/projects/$project/user-journey',
     permissions: ['analytics.analytics.view'],
+    planFeature: 'userJourney',
   },
   {
     id: 'project-session-replay',
@@ -217,6 +224,7 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.sessionReplay,
     to: '/app/$workspace/projects/$project/session-replay',
     permissions: ['analytics.session_replay.view'],
+    planFeature: 'sessionReplay',
   },
   {
     id: 'project-events',
@@ -235,6 +243,7 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.errors,
     to: '/app/$workspace/projects/$project/errors',
     permissions: ['analytics.analytics.view'],
+    planFeature: 'errorTracking',
   },
   {
     id: 'project-campaigns',
@@ -245,6 +254,7 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.campaigns,
     to: '/app/$workspace/projects/$project/campaigns',
     permissions: ['analytics.goals.view'],
+    planFeature: 'campaignTracking',
   },
   {
     id: 'project-funnels',
@@ -272,6 +282,7 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.aiInsights,
     to: '/app/$workspace/projects/$project/ai-insights',
     permissions: ['analytics.ai_insights.view'],
+    planFeature: 'aiInsights',
   },
   {
     id: 'project-reports',
@@ -281,6 +292,7 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     icon: navigationIcons.reports,
     to: '/app/$workspace/projects/$project/reports',
     permissions: ['analytics.reports.view'],
+    planFeature: 'reports',
   },
   {
     id: 'project-api-keys',
@@ -338,6 +350,7 @@ export const SearchOverAppDialog = ({
   const inputRef = useRef<HTMLInputElement>(null)
   const resultRefs = useRef<Array<HTMLButtonElement | null>>([])
   const deferredSearch = useDeferredValue(search)
+  const activePlanId = useWorkspacePlan(workspaceId)
 
   const workspacesQuery = useQuery({
     ...getWorkspacesOptions(),
@@ -386,6 +399,15 @@ export const SearchOverAppDialog = ({
 
   const navigateToAppPage = (page: PageDefinition<AppPagePath>) => {
     closeDialog()
+
+    if (page.id === 'plans') {
+      void navigate({
+        to: '/app/$workspace/billing',
+        params: { workspace: workspaceId },
+      })
+      return
+    }
+
     navigate({ to: page.to })
   }
 
@@ -412,14 +434,22 @@ export const SearchOverAppDialog = ({
       onSelect: () => navigateToAppPage(page),
     })),
     ...workspacePageDefinitions
-      .filter((page) => hasPermission(activeWorkspace, page.permissions))
+      .filter(
+        (page) =>
+          hasPermission(activeWorkspace, page.permissions) &&
+          (!page.planFeature || hasPlanFeature(activePlanId, page.planFeature))
+      )
       .map((page) => ({
         ...page,
         category: 'Pages' as const,
         onSelect: () => navigateToWorkspacePage(page),
       })),
     ...projectPageDefinitions
-      .filter((page) => hasPermission(activeWorkspace, page.permissions))
+      .filter(
+        (page) =>
+          hasPermission(activeWorkspace, page.permissions) &&
+          (!page.planFeature || hasPlanFeature(activePlanId, page.planFeature))
+      )
       .map((page) => ({
         ...page,
         category: 'Pages' as const,

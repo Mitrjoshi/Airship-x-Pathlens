@@ -18,7 +18,6 @@ export const PERMISSIONS = [
   'project.settings.update',
   'project.api_keys.view',
   'analytics.dashboard.view',
-  'analytics.dashboard.manage',
   'analytics.analytics.view',
   'analytics.visitors.view',
   'analytics.events.view',
@@ -162,11 +161,6 @@ export const PERMISSION_GROUPS = [
         key: 'analytics.dashboard.view',
         label: 'View dashboard',
         description: 'See project metrics, trends, and live activity.',
-      },
-      {
-        key: 'analytics.dashboard.manage',
-        label: 'Manage dashboards',
-        description: 'Create, edit, and delete custom dashboards and widgets.',
       },
       {
         key: 'analytics.analytics.view',

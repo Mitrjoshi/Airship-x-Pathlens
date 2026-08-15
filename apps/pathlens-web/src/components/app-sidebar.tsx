@@ -21,6 +21,14 @@ import {
 import { getProjectsOptions } from '@/queries/projects'
 import { getWorkspacesOptions } from '@/queries/workspace'
 import { navigationIcons } from '@/config/navigation-icons'
+import {
+  getPlanDefinition,
+  getWorkspacePlan,
+  hasPlanFeature,
+  useWorkspacePlan,
+  type PlanFeature,
+  type PlanId,
+} from '@/lib/billing'
 import { Button } from '@workspace/ui/components/button'
 import {
   Sidebar,
@@ -43,7 +51,6 @@ import { PageLayout } from '@/components/common/page-layout'
 
 type ProjectNavPath =
   | '/app/$workspace/projects/$project/dashboard'
-  | '/app/$workspace/projects/$project/dashboards'
   | '/app/$workspace/projects/$project/analytics'
   | '/app/$workspace/projects/$project/user-journey'
   | '/app/$workspace/projects/$project/funnels'
@@ -67,6 +74,16 @@ interface WorkspaceOption {
   plan: string
 }
 
+interface ProjectNavItem {
+  title: string
+  url: ProjectNavPath
+  icon: LucideIcon
+  isActive: boolean
+  isPro: boolean
+  permission: Permission
+  planFeature?: PlanFeature
+}
+
 export function AppSidebar({
   workspaceId,
   projectId,
@@ -81,6 +98,7 @@ export function AppSidebar({
     select: (context) => context.user,
   })
   const { data: workspaceData } = useQuery(getWorkspacesOptions())
+  const activePlanId = useWorkspacePlan(workspaceId)
 
   const workspaceList =
     workspaceData?.data ??
@@ -89,7 +107,7 @@ export function AppSidebar({
     id: workspace.id,
     name: workspace.name,
     logo: <SquareKanbanIcon />,
-    plan: workspace.isDefault ? 'Default workspace' : 'Workspace',
+    plan: `${getPlanDefinition(getWorkspacePlan(workspace.id)).name} plan`,
   }))
   const activeWorkspace = workspaceList.find(
     (workspace) => workspace.id === workspaceId
@@ -98,20 +116,12 @@ export function AppSidebar({
     ? `/app/${workspaceId}/projects/${projectId}`
     : ''
 
-  const navMain = [
+  const navMain: ProjectNavItem[] = [
     {
       title: 'Dashboard',
       url: '/app/$workspace/projects/$project/dashboard' as const,
       icon: navigationIcons.dashboard,
       isActive: pathname === `${projectBasePath}/dashboard`,
-      isPro: false,
-      permission: 'analytics.dashboard.view' as const,
-    },
-    {
-      title: 'Dashboards',
-      url: '/app/$workspace/projects/$project/dashboards' as const,
-      icon: navigationIcons.overview,
-      isActive: pathname.startsWith(`${projectBasePath}/dashboards`),
       isPro: false,
       permission: 'analytics.dashboard.view' as const,
     },
@@ -128,7 +138,8 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/user-journey' as const,
       icon: navigationIcons.userJourney,
       isActive: pathname === `${projectBasePath}/user-journey`,
-      isPro: false,
+      isPro: true,
+      planFeature: 'userJourney' as const,
       permission: 'analytics.analytics.view' as const,
     },
     {
@@ -136,7 +147,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/funnels' as const,
       icon: navigationIcons.funnels,
       isActive: pathname === `${projectBasePath}/funnels`,
-      isPro: false,
+      isPro: true,
       permission: 'analytics.funnels.view' as const,
     },
     {
@@ -144,7 +155,7 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/goals' as const,
       icon: navigationIcons.goals,
       isActive: pathname === `${projectBasePath}/goals`,
-      isPro: false,
+      isPro: true,
       permission: 'analytics.goals.view' as const,
     },
     {
@@ -160,7 +171,8 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/errors' as const,
       icon: navigationIcons.errors,
       isActive: pathname === `${projectBasePath}/errors`,
-      isPro: false,
+      isPro: true,
+      planFeature: 'errorTracking' as const,
       permission: 'analytics.analytics.view' as const,
     },
     {
@@ -168,7 +180,8 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/campaigns' as const,
       icon: navigationIcons.campaigns,
       isActive: pathname === `${projectBasePath}/campaigns`,
-      isPro: false,
+      isPro: true,
+      planFeature: 'campaignTracking' as const,
       permission: 'analytics.goals.view' as const,
     },
     {
@@ -177,6 +190,7 @@ export function AppSidebar({
       icon: navigationIcons.sessionReplay,
       isActive: pathname === `${projectBasePath}/session-replay`,
       isPro: true,
+      planFeature: 'sessionReplay' as const,
       permission: 'analytics.session_replay.view' as const,
     },
     {
@@ -185,6 +199,7 @@ export function AppSidebar({
       icon: navigationIcons.heatmaps,
       isActive: pathname === `${projectBasePath}/heatmaps`,
       isPro: true,
+      planFeature: 'heatmaps' as const,
       permission: 'analytics.analytics.view' as const,
     },
     {
@@ -200,7 +215,8 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/performance' as const,
       icon: navigationIcons.performance,
       isActive: pathname === `${projectBasePath}/performance`,
-      isPro: false,
+      isPro: true,
+      planFeature: 'performanceAnalytics' as const,
       permission: 'analytics.performance.view' as const,
     },
     {
@@ -208,7 +224,8 @@ export function AppSidebar({
       url: '/app/$workspace/projects/$project/reports' as const,
       icon: navigationIcons.reports,
       isActive: pathname === `${projectBasePath}/reports`,
-      isPro: false,
+      isPro: true,
+      planFeature: 'reports' as const,
       permission: 'analytics.reports.view' as const,
     },
     {
@@ -217,6 +234,7 @@ export function AppSidebar({
       icon: navigationIcons.aiInsights,
       isActive: pathname === `${projectBasePath}/ai-insights`,
       isPro: true,
+      planFeature: 'aiInsights' as const,
       permission: 'analytics.ai_insights.view' as const,
     },
     {
@@ -248,15 +266,22 @@ export function AppSidebar({
             workspaceId={workspaceId}
             role={activeWorkspace?.role}
             permissions={activeWorkspace?.permissions ?? []}
+            planId={activePlanId}
           />
         )}
         {projectId && (
           <NavMain
-            items={navMain.filter(
-              (item) =>
-                activeWorkspace?.role === 'owner' ||
-                activeWorkspace?.permissions?.includes(item.permission)
-            )}
+            items={navMain
+              .filter(
+                (item) =>
+                  activeWorkspace?.role === 'owner' ||
+                  activeWorkspace?.permissions?.includes(item.permission)
+              )
+              .filter(
+                (item) =>
+                  !item.planFeature ||
+                  hasPlanFeature(activePlanId, item.planFeature)
+              )}
             workspaceId={workspaceId}
             projectId={projectId}
           />
@@ -372,9 +397,12 @@ export function WorkspaceSwitcher({
                   <div className="flex size-6 items-center justify-center rounded-md border">
                     {team.logo}
                   </div>
-                  {team.name}
+                  <span className="truncate">{team.name}</span>
+                  <span className="text-muted-foreground ml-auto text-xs">
+                    {team.plan}
+                  </span>
                   {team.id === activeWorkspaceId && (
-                    <span className="text-muted-foreground ml-auto text-xs">
+                    <span className="text-muted-foreground text-xs">
                       Current
                     </span>
                   )}
@@ -406,10 +434,12 @@ function WorkspaceNav({
   workspaceId,
   role,
   permissions,
+  planId,
 }: {
   workspaceId: string
   role?: string
   permissions: Permission[]
+  planId: PlanId
 }) {
   const { pathname } = useLocation()
   const canViewMembers =
@@ -460,22 +490,23 @@ function WorkspaceNav({
             </SidebarMenuButton>
           </SidebarMenuItem>
         )}
-        {canViewPermissionProfiles && (
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={pathname.includes('/permission-profiles')}
-              render={
-                <Link
-                  to="/app/$workspace/permission-profiles"
-                  params={{ workspace: workspaceId }}
-                />
-              }
-            >
-              <navigationIcons.permissions className="size-4" />
-              <span>Permissions</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        )}
+        {canViewPermissionProfiles &&
+          hasPlanFeature(planId, 'advancedPermissions') && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname.includes('/permission-profiles')}
+                render={
+                  <Link
+                    to="/app/$workspace/permission-profiles"
+                    params={{ workspace: workspaceId }}
+                  />
+                }
+              >
+                <navigationIcons.permissions className="size-4" />
+                <span>Permissions</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         {canViewSettings && (
           <SidebarMenuItem>
             <SidebarMenuButton

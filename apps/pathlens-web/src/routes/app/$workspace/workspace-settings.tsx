@@ -2,6 +2,7 @@ import {
   ProjectPageHeader,
   ProjectPanel,
 } from '@/components/common/project-page'
+import { PlanLimitNotice } from '@/components/common/plan-gate'
 import { WorkspacePageLayout } from '@/components/app-sidebar'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
@@ -43,8 +44,12 @@ import {
   UsersIcon,
 } from 'lucide-react'
 
-import { getWorkspacesOptions } from '@/queries/workspace'
+import {
+  getWorkspaceInvitationsOptions,
+  getWorkspacesOptions,
+} from '@/queries/workspace'
 import { formatNumber } from '@/utils/utils'
+import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 
 export const Route = createFileRoute('/app/$workspace/workspace-settings')({
   component: RouteComponent,
@@ -101,13 +106,30 @@ function RouteComponent() {
     currentWorkspace?.permissions.includes(permission)
   const canEditWorkspace = hasPermission('workspace.settings.update')
   const canViewMembers = hasPermission('workspace.members.view')
-  const canInviteMembers = hasPermission('workspace.members.invite')
   const canViewPermissionProfiles =
     hasPermission('workspace.permission_profiles.view') ||
     hasPermission('workspace.permission_profiles.create') ||
     hasPermission('workspace.permission_profiles.update') ||
     hasPermission('workspace.permission_profiles.delete')
   const canDeleteWorkspace = hasPermission('workspace.delete')
+  const { data: invitationsData } = useQuery({
+    ...getWorkspaceInvitationsOptions(workspace),
+    enabled: canViewMembers,
+  })
+  const currentPlanId = useWorkspacePlan(workspace)
+  const currentPlan = getPlanDefinition(currentPlanId)
+  const memberLimit = currentPlan.limits.members
+  const pendingInvitationCount = invitationsData?.data.length ?? 0
+  const invitationCountKnown = !canViewMembers || invitationsData !== undefined
+  const memberLimitReached =
+    currentWorkspace !== undefined &&
+    invitationCountKnown &&
+    memberLimit !== null &&
+    currentWorkspace.memberCount + pendingInvitationCount >= memberLimit
+  const canInviteMembers =
+    hasPermission('workspace.members.invite') &&
+    invitationCountKnown &&
+    !memberLimitReached
   const canConfirmDelete =
     Boolean(currentWorkspace) &&
     deleteConfirmation.trim() === currentWorkspace?.name
@@ -150,6 +172,14 @@ function RouteComponent() {
           title="Workspace settings"
           description="Manage your workspace, members, and access preferences."
         />
+
+        {memberLimitReached && memberLimit !== null && (
+          <PlanLimitNotice
+            workspaceId={workspace}
+            resource="team member"
+            limit={memberLimit}
+          />
+        )}
 
         <div className="space-y-6">
           {/* General */}

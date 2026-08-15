@@ -5,6 +5,8 @@ import {
   ProjectPageLayout,
   PageToolbar,
 } from '@/components/common/project-page'
+import { PlanFeatureNotice } from '@/components/common/plan-gate'
+import { hasPlanFeature, useWorkspacePlan } from '@/lib/billing'
 import { createFileRoute } from '@tanstack/react-router'
 import { Gauge, Timer, Zap, Activity } from 'lucide-react'
 import {
@@ -75,7 +77,16 @@ const trendConfig = {
 } satisfies ChartConfig
 
 function RouteComponent() {
+  return <PageContent />
+}
+
+function PageContent() {
   const { workspace, project } = Route.useParams()
+  const currentPlanId = useWorkspacePlan(workspace)
+  const hasAdvancedPerformance = hasPlanFeature(
+    currentPlanId,
+    'advancedAnalytics'
+  )
   const [range, setRange] = useState<PerformanceRange>('7d')
   const [device, setDevice] = useState<PerformanceDevice>('all')
 
@@ -98,19 +109,25 @@ function RouteComponent() {
       title: 'TTFB',
       value: formatMs(perf?.summary.avgTtfb ?? 0),
       icon: Zap,
-      detail: `p75: ${formatMs(perf?.summary.p75Ttfb ?? 0)}`,
+      detail: hasAdvancedPerformance
+        ? `p75: ${formatMs(perf?.summary.p75Ttfb ?? 0)}`
+        : 'Average response time',
     },
     {
       title: 'DOM Loaded',
       value: formatMs(perf?.summary.avgDomLoaded ?? 0),
       icon: Timer,
-      detail: `p75: ${formatMs(perf?.summary.p75DomLoaded ?? 0)}`,
+      detail: hasAdvancedPerformance
+        ? `p75: ${formatMs(perf?.summary.p75DomLoaded ?? 0)}`
+        : 'Average response time',
     },
     {
       title: 'Page Load',
       value: formatMs(perf?.summary.avgLoad ?? 0),
       icon: Gauge,
-      detail: `p75: ${formatMs(perf?.summary.p75Load ?? 0)}`,
+      detail: hasAdvancedPerformance
+        ? `p75: ${formatMs(perf?.summary.p75Load ?? 0)}`
+        : 'Average response time',
     },
     {
       title: 'Samples',
@@ -125,8 +142,20 @@ function RouteComponent() {
         <ProjectPageHeader
           eyebrow="Performance"
           title="Performance"
-          description="Monitor Core Web Vitals, page load times, and rendering performance."
+          description={
+            hasAdvancedPerformance
+              ? 'Monitor Core Web Vitals, page load times, and rendering performance.'
+              : 'Review basic page timing and load performance for your project.'
+          }
         />
+
+        {!hasAdvancedPerformance && (
+          <PlanFeatureNotice
+            workspaceId={workspace}
+            feature="advancedAnalytics"
+            description="Upgrade to Pro for percentile breakdowns and advanced performance analytics."
+          />
+        )}
 
         <PageToolbar className="justify-end">
           <Select
@@ -190,7 +219,9 @@ function RouteComponent() {
           <CardHeader>
             <CardTitle>Performance Trend</CardTitle>
             <CardDescription>
-              Average TTFB, DOM Loaded, and Page Load over the selected range
+              {hasAdvancedPerformance
+                ? 'Average TTFB, DOM Loaded, and Page Load over the selected range'
+                : 'Average page timing over the selected range'}
             </CardDescription>
           </CardHeader>
 

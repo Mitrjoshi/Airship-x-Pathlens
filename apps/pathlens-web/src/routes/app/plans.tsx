@@ -1,6 +1,6 @@
 import { AppHeader } from '@/components/common/app-header'
 import { PageHeader, PageLayout } from '@/components/common/page-layout'
-import { createFileRoute, useRouteContext } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router'
 import { useState } from 'react'
 import {
   Check,
@@ -34,6 +34,12 @@ import {
 import { cn } from '@workspace/ui/lib/utils'
 import { formatNumber } from '@/utils/utils'
 import { navigationIcons } from '@/config/navigation-icons'
+import {
+  getPlanDefinition,
+  PLAN_TIERS,
+  useWorkspacePlan,
+  type PlanDefinition,
+} from '@/lib/billing'
 
 export const Route = createFileRoute('/app/plans')({
   component: RouteComponent,
@@ -42,106 +48,100 @@ export const Route = createFileRoute('/app/plans')({
   },
 })
 
-const currentPlan = {
-  name: 'Pro',
-  price: 49,
-  billingCycle: 'monthly' as const,
-  renewsOn: 'August 26, 2026',
-  status: 'Active',
-}
-
-const usage = [
-  {
-    label: 'Page Views',
-    used: 842_300,
-    limit: 1_000_000,
-    icon: Globe,
-  },
-  {
-    label: 'Events',
-    used: 128_400,
-    limit: 250_000,
-    icon: navigationIcons.events,
-  },
-  {
-    label: 'Projects',
-    used: 4,
-    limit: 10,
-    icon: Database,
-  },
-  {
-    label: 'Team Members',
-    used: 3,
-    limit: 5,
-    icon: navigationIcons.members,
-  },
-]
-
-interface PlanTier {
-  name: string
-  price: number
-  description: string
-  features: string[]
-  highlighted?: boolean
-  current?: boolean
-}
-
-const tiers: PlanTier[] = [
-  {
-    name: 'Starter',
-    price: 0,
-    description: 'For small side projects getting started.',
-    features: [
-      '10K page views / month',
-      '1 project',
-      'Basic analytics',
-      '7-day data retention',
-      'Community support',
-    ],
-  },
-  {
-    name: 'Pro',
-    price: 49,
-    description: 'For growing products that need deeper insight.',
-    features: [
-      '1M page views / month',
-      '10 projects',
-      'Session replay',
-      '90-day data retention',
-      '5 team members',
-      'Priority email support',
-    ],
-    highlighted: true,
-    current: true,
-  },
-  {
-    name: 'Business',
-    price: 149,
-    description: 'For teams that need scale and control.',
-    features: [
-      '10M page views / month',
-      'Unlimited projects',
-      'Session replay',
-      '1-year data retention',
-      'Unlimited team members',
-      'SSO & audit logs',
-      'Dedicated support',
-    ],
-  },
-]
-
 const invoices = [
-  { id: 'INV-2026-007', date: 'Jul 1, 2026', amount: 49, status: 'Paid' },
-  { id: 'INV-2026-006', date: 'Jun 1, 2026', amount: 49, status: 'Paid' },
-  { id: 'INV-2026-005', date: 'May 1, 2026', amount: 49, status: 'Paid' },
-  { id: 'INV-2026-004', date: 'Apr 1, 2026', amount: 49, status: 'Paid' },
+  { id: 'INV-2026-007', date: 'Jul 1, 2026', status: 'Paid' },
+  { id: 'INV-2026-006', date: 'Jun 1, 2026', status: 'Paid' },
+  { id: 'INV-2026-005', date: 'May 1, 2026', status: 'Paid' },
+  { id: 'INV-2026-004', date: 'Apr 1, 2026', status: 'Paid' },
 ]
+
+function getUsageForPlan(plan: PlanDefinition) {
+  const values =
+    plan.id === 'starter'
+      ? {
+          pageViews: 6_800,
+          events: 14_200,
+          projects: 1,
+          members: 1,
+          funnels: 1,
+          goals: 1,
+          recordings: 80,
+        }
+      : plan.id === 'pro'
+        ? {
+            pageViews: 842_300,
+            events: 128_400,
+            projects: 4,
+            members: 3,
+            funnels: 8,
+            goals: 12,
+            recordings: 7_600,
+          }
+        : {
+            pageViews: 4_200_000,
+            events: 960_000,
+            projects: 14,
+            members: 18,
+            funnels: 24,
+            goals: 36,
+            recordings: 72_000,
+          }
+
+  return [
+    {
+      label: 'Page Views',
+      used: values.pageViews,
+      limit: plan.limits.pageViews,
+      icon: Globe,
+    },
+    {
+      label: 'Events',
+      used: values.events,
+      limit: plan.limits.events,
+      icon: navigationIcons.events,
+    },
+    {
+      label: 'Projects',
+      used: values.projects,
+      limit: plan.limits.projects,
+      icon: Database,
+    },
+    {
+      label: 'Team Members',
+      used: values.members,
+      limit: plan.limits.members,
+      icon: navigationIcons.members,
+    },
+    {
+      label: 'Funnels',
+      used: values.funnels,
+      limit: plan.limits.funnels,
+      icon: navigationIcons.funnels,
+    },
+    {
+      label: 'Goals',
+      used: values.goals,
+      limit: plan.limits.goals,
+      icon: navigationIcons.goals,
+    },
+    {
+      label: 'Session Recordings',
+      used: values.recordings,
+      limit: plan.limits.sessionRecordings,
+      icon: navigationIcons.sessionReplay,
+    },
+  ]
+}
 
 function RouteComponent() {
   const user = useRouteContext({
     from: '/app',
     select: (context) => context.user,
   })
+  const workspaceId = user?.defaultWorkspace?.id ?? ''
+  const currentPlanId = useWorkspacePlan(workspaceId)
+  const currentPlan = getPlanDefinition(currentPlanId)
+  const usage = getUsageForPlan(currentPlan)
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(
     'monthly'
   )
@@ -163,7 +163,7 @@ function RouteComponent() {
         description="Manage your subscription, usage, and invoices from one place."
         actions={
           <Badge variant="outline" className="w-fit">
-            {currentPlan.name} plan · {currentPlan.status}
+            {currentPlan.name} plan · Active
           </Badge>
         }
       />
@@ -174,11 +174,13 @@ function RouteComponent() {
             <div className="flex items-center gap-2">
               <CardTitle>Current plan</CardTitle>
               <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
-                {currentPlan.status}
+                Active
               </Badge>
             </div>
             <CardDescription className="mt-2">
-              Your subscription is active and renews automatically.
+              {currentPlan.id === 'starter'
+                ? 'Start free and upgrade when your workspace needs more.'
+                : 'Your subscription is active and renews automatically.'}
             </CardDescription>
           </div>
 
@@ -198,26 +200,32 @@ function RouteComponent() {
               {currentPlan.name}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              Built for growing products
+              {currentPlan.description}
             </p>
           </div>
           <div className="rounded-xl border p-4">
             <p className="text-muted-foreground text-xs">Price</p>
             <p className="mt-2 text-2xl font-semibold tracking-tight">
-              ${currentPlan.price}
-              <span className="text-muted-foreground text-sm font-normal">
-                /{currentPlan.billingCycle === 'monthly' ? 'mo' : 'yr'}
-              </span>
+              {currentPlan.price === 0 ? 'Free' : `$${currentPlan.price}`}
+              {currentPlan.price > 0 && (
+                <span className="text-muted-foreground text-sm font-normal">
+                  /mo
+                </span>
+              )}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              Billed {currentPlan.billingCycle}
+              {currentPlan.price === 0
+                ? 'No payment required'
+                : 'Billed monthly'}
             </p>
           </div>
           <div className="rounded-xl border p-4">
             <p className="text-muted-foreground text-xs">Next renewal</p>
-            <p className="mt-2 text-2xl font-semibold tracking-tight">Aug 26</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">
+              {currentPlan.id === 'starter' ? '—' : 'Aug 26'}
+            </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              {currentPlan.renewsOn}
+              {currentPlan.id === 'starter' ? 'Free plan' : 'August 26, 2026'}
             </p>
           </div>
         </CardContent>
@@ -229,17 +237,24 @@ function RouteComponent() {
             <div>
               <CardTitle>Usage this period</CardTitle>
               <CardDescription>
-                Current usage against your Pro plan limits.
+                Current usage against your {currentPlan.name} plan limits.
               </CardDescription>
             </div>
-            <Badge variant="outline">Resets Aug 26, 2026</Badge>
+            <Badge variant="outline">
+              {currentPlan.id === 'starter'
+                ? 'No renewal'
+                : 'Resets Aug 26, 2026'}
+            </Badge>
           </div>
         </CardHeader>
 
         <CardContent className="grid gap-3 p-5 md:grid-cols-2">
           {usage.map((item) => {
             const Icon = item.icon
-            const percent = Math.round((item.used / item.limit) * 100)
+            const percent =
+              item.limit === null
+                ? 0
+                : Math.min(100, Math.round((item.used / item.limit) * 100))
 
             return (
               <div key={item.label} className="rounded-xl border p-4">
@@ -253,7 +268,10 @@ function RouteComponent() {
                         {item.label}
                       </p>
                       <p className="text-muted-foreground mt-1 text-xs">
-                        {formatNumber(item.used)} of {formatNumber(item.limit)}
+                        {formatNumber(item.used)} of{' '}
+                        {item.limit === null
+                          ? 'Unlimited'
+                          : formatNumber(item.limit)}
                       </p>
                     </div>
                   </div>
@@ -310,11 +328,12 @@ function RouteComponent() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
-          {tiers.map((tier) => {
+          {PLAN_TIERS.map((tier) => {
             const price =
               billingCycle === 'yearly'
                 ? Math.round(tier.price * 12 * 0.8)
                 : tier.price
+            const isCurrent = tier.id === currentPlanId
 
             return (
               <Card
@@ -328,7 +347,7 @@ function RouteComponent() {
                 <CardHeader className="border-b px-5 py-5">
                   <div className="flex items-center justify-between gap-3">
                     <CardTitle>{tier.name}</CardTitle>
-                    {tier.current ? (
+                    {isCurrent ? (
                       <Badge>Current</Badge>
                     ) : tier.highlighted ? (
                       <Badge variant="outline">Popular</Badge>
@@ -367,13 +386,24 @@ function RouteComponent() {
                 </CardContent>
 
                 <CardFooter className="border-t px-5 py-4">
-                  <Button
-                    className="w-full"
-                    variant={tier.current ? 'outline' : 'default'}
-                    disabled={tier.current}
-                  >
-                    {tier.current ? 'Current plan' : 'Upgrade'}
-                  </Button>
+                  {isCurrent ? (
+                    <Button className="w-full" variant="outline" disabled>
+                      Current plan
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full"
+                      render={
+                        <Link
+                          to="/app/$workspace/checkout/$plan"
+                          params={{ workspace: workspaceId, plan: tier.id }}
+                        />
+                      }
+                      disabled={!workspaceId}
+                    >
+                      {tier.id === 'starter' ? 'Switch to Starter' : 'Upgrade'}
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             )
@@ -409,7 +439,7 @@ function RouteComponent() {
                       {invoice.id}
                     </TableCell>
                     <TableCell>{invoice.date}</TableCell>
-                    <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+                    <TableCell>${currentPlan.price.toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
                         {invoice.status}

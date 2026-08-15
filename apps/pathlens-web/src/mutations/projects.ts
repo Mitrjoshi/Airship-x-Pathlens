@@ -1,5 +1,5 @@
 import apiClient from '@/lib/apiClient'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 
@@ -28,13 +28,16 @@ const createProject = async (payload: CreateProjectPayload) => {
 
 export const useCreateProject = () => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (payload: CreateProjectPayload) => createProject(payload),
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       if (!data.success) throw new Error(data.message)
+      await queryClient.invalidateQueries({ queryKey: ['WORKSPACES'] })
+      await queryClient.invalidateQueries({ queryKey: ['PROJECTS'] })
       navigate({
-        to: '/app/$workspace/projects/$project/dashboard',
+        to: '/app/$workspace/projects/$project/setup',
         replace: true,
         params: {
           project: data.data.id,
@@ -62,11 +65,14 @@ const deleteProject = async (payload: DeleteProjectPayload) => {
 
 export const useDeleteProject = () => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (payload: DeleteProjectPayload) => deleteProject(payload),
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       if (!data.success) throw new Error(data.message)
+      await queryClient.invalidateQueries({ queryKey: ['WORKSPACES'] })
+      await queryClient.invalidateQueries({ queryKey: ['PROJECTS'] })
       navigate({
         to: '/app/$workspace/projects',
         replace: true,

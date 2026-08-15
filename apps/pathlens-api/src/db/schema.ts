@@ -15,10 +15,6 @@ import {
 } from "drizzle-orm/pg-core";
 import type { Permission } from "@workspace/contracts";
 import type { ReplayEvent } from "@workspace/contracts";
-import type {
-  DashboardWidgetConfig,
-  DashboardWidgetLayout,
-} from "@workspace/contracts";
 
 /* -------------------------------------------------------------------------- */
 /*                                    USERS                                   */
@@ -489,103 +485,6 @@ export const goals = pgTable(
   (table) => ({
     workspaceIdx: index("goals_workspace_idx").on(table.workspaceId),
     projectIdx: index("goals_project_idx").on(table.projectId),
-  })
-);
-
-/* -------------------------------------------------------------------------- */
-/*                              CUSTOM DASHBOARDS                             */
-/* -------------------------------------------------------------------------- */
-
-export const dashboards = pgTable(
-  "dashboards",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, {
-        onDelete: "cascade",
-      }),
-
-    projectId: uuid("project_id")
-      .notNull()
-      .references(() => projects.id, {
-        onDelete: "cascade",
-      }),
-
-    name: text("name").notNull(),
-
-    description: text("description"),
-
-    createdBy: uuid("created_by")
-      .notNull()
-      .references(() => users.id, {
-        onDelete: "cascade",
-      }),
-
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-
-    updatedAt: timestamp("updated_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => ({
-    workspaceIdx: index("dashboards_workspace_idx").on(table.workspaceId),
-    projectIdx: index("dashboards_project_idx").on(table.projectId),
-    projectNameIdx: uniqueIndex("dashboards_project_name_idx").on(
-      table.projectId,
-      table.name
-    ),
-  })
-);
-
-export const dashboardWidgets = pgTable(
-  "dashboard_widgets",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-
-    dashboardId: uuid("dashboard_id")
-      .notNull()
-      .references(() => dashboards.id, {
-        onDelete: "cascade",
-      }),
-
-    type: text("type").notNull(),
-
-    title: text("title"),
-
-    config: jsonb("config").$type<DashboardWidgetConfig>().notNull(),
-
-    layout: jsonb("layout").$type<DashboardWidgetLayout>().notNull(),
-
-    orderIndex: integer("order_index").notNull().default(0),
-
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-
-    updatedAt: timestamp("updated_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => ({
-    dashboardIdx: index("dashboard_widgets_dashboard_idx").on(
-      table.dashboardId
-    ),
-    dashboardOrderIdx: index("dashboard_widgets_dashboard_order_idx").on(
-      table.dashboardId,
-      table.orderIndex
-    ),
   })
 );
 

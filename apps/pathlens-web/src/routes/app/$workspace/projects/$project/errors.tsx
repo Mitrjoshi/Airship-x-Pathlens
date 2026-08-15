@@ -5,6 +5,7 @@ import {
   ProjectPageLayout,
   PageToolbar,
 } from '@/components/common/project-page'
+import { PlanGate } from '@/components/common/plan-gate'
 import { SessionReplayPlayer } from '@/components/common/session-replay-player'
 import {
   getErrorsOptions,
@@ -337,6 +338,16 @@ function ErrorGroupCard({
 }
 
 function RouteComponent() {
+  const { workspace } = Route.useParams()
+
+  return (
+    <PlanGate workspaceId={workspace} feature="errorTracking">
+      <PageContent />
+    </PlanGate>
+  )
+}
+
+function PageContent() {
   const { workspace, project } = Route.useParams()
   const [search, setSearch] = useState('')
   const [browser, setBrowser] = useState('')

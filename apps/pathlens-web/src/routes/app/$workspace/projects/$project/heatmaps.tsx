@@ -5,7 +5,9 @@ import {
   ProjectPageLayout,
   PageToolbar,
 } from '@/components/common/project-page'
+import { PlanLimitNotice } from '@/components/common/plan-gate'
 import { HeatmapReplayPreview } from '@/components/common/heatmap-replay-preview'
+import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import {
   getHeatmapsOptions,
   type HeatmapPage,
@@ -260,7 +262,14 @@ function ScrollHeatmap({ page }: { page: HeatmapPageDetail }) {
 }
 
 function RouteComponent() {
+  return <PageContent />
+}
+
+function PageContent() {
   const { workspace, project } = Route.useParams()
+  const currentPlanId = useWorkspacePlan(workspace)
+  const currentPlan = getPlanDefinition(currentPlanId)
+  const heatmapPageLimit = currentPlan.limits.heatmapPages
   const [range, setRange] = useState<HeatmapsRange>('7d')
   const [selectedPath, setSelectedPath] = useState<string | undefined>()
   const { data, isError, isFetching, isPending } = useQuery(
@@ -272,6 +281,11 @@ function RouteComponent() {
     })
   )
   const heatmaps = data?.data
+  const visiblePages =
+    heatmaps?.pages.slice(0, heatmapPageLimit ?? undefined) ?? []
+  const heatmapLimitReached =
+    heatmapPageLimit !== null &&
+    (heatmaps?.pages.length ?? 0) > heatmapPageLimit
   const page = heatmaps?.selectedPage
   const activePath = page?.path ?? selectedPath
   const summary = [
@@ -305,6 +319,14 @@ function RouteComponent() {
           title="Heatmaps"
           description="Understand where visitors click and how far they scroll on each page."
         />
+
+        {heatmapLimitReached && heatmapPageLimit !== null && (
+          <PlanLimitNotice
+            workspaceId={workspace}
+            resource="heatmap page"
+            limit={heatmapPageLimit}
+          />
+        )}
 
         <PageToolbar className="justify-between">
           <div className="text-muted-foreground flex items-center gap-2 text-xs">
@@ -349,10 +371,10 @@ function RouteComponent() {
 
         {isPending ? (
           <div className="bg-muted h-96 animate-pulse rounded-xl" />
-        ) : heatmaps?.pages.length && page ? (
+        ) : visiblePages.length && page ? (
           <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
             <PageList
-              pages={heatmaps.pages}
+              pages={visiblePages}
               selectedPath={activePath}
               onSelect={setSelectedPath}
             />

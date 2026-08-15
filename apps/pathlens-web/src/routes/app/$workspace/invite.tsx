@@ -2,6 +2,7 @@ import {
   ProjectPageHeader,
   ProjectPanel,
 } from '@/components/common/project-page'
+import { PlanLimitNotice } from '@/components/common/plan-gate'
 import { WorkspacePageLayout } from '@/components/app-sidebar'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -22,10 +23,13 @@ import {
 import { useCreateWorkspaceInvitation } from '@/mutations/workspace'
 import {
   getWorkspacePermissionProfilesOptions,
+  getWorkspaceInvitationsOptions,
   getWorkspacesOptions,
 } from '@/queries/workspace'
+import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
+import type { Permission } from '@workspace/contracts'
 import {
   ArrowLeftIcon,
   ArrowUpRightIcon,
@@ -49,9 +53,20 @@ const emailSchema = z.email()
 function RouteComponent() {
   const { workspace } = Route.useParams()
   const { data: workspacesData } = useQuery(getWorkspacesOptions())
+  const currentWorkspace = workspacesData?.data.find(
+    (item) => item.id === workspace
+  )
+  const hasPermission = (permission: Permission) =>
+    currentWorkspace?.role === 'owner' ||
+    currentWorkspace?.permissions.includes(permission)
+  const canViewMembers = hasPermission('workspace.members.view')
   const { data: profilesData, isPending: profilesPending } = useQuery(
     getWorkspacePermissionProfilesOptions(workspace)
   )
+  const { data: invitationsData } = useQuery({
+    ...getWorkspaceInvitationsOptions(workspace),
+    enabled: canViewMembers,
+  })
   const createInvitation = useCreateWorkspaceInvitation(workspace)
   const [email, setEmail] = useState('')
   const [permissionProfileId, setPermissionProfileId] = useState('')
@@ -59,6 +74,23 @@ function RouteComponent() {
   const workspaceName =
     workspacesData?.data.find((item) => item.id === workspace)?.name ??
     'this workspace'
+  const currentPlanId = useWorkspacePlan(workspace)
+  const currentPlan = getPlanDefinition(currentPlanId)
+  const memberLimit = currentPlan.limits.members
+  const pendingInvitationCount = invitationsData?.data.length ?? 0
+  const invitationCountKnown = !canViewMembers || invitationsData !== undefined
+  const canAddMember =
+    memberLimit === null ||
+    Boolean(
+      currentWorkspace &&
+      invitationCountKnown &&
+      currentWorkspace.memberCount + pendingInvitationCount < memberLimit
+    )
+  const memberLimitReached =
+    currentWorkspace !== undefined &&
+    invitationCountKnown &&
+    memberLimit !== null &&
+    currentWorkspace.memberCount + pendingInvitationCount >= memberLimit
   const isEmailValid = emailSchema.safeParse(email.trim()).success
   const profiles = profilesData?.data ?? []
   const defaultProfile =
@@ -75,7 +107,8 @@ function RouteComponent() {
     const recipientEmail = email.trim()
     if (
       !emailSchema.safeParse(recipientEmail).success ||
-      !selectedPermissionProfileId
+      !selectedPermissionProfileId ||
+      !canAddMember
     ) {
       return
     }
@@ -118,6 +151,14 @@ function RouteComponent() {
             </Button>
           }
         />
+
+        {memberLimitReached && memberLimit !== null && (
+          <PlanLimitNotice
+            workspaceId={workspace}
+            resource="team member"
+            limit={memberLimit}
+          />
+        )}
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
           <ProjectPanel>
@@ -195,6 +236,7 @@ function RouteComponent() {
                     !isEmailValid ||
                     !selectedPermissionProfileId ||
                     profilesPending ||
+                    !canAddMember ||
                     createInvitation.isPending
                   }
                 >

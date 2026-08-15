@@ -17,7 +17,6 @@ import feedbackRouter from "./feedback.route";
 import heatmapsRouter from "./heatmaps.route";
 import replayRouter from "./replay.route";
 import userJourneyRouter from "./user-journey.route";
-import dashboardsRouter from "./dashboards.route";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
 
 const router = Router();
@@ -35,7 +34,6 @@ router.use("/notifications", notificationsRouter);
 router.use("/feedback", feedbackRouter);
 router.use("/projects", projectsRouter);
 router.use("/dashboard", dashboardRouter);
-router.use("/dashboards", dashboardsRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/visitors", visitorsRouter);
 router.use("/session-replay", sessionReplayRouter);

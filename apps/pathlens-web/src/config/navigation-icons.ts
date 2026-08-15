@@ -18,11 +18,9 @@ import {
   RouteIcon,
   UsersIcon,
   WorkflowIcon,
-  PanelsTopLeft,
 } from 'lucide-react'
 
 export const navigationIcons = {
-  overview: PanelsTopLeft,
   dashboard: GaugeIcon,
   projects: FolderClosedIcon,
   analytics: ChartColumnIncreasingIcon,
