@@ -60,7 +60,9 @@ function RouteComponent() {
         />
 
         {/* General */}
-        <ProjectPanel>
+        <ProjectPanel
+          key={`tracking-${projectData?.id ?? 'loading'}-${projectData?.captureReplay ?? true}-${projectData?.capturePerformance ?? true}-${projectData?.captureErrors ?? false}`}
+        >
           <CardHeader className="border-b px-5 py-5">
             <CardTitle>General</CardTitle>
             <CardDescription>
@@ -111,7 +113,7 @@ function RouteComponent() {
                 </p>
               </div>
 
-              <Switch defaultChecked />
+              <Switch defaultChecked={projectData?.captureReplay ?? true} />
             </div>
 
             <Separator />
@@ -124,7 +126,9 @@ function RouteComponent() {
                 </p>
               </div>
 
-              <Switch defaultChecked />
+              <Switch
+                defaultChecked={projectData?.capturePerformance ?? true}
+              />
             </div>
 
             <Separator />
@@ -137,7 +141,7 @@ function RouteComponent() {
                 </p>
               </div>
 
-              <Switch />
+              <Switch defaultChecked={projectData?.captureErrors ?? false} />
             </div>
           </CardContent>
         </ProjectPanel>

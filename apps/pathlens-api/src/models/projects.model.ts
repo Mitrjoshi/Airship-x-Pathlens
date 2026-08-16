@@ -9,6 +9,9 @@ interface I_CreateProjectPayload {
   api_key: string;
   workspace_id: string;
   domain: string | null;
+  capture_replay: boolean;
+  capture_performance: boolean;
+  capture_errors: boolean;
 }
 
 export interface ProjectPerformanceMetric {
@@ -152,6 +155,9 @@ export const createProjectModel = async (
         description: data.description,
         workspaceId: data.workspace_id,
         domain: data.domain,
+        captureReplay: data.capture_replay,
+        capturePerformance: data.capture_performance,
+        captureErrors: data.capture_errors,
       })
       .returning({ id: projects.id });
     const project = createdProjects[0];

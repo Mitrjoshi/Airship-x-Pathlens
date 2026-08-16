@@ -7,6 +7,9 @@ export type T_Projects = {
   name: string
   domain: string | null
   description: string | null
+  captureReplay: boolean
+  capturePerformance: boolean
+  captureErrors: boolean
   apiKey: string
   createdAt: string
   snapshot: {

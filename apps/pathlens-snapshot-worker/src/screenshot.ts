@@ -17,7 +17,7 @@ export async function captureProjectScreenshot(
   await validatePublicHttpUrl(targetUrl)
 
   const context = await browser.newContext({
-    colorScheme: 'light',
+    colorScheme: 'dark',
     deviceScaleFactor: 1,
     serviceWorkers: 'block',
     viewport,
@@ -39,7 +39,7 @@ export async function captureProjectScreenshot(
 
       const image = await page.screenshot({
         fullPage: false,
-        quality: 85,
+        quality: 100,
         type: 'jpeg',
       })
 

@@ -18,7 +18,8 @@ import {
   ZapIcon,
 } from 'lucide-react'
 
-import { ModeToggle } from '@/components/common/mode-toggle'
+import { MarketingFooter } from '@/components/marketing/marketing-footer'
+import { MarketingHeader } from '@/components/marketing/marketing-header'
 import { useInView } from '@/hooks/use-in-view'
 import { Button } from '@workspace/ui/components/button'
 
@@ -106,57 +107,16 @@ function LandingPage() {
         <span className="inline-flex items-center gap-2">
           <SparklesIcon className="size-3.5 text-cyan-300" />
           New: understand every customer path in one place
-          <a
+          <Link
             className="font-medium underline underline-offset-4"
-            href="#features"
+            to="/product"
           >
             Explore the product
-          </a>
+          </Link>
         </span>
       </div>
 
-      <header className="border-border/60 bg-background/80 sticky top-0 z-20 border-b backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:px-8">
-          <Link
-            to="/"
-            className="flex items-center gap-2.5 font-semibold tracking-tight"
-          >
-            <span className="bg-background/80 ring-foreground/10 size-8 overflow-hidden rounded-lg shadow-sm ring-1">
-              <img
-                src="/logo.png"
-                alt="PathLens"
-                className="landing-logo size-full object-contain"
-              />
-            </span>
-            PathLens
-          </Link>
-
-          <nav className="text-muted-foreground hidden items-center gap-7 text-sm md:flex">
-            <a
-              className="hover:text-foreground transition-colors"
-              href="#features"
-            >
-              Product
-            </a>
-            <a
-              className="hover:text-foreground transition-colors"
-              href="#stories"
-            >
-              Customers
-            </a>
-            <a className="hover:text-foreground transition-colors" href="#faq">
-              Resources
-            </a>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" render={<Link to="/login" />}>
-              Log in
-            </Button>
-            <Button render={<Link to="/sign-up" />}>Start free</Button>
-          </div>
-        </div>
-      </header>
+      <MarketingHeader />
 
       <section
         ref={heroRef}
@@ -191,7 +151,7 @@ function LandingPage() {
               Start for free
               <ArrowUpRightIcon />
             </Button>
-            <Button size="lg" variant="outline" render={<Link to="/login" />}>
+            <Button size="lg" variant="outline" render={<Link to="/product" />}>
               See how it works
               <CirclePlayIcon />
             </Button>
@@ -927,180 +887,7 @@ function LandingPage() {
         </div>
       </section>
 
-      <footer
-        className="border-border bg-background text-foreground border-t"
-        id="footer"
-      >
-        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-16">
-          <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
-            <div>
-              <Link
-                to="/"
-                className="flex items-center gap-2.5 font-semibold tracking-tight"
-              >
-                <span className="bg-muted/40 ring-border size-8 overflow-hidden rounded-lg ring-1">
-                  <img
-                    src="/logo.png"
-                    alt="PathLens"
-                    className="landing-logo landing-logo-dark size-full object-contain"
-                  />
-                </span>
-                PathLens
-              </Link>
-              <p className="text-muted-foreground mt-5 max-w-xs text-sm leading-6">
-                Calm, complete analytics for teams building what matters.
-              </p>
-              <p className="text-muted-foreground/70 mt-8 text-xs">
-                © 2026 PathLens. All rights reserved.
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground/70 text-xs font-medium uppercase">
-                Product
-              </p>
-              <div className="mt-5 space-y-3 text-sm">
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#features"
-                >
-                  Overview
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#features"
-                >
-                  Analytics
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#features"
-                >
-                  Session replay
-                </a>
-              </div>
-            </div>
-            <div>
-              <p className="text-muted-foreground/70 text-xs font-medium uppercase">
-                Resources
-              </p>
-              <div className="mt-5 space-y-3 text-sm">
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#how-it-works"
-                >
-                  How it works
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#faq"
-                >
-                  FAQ
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#stories"
-                >
-                  Customer stories
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#footer"
-                >
-                  Support
-                </a>
-              </div>
-            </div>
-            <div>
-              <p className="text-muted-foreground/70 text-xs font-medium uppercase">
-                Company
-              </p>
-              <div className="mt-5 space-y-3 text-sm">
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#footer"
-                >
-                  About
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#footer"
-                >
-                  Contact
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#footer"
-                >
-                  Careers
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#footer"
-                >
-                  Status
-                </a>
-              </div>
-            </div>
-            <div>
-              <p className="text-muted-foreground/70 text-xs font-medium uppercase">
-                Legal
-              </p>
-              <div className="mt-5 space-y-3 text-sm">
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#footer"
-                >
-                  Privacy
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#footer"
-                >
-                  Terms
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#footer"
-                >
-                  Security
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground block"
-                  href="#footer"
-                >
-                  Cookies
-                </a>
-              </div>
-            </div>
-          </div>
-          <div className="border-border mt-12 flex flex-col items-center justify-between gap-4 border-t pt-6 text-xs sm:flex-row sm:items-center">
-            <span className="text-muted-foreground/70">
-              Made for the teams who care about the details.
-            </span>
-            <div className="flex gap-5">
-              <a
-                className="text-muted-foreground hover:text-foreground"
-                href="#footer"
-              >
-                X / Twitter
-              </a>
-              <a
-                className="text-muted-foreground hover:text-foreground"
-                href="#footer"
-              >
-                LinkedIn
-              </a>
-              <a
-                className="text-muted-foreground hover:text-foreground"
-                href="#footer"
-              >
-                GitHub
-              </a>
-            </div>
-            <ModeToggle />
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </main>
   )
 }

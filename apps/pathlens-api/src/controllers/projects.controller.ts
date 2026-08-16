@@ -24,6 +24,9 @@ const createProjectSchema = z.object({
       error: "Please enter a project domain.",
     })
     .nullable(),
+  captureReplay: z.boolean().default(true),
+  capturePerformance: z.boolean().default(true),
+  captureErrors: z.boolean().default(false),
   workspace_id: z.string({
     error: "Please enter a workspace id.",
   }),
@@ -31,8 +34,15 @@ const createProjectSchema = z.object({
 
 export async function createProject(req: Request, res: Response) {
   try {
-    const { description, name, domain, workspace_id } =
-      createProjectSchema.parse(req.body);
+    const {
+      description,
+      name,
+      domain,
+      captureReplay,
+      capturePerformance,
+      captureErrors,
+      workspace_id,
+    } = createProjectSchema.parse(req.body);
 
     const api_key = generateApiKey();
 
@@ -41,6 +51,9 @@ export async function createProject(req: Request, res: Response) {
       description,
       api_key,
       domain,
+      capture_replay: captureReplay,
+      capture_performance: capturePerformance,
+      capture_errors: captureErrors,
       workspace_id,
     });
 

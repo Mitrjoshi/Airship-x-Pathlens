@@ -269,6 +269,12 @@ export const projects = pgTable(
 
     description: text("description"),
 
+    captureReplay: boolean("capture_replay").notNull().default(true),
+
+    capturePerformance: boolean("capture_performance").notNull().default(true),
+
+    captureErrors: boolean("capture_errors").notNull().default(false),
+
     apiKey: text("api_key").notNull().unique(),
 
     createdAt: timestamp("created_at", {

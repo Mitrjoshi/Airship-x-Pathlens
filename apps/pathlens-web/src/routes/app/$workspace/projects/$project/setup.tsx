@@ -38,6 +38,9 @@ import { toast } from 'sonner'
 const TRACKER_SCRIPT_URL = 'http://localhost:3000/dist/tracker.global.js'
 const PROJECT_KEY_TOKEN = '__PATHLENS_PROJECT_KEY__'
 const TRACKER_URL_TOKEN = '__PATHLENS_TRACKER_URL__'
+const CAPTURE_REPLAY_TOKEN = '__PATHLENS_CAPTURE_REPLAY__'
+const CAPTURE_PERFORMANCE_TOKEN = '__PATHLENS_CAPTURE_PERFORMANCE__'
+const CAPTURE_ERRORS_TOKEN = '__PATHLENS_CAPTURE_ERRORS__'
 
 type FrameworkId = 'html' | 'react' | 'next' | 'vue' | 'angular' | 'svelte'
 
@@ -59,6 +62,9 @@ const frameworkSnippets: FrameworkSnippet[] = [
   defer
   src="${TRACKER_URL_TOKEN}"
   data-project-id="${PROJECT_KEY_TOKEN}"
+  data-capture-replay="${CAPTURE_REPLAY_TOKEN}"
+  data-capture-performance="${CAPTURE_PERFORMANCE_TOKEN}"
+  data-capture-errors="${CAPTURE_ERRORS_TOKEN}"
 ></script>`,
   },
   {
@@ -74,6 +80,9 @@ export function PathlensTracker() {
     script.src = '${TRACKER_URL_TOKEN}'
     script.async = true
     script.dataset.projectId = '${PROJECT_KEY_TOKEN}'
+    script.dataset.captureReplay = '${CAPTURE_REPLAY_TOKEN}'
+    script.dataset.capturePerformance = '${CAPTURE_PERFORMANCE_TOKEN}'
+    script.dataset.captureErrors = '${CAPTURE_ERRORS_TOKEN}'
     document.head.appendChild(script)
 
     return () => script.remove()
@@ -97,6 +106,9 @@ export function PathlensTracker() {
     script.src = '${TRACKER_URL_TOKEN}'
     script.async = true
     script.dataset.projectId = '${PROJECT_KEY_TOKEN}'
+    script.dataset.captureReplay = '${CAPTURE_REPLAY_TOKEN}'
+    script.dataset.capturePerformance = '${CAPTURE_PERFORMANCE_TOKEN}'
+    script.dataset.captureErrors = '${CAPTURE_ERRORS_TOKEN}'
     document.head.appendChild(script)
 
     return () => script.remove()
@@ -120,6 +132,9 @@ onMounted(() => {
   script.src = '${TRACKER_URL_TOKEN}'
   script.async = true
   script.dataset.projectId = '${PROJECT_KEY_TOKEN}'
+  script.dataset.captureReplay = '${CAPTURE_REPLAY_TOKEN}'
+  script.dataset.capturePerformance = '${CAPTURE_PERFORMANCE_TOKEN}'
+  script.dataset.captureErrors = '${CAPTURE_ERRORS_TOKEN}'
   document.head.appendChild(script)
 })
 
@@ -152,6 +167,9 @@ export class PathlensTrackerComponent
     this.script.src = '${TRACKER_URL_TOKEN}'
     this.script.async = true
     this.script.dataset.projectId = '${PROJECT_KEY_TOKEN}'
+    this.script.dataset.captureReplay = '${CAPTURE_REPLAY_TOKEN}'
+    this.script.dataset.capturePerformance = '${CAPTURE_PERFORMANCE_TOKEN}'
+    this.script.dataset.captureErrors = '${CAPTURE_ERRORS_TOKEN}'
     document.head.appendChild(this.script)
   }
 
@@ -173,6 +191,9 @@ export class PathlensTrackerComponent
     script.src = '${TRACKER_URL_TOKEN}'
     script.async = true
     script.dataset.projectId = '${PROJECT_KEY_TOKEN}'
+    script.dataset.captureReplay = '${CAPTURE_REPLAY_TOKEN}'
+    script.dataset.capturePerformance = '${CAPTURE_PERFORMANCE_TOKEN}'
+    script.dataset.captureErrors = '${CAPTURE_ERRORS_TOKEN}'
     document.head.appendChild(script)
 
     return () => script.remove()
@@ -181,10 +202,24 @@ export class PathlensTrackerComponent
   },
 ]
 
-function fillSnippet(template: string, projectKey: string): string {
+function fillSnippet(
+  template: string,
+  projectKey: string,
+  preferences: {
+    captureReplay: boolean
+    capturePerformance: boolean
+    captureErrors: boolean
+  }
+): string {
   return template
     .replaceAll(PROJECT_KEY_TOKEN, () => projectKey)
     .replaceAll(TRACKER_URL_TOKEN, TRACKER_SCRIPT_URL)
+    .replaceAll(CAPTURE_REPLAY_TOKEN, String(preferences.captureReplay))
+    .replaceAll(
+      CAPTURE_PERFORMANCE_TOKEN,
+      String(preferences.capturePerformance)
+    )
+    .replaceAll(CAPTURE_ERRORS_TOKEN, String(preferences.captureErrors))
 }
 
 function CodeBlock({
@@ -239,9 +274,14 @@ function RouteComponent() {
 
   const projectData = data?.data[0]
   const projectKey = projectData?.apiKey ?? 'your-project-key'
+  const trackingPreferences = {
+    captureReplay: projectData?.captureReplay ?? true,
+    capturePerformance: projectData?.capturePerformance ?? true,
+    captureErrors: projectData?.captureErrors ?? false,
+  }
   const snippets = frameworkSnippets.map((snippet) => ({
     ...snippet,
-    code: fillSnippet(snippet.template, projectKey),
+    code: fillSnippet(snippet.template, projectKey, trackingPreferences),
   }))
 
   const copyText = async (value: string, label: string) => {

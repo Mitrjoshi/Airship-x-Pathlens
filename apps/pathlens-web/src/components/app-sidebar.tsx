@@ -369,7 +369,9 @@ export function WorkspaceSwitcher({
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{activeTeam.name}</span>
-              <span className="truncate text-xs">{activeTeam.plan}</span>
+              <span className="text-muted-foreground truncate text-xs">
+                {activeTeam.plan}
+              </span>
             </div>
             <ChevronsUpDownIcon />
           </DropdownMenuTrigger>
@@ -397,12 +399,14 @@ export function WorkspaceSwitcher({
                   <div className="flex size-6 items-center justify-center rounded-md border">
                     {team.logo}
                   </div>
-                  <span className="truncate">{team.name}</span>
-                  <span className="text-muted-foreground ml-auto text-xs">
-                    {team.plan}
-                  </span>
+                  <div>
+                    <p className="truncate">{team.name}</p>
+                    <p className="text-muted-foreground ml-auto text-xs">
+                      {team.plan}
+                    </p>
+                  </div>
                   {team.id === activeWorkspaceId && (
-                    <span className="text-muted-foreground text-xs">
+                    <span className="text-muted-foreground ml-auto text-xs">
                       Current
                     </span>
                   )}
@@ -525,7 +529,9 @@ function WorkspaceNav({
         )}
         <SidebarMenuItem>
           <SidebarMenuButton
-            isActive={pathname.includes('/billing')}
+            isActive={
+              pathname.includes('/billing') || pathname.includes('/checkout')
+            }
             render={
               <Link
                 to="/app/$workspace/billing"

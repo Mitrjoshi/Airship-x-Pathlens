@@ -12,6 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as AppRouteRouteImport } from './routes/app/route'
+import { Route as CustomersRouteImport } from './routes/customers'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as ProductRouteImport } from './routes/product'
+import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authPasswordResetRouteImport } from './routes/(auth)/password-reset'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
@@ -27,6 +31,7 @@ import { Route as AppWorkspaceWorkspaceSettingsRouteImport } from './routes/app/
 import { Route as AppWorkspaceCheckoutPlanRouteImport } from './routes/app/$workspace/checkout/$plan'
 import { Route as AppWorkspaceProjectsIndexRouteImport } from './routes/app/$workspace/projects/index'
 import { Route as AppWorkspaceProjectsProjectRouteRouteImport } from './routes/app/$workspace/projects/$project/route'
+import { Route as AppWorkspaceProjectsNewRouteImport } from './routes/app/$workspace/projects/new'
 import { Route as AppWorkspaceProjectsProjectIndexRouteImport } from './routes/app/$workspace/projects/$project/index'
 import { Route as AppWorkspaceProjectsProjectAiInsightsRouteImport } from './routes/app/$workspace/projects/$project/ai-insights'
 import { Route as AppWorkspaceProjectsProjectAnalyticsRouteImport } from './routes/app/$workspace/projects/$project/analytics'
@@ -58,6 +63,26 @@ const authRouteRoute = authRouteRouteImport.update({
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/app',
   path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomersRoute = CustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductRoute = ProductRouteImport.update({
+  id: '/product',
+  path: '/product',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResourcesRoute = ResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authLoginRoute = authLoginRouteImport.update({
@@ -140,6 +165,11 @@ const AppWorkspaceProjectsProjectRouteRoute =
     path: '/$workspace/projects/$project',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppWorkspaceProjectsNewRoute = AppWorkspaceProjectsNewRouteImport.update({
+  id: '/$workspace/projects/new',
+  path: '/$workspace/projects/new',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppWorkspaceProjectsProjectIndexRoute =
   AppWorkspaceProjectsProjectIndexRouteImport.update({
     id: '/',
@@ -252,6 +282,10 @@ const AppWorkspaceProjectsProjectVisitorsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/customers': typeof CustomersRoute
+  '/pricing': typeof PricingRoute
+  '/product': typeof ProductRoute
+  '/resources': typeof ResourcesRoute
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
@@ -266,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspace/': typeof AppWorkspaceIndexRoute
   '/app/$workspace/projects/$project': typeof AppWorkspaceProjectsProjectRouteRouteWithChildren
   '/app/$workspace/checkout/$plan': typeof AppWorkspaceCheckoutPlanRoute
+  '/app/$workspace/projects/new': typeof AppWorkspaceProjectsNewRoute
   '/app/$workspace/projects/': typeof AppWorkspaceProjectsIndexRoute
   '/app/$workspace/projects/$project/ai-insights': typeof AppWorkspaceProjectsProjectAiInsightsRoute
   '/app/$workspace/projects/$project/analytics': typeof AppWorkspaceProjectsProjectAnalyticsRoute
@@ -288,6 +323,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/customers': typeof CustomersRoute
+  '/pricing': typeof PricingRoute
+  '/product': typeof ProductRoute
+  '/resources': typeof ResourcesRoute
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
@@ -301,6 +340,7 @@ export interface FileRoutesByTo {
   '/app/$workspace/workspace-settings': typeof AppWorkspaceWorkspaceSettingsRoute
   '/app/$workspace': typeof AppWorkspaceIndexRoute
   '/app/$workspace/checkout/$plan': typeof AppWorkspaceCheckoutPlanRoute
+  '/app/$workspace/projects/new': typeof AppWorkspaceProjectsNewRoute
   '/app/$workspace/projects': typeof AppWorkspaceProjectsIndexRoute
   '/app/$workspace/projects/$project/ai-insights': typeof AppWorkspaceProjectsProjectAiInsightsRoute
   '/app/$workspace/projects/$project/analytics': typeof AppWorkspaceProjectsProjectAnalyticsRoute
@@ -326,6 +366,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/(auth)': typeof authRouteRouteWithChildren
   '/app': typeof AppRouteRouteWithChildren
+  '/customers': typeof CustomersRoute
+  '/pricing': typeof PricingRoute
+  '/product': typeof ProductRoute
+  '/resources': typeof ResourcesRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/password-reset': typeof authPasswordResetRoute
   '/(auth)/sign-up': typeof authSignUpRoute
@@ -340,6 +384,7 @@ export interface FileRoutesById {
   '/app/$workspace/': typeof AppWorkspaceIndexRoute
   '/app/$workspace/projects/$project': typeof AppWorkspaceProjectsProjectRouteRouteWithChildren
   '/app/$workspace/checkout/$plan': typeof AppWorkspaceCheckoutPlanRoute
+  '/app/$workspace/projects/new': typeof AppWorkspaceProjectsNewRoute
   '/app/$workspace/projects/': typeof AppWorkspaceProjectsIndexRoute
   '/app/$workspace/projects/$project/ai-insights': typeof AppWorkspaceProjectsProjectAiInsightsRoute
   '/app/$workspace/projects/$project/analytics': typeof AppWorkspaceProjectsProjectAnalyticsRoute
@@ -365,6 +410,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/customers'
+    | '/pricing'
+    | '/product'
+    | '/resources'
     | '/login'
     | '/password-reset'
     | '/sign-up'
@@ -379,6 +428,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/'
     | '/app/$workspace/projects/$project'
     | '/app/$workspace/checkout/$plan'
+    | '/app/$workspace/projects/new'
     | '/app/$workspace/projects/'
     | '/app/$workspace/projects/$project/ai-insights'
     | '/app/$workspace/projects/$project/analytics'
@@ -401,6 +451,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/customers'
+    | '/pricing'
+    | '/product'
+    | '/resources'
     | '/login'
     | '/password-reset'
     | '/sign-up'
@@ -414,6 +468,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/workspace-settings'
     | '/app/$workspace'
     | '/app/$workspace/checkout/$plan'
+    | '/app/$workspace/projects/new'
     | '/app/$workspace/projects'
     | '/app/$workspace/projects/$project/ai-insights'
     | '/app/$workspace/projects/$project/analytics'
@@ -438,6 +493,10 @@ export interface FileRouteTypes {
     | '/'
     | '/(auth)'
     | '/app'
+    | '/customers'
+    | '/pricing'
+    | '/product'
+    | '/resources'
     | '/(auth)/login'
     | '/(auth)/password-reset'
     | '/(auth)/sign-up'
@@ -452,6 +511,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/'
     | '/app/$workspace/projects/$project'
     | '/app/$workspace/checkout/$plan'
+    | '/app/$workspace/projects/new'
     | '/app/$workspace/projects/'
     | '/app/$workspace/projects/$project/ai-insights'
     | '/app/$workspace/projects/$project/analytics'
@@ -477,6 +537,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   authRouteRoute: typeof authRouteRouteWithChildren
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  CustomersRoute: typeof CustomersRoute
+  PricingRoute: typeof PricingRoute
+  ProductRoute: typeof ProductRoute
+  ResourcesRoute: typeof ResourcesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -500,6 +564,34 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers': {
+      id: '/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof CustomersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product': {
+      id: '/product'
+      path: '/product'
+      fullPath: '/product'
+      preLoaderRoute: typeof ProductRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resources': {
+      id: '/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof ResourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/login': {
@@ -605,6 +697,13 @@ declare module '@tanstack/react-router' {
       path: '/$workspace/projects/$project'
       fullPath: '/app/$workspace/projects/$project'
       preLoaderRoute: typeof AppWorkspaceProjectsProjectRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/$workspace/projects/new': {
+      id: '/app/$workspace/projects/new'
+      path: '/$workspace/projects/new'
+      fullPath: '/app/$workspace/projects/new'
+      preLoaderRoute: typeof AppWorkspaceProjectsNewRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/app/$workspace/projects/$project/': {
@@ -829,6 +928,7 @@ interface AppRouteRouteChildren {
   AppWorkspaceIndexRoute: typeof AppWorkspaceIndexRoute
   AppWorkspaceProjectsProjectRouteRoute: typeof AppWorkspaceProjectsProjectRouteRouteWithChildren
   AppWorkspaceCheckoutPlanRoute: typeof AppWorkspaceCheckoutPlanRoute
+  AppWorkspaceProjectsNewRoute: typeof AppWorkspaceProjectsNewRoute
   AppWorkspaceProjectsIndexRoute: typeof AppWorkspaceProjectsIndexRoute
 }
 
@@ -845,6 +945,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppWorkspaceProjectsProjectRouteRoute:
     AppWorkspaceProjectsProjectRouteRouteWithChildren,
   AppWorkspaceCheckoutPlanRoute: AppWorkspaceCheckoutPlanRoute,
+  AppWorkspaceProjectsNewRoute: AppWorkspaceProjectsNewRoute,
   AppWorkspaceProjectsIndexRoute: AppWorkspaceProjectsIndexRoute,
 }
 
@@ -856,6 +957,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   authRouteRoute: authRouteRouteWithChildren,
   AppRouteRoute: AppRouteRouteWithChildren,
+  CustomersRoute: CustomersRoute,
+  PricingRoute: PricingRoute,
+  ProductRoute: ProductRoute,
+  ResourcesRoute: ResourcesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -8,6 +8,9 @@ interface CreateProjectPayload {
   description: string | null
   domain: string | null
   workspace_id: string
+  captureReplay: boolean
+  capturePerformance: boolean
+  captureErrors: boolean
 }
 
 interface CreateProjectResponse {

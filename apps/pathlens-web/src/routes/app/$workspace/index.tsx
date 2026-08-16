@@ -1,45 +1,18 @@
 import { WorkspacePageLayout } from '@/components/app-sidebar'
 import { PlanLimitNotice } from '@/components/common/plan-gate'
-import { Button } from '@workspace/ui/components/button'
-import { Skeleton } from '@workspace/ui/components/skeleton'
-
-import { createFileRoute } from '@tanstack/react-router'
-import { PlusIcon } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@workspace/ui/components/dialog'
-import { z } from 'zod'
-import { useForm } from '@tanstack/react-form'
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@workspace/ui/components/field'
-import { Input } from '@workspace/ui/components/input'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupText,
-  InputGroupTextarea,
-} from '@workspace/ui/components/input-group'
-import { LoadingSwap } from '@workspace/ui/components/loading-swap'
-import { useCreateProject } from '@/mutations/projects'
-import { useQuery } from '@tanstack/react-query'
-import { getProjectsOptions } from '@/queries/projects'
-import { getWorkspacesOptions } from '@/queries/workspace'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
-import { ProjectCard } from './projects/-components/project-card'
 import {
   ProjectPageHeader,
   SectionHeader,
 } from '@/components/common/project-page'
+import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
+import { getProjectsOptions } from '@/queries/projects'
+import { getWorkspacesOptions } from '@/queries/workspace'
+import { Button } from '@workspace/ui/components/button'
+import { Skeleton } from '@workspace/ui/components/skeleton'
+import { useQuery } from '@tanstack/react-query'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { PlusIcon } from 'lucide-react'
+import { ProjectCard } from './projects/-components/project-card'
 
 export const Route = createFileRoute('/app/$workspace/')({
   component: RouteComponent,
@@ -48,17 +21,9 @@ export const Route = createFileRoute('/app/$workspace/')({
   },
 })
 
-const formSchema = z.object({
-  title: z.string().min(2).max(32),
-  description: z.string().max(100),
-  url: z.url(),
-})
-
 function RouteComponent() {
-  const { mutate: createProject, isPending } = useCreateProject()
   const { workspace } = Route.useParams()
   const { data: workspaceData } = useQuery(getWorkspacesOptions())
-
   const {
     data,
     isPending: projectsLoading,
@@ -86,178 +51,38 @@ function RouteComponent() {
     currentWorkspace !== undefined &&
     projectLimit !== null &&
     currentWorkspace.projectCount >= projectLimit
-
-  const form = useForm({
-    defaultValues: {
-      title: '',
-      description: '',
-      url: 'http://localhost:5173',
-    },
-    validators: {
-      onSubmit: formSchema,
-    },
-    onSubmit: ({ value }) => {
-      if (!canCreateProject) return
-
-      createProject({
-        name: value.title,
-        description: value.description,
-        domain: value.url,
-        workspace_id: workspace,
-      })
-    },
-  })
-
   const projects = data?.data ?? []
 
   return (
     <WorkspacePageLayout workspaceId={workspace}>
       <div className="space-y-8">
-        <Dialog>
-          <ProjectPageHeader
-            eyebrow="Workspace projects"
-            title="Projects"
-            description="Keep your sites together and see their most important signals at
-                a glance."
-            actions={
-              <DialogTrigger
-                render={
-                  <Button disabled={!canCreateProject}>
-                    <PlusIcon />
-                    New project
-                  </Button>
-                }
-              />
-            }
-          />
-          {projectLimitReached && projectLimit !== null && (
-            <PlanLimitNotice
-              workspaceId={workspace}
-              resource="project"
-              limit={projectLimit}
-            />
-          )}
-          <DialogContent className="w-full max-w-md">
-            <DialogHeader>
-              <DialogTitle>New project</DialogTitle>
-              <DialogDescription>
-                Connect a site to start collecting analytics.
-              </DialogDescription>
-            </DialogHeader>
-
-            <form
-              id="create-project-form"
-              onSubmit={(e) => {
-                e.preventDefault()
-                form.handleSubmit()
-              }}
+        <ProjectPageHeader
+          eyebrow="Workspace projects"
+          title="Projects"
+          description="Keep your sites together and see their most important signals at a glance."
+          actions={
+            <Button
+              disabled={!canCreateProject}
+              render={
+                <Link
+                  to="/app/$workspace/projects/new"
+                  params={{ workspace }}
+                />
+              }
             >
-              <FieldGroup>
-                <form.Field
-                  name="title"
-                  children={(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched && !field.state.meta.isValid
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>
-                          Project name
-                        </FieldLabel>
-                        <Input
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          aria-invalid={isInvalid}
-                          placeholder="Marketing site"
-                          autoComplete="off"
-                        />
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    )
-                  }}
-                />
-                <form.Field
-                  name="url"
-                  children={(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched && !field.state.meta.isValid
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>
-                          Website URL
-                        </FieldLabel>
-                        <Input
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          aria-invalid={isInvalid}
-                          placeholder="http://localhost:5173"
-                          autoComplete="url"
-                        />
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    )
-                  }}
-                />
-                <form.Field
-                  name="description"
-                  children={(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched && !field.state.meta.isValid
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>
-                          Description{' '}
-                          <span className="text-muted-foreground font-normal">
-                            (optional)
-                          </span>
-                        </FieldLabel>
-                        <InputGroup className="max-h-40">
-                          <InputGroupTextarea
-                            id={field.name}
-                            name={field.name}
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            placeholder="What are you tracking?"
-                            rows={4}
-                            className="min-h-20 resize-none"
-                            aria-invalid={isInvalid}
-                          />
-                          <InputGroupAddon align="block-end">
-                            <InputGroupText className="ml-auto tabular-nums">
-                              {field.state.value.length}/100
-                            </InputGroupText>
-                          </InputGroupAddon>
-                        </InputGroup>
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    )
-                  }}
-                />
-              </FieldGroup>
-            </form>
-            <DialogFooter>
-              <Button
-                type="submit"
-                form="create-project-form"
-                disabled={isPending}
-              >
-                <LoadingSwap isLoading={isPending}>Create project</LoadingSwap>
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <PlusIcon />
+              New project
+            </Button>
+          }
+        />
+
+        {projectLimitReached && projectLimit !== null && (
+          <PlanLimitNotice
+            workspaceId={workspace}
+            resource="project"
+            limit={projectLimit}
+          />
+        )}
 
         <SectionHeader
           title="All projects"
