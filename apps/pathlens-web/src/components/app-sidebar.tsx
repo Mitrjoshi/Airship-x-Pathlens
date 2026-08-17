@@ -665,14 +665,14 @@ function NavMain({
                 <item.icon className="size-4 shrink-0" />
                 <span>{item.title}</span>
               </div>
-              {item.isPro && (
+              {/* {item.isPro && (
                 <Badge
                   variant="outline"
                   className="border-green-60 border-3 bg-green-400/20"
                 >
                   Pro
                 </Badge>
-              )}
+              )} */}
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}

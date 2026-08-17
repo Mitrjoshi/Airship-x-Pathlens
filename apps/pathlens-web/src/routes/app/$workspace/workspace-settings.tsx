@@ -48,7 +48,7 @@ import {
   getWorkspaceInvitationsOptions,
   getWorkspacesOptions,
 } from '@/queries/workspace'
-import { formatNumber } from '@/utils/utils'
+import { formatDate, formatNumber } from '@/utils/utils'
 import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 
 export const Route = createFileRoute('/app/$workspace/workspace-settings')({
@@ -61,18 +61,10 @@ export const Route = createFileRoute('/app/$workspace/workspace-settings')({
 const nameSchema = z
   .string()
   .min(2, 'Workspace name must be at least 2 characters')
-
-const slugSchema = z
-  .string()
-  .min(2, 'Slug must be at least 2 characters')
-  .regex(
-    /^[a-z0-9-]+$/,
-    'Slug can only contain lowercase letters, numbers, and hyphens'
-  )
+  .max(80, 'Workspace name must be 80 characters or less')
 
 const generalSchema = z.object({
   name: nameSchema,
-  slug: slugSchema,
 })
 
 function FieldError({
@@ -91,9 +83,11 @@ function FieldError({
 
 function RouteComponent() {
   const { workspace } = Route.useParams()
-  const { data: workspacesData, isPending: workspacesPending } = useQuery(
-    getWorkspacesOptions()
-  )
+  const {
+    data: workspacesData,
+    isPending: workspacesPending,
+    isError: workspacesError,
+  } = useQuery(getWorkspacesOptions())
   const updateWorkspace = useUpdateWorkspace(workspace)
   const deleteWorkspace = useDeleteWorkspace()
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -112,12 +106,17 @@ function RouteComponent() {
     hasPermission('workspace.permission_profiles.update') ||
     hasPermission('workspace.permission_profiles.delete')
   const canDeleteWorkspace = hasPermission('workspace.delete')
-  const { data: invitationsData } = useQuery({
+  const {
+    data: invitationsData,
+    isPending: invitationsPending,
+    isError: invitationsError,
+  } = useQuery({
     ...getWorkspaceInvitationsOptions(workspace),
     enabled: canViewMembers,
   })
   const currentPlanId = useWorkspacePlan(workspace)
   const currentPlan = getPlanDefinition(currentPlanId)
+  const projectLimit = currentPlan.limits.projects
   const memberLimit = currentPlan.limits.members
   const pendingInvitationCount = invitationsData?.data.length ?? 0
   const invitationCountKnown = !canViewMembers || invitationsData !== undefined
@@ -129,6 +128,7 @@ function RouteComponent() {
   const canInviteMembers =
     hasPermission('workspace.members.invite') &&
     invitationCountKnown &&
+    !invitationsError &&
     !memberLimitReached
   const canConfirmDelete =
     Boolean(currentWorkspace) &&
@@ -141,7 +141,6 @@ function RouteComponent() {
   const form = useForm({
     defaultValues: {
       name: '',
-      slug: workspace,
     },
     validators: {
       onChange: generalSchema,
@@ -150,7 +149,6 @@ function RouteComponent() {
       await updateWorkspace.mutateAsync({ name: value.name })
       form.reset({
         name: value.name,
-        slug: workspace,
       })
     },
   })
@@ -160,7 +158,6 @@ function RouteComponent() {
 
     form.reset({
       name: currentWorkspace.name,
-      slug: workspace,
     })
   }, [currentWorkspace, form, workspace])
 
@@ -170,8 +167,28 @@ function RouteComponent() {
         <ProjectPageHeader
           eyebrow="Workspace"
           title="Workspace settings"
-          description="Manage your workspace, members, and access preferences."
+          description={
+            currentWorkspace
+              ? `Manage ${currentWorkspace.name}, members, and access preferences.`
+              : 'Manage your workspace, members, and access preferences.'
+          }
         />
+
+        {workspacesError ? (
+          <div
+            role="alert"
+            className="text-destructive rounded-xl border border-dashed px-5 py-4 text-sm"
+          >
+            Unable to load this workspace. Refresh the page and try again.
+          </div>
+        ) : !workspacesPending && !currentWorkspace ? (
+          <div
+            role="alert"
+            className="text-destructive rounded-xl border border-dashed px-5 py-4 text-sm"
+          >
+            This workspace is no longer available to your account.
+          </div>
+        ) : null}
 
         {memberLimitReached && memberLimit !== null && (
           <PlanLimitNotice
@@ -194,15 +211,15 @@ function RouteComponent() {
               <CardHeader className="border-b px-5 py-5">
                 <CardTitle>Workspace details</CardTitle>
                 <CardDescription>
-                  Update your workspace name and URL slug.
+                  Update the name your team sees throughout PathLens.
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="grid gap-5 p-5 md:grid-cols-2">
+              <CardContent className="space-y-5 p-5">
                 <form.Field name="name">
                   {(field) => (
                     <div className="space-y-2">
-                      <Label htmlFor={field.name}>Workspace Name</Label>
+                      <Label htmlFor={field.name}>Workspace name</Label>
                       <Input
                         id={field.name}
                         name={field.name}
@@ -210,14 +227,47 @@ function RouteComponent() {
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
                         disabled={
-                          !canEditWorkspace || updateWorkspace.isPending
+                          workspacesPending ||
+                          !canEditWorkspace ||
+                          updateWorkspace.isPending
                         }
                         placeholder={currentWorkspace?.name ?? 'Workspace name'}
+                        autoComplete="organization"
                       />
                       <FieldError errors={field.state.meta.errors} />
                     </div>
                   )}
                 </form.Field>
+
+                <div className="bg-muted/40 grid gap-3 rounded-xl p-4 text-xs sm:grid-cols-2">
+                  <div>
+                    <p className="text-muted-foreground">Workspace type</p>
+                    <p className="mt-1 font-medium">
+                      {workspacesPending || !currentWorkspace
+                        ? '—'
+                        : currentWorkspace.isDefault
+                          ? 'Default workspace'
+                          : 'Team workspace'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Created</p>
+                    <p className="mt-1 font-medium">
+                      {workspacesPending || !currentWorkspace
+                        ? '—'
+                        : formatDate(currentWorkspace.createdAt)}
+                    </p>
+                  </div>
+                </div>
+
+                {!workspacesPending &&
+                  currentWorkspace &&
+                  !canEditWorkspace && (
+                    <p className="text-muted-foreground text-xs leading-5">
+                      You can view this workspace, but only members with
+                      workspace settings permission can rename it.
+                    </p>
+                  )}
               </CardContent>
 
               <CardFooter className="justify-end px-5 py-4">
@@ -231,6 +281,7 @@ function RouteComponent() {
                         !canSubmit ||
                         isSubmitting ||
                         workspacesPending ||
+                        workspacesError ||
                         !canEditWorkspace ||
                         updateWorkspace.isPending
                       }
@@ -238,7 +289,7 @@ function RouteComponent() {
                       {(isSubmitting || updateWorkspace.isPending) && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      Save Changes
+                      Save changes
                     </Button>
                   )}
                 </form.Subscribe>
@@ -258,7 +309,7 @@ function RouteComponent() {
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="grid gap-3 p-5 sm:grid-cols-2">
+              <CardContent className="grid gap-3 p-5 sm:grid-cols-3">
                 <div className="rounded-xl border p-4">
                   <p className="text-muted-foreground flex items-center gap-2 text-xs">
                     <UsersIcon className="size-3.5" />
@@ -271,6 +322,21 @@ function RouteComponent() {
                   </p>
                   <p className="text-muted-foreground mt-1 text-xs">
                     People with workspace access
+                  </p>
+                </div>
+
+                <div className="rounded-xl border p-4">
+                  <p className="text-muted-foreground flex items-center gap-2 text-xs">
+                    <UserPlusIcon className="size-3.5" />
+                    Pending invites
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight">
+                    {!canViewMembers || invitationsPending
+                      ? '—'
+                      : formatNumber(pendingInvitationCount)}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Awaiting acceptance
                   </p>
                 </div>
 
@@ -289,6 +355,16 @@ function RouteComponent() {
                   </p>
                 </div>
               </CardContent>
+
+              {canViewMembers && invitationsError && (
+                <div
+                  role="alert"
+                  className="text-destructive border-t px-5 py-3 text-xs"
+                >
+                  Unable to load pending invitations. Member capacity actions
+                  are disabled until access data is available.
+                </div>
+              )}
 
               <CardFooter className="flex flex-wrap justify-end gap-2 border-t px-5 py-4">
                 {canViewMembers && (
@@ -347,19 +423,42 @@ function RouteComponent() {
               </CardHeader>
 
               <CardContent className="space-y-4 p-5">
-                <div className="rounded-xl border p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium">Connected projects</p>
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        Each project has its own analytics data and tracking
-                        key.
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-medium">
+                          Connected projects
+                        </p>
+                        <p className="text-muted-foreground mt-1 text-xs">
+                          Each project has its own analytics data and tracking
+                          key.
+                        </p>
+                      </div>
+                      <p className="text-2xl font-semibold tracking-tight">
+                        {workspacesPending || !currentWorkspace
+                          ? '—'
+                          : formatNumber(currentWorkspace.projectCount)}
                       </p>
                     </div>
-                    <p className="text-2xl font-semibold tracking-tight">
-                      {workspacesPending || !currentWorkspace
-                        ? '—'
-                        : formatNumber(currentWorkspace?.projectCount)}
+                  </div>
+
+                  <div className="rounded-xl border p-4">
+                    <p className="text-muted-foreground text-xs">
+                      Workspace plan
+                    </p>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className="text-lg font-semibold tracking-tight">
+                        {currentPlan.name}
+                      </p>
+                      <Badge variant="outline">
+                        {projectLimit === null
+                          ? 'Unlimited projects'
+                          : `${projectLimit} project${projectLimit === 1 ? '' : 's'}`}
+                      </Badge>
+                    </div>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {currentPlan.description}
                     </p>
                   </div>
                 </div>
@@ -422,7 +521,10 @@ function RouteComponent() {
                       <Button
                         variant="destructive"
                         disabled={
-                          !canDeleteWorkspace || deleteWorkspace.isPending
+                          workspacesPending ||
+                          workspacesError ||
+                          !canDeleteWorkspace ||
+                          deleteWorkspace.isPending
                         }
                       >
                         <Trash2 className="mr-2 h-4 w-4" />

@@ -1,12 +1,23 @@
+import { WorkspacePageLayout } from '@/components/app-sidebar'
 import { PlanLimitNotice } from '@/components/common/plan-gate'
-import { ModeToggle } from '@/components/common/mode-toggle'
+import {
+  ProjectPageHeader,
+  ProjectPanel,
+} from '@/components/common/project-page'
 import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import { useCreateProject } from '@/mutations/projects'
 import { getWorkspacesOptions } from '@/queries/workspace'
 import { Button } from '@workspace/ui/components/button'
-import { CardDescription, CardTitle } from '@workspace/ui/components/card'
+import {
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/card'
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -30,7 +41,6 @@ import {
   ArrowRight,
   Check,
   CirclePlay,
-  Code2,
   Globe2,
   MousePointerClick,
   ShieldCheck,
@@ -87,169 +97,201 @@ const trackingOptions = [
   },
 ] as const
 
-function ProjectPreview({ draft, step }: { draft: ProjectDraft; step: 1 | 2 }) {
+const setupSteps = [
+  {
+    id: 1,
+    title: 'Project details',
+    description: 'Name and website',
+  },
+  {
+    id: 2,
+    title: 'Data points',
+    description: 'Choose what to capture',
+  },
+] as const
+
+function SetupSteps({ step }: { step: 1 | 2 }) {
+  return (
+    <div
+      className="grid gap-2 sm:grid-cols-2"
+      aria-label="Project creation steps"
+    >
+      {setupSteps.map((item) => {
+        const isActive = item.id === step
+        const isComplete = item.id < step
+
+        return (
+          <div
+            key={item.id}
+            aria-current={isActive ? 'step' : undefined}
+            className={`flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors ${
+              isActive
+                ? 'border-foreground/25 bg-muted/60'
+                : isComplete
+                  ? 'border-foreground/15'
+                  : 'border-border/70'
+            }`}
+          >
+            <span
+              className={`flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium ${
+                isActive
+                  ? 'border-foreground bg-foreground text-background'
+                  : isComplete
+                    ? 'border-foreground/25 bg-muted text-foreground'
+                    : 'text-muted-foreground'
+              }`}
+            >
+              {isComplete ? <Check className="size-3.5" /> : item.id}
+            </span>
+            <div className="min-w-0">
+              <p
+                className={`truncate text-sm ${
+                  isActive ? 'font-medium' : 'text-muted-foreground'
+                }`}
+              >
+                {item.title}
+              </p>
+              <p className="text-muted-foreground truncate text-xs">
+                {item.description}
+              </p>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function SetupSummary({ draft, step }: { draft: ProjectDraft; step: 1 | 2 }) {
   const selectedCount = trackingOptions.filter(
     (option) => draft[option.name]
   ).length
   const displayName = draft.name.trim() || 'Your new project'
   const displayDomain = draft.domain.trim() || 'your-site.com'
+  const isReady =
+    draft.name.trim().length >= 2 && draft.domain.trim().length > 0
 
   return (
-    <aside className="relative isolate order-2 flex min-h-[34rem] overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-violet-950 text-white lg:order-1 lg:h-screen lg:min-h-0">
-      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-32 right-[-8rem] size-[30rem] rounded-full bg-cyan-400/20 blur-3xl" />
-        <div className="absolute -bottom-40 left-[-10rem] size-[32rem] rounded-full bg-violet-500/25 blur-3xl" />
-        <div className="absolute inset-0 [background-image:linear-gradient(oklch(1_0_0/0.1)_1px,transparent_1px),linear-gradient(90deg,oklch(1_0_0/0.1)_1px,transparent_1px)] [background-size:40px_40px] opacity-30" />
-      </div>
+    <ProjectPanel className="bg-muted/20 lg:sticky lg:top-6">
+      <CardHeader className="border-b px-5 py-5">
+        <div className="flex items-start gap-3">
+          <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+            <Sparkles className="size-5" />
+          </div>
+          <div className="min-w-0">
+            <CardTitle>Setup preview</CardTitle>
+            <CardDescription className="mt-1 leading-5">
+              A quick look at what your project will start with.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
 
-      <div className="relative z-10 flex h-full flex-col px-5 py-8 sm:px-8 sm:py-10 lg:px-14 lg:py-8">
-        <Link
-          to="/"
-          className="flex w-fit items-center gap-2.5 font-semibold tracking-tight"
-        >
-          <span className="flex size-8 items-center justify-center overflow-hidden rounded-lg bg-white/10 ring-1 ring-white/20">
-            <img
-              src="/logo.png"
-              alt="PathLens"
-              className="landing-logo landing-logo-dark size-full object-contain"
-            />
+      <CardContent className="space-y-5 p-5">
+        <div className="bg-background flex items-center gap-3 rounded-xl border p-3">
+          <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
+            <Globe2 className="size-4" />
           </span>
-          PathLens
-        </Link>
-
-        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-8">
-          <div className="flex items-center gap-2 text-[10px] font-medium tracking-[0.18em] text-cyan-200/80 uppercase">
-            <span className="size-1.5 animate-pulse rounded-full bg-cyan-300" />
-            Live project preview
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{displayName}</p>
+            <p className="text-muted-foreground mt-0.5 truncate text-xs">
+              {displayDomain}
+            </p>
           </div>
-          <h2 className="mt-5 text-3xl leading-tight font-semibold tracking-[-0.05em] sm:text-4xl">
-            See what you are about to connect.
-          </h2>
-          <p className="mt-4 max-w-md text-sm leading-6 text-blue-100/65">
-            Your choices become the starting point for a focused analytics
-            setup. You can refine them later from project settings.
-          </p>
+          <span
+            className={`flex shrink-0 items-center gap-1.5 text-xs ${
+              isReady
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-muted-foreground'
+            }`}
+          >
+            <span
+              className={`size-1.5 rounded-full ${
+                isReady ? 'bg-emerald-500' : 'bg-muted-foreground/50'
+              }`}
+            />
+            {isReady ? 'Ready' : 'Draft'}
+          </span>
+        </div>
 
-          <div className="relative mt-8 overflow-hidden rounded-2xl border border-white/15 bg-slate-950/60 shadow-2xl shadow-black/30 backdrop-blur-xl">
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-semibold">
-                  {displayName.charAt(0).toUpperCase()}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-white/90">
-                    {displayName}
-                  </p>
-                  <p className="truncate text-[10px] text-white/45">
-                    {displayDomain}
-                  </p>
-                </div>
-              </div>
-              <span className="flex items-center gap-1.5 text-[10px] text-emerald-300">
-                <span className="size-1.5 rounded-full bg-emerald-400" />
-                Ready to connect
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="text-muted-foreground">Setup progress</span>
+            <span className="font-medium tabular-nums">0{step} / 02</span>
+          </div>
+          <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+            <div
+              className={`bg-primary h-full rounded-full transition-all ${
+                step === 1 ? 'w-1/2' : 'w-full'
+              }`}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-muted-foreground text-xs font-medium tracking-[0.16em] uppercase">
+              Signals included
+            </p>
+            <span className="text-muted-foreground text-xs tabular-nums">
+              {selectedCount} optional
+            </span>
+          </div>
+
+          <div className="bg-background divide-border divide-y overflow-hidden rounded-xl border">
+            <div className="flex items-center gap-3 px-3 py-3">
+              <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
+                <MousePointerClick className="size-4" />
               </span>
-            </div>
-
-            <div className="grid grid-cols-3 divide-x divide-white/10 border-b border-white/10">
-              <div className="px-3 py-4">
-                <p className="text-[10px] text-white/45 uppercase">Step</p>
-                <p className="mt-1 text-xl font-semibold">0{step}</p>
-                <p className="mt-1 text-[10px] text-cyan-200/70">of 02</p>
-              </div>
-              <div className="px-3 py-4">
-                <p className="text-[10px] text-white/45 uppercase">Signals</p>
-                <p className="mt-1 text-xl font-semibold">
-                  {selectedCount + 1}
-                </p>
-                <p className="mt-1 text-[10px] text-cyan-200/70">selected</p>
-              </div>
-              <div className="px-3 py-4">
-                <p className="text-[10px] text-white/45 uppercase">Status</p>
-                <p className="mt-1 text-xl font-semibold">Live</p>
-                <p className="mt-1 text-[10px] text-emerald-300">
-                  when installed
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Core analytics</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  Page views and standard events
                 </p>
               </div>
+              <Check className="size-4 text-emerald-600 dark:text-emerald-400" />
             </div>
 
-            <div className="space-y-3 p-4 sm:p-5">
-              <div className="flex items-center gap-3 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-cyan-300 text-slate-950">
-                  <Code2 className="size-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium">Install the tracker</p>
-                  <p className="mt-0.5 truncate text-[10px] text-white/45">
-                    Add one snippet to {displayDomain}
-                  </p>
-                </div>
-                <Check className="size-4 text-cyan-200" />
-              </div>
-
-              {trackingOptions.map((option) => {
-                const Icon = option.icon
-                const isSelected = draft[option.name]
-
-                return (
-                  <div
-                    key={option.name}
-                    className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
-                      isSelected
-                        ? 'border-violet-300/25 bg-violet-300/10'
-                        : 'border-white/10 bg-white/5 opacity-60'
-                    }`}
-                  >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10">
-                      <Icon className="size-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium">{option.label}</p>
-                      <p className="mt-0.5 truncate text-[10px] text-white/45">
-                        {isSelected
-                          ? 'Included in this setup'
-                          : 'Can be enabled later'}
-                      </p>
-                    </div>
-                    <span
-                      className={`size-2 rounded-full ${
-                        isSelected ? 'bg-emerald-300' : 'bg-white/25'
-                      }`}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-
-            <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3 text-[10px] text-white/50 sm:px-5">
-              <ShieldCheck className="size-3.5 text-emerald-300" />
-              Privacy-conscious collection stays in your control.
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {[
-              { icon: Globe2, label: 'Connect a site' },
-              { icon: MousePointerClick, label: 'See real behavior' },
-              { icon: Sparkles, label: 'Find the signal' },
-            ].map((item) => {
-              const Icon = item.icon
+            {trackingOptions.map((option) => {
+              const Icon = option.icon
+              const isSelected = draft[option.name]
 
               return (
                 <div
-                  key={item.label}
-                  className="flex items-center gap-2 text-[10px] text-blue-100/60"
+                  key={option.name}
+                  className={`flex items-center gap-3 px-3 py-3 transition-colors ${
+                    isSelected ? '' : 'opacity-55'
+                  }`}
                 >
-                  <Icon className="size-3.5 text-cyan-200/80" />
-                  {item.label}
+                  <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
+                    <Icon className="size-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{option.label}</p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {isSelected ? 'Enabled at launch' : 'Available later'}
+                    </p>
+                  </div>
+                  {isSelected ? (
+                    <Check className="size-4 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <span className="bg-muted-foreground/30 size-1.5 rounded-full" />
+                  )}
                 </div>
               )
             })}
           </div>
         </div>
-        <p className="text-xs text-blue-100/40">Analytics with intent.</p>
-      </div>
-    </aside>
+
+        <div className="bg-background flex gap-3 rounded-xl border p-3">
+          <ShieldCheck className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+          <p className="text-muted-foreground text-xs leading-5">
+            Your collection settings stay editable from project settings after
+            setup.
+          </p>
+        </div>
+      </CardContent>
+    </ProjectPanel>
   )
 }
 
@@ -315,186 +357,152 @@ function RouteComponent() {
   }
 
   const draft = form.state.values
+  const StepIcon = step === 1 ? Globe2 : Activity
 
   return (
-    <main className="bg-background flex min-h-screen flex-col lg:grid lg:h-screen lg:min-h-0 lg:grid-cols-[minmax(0,1.05fr)_minmax(30rem,0.95fr)]">
-      <section className="order-1 flex min-h-screen flex-col lg:order-2 lg:h-screen lg:min-h-0 lg:overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center justify-between px-5 sm:px-8 lg:px-10">
-          <Link
-            to="/app/$workspace"
-            params={{ workspace }}
-            className="flex items-center gap-2 text-sm font-medium lg:hidden"
-          >
-            <span className="bg-background ring-foreground/10 size-7 overflow-hidden rounded-md ring-1">
-              <img
-                src="/logo.png"
-                alt="PathLens"
-                className="landing-logo size-full object-contain"
-              />
-            </span>
-            PathLens
-          </Link>
-          <Link
-            to="/app/$workspace"
-            params={{ workspace }}
-            className="text-muted-foreground hover:text-foreground hidden items-center gap-1.5 text-xs transition-colors lg:flex"
-          >
-            <ArrowLeft className="size-3.5" />
-            Back to projects
-          </Link>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="text-muted-foreground hidden text-xs sm:inline">
-              Project setup
-            </span>
-            <ModeToggle />
-          </div>
-        </header>
+    <WorkspacePageLayout workspaceId={workspace}>
+      <div className="space-y-8">
+        <ProjectPageHeader
+          eyebrow="Workspace projects"
+          title="Create a project."
+          description="Connect a website and choose the signals you want to collect from day one."
+          actions={
+            <Button
+              variant="outline"
+              render={<Link to="/app/$workspace" params={{ workspace }} />}
+            >
+              <ArrowLeft />
+              Back to projects
+            </Button>
+          }
+        />
 
-        <div className="flex min-h-0 flex-1 items-start overflow-y-auto px-5 py-8 sm:px-8 sm:py-12 lg:items-center lg:px-10 lg:py-6">
-          <div className="mx-auto w-full max-w-xl">
-            {projectLimitReached && projectLimit !== null && (
-              <PlanLimitNotice
-                workspaceId={workspace}
-                resource="project"
-                limit={projectLimit}
-              />
-            )}
+        {projectLimitReached && projectLimit !== null && (
+          <PlanLimitNotice
+            workspaceId={workspace}
+            resource="project"
+            limit={projectLimit}
+          />
+        )}
 
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(19rem,0.82fr)]">
+          <ProjectPanel>
             <form
-              className="flex min-h-full flex-col"
               onSubmit={(event) => {
                 event.preventDefault()
                 form.handleSubmit()
               }}
             >
-              <div className="flex-1">
-                <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium tracking-[0.18em] uppercase">
-                  <span className="bg-foreground size-1.5 rounded-full" />
-                  New project
+              <CardHeader className="border-b px-5 py-5 sm:px-6">
+                <div className="flex items-start gap-3">
+                  <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+                    <StepIcon className="size-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <CardTitle>
+                      {step === 1
+                        ? 'Project details'
+                        : 'Choose your data points'}
+                    </CardTitle>
+                    <CardDescription className="mt-1 leading-5">
+                      {step === 1
+                        ? 'Give this project a clear identity so your team can find it later.'
+                        : 'Start with the signals that will help you understand your visitors.'}
+                    </CardDescription>
+                  </div>
                 </div>
-                <CardTitle className="mt-4 text-3xl tracking-[-0.05em] sm:text-4xl">
-                  Set up your signal.
-                </CardTitle>
-                <CardDescription className="mt-3 max-w-lg text-sm leading-6">
-                  Tell us what you are connecting, then choose the context you
-                  want to see from day one.
-                </CardDescription>
+              </CardHeader>
 
-                <div
-                  className="mt-8 flex items-center gap-3"
-                  aria-label="Creation steps"
-                >
-                  {[1, 2].map((item) => {
-                    const isActive = item === step
-                    const isComplete = item < step
-
-                    return (
-                      <div
-                        key={item}
-                        className="flex flex-1 items-center gap-2"
-                      >
-                        <span
-                          className={`flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium ${
-                            isActive
-                              ? 'border-foreground bg-foreground text-background'
-                              : isComplete
-                                ? 'border-foreground/30 bg-muted text-foreground'
-                                : 'text-muted-foreground'
-                          }`}
-                        >
-                          {isComplete ? <Check className="size-3.5" /> : item}
-                        </span>
-                        <span
-                          className={`text-xs ${
-                            isActive
-                              ? 'text-foreground font-medium'
-                              : 'text-muted-foreground'
-                          }`}
-                        >
-                          {item === 1 ? 'Basics' : 'Data points'}
-                        </span>
-                        {item === 1 && (
-                          <span className="bg-border ml-1 h-px flex-1" />
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+              <CardContent className="space-y-7 p-5 sm:p-6">
+                <SetupSteps step={step} />
 
                 {step === 1 ? (
-                  <div className="mt-10">
-                    <div className="mb-6">
-                      <p className="text-sm font-medium">
-                        Start with the basics
-                      </p>
-                      <p className="text-muted-foreground mt-1 text-sm">
-                        You can update these details later from project
+                  <div className="space-y-5">
+                    <div>
+                      <h2 className="text-sm font-medium">
+                        Tell us about your site
+                      </h2>
+                      <p className="text-muted-foreground mt-1 text-sm leading-5">
+                        These details can be updated later from project
                         settings.
                       </p>
                     </div>
 
                     <FieldGroup className="gap-5">
-                      <form.Field
-                        name="name"
-                        children={(field) => {
-                          const isInvalid =
-                            stepOneAttempted && !field.state.meta.isValid
+                      <div className="grid gap-5 sm:grid-cols-2">
+                        <form.Field
+                          name="name"
+                          children={(field) => {
+                            const isInvalid =
+                              stepOneAttempted && !field.state.meta.isValid
 
-                          return (
-                            <Field data-invalid={isInvalid}>
-                              <FieldLabel htmlFor={field.name}>
-                                Project name
-                              </FieldLabel>
-                              <Input
-                                id={field.name}
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                onChange={(event) =>
-                                  field.handleChange(event.target.value)
-                                }
-                                aria-invalid={isInvalid}
-                                placeholder="Marketing site"
-                                autoComplete="off"
-                                autoFocus
-                              />
-                              {isInvalid && (
-                                <FieldError errors={field.state.meta.errors} />
-                              )}
-                            </Field>
-                          )
-                        }}
-                      />
-                      <form.Field
-                        name="domain"
-                        children={(field) => {
-                          const isInvalid =
-                            stepOneAttempted && !field.state.meta.isValid
+                            return (
+                              <Field data-invalid={isInvalid}>
+                                <FieldLabel htmlFor={field.name}>
+                                  Project name
+                                </FieldLabel>
+                                <Input
+                                  id={field.name}
+                                  name={field.name}
+                                  value={field.state.value}
+                                  onBlur={field.handleBlur}
+                                  onChange={(event) =>
+                                    field.handleChange(event.target.value)
+                                  }
+                                  aria-invalid={isInvalid}
+                                  placeholder="Marketing site"
+                                  autoComplete="off"
+                                  autoFocus
+                                />
+                                <FieldDescription className="text-xs">
+                                  A recognizable name for your team.
+                                </FieldDescription>
+                                {isInvalid && (
+                                  <FieldError
+                                    errors={field.state.meta.errors}
+                                  />
+                                )}
+                              </Field>
+                            )
+                          }}
+                        />
+                        <form.Field
+                          name="domain"
+                          children={(field) => {
+                            const isInvalid =
+                              stepOneAttempted && !field.state.meta.isValid
 
-                          return (
-                            <Field data-invalid={isInvalid}>
-                              <FieldLabel htmlFor={field.name}>
-                                Website domain
-                              </FieldLabel>
-                              <Input
-                                id={field.name}
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                onChange={(event) =>
-                                  field.handleChange(event.target.value)
-                                }
-                                aria-invalid={isInvalid}
-                                placeholder="https://yourwebsite.com"
-                                autoComplete="url"
-                              />
-                              {isInvalid && (
-                                <FieldError errors={field.state.meta.errors} />
-                              )}
-                            </Field>
-                          )
-                        }}
-                      />
+                            return (
+                              <Field data-invalid={isInvalid}>
+                                <FieldLabel htmlFor={field.name}>
+                                  Website domain
+                                </FieldLabel>
+                                <Input
+                                  id={field.name}
+                                  name={field.name}
+                                  type="url"
+                                  value={field.state.value}
+                                  onBlur={field.handleBlur}
+                                  onChange={(event) =>
+                                    field.handleChange(event.target.value)
+                                  }
+                                  aria-invalid={isInvalid}
+                                  placeholder="https://yourwebsite.com"
+                                  autoComplete="url"
+                                />
+                                <FieldDescription className="text-xs">
+                                  Include the full protocol, like https://.
+                                </FieldDescription>
+                                {isInvalid && (
+                                  <FieldError
+                                    errors={field.state.meta.errors}
+                                  />
+                                )}
+                              </Field>
+                            )
+                          }}
+                        />
+                      </div>
                       <form.Field
                         name="description"
                         children={(field) => {
@@ -539,14 +547,14 @@ function RouteComponent() {
                     </FieldGroup>
                   </div>
                 ) : (
-                  <div className="mt-10">
-                    <div className="mb-6">
-                      <p className="text-sm font-medium">
+                  <div className="space-y-5">
+                    <div>
+                      <h2 className="text-sm font-medium">
                         Choose your starting signal
-                      </p>
-                      <p className="text-muted-foreground mt-1 text-sm">
-                        Core page views and events are always on. These controls
-                        add deeper context to your setup.
+                      </h2>
+                      <p className="text-muted-foreground mt-1 text-sm leading-5">
+                        Core page views and events are always on. Add deeper
+                        context when you are ready.
                       </p>
                     </div>
 
@@ -556,46 +564,69 @@ function RouteComponent() {
 
                         return (
                           <form.Field key={option.name} name={option.name}>
-                            {(field) => (
-                              <div
-                                className={`rounded-2xl border p-4 transition-colors sm:p-5 ${
-                                  field.state.value
-                                    ? 'border-foreground/30 bg-muted/20'
-                                    : ''
-                                }`}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
-                                    <Icon className="size-5" />
-                                  </span>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-medium">
-                                      {option.label}
-                                    </p>
-                                    <p className="text-muted-foreground mt-1 text-sm leading-5">
-                                      {option.description}
-                                    </p>
-                                    <p className="text-muted-foreground/80 mt-2 text-xs">
-                                      {option.detail}
-                                    </p>
+                            {(field) => {
+                              const isEnabled = field.state.value
+
+                              return (
+                                <div
+                                  className={`rounded-2xl border p-4 transition-colors sm:p-5 ${
+                                    isEnabled
+                                      ? 'border-foreground/25 bg-muted/30'
+                                      : 'border-border/70'
+                                  }`}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <span
+                                      className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${
+                                        isEnabled
+                                          ? 'bg-primary/10 text-primary'
+                                          : 'bg-muted text-muted-foreground'
+                                      }`}
+                                    >
+                                      <Icon className="size-5" />
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-sm font-medium">
+                                          {option.label}
+                                        </p>
+                                        <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
+                                          {isEnabled ? 'Enabled' : 'Optional'}
+                                        </span>
+                                      </div>
+                                      <p className="text-muted-foreground mt-1 text-sm leading-5">
+                                        {option.description}
+                                      </p>
+                                      <p className="text-muted-foreground/80 mt-2 text-xs">
+                                        {option.detail}
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={isEnabled}
+                                      onCheckedChange={field.handleChange}
+                                      aria-label={`Enable ${option.label}`}
+                                    />
                                   </div>
-                                  <Switch
-                                    checked={field.state.value}
-                                    onCheckedChange={field.handleChange}
-                                    aria-label={`Enable ${option.label}`}
-                                  />
                                 </div>
-                              </div>
-                            )}
+                              )
+                            }}
                           </form.Field>
                         )
                       })}
                     </div>
+
+                    <div className="bg-muted/40 flex gap-3 rounded-xl p-4">
+                      <ShieldCheck className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+                      <p className="text-muted-foreground text-xs leading-5">
+                        Sensitive inputs and text can be masked before you send
+                        replay data.
+                      </p>
+                    </div>
                   </div>
                 )}
-              </div>
+              </CardContent>
 
-              <div className="mt-8 flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <CardFooter className="flex-col-reverse gap-3 px-5 py-4 sm:flex-row sm:justify-between sm:px-6">
                 {step === 1 ? (
                   <Button
                     type="button"
@@ -646,18 +677,13 @@ function RouteComponent() {
                     )}
                   </form.Subscribe>
                 )}
-              </div>
+              </CardFooter>
             </form>
-          </div>
-        </div>
-        <footer className="border-border shrink-0 border-t px-5 py-4 sm:px-8 lg:px-10">
-          <p className="text-muted-foreground text-center text-xs lg:text-left">
-            Copyright 2026 PathLens - Privacy-first analytics.
-          </p>
-        </footer>
-      </section>
+          </ProjectPanel>
 
-      <ProjectPreview draft={draft} step={step} />
-    </main>
+          <SetupSummary draft={draft} step={step} />
+        </div>
+      </div>
+    </WorkspacePageLayout>
   )
 }

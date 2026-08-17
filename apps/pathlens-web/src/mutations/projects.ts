@@ -54,6 +54,57 @@ export const useCreateProject = () => {
   })
 }
 
+interface UpdateProjectPayload {
+  name: string
+  description: string | null
+  domain: string | null
+  captureReplay: boolean
+  capturePerformance: boolean
+  captureErrors: boolean
+}
+
+interface UpdateProjectResponse {
+  success: boolean
+  message?: string
+  data?: {
+    id: string
+    name: string
+    description: string | null
+    domain: string | null
+    captureReplay: boolean
+    capturePerformance: boolean
+    captureErrors: boolean
+  }
+}
+
+export const useUpdateProject = (projectId: string) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (
+      payload: UpdateProjectPayload
+    ): Promise<UpdateProjectResponse> => {
+      const response = await apiClient.patch<UpdateProjectResponse>(
+        `/projects/${projectId}`,
+        payload
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to save project settings.')
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['PROJECTS'] })
+      toast.success('Project settings saved.')
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
 interface DeleteProjectPayload {
   project_id: string
   workspace_id: string

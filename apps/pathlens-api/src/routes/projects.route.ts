@@ -4,6 +4,7 @@ import {
   createProject,
   deleteProject,
   getProjects,
+  updateProject,
 } from "../controllers/projects.controller";
 import { requireWorkspacePermission } from "../middleware/permission.middleware";
 
@@ -15,6 +16,11 @@ router.post(
   "/create",
   requireWorkspacePermission("projects.create"),
   createProject
+);
+router.patch(
+  "/:project_id",
+  requireWorkspacePermission("project.settings.update"),
+  updateProject
 );
 router.delete(
   "/delete/:project_id",

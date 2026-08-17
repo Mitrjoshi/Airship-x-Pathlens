@@ -179,6 +179,39 @@ export const createProjectModel = async (
   });
 };
 
+export const updateProjectModel = async (data: {
+  projectId: string;
+  name: string;
+  description: string | null;
+  domain: string | null;
+  captureReplay: boolean;
+  capturePerformance: boolean;
+  captureErrors: boolean;
+}) => {
+  const [project] = await db
+    .update(projects)
+    .set({
+      name: data.name,
+      description: data.description,
+      domain: data.domain,
+      captureReplay: data.captureReplay,
+      capturePerformance: data.capturePerformance,
+      captureErrors: data.captureErrors,
+    })
+    .where(eq(projects.id, data.projectId))
+    .returning({
+      id: projects.id,
+      name: projects.name,
+      description: projects.description,
+      domain: projects.domain,
+      captureReplay: projects.captureReplay,
+      capturePerformance: projects.capturePerformance,
+      captureErrors: projects.captureErrors,
+    });
+
+  return project;
+};
+
 function getSnapshotStatus(value: string): ProjectSnapshotStatus {
   if (
     value === "processing" ||

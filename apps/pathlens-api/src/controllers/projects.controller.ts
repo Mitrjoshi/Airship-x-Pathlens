@@ -8,6 +8,7 @@ import {
   getProjectsModel,
   getProjectSnapshotsModel,
   getProjectStatsModel,
+  updateProjectModel,
 } from "../models/projects.model";
 
 const createProjectSchema = z.object({
@@ -90,6 +91,39 @@ const getProjectSchema = z.object({
   project_id: z.string().optional(),
 });
 
+const updateProjectParamsSchema = z.object({
+  project_id: z.string({
+    error: "Project ID is required.",
+  }),
+});
+
+const updateProjectSchema = z.object({
+  name: z
+    .string({
+      error: "Please enter a project name.",
+    })
+    .trim()
+    .min(2, "Project name must be at least 2 characters.")
+    .max(80, "Project name must be 80 characters or less."),
+  description: z
+    .string({
+      error: "Please enter a project description.",
+    })
+    .trim()
+    .max(100, "Project description must be 100 characters or less.")
+    .nullable(),
+  domain: z
+    .string({
+      error: "Please enter a project domain.",
+    })
+    .trim()
+    .max(2048, "Project domain must be 2048 characters or less.")
+    .nullable(),
+  captureReplay: z.boolean(),
+  capturePerformance: z.boolean(),
+  captureErrors: z.boolean(),
+});
+
 export async function getProjects(req: Request, res: Response) {
   try {
     const { workspace_id, project_id } = getProjectSchema.parse(req.query);
@@ -130,6 +164,49 @@ export async function getProjects(req: Request, res: Response) {
     }
 
     return res.status(400).json({
+      success: false,
+      message: errorMessage,
+    });
+  }
+}
+
+export async function updateProject(req: Request, res: Response) {
+  try {
+    const { project_id } = updateProjectParamsSchema.parse(req.params);
+    const payload = updateProjectSchema.parse(req.body ?? {});
+    const project = await updateProjectModel({
+      projectId: project_id,
+      name: payload.name,
+      description: payload.description,
+      domain: payload.domain,
+      captureReplay: payload.captureReplay,
+      capturePerformance: payload.capturePerformance,
+      captureErrors: payload.captureErrors,
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: project,
+    });
+  } catch (error) {
+    console.error(error);
+
+    let errorMessage = "Something went wrong";
+
+    if (error instanceof ZodError) {
+      errorMessage = error.issues[0]?.message ?? "Validation failed";
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    return res.status(error instanceof ZodError ? 400 : 500).json({
       success: false,
       message: errorMessage,
     });
