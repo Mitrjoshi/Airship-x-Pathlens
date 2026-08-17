@@ -1,9 +1,12 @@
 import { Router } from "express";
 import {
   createUser,
+  changePassword,
+  deleteUser,
   getUser,
   getUserWorkspaces,
   loginUser,
+  updateUser,
 } from "../controllers/users.controller";
 import {
   confirmPasswordReset,
@@ -21,6 +24,9 @@ router.post("/password-reset/confirm", confirmPasswordReset);
 router.use(authMiddleware);
 
 router.get("/me", getUser);
+router.patch("/me", updateUser);
+router.patch("/me/password", changePassword);
+router.delete("/me", deleteUser);
 router.get("/workspaces", getUserWorkspaces);
 
 export default router;

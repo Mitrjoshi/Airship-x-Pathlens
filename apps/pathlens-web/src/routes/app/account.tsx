@@ -1,19 +1,20 @@
 import { AppHeader } from '@/components/common/app-header'
 import { PageHeader, PageLayout } from '@/components/common/page-layout'
+import {
+  useChangePassword,
+  useDeleteAccount,
+  useUpdateProfile,
+} from '@/mutations/account'
+import { useAcceptNotification } from '@/mutations/workspace'
+import { getUsersOptions } from '@/queries/user'
+import { getNotificationsOptions } from '@/queries/workspace'
 import { createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
+import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
-import { useState } from 'react'
-import {
-  Camera,
-  KeyRound,
-  Laptop,
-  Loader2,
-  LogOut,
-  Shield,
-  Smartphone,
-  Trash2,
-} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { Bell, Check, KeyRound, Loader2, Shield, Trash2 } from 'lucide-react'
 
 import {
   Card,
@@ -34,8 +35,11 @@ import { Input } from '@workspace/ui/components/input'
 import { Label } from '@workspace/ui/components/label'
 import { Badge } from '@workspace/ui/components/badge'
 import { Separator } from '@workspace/ui/components/separator'
-import { Switch } from '@workspace/ui/components/switch'
-import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@workspace/ui/components/avatar'
 import {
   Dialog,
   DialogContent,
@@ -54,7 +58,10 @@ export const Route = createFileRoute('/app/account')({
 })
 
 const profileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(120, 'Name must be 120 characters or less'),
   email: z.string().email('Enter a valid email address'),
 })
 
@@ -83,88 +90,71 @@ function FieldError({
   )
 }
 
-interface Session {
-  id: string
-  device: string
-  location: string
-  lastActive: string
-  current: boolean
+function getInitials(name: string): string {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+
+  return initials.toUpperCase() || 'PL'
 }
 
-const sessions: Session[] = [
-  {
-    id: 's_1',
-    device: 'MacBook Pro · Chrome',
-    location: 'Mumbai, IN',
-    lastActive: 'Active now',
-    current: true,
-  },
-  {
-    id: 's_2',
-    device: 'iPhone 15 · Safari',
-    location: 'Mumbai, IN',
-    lastActive: '2 hours ago',
-    current: false,
-  },
-  {
-    id: 's_3',
-    device: 'Windows PC · Edge',
-    location: 'Pune, IN',
-    lastActive: '3 days ago',
-    current: false,
-  },
-]
+function formatNotificationDate(value: string | null): string {
+  if (!value) return 'Date unavailable'
 
-const notificationSettings = [
-  {
-    id: 'weekly-summary',
-    label: 'Weekly Summary',
-    description: 'A digest of your analytics performance every Monday.',
-    defaultChecked: true,
-  },
-  {
-    id: 'traffic-spikes',
-    label: 'Traffic Spike Alerts',
-    description: 'Get notified when a project sees unusual traffic.',
-    defaultChecked: true,
-  },
-  {
-    id: 'team-activity',
-    label: 'Team Activity',
-    description: 'When members join, leave, or change roles.',
-    defaultChecked: false,
-  },
-  {
-    id: 'product-updates',
-    label: 'Product Updates',
-    description: 'New features and improvements to PathLens.',
-    defaultChecked: true,
-  },
-]
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return 'Date unavailable'
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+  }).format(date)
+}
+
+function formatNotificationType(type: string): string {
+  return type
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
 
 function RouteComponent() {
-  const user = useRouteContext({
+  const routeUser = useRouteContext({
     from: '/app',
     select: (context) => context.user,
   })
-  const [isSavingProfile, setIsSavingProfile] = useState(false)
-  const [isSavingPassword, setIsSavingPassword] = useState(false)
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const { data: userData } = useQuery(getUsersOptions())
+  const {
+    data: notificationsData,
+    isPending: notificationsPending,
+    isError: notificationsError,
+  } = useQuery(getNotificationsOptions())
+  const updateProfile = useUpdateProfile()
+  const changePassword = useChangePassword()
+  const deleteAccount = useDeleteAccount()
+  const acceptNotification = useAcceptNotification()
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const user = userData?.data ?? routeUser
+
+  const canDeleteAccount =
+    deletePassword.length > 0 && deleteConfirmation.trim() === 'DELETE'
 
   const profileForm = useForm({
     defaultValues: {
-      name: 'Mitr Patel',
-      email: 'mitr@pathlens.io',
+      name: '',
+      email: '',
     },
     validators: {
       onChange: profileSchema,
     },
     onSubmit: async ({ value }) => {
-      setIsSavingProfile(true)
-      // TODO: wire to update-account mutation
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      console.log(value)
-      setIsSavingProfile(false)
+      await updateProfile.mutateAsync(value)
+      profileForm.reset(value)
     },
   })
 
@@ -178,14 +168,21 @@ function RouteComponent() {
       onChange: passwordSchema,
     },
     onSubmit: async ({ value }) => {
-      setIsSavingPassword(true)
-      // TODO: wire to change-password mutation
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      console.log(value)
+      await changePassword.mutateAsync(value)
       passwordForm.reset()
-      setIsSavingPassword(false)
     },
   })
+
+  useEffect(() => {
+    if (!user || profileForm.state.isDirty) return
+
+    profileForm.reset({
+      name: user.name,
+      email: user.email,
+    })
+  }, [profileForm, user])
+
+  const notifications = notificationsData?.data ?? []
 
   return (
     <PageLayout>
@@ -226,20 +223,23 @@ function RouteComponent() {
 
             <CardContent className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center">
               <Avatar className="size-16 shrink-0">
-                <AvatarFallback className="text-lg">MP</AvatarFallback>
+                <AvatarImage
+                  src={user?.avatar ?? undefined}
+                  alt={user?.name ?? 'PathLens user'}
+                />
+                <AvatarFallback className="text-lg">
+                  {getInitials(user?.name ?? '')}
+                </AvatarFallback>
               </Avatar>
 
               <div className="min-w-0 flex-1">
                 <p className="font-medium">Personal avatar</p>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  Use a clear image so teammates can recognize you.
+                  {user?.avatar
+                    ? 'Your current profile photo is shown across your workspaces.'
+                    : 'No profile photo has been added yet.'}
                 </p>
               </div>
-
-              <Button variant="outline" className="self-start sm:self-center">
-                <Camera />
-                Change photo
-              </Button>
             </CardContent>
           </Card>
 
@@ -300,9 +300,9 @@ function RouteComponent() {
                   {([canSubmit, isSubmitting]) => (
                     <Button
                       type="submit"
-                      disabled={!canSubmit || isSavingProfile}
+                      disabled={!canSubmit || updateProfile.isPending}
                     >
-                      {(isSubmitting || isSavingProfile) && (
+                      {(isSubmitting || updateProfile.isPending) && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
                       Save Changes
@@ -320,14 +320,23 @@ function RouteComponent() {
                 Delete Account
               </CardTitle>
               <CardDescription>
-                Permanently delete your account and all associated data. This
-                does not delete workspaces you own — transfer or delete those
-                first.
+                Permanently delete your account, workspaces you own, and all
+                associated data. This action cannot be undone.
               </CardDescription>
             </CardHeader>
 
             <CardFooter className="p-5">
-              <Dialog>
+              <Dialog
+                open={isDeleteOpen}
+                onOpenChange={(open) => {
+                  setIsDeleteOpen(open)
+
+                  if (!open) {
+                    setDeletePassword('')
+                    setDeleteConfirmation('')
+                  }
+                }}
+              >
                 <DialogTrigger
                   render={
                     <Button variant="destructive">Delete My Account</Button>
@@ -338,14 +347,53 @@ function RouteComponent() {
                   <DialogHeader>
                     <DialogTitle>Delete your account?</DialogTitle>
                     <DialogDescription>
-                      This action is permanent and cannot be undone. All your
-                      personal data will be removed.
+                      Enter your current password and type DELETE to confirm
+                      that you want to permanently remove your account.
                     </DialogDescription>
                   </DialogHeader>
 
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="delete-account-password">
+                        Current password
+                      </Label>
+                      <Input
+                        id="delete-account-password"
+                        type="password"
+                        value={deletePassword}
+                        onChange={(event) =>
+                          setDeletePassword(event.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="delete-account-confirmation">
+                        Confirmation
+                      </Label>
+                      <Input
+                        id="delete-account-confirmation"
+                        value={deleteConfirmation}
+                        onChange={(event) =>
+                          setDeleteConfirmation(event.target.value)
+                        }
+                        placeholder="DELETE"
+                      />
+                    </div>
+                  </div>
+
                   <DialogFooter>
-                    <Button variant="destructive">
-                      I understand, delete my account
+                    <Button
+                      variant="destructive"
+                      disabled={!canDeleteAccount || deleteAccount.isPending}
+                      onClick={() =>
+                        deleteAccount.mutate({ password: deletePassword })
+                      }
+                    >
+                      {deleteAccount.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Delete my account
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -431,9 +479,9 @@ function RouteComponent() {
                   {([canSubmit, isSubmitting]) => (
                     <Button
                       type="submit"
-                      disabled={!canSubmit || isSavingPassword}
+                      disabled={!canSubmit || changePassword.isPending}
                     >
-                      {(isSubmitting || isSavingPassword) && (
+                      {(isSubmitting || changePassword.isPending) && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
                       <KeyRound />
@@ -454,22 +502,13 @@ function RouteComponent() {
                 <div className="min-w-0">
                   <CardTitle>Two-factor authentication</CardTitle>
                   <CardDescription>
-                    Add an extra layer of security to your account.
+                    Two-factor authentication is not available in this
+                    deployment yet.
                   </CardDescription>
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-3">
-                {twoFactorEnabled && (
-                  <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
-                    Enabled
-                  </Badge>
-                )}
-                <Switch
-                  checked={twoFactorEnabled}
-                  onCheckedChange={setTwoFactorEnabled}
-                />
-              </div>
+              <Badge variant="outline">Unavailable</Badge>
             </CardContent>
           </Card>
 
@@ -481,45 +520,11 @@ function RouteComponent() {
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-3 p-5">
-              {sessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted flex size-9 shrink-0 items-center justify-center rounded-lg">
-                      {session.device.includes('iPhone') ? (
-                        <Smartphone className="text-muted-foreground size-4" />
-                      ) : (
-                        <Laptop className="text-muted-foreground size-4" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                        {session.device}
-                        {session.current && (
-                          <Badge variant="outline">This device</Badge>
-                        )}
-                      </div>
-                      <div className="text-muted-foreground text-xs">
-                        {session.location} · {session.lastActive}
-                      </div>
-                    </div>
-                  </div>
-
-                  {!session.current && (
-                    <Button
-                      variant="ghost"
-                      className="self-start sm:self-center"
-                    >
-                      <LogOut />
-                      Revoke
-                    </Button>
-                  )}
-                </div>
-              ))}
+            <CardContent className="p-5">
+              <div className="bg-muted/50 text-muted-foreground rounded-xl border border-dashed p-4 text-sm">
+                Session history and remote session revocation are not available
+                yet.
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -528,31 +533,92 @@ function RouteComponent() {
         <TabsContent value="notifications">
           <Card className="py-0">
             <CardHeader className="border-b px-5 py-5">
-              <CardTitle>Notification preferences</CardTitle>
+              <CardTitle>Notifications</CardTitle>
               <CardDescription>
-                Choose what you want to be notified about.
+                Workspace invitations and account notifications from PathLens.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-3 p-5">
-              {notificationSettings.map((setting) => (
-                <div
-                  key={setting.id}
-                  className="flex items-center justify-between gap-4 rounded-xl border p-4 sm:p-5"
-                >
-                  <div className="min-w-0 space-y-0.5">
-                    <Label htmlFor={setting.id}>{setting.label}</Label>
-                    <p className="text-muted-foreground text-sm">
-                      {setting.description}
-                    </p>
-                  </div>
-
-                  <Switch
-                    id={setting.id}
-                    defaultChecked={setting.defaultChecked}
-                  />
+              {notificationsPending ? (
+                <div className="text-muted-foreground flex items-center justify-center gap-2 rounded-xl border border-dashed p-8 text-sm">
+                  <Loader2 className="size-4 animate-spin" />
+                  Loading notifications...
                 </div>
-              ))}
+              ) : notificationsError ? (
+                <div className="text-destructive rounded-xl border border-dashed p-8 text-center text-sm">
+                  Unable to load notifications.
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="text-muted-foreground flex flex-col items-center gap-2 rounded-xl border border-dashed p-8 text-center text-sm">
+                  <Check className="size-5" />
+                  You&apos;re all caught up.
+                </div>
+              ) : (
+                notifications.map((notification) => {
+                  const isInvitation = notification.type === 'workspace_invite'
+                  const isAccepted = Boolean(notification.acceptedAt)
+
+                  return (
+                    <div
+                      key={notification.id}
+                      className="flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-start sm:justify-between"
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
+                          <Bell className="size-4" />
+                        </div>
+
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-medium">
+                              {isInvitation
+                                ? 'Workspace invitation'
+                                : formatNotificationType(notification.type)}
+                            </p>
+                            <Badge variant="outline">
+                              {isAccepted
+                                ? 'Accepted'
+                                : notification.readAt
+                                  ? 'Read'
+                                  : 'New'}
+                            </Badge>
+                          </div>
+                          <p className="text-muted-foreground text-sm">
+                            {isInvitation
+                              ? `${notification.senderName} invited you to join ${notification.workspaceName}.`
+                              : `${notification.senderName} sent a notification for ${notification.workspaceName}.`}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            {formatNotificationDate(notification.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {isInvitation && !isAccepted && (
+                        <Button
+                          variant="outline"
+                          disabled={acceptNotification.isPending}
+                          onClick={() =>
+                            acceptNotification.mutate(notification.id, {
+                              onSuccess: (response) => {
+                                if (response.success) {
+                                  toast.success('Invitation accepted.')
+                                }
+                              },
+                            })
+                          }
+                        >
+                          {acceptNotification.isPending && (
+                            <Loader2 className="animate-spin" />
+                          )}
+                          Accept
+                        </Button>
+                      )}
+                    </div>
+                  )
+                })
+              )}
             </CardContent>
           </Card>
         </TabsContent>

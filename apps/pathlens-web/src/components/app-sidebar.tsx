@@ -45,7 +45,6 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@workspace/ui/components/sidebar'
-import { Badge } from '@workspace/ui/components/badge'
 import { NavUser } from '@/components/common/nav-user'
 import { PageLayout } from '@/components/common/page-layout'
 

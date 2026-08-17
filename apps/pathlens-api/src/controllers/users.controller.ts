@@ -2,8 +2,11 @@ import { Request, Response } from "express";
 import { z, ZodError } from "zod";
 import {
   createUserModel,
+  deleteUserModel,
   getUserByEmailModel,
   getUserByIDModel,
+  updateUserModel,
+  updateUserPasswordModel,
 } from "../models/users.model";
 import { AuthRequest, signJwt } from "../lib/jwt";
 import {
@@ -93,6 +96,30 @@ const signUpSchema = z.object({
   name: z.string({
     error: "Please enter your name.",
   }),
+});
+
+const updateUserSchema = z.object({
+  name: z
+    .string({ error: "Please enter your name." })
+    .trim()
+    .min(2, "Name must be at least 2 characters.")
+    .max(120, "Name must be 120 characters or less."),
+  email: z.email({ message: "Please enter a valid email address." }),
+});
+
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required."),
+    newPassword: z.string().min(8, "Password must be at least 8 characters."),
+    confirmPassword: z.string().min(1, "Please confirm your new password."),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
+const deleteUserSchema = z.object({
+  password: z.string().min(1, "Your current password is required."),
 });
 
 function hasDatabaseErrorCode(error: unknown, code: string): boolean {
@@ -208,6 +235,167 @@ export async function getUser(req: AuthRequest, res: Response) {
     return res.status(400).json({
       success: false,
       message: errorMessage,
+    });
+  }
+}
+
+export async function updateUser(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { name, email } = updateUserSchema.parse(req.body);
+    const existingUser = await getUserByEmailModel(email);
+
+    if (existingUser && existingUser.id !== userId) {
+      return res.status(409).json({
+        success: false,
+        message: "An account with this email already exists.",
+      });
+    }
+
+    const updatedUser = await updateUserModel({
+      id: userId,
+      name,
+      email,
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    const userData = await getUserByIDModel(userId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...userData,
+        password: undefined,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    const isDuplicateEmail = hasDatabaseErrorCode(error, "23505");
+    let errorMessage = "Something went wrong";
+
+    if (isDuplicateEmail) {
+      errorMessage = "An account with this email already exists.";
+    } else if (error instanceof ZodError) {
+      errorMessage = error.issues[0]?.message ?? "Validation failed";
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    return res.status(isDuplicateEmail ? 409 : 400).json({
+      success: false,
+      message: errorMessage,
+    });
+  }
+}
+
+export async function changePassword(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { currentPassword, newPassword } = changePasswordSchema.parse(
+      req.body
+    );
+    const userData = await getUserByIDModel(userId);
+
+    if (!userData) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    if (userData.password !== currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect.",
+      });
+    }
+
+    await updateUserPasswordModel({
+      id: userId,
+      password: newPassword,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Your password has been updated.",
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message:
+        error instanceof ZodError
+          ? (error.issues[0]?.message ?? "Validation failed")
+          : "Unable to update your password.",
+    });
+  }
+}
+
+export async function deleteUser(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { password } = deleteUserSchema.parse(req.body);
+    const userData = await getUserByIDModel(userId);
+
+    if (!userData) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    if (userData.password !== password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is incorrect.",
+      });
+    }
+
+    const deletedUser = await deleteUserModel(userId);
+
+    if (!deletedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Your account has been deleted.",
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message:
+        error instanceof ZodError
+          ? (error.issues[0]?.message ?? "Validation failed")
+          : "Unable to delete your account.",
     });
   }
 }

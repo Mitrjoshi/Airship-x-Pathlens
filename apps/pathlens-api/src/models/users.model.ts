@@ -47,3 +47,48 @@ export async function getUserByIDModel(id: string) {
     defaultWorkspace: result.defaultWorkspace,
   };
 }
+
+export async function updateUserModel(data: {
+  id: string;
+  name: string;
+  email: string;
+}) {
+  const [user] = await db
+    .update(users)
+    .set({
+      name: data.name,
+      email: data.email,
+    })
+    .where(eq(users.id, data.id))
+    .returning({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      avatar: users.avatar,
+      createdAt: users.createdAt,
+    });
+
+  return user;
+}
+
+export async function updateUserPasswordModel(data: {
+  id: string;
+  password: string;
+}) {
+  const [user] = await db
+    .update(users)
+    .set({ password: data.password })
+    .where(eq(users.id, data.id))
+    .returning({ id: users.id });
+
+  return user;
+}
+
+export async function deleteUserModel(id: string) {
+  const [user] = await db
+    .delete(users)
+    .where(eq(users.id, id))
+    .returning({ id: users.id });
+
+  return user;
+}
