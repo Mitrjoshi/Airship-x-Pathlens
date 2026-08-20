@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { z, ZodError } from "zod";
 import {
   getVisitorsModel,
+  getVisitorLocationsModel,
   type VisitorStatus,
   type VisitorsRange,
 } from "../models/visitors.model";
@@ -15,6 +16,43 @@ const visitorsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(50),
 });
+
+const visitorLocationsQuerySchema = z.object({
+  workspace_id: z.string().min(1),
+  project_id: z.string().min(1),
+  range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
+  status: z.enum(["all", "online", "offline"]).default("all"),
+});
+
+export async function getVisitorLocations(req: Request, res: Response) {
+  try {
+    const query = visitorLocationsQuerySchema.parse(req.query);
+    const data = await getVisitorLocationsModel({
+      workspaceId: query.workspace_id,
+      projectId: query.project_id,
+      range: query.range as VisitorsRange,
+      status: query.status as VisitorStatus,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error(error);
+
+    let message = "Unable to load visitor locations.";
+
+    if (error instanceof ZodError) {
+      message = error.issues[0]?.message ?? "Invalid visitor filters.";
+    }
+
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message,
+    });
+  }
+}
 
 export async function getVisitors(req: Request, res: Response) {
   try {

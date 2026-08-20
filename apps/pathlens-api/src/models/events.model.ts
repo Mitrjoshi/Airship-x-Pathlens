@@ -10,6 +10,7 @@ import type {
   ProjectEventCategory,
   ProjectEventDetailValue,
 } from "@workspace/contracts";
+import type { GeoLocation } from "../lib/geoip";
 import { getProjectIDByApiKeyModel } from "./projects.model";
 
 export type EventsRange = "24h" | "7d" | "30d" | "90d";
@@ -335,7 +336,8 @@ function getCampaignAttribution(
 
 export async function createEvents(
   incomingEvents: IncomingEvent[],
-  ip?: string
+  ip?: string | null,
+  geo?: GeoLocation | null
 ) {
   // Cache API key -> project/workspace
   const projectCache = new Map<
@@ -419,12 +421,12 @@ export async function createEvents(
       os: event.os,
       osVersion: event.osVersion,
 
-      country: event.country ?? event.countryCode,
-      countryCode: event.countryCode,
-      region: event.region,
-      city: event.city,
+      country: geo?.country ?? event.country ?? event.countryCode,
+      countryCode: geo?.countryCode ?? event.countryCode,
+      region: geo?.region ?? event.region,
+      city: geo?.city ?? event.city,
 
-      timezone: event.timezone,
+      timezone: event.timezone ?? geo?.timezone,
       language: event.language,
       userAgent: event.userAgent,
 

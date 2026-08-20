@@ -5,6 +5,7 @@ import {
   type EventsRange,
 } from "../models/events.model";
 import { incomingEventsSchema } from "@workspace/contracts/events";
+import { getClientIp, getGeoLocation } from "../lib/geoip";
 import { z, ZodError } from "zod";
 
 const eventsQuerySchema = z.object({
@@ -35,7 +36,10 @@ export async function ingestEvents(req: Request, res: Response) {
   }
 
   try {
-    await createEvents(parsedEvents.data, req.ip);
+    const ip = getClientIp(req);
+    const geo = getGeoLocation(ip);
+
+    await createEvents(parsedEvents.data, ip, geo);
 
     return res.sendStatus(204);
   } catch (error) {

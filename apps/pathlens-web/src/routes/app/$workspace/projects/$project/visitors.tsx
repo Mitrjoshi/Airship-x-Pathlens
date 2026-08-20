@@ -34,6 +34,7 @@ import {
 } from '@workspace/ui/components/table'
 import { getVisitorsOptions } from '@/queries/visitors'
 import type { VisitorStatus, VisitorsRange } from '@/queries/visitors'
+import { VisitorLocationMap } from '@/components/visitors/visitor-location-map'
 import { formatNumber, formatRelativeTime } from '@/utils/utils'
 import { navigationIcons } from '@/config/navigation-icons'
 import { useQuery } from '@tanstack/react-query'
@@ -205,6 +206,25 @@ function RouteComponent() {
             />
           ))}
         </ProjectMetricStrip>
+
+        <ProjectPanel>
+          <CardHeader className="border-b px-5 py-5">
+            <CardTitle>Visitor locations</CardTitle>
+            <CardDescription className="mt-1">
+              Where visitors come from in {rangeLabels[range]}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-5">
+            <VisitorLocationMap
+              params={{
+                workspace_id: workspace,
+                project_id: project,
+                range,
+                status,
+              }}
+            />
+          </CardContent>
+        </ProjectPanel>
 
         <ProjectPanel>
           <CardHeader className="flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-center sm:justify-between">

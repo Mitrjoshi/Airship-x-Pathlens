@@ -12,6 +12,7 @@
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
     "backfill:campaigns": "tsx --env-file=.env src/scripts/backfill-campaign-attribution.ts",
+    "test:geoip": "tsx --test src/lib/geoip.test.ts",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio"
   },
@@ -23,6 +24,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
+    "geoip-lite": "^2.0.3",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.22.0",
     "xss": "^1.0.15",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/geoip-lite": "^1.4.4",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.15.5",

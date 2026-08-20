@@ -47,6 +47,21 @@ export interface VisitorsResponse {
   };
 }
 
+export interface VisitorLocation {
+  code: string;
+  visitors: number;
+}
+
+export interface VisitorLocationsResponse {
+  locations: VisitorLocation[];
+  total: number;
+}
+
+interface VisitorLocationRow extends Record<string, unknown> {
+  code: string | null;
+  visitors: number | string | null;
+}
+
 interface VisitorRow extends Record<string, unknown> {
   visitor_id: string;
   country_code: string | null;
@@ -133,6 +148,67 @@ function formatDevice(value: string | null): Visitor["device"] {
     default:
       return "Unknown";
   }
+}
+
+export async function getVisitorLocationsModel(filters: {
+  workspaceId: string;
+  projectId: string;
+  range: VisitorsRange;
+  status: VisitorStatus;
+}): Promise<VisitorLocationsResponse> {
+  const rangeDays = RANGE_DAYS[filters.range];
+  const statusFilter =
+    filters.status === "online"
+      ? sql` AND lv.last_seen >= NOW() - INTERVAL '5 minutes'`
+      : filters.status === "offline"
+        ? sql` AND lv.last_seen < NOW() - INTERVAL '5 minutes'`
+        : sql``;
+  const eventWhere = sql`
+    workspace_id = ${filters.workspaceId}
+    AND project_id = ${filters.projectId}
+    AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+  `;
+
+  const result = await db.execute<VisitorLocationRow>(sql`
+    WITH filtered_events AS (
+      SELECT
+        visitor_id,
+        country_code,
+        occurred_at
+      FROM events
+      WHERE ${eventWhere}
+    ),
+    latest_visitors AS (
+      SELECT DISTINCT ON (visitor_id)
+        visitor_id,
+        NULLIF(country_code, '') AS code,
+        occurred_at AS last_seen
+      FROM filtered_events
+      ORDER BY visitor_id, occurred_at DESC
+    )
+    SELECT
+      COALESCE(lv.code, 'Unknown') AS code,
+      COUNT(*)::int AS visitors,
+      SUM(COUNT(*)) OVER ()::int AS total
+    FROM latest_visitors lv
+    WHERE TRUE
+      ${statusFilter}
+    GROUP BY lv.code
+    ORDER BY visitors DESC
+  `);
+
+  const rows = result.rows;
+  const total = toNumber(rows[0]?.total);
+
+  return {
+    locations: rows
+      .filter((row) => row.code && row.code !== "Unknown")
+      .map((row) => ({
+        code: row.code as string,
+        visitors: toNumber(row.visitors),
+      })),
+    total,
+  };
 }
 
 export async function getVisitorsModel(

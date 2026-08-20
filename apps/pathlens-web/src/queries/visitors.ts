@@ -48,6 +48,43 @@ export interface VisitorsParams {
   page_size: number
 }
 
+export interface VisitorLocation {
+  code: string
+  visitors: number
+}
+
+export interface VisitorLocationsData {
+  locations: VisitorLocation[]
+  total: number
+}
+
+export interface VisitorLocationsResponse {
+  success: boolean
+  data: VisitorLocationsData
+}
+
+export interface VisitorLocationsParams {
+  workspace_id: string
+  project_id: string
+  range: VisitorsRange
+  status: VisitorStatus
+}
+
+const getVisitorLocations = async (
+  params: VisitorLocationsParams
+): Promise<VisitorLocationsResponse> => {
+  const response = await apiClient.get('/visitors/locations', { params })
+
+  return response.data
+}
+
+export const getVisitorLocationsOptions = (params: VisitorLocationsParams) =>
+  queryOptions({
+    queryKey: ['VISITOR_LOCATIONS', params],
+    queryFn: () => getVisitorLocations(params),
+    enabled: Boolean(params.workspace_id && params.project_id),
+  })
+
 const getVisitors = async (
   params: VisitorsParams
 ): Promise<VisitorsResponse> => {
