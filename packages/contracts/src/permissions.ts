@@ -30,6 +30,14 @@ export const PERMISSIONS = [
   'analytics.reports.view',
   'analytics.reports.export',
   'analytics.ai_insights.view',
+  'chat.view',
+  'chat.send',
+  'chat.create_channels',
+  'chat.manage_channels',
+  'chat.manage_members',
+  'chat.delete_messages',
+  'chat.pin_messages',
+  'chat.share_context',
 ] as const
 
 export type Permission = (typeof PERMISSIONS)[number]
@@ -224,6 +232,53 @@ export const PERMISSION_GROUPS = [
       },
     ],
   },
+  {
+    id: 'chat',
+    label: 'Chat',
+    description: 'Control access to team chat and conversations.',
+    permissions: [
+      {
+        key: 'chat.view',
+        label: 'View chat',
+        description: 'See channels, conversations, and messages.',
+      },
+      {
+        key: 'chat.send',
+        label: 'Send messages',
+        description: 'Send messages, replies, reactions, and mentions.',
+      },
+      {
+        key: 'chat.create_channels',
+        label: 'Create channels',
+        description: 'Create new public or private channels.',
+      },
+      {
+        key: 'chat.manage_channels',
+        label: 'Manage channels',
+        description: 'Rename, archive, or delete channels.',
+      },
+      {
+        key: 'chat.manage_members',
+        label: 'Manage channel members',
+        description: 'Add or remove members from channels.',
+      },
+      {
+        key: 'chat.delete_messages',
+        label: 'Delete messages',
+        description: 'Delete messages sent by other members.',
+      },
+      {
+        key: 'chat.pin_messages',
+        label: 'Pin messages',
+        description: 'Pin messages to channels.',
+      },
+      {
+        key: 'chat.share_context',
+        label: 'Share analytics context',
+        description: 'Share analytics views and insights into chat.',
+      },
+    ],
+  },
 ] as const satisfies readonly PermissionGroupDefinition[]
 
 export const DEFAULT_VIEWER_PERMISSIONS = [
@@ -244,6 +299,9 @@ export const DEFAULT_VIEWER_PERMISSIONS = [
   'analytics.goals.view',
   'analytics.reports.view',
   'analytics.ai_insights.view',
+  'chat.view',
+  'chat.send',
+  'chat.share_context',
 ] as const satisfies readonly Permission[]
 
 export const DEFAULT_FULL_ACCESS_PERMISSIONS = PERMISSIONS

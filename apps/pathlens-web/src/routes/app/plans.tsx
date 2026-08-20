@@ -1,4 +1,3 @@
-import { AppHeader } from '@/components/common/app-header'
 import { PageHeader, PageLayout } from '@/components/common/page-layout'
 import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router'
 import { useState } from 'react'
@@ -148,15 +147,6 @@ function RouteComponent() {
 
   return (
     <PageLayout>
-      <AppHeader
-        user={{
-          name: user?.name ?? 'PathLens user',
-          email: user?.email ?? '',
-          avatar: user?.avatar,
-        }}
-        backToWorkspaces
-      />
-
       <PageHeader
         eyebrow="Account"
         title="Plans & billing."
@@ -240,11 +230,27 @@ function RouteComponent() {
                 Current usage against your {currentPlan.name} plan limits.
               </CardDescription>
             </div>
-            <Badge variant="outline">
-              {currentPlan.id === 'starter'
-                ? 'No renewal'
-                : 'Resets Aug 26, 2026'}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                render={
+                  <Link
+                    to="/app/$workspace/usage"
+                    params={{ workspace: workspaceId }}
+                  />
+                }
+                disabled={!workspaceId}
+              >
+                <Globe />
+                View workspace usage
+              </Button>
+              <Badge variant="outline">
+                {currentPlan.id === 'starter'
+                  ? 'No renewal'
+                  : 'Resets Aug 26, 2026'}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
 

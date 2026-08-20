@@ -3,7 +3,7 @@ import {
   ProjectPanel,
   SectionHeader,
 } from '@/components/common/project-page'
-import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { PageLayout } from '@/components/common/page-layout'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
@@ -197,7 +197,7 @@ function RouteComponent() {
   })
 
   return (
-    <WorkspacePageLayout workspaceId={workspace}>
+    <PageLayout>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Workspace billing"
@@ -790,6 +790,6 @@ function RouteComponent() {
           </CardContent>
         </ProjectPanel>
       </div>
-    </WorkspacePageLayout>
+    </PageLayout>
   )
 }

@@ -265,6 +265,13 @@ function RouteComponent() {
   return <PageContent />
 }
 
+const rangeLabels: Record<HeatmapsRange, string> = {
+  '24h': 'Last 24 hours',
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+}
+
 function PageContent() {
   const { workspace, project } = Route.useParams()
   const currentPlanId = useWorkspacePlan(workspace)
@@ -340,7 +347,9 @@ function PageContent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Date range" />
+              <SelectValue placeholder="Date range">
+                {rangeLabels[range]}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="24h">Last 24 hours</SelectItem>

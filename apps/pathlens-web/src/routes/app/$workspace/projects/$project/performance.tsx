@@ -76,6 +76,20 @@ const trendConfig = {
   },
 } satisfies ChartConfig
 
+const rangeLabels: Record<PerformanceRange, string> = {
+  '24h': 'Last 24 hours',
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+}
+
+const deviceLabels: Record<PerformanceDevice, string> = {
+  all: 'All Devices',
+  desktop: 'Desktop',
+  mobile: 'Mobile',
+  tablet: 'Tablet',
+}
+
 function RouteComponent() {
   return <PageContent />
 }
@@ -165,7 +179,9 @@ function PageContent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Date range" />
+              <SelectValue placeholder="Date range">
+                {rangeLabels[range]}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="24h">Last 24 hours</SelectItem>
@@ -182,7 +198,9 @@ function PageContent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Device" />
+              <SelectValue placeholder="Device">
+                {deviceLabels[device]}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Devices</SelectItem>

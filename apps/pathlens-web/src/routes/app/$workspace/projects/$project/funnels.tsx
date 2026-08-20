@@ -660,7 +660,12 @@ function PageContent() {
                   className="w-36 shrink-0"
                   aria-label="Funnel date range"
                 >
-                  <SelectValue placeholder="Date range" />
+                  <SelectValue placeholder="Date range">
+                    {
+                      rangeOptions.find((option) => option.value === range)
+                        ?.label
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {rangeOptions.map((option) => (

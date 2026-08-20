@@ -20,6 +20,13 @@ async function getWorkspaceId(req: AuthRequest): Promise<string | null> {
 
   if (workspaceId) return workspaceId;
 
+  const channelAccess = (req as { channelAccess?: { channel: { workspaceId: string } | null } })
+    .channelAccess;
+
+  if (channelAccess?.channel?.workspaceId) {
+    return channelAccess.channel.workspaceId;
+  }
+
   const projectId =
     getStringValue(req.params.project_id) ??
     getStringValue(req.query.project_id) ??

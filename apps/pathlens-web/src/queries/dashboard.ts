@@ -18,6 +18,7 @@ type T_Page = {
 type T_VisitorsChart = {
   day: string
   visitors: number
+  sessions: number
 }
 
 type T_Difference = {
@@ -62,6 +63,8 @@ export type T_Dashboard = {
   insights: string[]
   liveVisitors: number
   avgSessionDurationChange: T_Difference
+  bounceRate: number
+  bounceRateChange: T_Difference
   conversionRate: number
   conversionRateChange: T_Difference
 }
@@ -94,5 +97,5 @@ export const getDashboardOptions = (params: {
     queryKey: ['DASHBOARD', params],
     queryFn: () => getDashboard(params),
     enabled: !!params.workspace_id,
-    // refetchInterval: 5000,
+    refetchInterval: 30_000,
   })

@@ -157,7 +157,9 @@ function RouteComponent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Date range" />
+              <SelectValue placeholder="Date range">
+                {rangeOptions.find((option) => option.value === range)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {rangeOptions.map((option) => (
@@ -176,7 +178,13 @@ function RouteComponent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Visitor status" />
+              <SelectValue placeholder="Visitor status">
+                {status === 'all'
+                  ? 'All visitors'
+                  : status === 'online'
+                    ? 'Online now'
+                    : 'Offline'}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All visitors</SelectItem>

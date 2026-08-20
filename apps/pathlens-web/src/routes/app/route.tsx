@@ -1,3 +1,5 @@
+import { AppSidebar } from '@/components/app-sidebar'
+import { SidebarInset, SidebarProvider } from '@workspace/ui/components/sidebar'
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { getUsersOptions } from '@/queries/user'
 
@@ -15,5 +17,12 @@ export const Route = createFileRoute('/app')({
 })
 
 function RouteComponent() {
-  return <Outlet />
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <Outlet />
+      </SidebarInset>
+    </SidebarProvider>
+  )
 }

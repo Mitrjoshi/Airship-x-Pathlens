@@ -3,7 +3,7 @@ import {
   ProjectPanel,
 } from '@/components/common/project-page'
 import { PlanLimitNotice } from '@/components/common/plan-gate'
-import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { PageLayout } from '@/components/common/page-layout'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -162,7 +162,7 @@ function RouteComponent() {
   }, [currentWorkspace, form, workspace])
 
   return (
-    <WorkspacePageLayout workspaceId={workspace}>
+    <PageLayout>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Workspace"
@@ -591,6 +591,6 @@ function RouteComponent() {
           </ProjectPanel>
         </div>
       </div>
-    </WorkspacePageLayout>
+    </PageLayout>
   )
 }

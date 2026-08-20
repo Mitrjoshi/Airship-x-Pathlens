@@ -13,8 +13,9 @@
 - `pnpm dev` runs all persistent tasks. Focused examples are `pnpm --filter @pathlens/web dev`, `pnpm --filter @airship/web dev`, `pnpm --filter @pathlens/api dev`, and `pnpm --filter @pathlens/tracker build`.
 - Root checks are `pnpm lint`, `pnpm typecheck`, `pnpm build`, and `pnpm verify`; `verify` runs Turbo `lint`, `typecheck`, and `build`. There is no test script or test framework. Use `pnpm format` or `pnpm format:check` for formatting.
 - Only the two web apps define `lint`; use a target package's `typecheck` or `build` for APIs, the tracker, the worker, and shared packages.
-- Snapshot worker setup requires `DATABASE_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` plus an existing private Supabase bucket; `SUPABASE_STORAGE_BUCKET` defaults to `project-snapshots`. Install Chromium once with `pnpm --filter @pathlens/snapshot-worker install-browser`; `dev` runs source while `start` runs `dist/index.js`, so build before `start`.
-- After changing `apps/pathlens-api/src/db/schema.ts`, run `pnpm --filter @pathlens/api generate` and then `pnpm --filter @pathlens/api migrate`. Use `push` only for deliberate direct synchronization; `studio` opens Drizzle Studio.
+- Snapshot worker setup requires `DATABASE_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` plus an existing private Supabase bucket; `SUPABASE_STORAGE_BUCKET` defaults to `project-snapshots`. Install Chromium once with `pnpm --filter @pathlens/snapshot-worker install-browser`; `dev` runs source while `start` runs `dist/index.js`, so build before `start`. The worker loads its `.env` via `dotenv/config` in `src/db.ts`.
+- After changing `apps/pathlens-api/src/db/schema.ts`, run `pnpm --filter @pathlens/api generate` and then `pnpm --filter @pathlens/api migrate`. Use `push` only for deliberate direct synchronization; `studio` opens Drizzle Studio. The drizzle-kit commands read `DATABASE_URL` via `dotenv/config` in `drizzle.config.ts` (not Node's `--env-file`), so keep `apps/pathlens-api/.env` populated.
+- `pnpm --filter @pathlens/api backfill:campaigns` runs the one-off campaign-attribution backfill script in `src/scripts/`; the API has no other scripts there.
 
 ## Generated Files
 
@@ -31,5 +32,5 @@
 
 ## Conventions
 
-- API and tracker files use semicolons/double quotes. Airship web and `packages/ui` use no semicolons/double quotes; Pathlens web and the remaining packages use root no-semicolon/single-quote formatting.
+- Formatting comes from per-package `.prettierrc` files that override the root config; root `pnpm format` respects the nearest config per file. API and tracker files use semicolons/double quotes. Airship web and `packages/ui` use no semicolons/double quotes; Pathlens web and the remaining packages use root no-semicolon/single-quote formatting.
 - Web apps, `packages/ui`, and the snapshot worker enforce unused locals/parameters and `erasableSyntaxOnly`; avoid TypeScript syntax that requires runtime emission.

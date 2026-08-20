@@ -368,7 +368,9 @@ function PageContent() {
             onValueChange={(value) => setRange(value as GoalRange)}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Date range" />
+              <SelectValue placeholder="Date range">
+                {rangeOptions.find((option) => option.value === range)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {rangeOptions.map((option) => (
@@ -384,7 +386,9 @@ function PageContent() {
             onValueChange={(value) => setFilter(value as GoalFilter)}
           >
             <SelectTrigger className="w-full sm:w-32">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder="Status">
+                {filter === 'all' ? 'All Goals' : filter}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Goals</SelectItem>
@@ -427,7 +431,17 @@ function PageContent() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        {type === 'event'
+                          ? 'Event'
+                          : type === 'revenue'
+                            ? 'Revenue'
+                            : type === 'pageview'
+                              ? 'Pageview'
+                              : type === 'button'
+                                ? 'Button click'
+                                : 'Form submit'}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="event">Event</SelectItem>

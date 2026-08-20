@@ -10,6 +10,7 @@ import {
   getUserWorkspacesController,
   getWorkspaceMembers,
   getWorkspacePendingInvitations,
+  getWorkspaceUsage,
   removeWorkspaceMember,
   updatePermissionProfile,
   updateWorkspace,
@@ -26,6 +27,7 @@ router.post("/", createWorkspace);
 router.patch("/:workspace_id", updateWorkspace);
 router.delete("/:workspace_id", deleteWorkspace);
 router.get("/:workspace_id/members", getWorkspaceMembers);
+router.get("/:workspace_id/usage", getWorkspaceUsage);
 router.get("/:workspace_id/invitations", getWorkspacePendingInvitations);
 router.get("/:workspace_id/permission-profiles", getPermissionProfiles);
 router.post("/:workspace_id/permission-profiles", createPermissionProfile);

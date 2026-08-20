@@ -2,7 +2,7 @@ import {
   ProjectPageHeader,
   ProjectPanel,
 } from '@/components/common/project-page'
-import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { PageLayout } from '@/components/common/page-layout'
 import {
   getPlanDefinition,
   isPlanId,
@@ -90,7 +90,7 @@ function RouteComponent() {
 
   if (!plan) {
     return (
-      <WorkspacePageLayout workspaceId={workspace}>
+      <PageLayout>
         <div className="space-y-8">
           <ProjectPageHeader
             eyebrow="Workspace billing"
@@ -117,7 +117,7 @@ function RouteComponent() {
             </CardContent>
           </ProjectPanel>
         </div>
-      </WorkspacePageLayout>
+      </PageLayout>
     )
   }
 
@@ -140,7 +140,7 @@ function RouteComponent() {
   }
 
   return (
-    <WorkspacePageLayout workspaceId={workspace}>
+    <PageLayout>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Checkout"
@@ -406,6 +406,6 @@ function RouteComponent() {
           </ProjectPanel>
         </div>
       </div>
-    </WorkspacePageLayout>
+    </PageLayout>
   )
 }

@@ -4,6 +4,7 @@ import {
   BugIcon,
   BotIcon,
   ChartColumnIncreasingIcon,
+  ChartPie,
   ClapperboardIcon,
   DollarSign,
   FolderClosedIcon,
@@ -43,4 +44,5 @@ export const navigationIcons = {
   permissions: ShieldCheckIcon,
   workspaceSettings: SettingsIcon,
   billing: DollarSign,
+  usage: ChartPie,
 } as const

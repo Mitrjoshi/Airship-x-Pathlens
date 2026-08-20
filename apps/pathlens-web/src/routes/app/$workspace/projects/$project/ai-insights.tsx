@@ -191,7 +191,15 @@ function PageContent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Filter" />
+              <SelectValue placeholder="Filter">
+                {typeFilter === 'all'
+                  ? 'All Insights'
+                  : typeFilter === 'trend'
+                    ? 'Trends'
+                    : typeFilter === 'anomaly'
+                      ? 'Anomalies'
+                      : 'Opportunities'}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Insights</SelectItem>

@@ -11,7 +11,9 @@ import {
   Globe,
   Laptop,
   MonitorSmartphone,
+  Repeat,
   Smartphone,
+  UserPlus,
 } from 'lucide-react'
 
 import {
@@ -88,6 +90,20 @@ const deviceConfig = {
   },
 } satisfies ChartConfig
 
+const rangeLabels: Record<AnalyticsRange, string> = {
+  '24h': 'Last 24 hours',
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+}
+
+const deviceLabels: Record<AnalyticsDevice, string> = {
+  all: 'All Devices',
+  desktop: 'Desktop',
+  mobile: 'Mobile',
+  tablet: 'Tablet',
+}
+
 function RouteComponent() {
   const { workspace, project } = Route.useParams()
   const [range, setRange] = useState<AnalyticsRange>('7d')
@@ -107,8 +123,13 @@ function RouteComponent() {
   )
 
   const analytics = analyticsData?.data
-  const topDevice = analytics?.devices[0]
   const summary = [
+    {
+      title: 'Visitors',
+      value: formatNumber(analytics?.summary.visitors ?? 0),
+      icon: navigationIcons.visitors,
+      detail: 'Unique people in the range',
+    },
     {
       title: 'Sessions',
       value: formatNumber(analytics?.summary.sessions ?? 0),
@@ -127,19 +148,13 @@ function RouteComponent() {
       icon: Clock3,
       detail: 'Time per session',
     },
-    {
-      title: 'Leading device',
-      value: topDevice?.name ?? '—',
-      icon:
-        topDevice?.name === 'Mobile'
-          ? Smartphone
-          : topDevice?.name === 'Tablet'
-            ? MonitorSmartphone
-            : Laptop,
-      detail: topDevice
-        ? `${topDevice.value}% of sessions`
-        : 'No device data yet',
-    },
+  ]
+
+  const breakdown = analytics?.visitorBreakdown
+  const breakdownTotal = (breakdown?.new ?? 0) + (breakdown?.returning ?? 0)
+  const breakdownRows = [
+    { label: 'New visitors', value: breakdown?.new ?? 0, icon: UserPlus },
+    { label: 'Returning', value: breakdown?.returning ?? 0, icon: Repeat },
   ]
 
   return (
@@ -164,7 +179,9 @@ function RouteComponent() {
               }}
             >
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="Date range" />
+                <SelectValue placeholder="Date range">
+                  {rangeLabels[range]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="24h">Last 24 hours</SelectItem>
@@ -181,7 +198,9 @@ function RouteComponent() {
               }}
             >
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="Device" />
+                <SelectValue placeholder="Device">
+                  {deviceLabels[device]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Devices</SelectItem>
@@ -425,6 +444,98 @@ function RouteComponent() {
                   )}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-3">
+          <Card className="xl:col-span-2">
+            <CardHeader>
+              <CardTitle>Top pages</CardTitle>
+              <CardDescription>
+                Most visited pages in this audience
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[520px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-5">Page</TableHead>
+                      <TableHead>Views</TableHead>
+                      <TableHead className="pr-5">Avg. time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(analytics?.pages ?? []).length > 0 ? (
+                      analytics?.pages.map((page) => (
+                        <TableRow key={page.page}>
+                          <TableCell className="max-w-[300px] truncate pl-5 font-medium">
+                            {page.page ?? '/'}
+                          </TableCell>
+                          <TableCell>{formatNumber(page.views)}</TableCell>
+                          <TableCell className="pr-5 tabular-nums">
+                            {page.duration}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={3}
+                          className="text-muted-foreground py-10 text-center"
+                        >
+                          No page data yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>New vs returning</CardTitle>
+              <CardDescription>Audience composition by history</CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              {breakdownTotal > 0 ? (
+                <div className="space-y-4">
+                  {breakdownRows.map((row) => {
+                    const Icon = row.icon
+
+                    return (
+                      <div key={row.label}>
+                        <div className="flex items-center justify-between gap-4 text-sm">
+                          <span className="flex items-center gap-2">
+                            <Icon className="text-muted-foreground h-4 w-4" />
+                            {row.label}
+                          </span>
+                          <span className="text-muted-foreground text-xs tabular-nums">
+                            {formatNumber(row.value)}
+                          </span>
+                        </div>
+                        <div className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full">
+                          <div
+                            className="bg-foreground h-full rounded-full"
+                            style={{
+                              width: `${Math.max((row.value / breakdownTotal) * 100, 4)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
+                  No visitor data yet.
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

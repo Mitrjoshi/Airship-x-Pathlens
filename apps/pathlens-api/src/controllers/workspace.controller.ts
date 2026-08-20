@@ -22,6 +22,7 @@ import {
   updateWorkspaceModel,
   updateWorkspaceMemberModel,
 } from "../models/workshop.model";
+import { getWorkspaceUsageModel } from "../models/usage.model";
 import { getUserByEmailModel } from "../models/users.model";
 import { AuthRequest } from "../lib/jwt";
 
@@ -281,6 +282,42 @@ export async function getWorkspaceMembers(req: AuthRequest, res: Response) {
     return res.status(200).json({
       success: true,
       data: members,
+    });
+  } catch (error) {
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+export async function getWorkspaceUsage(req: AuthRequest, res: Response) {
+  const userId = getAuthenticatedUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { workspace_id } = workspaceParamsSchema.parse(req.params);
+    const member = await requireWorkspacePermission(
+      workspace_id,
+      userId,
+      "workspace.view"
+    );
+
+    if (!member) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have access to this workspace.",
+      });
+    }
+
+    const usage = await getWorkspaceUsageModel(workspace_id, userId);
+
+    return res.status(200).json({
+      success: true,
+      data: usage,
     });
   } catch (error) {
     return res.status(error instanceof ZodError ? 400 : 500).json({

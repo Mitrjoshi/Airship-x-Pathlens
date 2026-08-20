@@ -2,7 +2,7 @@ import {
   ProjectPageHeader,
   ProjectPanel,
 } from '@/components/common/project-page'
-import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { PageLayout } from '@/components/common/page-layout'
 import { PlanFeatureNotice } from '@/components/common/plan-gate'
 import {
   useCreateWorkspacePermissionProfile,
@@ -327,7 +327,7 @@ function RouteComponent() {
 
   if (!hasAdvancedPermissions) {
     return (
-      <WorkspacePageLayout workspaceId={workspace}>
+      <PageLayout>
         <div className="space-y-8">
           <ProjectPageHeader
             eyebrow="Workspace access"
@@ -340,7 +340,7 @@ function RouteComponent() {
             description="Advanced permissions and custom access profiles are available on the Business plan."
           />
         </div>
-      </WorkspacePageLayout>
+      </PageLayout>
     )
   }
 
@@ -396,7 +396,7 @@ function RouteComponent() {
     createProfile.isPending || updateProfile.isPending
 
   return (
-    <WorkspacePageLayout workspaceId={workspace}>
+    <PageLayout>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Workspace access"
@@ -600,7 +600,7 @@ function RouteComponent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </WorkspacePageLayout>
+    </PageLayout>
   )
 }
 

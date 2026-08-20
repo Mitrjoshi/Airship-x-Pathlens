@@ -17,6 +17,7 @@ import {
   useLocation,
   useNavigate,
   useRouteContext,
+  useRouterState,
 } from '@tanstack/react-router'
 import { getProjectsOptions } from '@/queries/projects'
 import { getWorkspacesOptions } from '@/queries/workspace'
@@ -40,13 +41,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
   SidebarFooter,
 } from '@workspace/ui/components/sidebar'
 import { NavUser } from '@/components/common/nav-user'
-import { PageLayout } from '@/components/common/page-layout'
 
 type ProjectNavPath =
   | '/app/$workspace/projects/$project/dashboard'
@@ -88,7 +86,7 @@ export function AppSidebar({
   projectId,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  workspaceId: string
+  workspaceId?: string
   projectId?: string
 }) {
   const { pathname } = useLocation()
@@ -96,8 +94,26 @@ export function AppSidebar({
     from: '/app',
     select: (context) => context.user,
   })
+  const routeParams = useRouterState({
+    select: (state) => {
+      for (let i = state.matches.length - 1; i >= 0; i--) {
+        const params = state.matches[i].params as {
+          workspace?: string
+          project?: string
+        }
+
+        if (params.workspace) return params
+      }
+
+      return undefined
+    },
+  })
+  const activeWorkspaceId = workspaceId ?? routeParams?.workspace ?? ''
+  const resolvedWorkspaceId =
+    activeWorkspaceId || (user?.defaultWorkspace?.id ?? '')
+  const resolvedProjectId = projectId ?? routeParams?.project
   const { data: workspaceData } = useQuery(getWorkspacesOptions())
-  const activePlanId = useWorkspacePlan(workspaceId)
+  const activePlanId = useWorkspacePlan(resolvedWorkspaceId)
 
   const workspaceList =
     workspaceData?.data ??
@@ -109,10 +125,10 @@ export function AppSidebar({
     plan: `${getPlanDefinition(getWorkspacePlan(workspace.id)).name} plan`,
   }))
   const activeWorkspace = workspaceList.find(
-    (workspace) => workspace.id === workspaceId
+    (workspace) => workspace.id === resolvedWorkspaceId
   )
-  const projectBasePath = projectId
-    ? `/app/${workspaceId}/projects/${projectId}`
+  const projectBasePath = resolvedProjectId
+    ? `/app/${resolvedWorkspaceId}/projects/${resolvedProjectId}`
     : ''
 
   const navMain: ProjectNavItem[] = [
@@ -257,33 +273,45 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <WorkspaceSwitcher teams={workspaces} activeWorkspaceId={workspaceId} />
+        <WorkspaceSwitcher
+          teams={workspaces}
+          activeWorkspaceId={resolvedWorkspaceId}
+        />
       </SidebarHeader>
       <SidebarContent>
-        {!projectId && (
+        {resolvedProjectId ? (
+          <>
+            <WorkspaceNav
+              workspaceId={resolvedWorkspaceId}
+              role={activeWorkspace?.role}
+              permissions={activeWorkspace?.permissions ?? []}
+              planId={activePlanId}
+            />
+            <NavMain
+              items={navMain
+                .filter(
+                  (item) =>
+                    activeWorkspace?.role === 'owner' ||
+                    activeWorkspace?.permissions?.includes(item.permission)
+                )
+                .filter(
+                  (item) =>
+                    !item.planFeature ||
+                    hasPlanFeature(activePlanId, item.planFeature)
+                )}
+              workspaceId={resolvedWorkspaceId}
+              projectId={resolvedProjectId}
+            />
+          </>
+        ) : activeWorkspaceId ? (
           <WorkspaceNav
-            workspaceId={workspaceId}
+            workspaceId={resolvedWorkspaceId}
             role={activeWorkspace?.role}
             permissions={activeWorkspace?.permissions ?? []}
             planId={activePlanId}
           />
-        )}
-        {projectId && (
-          <NavMain
-            items={navMain
-              .filter(
-                (item) =>
-                  activeWorkspace?.role === 'owner' ||
-                  activeWorkspace?.permissions?.includes(item.permission)
-              )
-              .filter(
-                (item) =>
-                  !item.planFeature ||
-                  hasPlanFeature(activePlanId, item.planFeature)
-              )}
-            workspaceId={workspaceId}
-            projectId={projectId}
-          />
+        ) : (
+          <GeneralNav />
         )}
       </SidebarContent>
 
@@ -309,32 +337,42 @@ export function AppSidebar({
   )
 }
 
-export function WorkspaceSidebarLayout({
-  workspaceId,
-  children,
-}: {
-  workspaceId: string
-  children: React.ReactNode
-}) {
-  return (
-    <SidebarProvider>
-      <AppSidebar workspaceId={workspaceId} />
-      <SidebarInset>{children}</SidebarInset>
-    </SidebarProvider>
-  )
-}
+function GeneralNav() {
+  const { pathname } = useLocation()
 
-export function WorkspacePageLayout({
-  workspaceId,
-  children,
-}: {
-  workspaceId: string
-  children: React.ReactNode
-}) {
   return (
-    <WorkspaceSidebarLayout workspaceId={workspaceId}>
-      <PageLayout>{children}</PageLayout>
-    </WorkspaceSidebarLayout>
+    <SidebarGroup>
+      <SidebarGroupLabel>General</SidebarGroupLabel>
+      <SidebarMenu className="space-y-1">
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            isActive={pathname === '/app' || pathname === '/app/'}
+            render={<Link to="/app" />}
+          >
+            <navigationIcons.projects className="size-4" />
+            <span>Workspaces</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            isActive={pathname === '/app/account'}
+            render={<Link to="/app/account" />}
+          >
+            <navigationIcons.settings className="size-4" />
+            <span>Account</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            isActive={pathname === '/app/plans'}
+            render={<Link to="/app/plans" />}
+          >
+            <navigationIcons.billing className="size-4" />
+            <span>Plans</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarGroup>
   )
 }
 
@@ -526,6 +564,20 @@ function WorkspaceNav({
             </SidebarMenuButton>
           </SidebarMenuItem>
         )}
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            isActive={pathname.includes('/usage')}
+            render={
+              <Link
+                to="/app/$workspace/usage"
+                params={{ workspace: workspaceId }}
+              />
+            }
+          >
+            <navigationIcons.usage className="size-4" />
+            <span>Usage</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
             isActive={

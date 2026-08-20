@@ -324,7 +324,9 @@ function PageContent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Date range" />
+              <SelectValue placeholder="Date range">
+                {rangeLabels[range]}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {rangeOptions.map((option) => (
@@ -342,7 +344,9 @@ function PageContent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-32">
-              <SelectValue placeholder="Device" />
+              <SelectValue placeholder="Device">
+                {deviceLabels[device]}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {deviceOptions.map((option) => (

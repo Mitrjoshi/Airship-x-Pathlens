@@ -43,6 +43,7 @@ export interface DashboardResponse {
   visitorsChart: {
     day: string;
     visitors: number;
+    sessions: number;
   }[];
   trafficSources: {
     name: string;
@@ -65,6 +66,8 @@ export interface DashboardResponse {
   insights: string[];
   liveVisitors: number;
   avgSessionDurationChange: DashboardDifference;
+  bounceRate: number;
+  bounceRateChange: DashboardDifference;
   conversionRate: number;
   conversionRateChange: DashboardDifference;
 }
@@ -78,6 +81,7 @@ interface StatsRow extends Record<string, unknown> {
   avg_session_duration_this_week: number | string | null;
   avg_session_duration_last_week: number | string | null;
   bounce_rate_this_week: number | string | null;
+  bounce_rate_last_week: number | string | null;
   visitors_this_week: number | string | null;
   visitors_last_week: number | string | null;
   sessions_this_week: number | string | null;
@@ -99,6 +103,7 @@ interface PageRow extends Record<string, unknown> {
 interface VisitorChartRow extends Record<string, unknown> {
   day: string;
   visitors: number | string | null;
+  sessions: number | string | null;
 }
 
 interface SourceRow extends Record<string, unknown> {
@@ -289,6 +294,15 @@ export async function getDashboardModel(
           FROM filtered_events
           WHERE occurred_at >= NOW() - make_interval(days => ${rangeDays})
           GROUP BY session_id
+        ),
+        period_session_stats_last_week AS (
+          SELECT
+            session_id,
+            COUNT(*) FILTER (WHERE type = 'page_view') AS page_views
+          FROM filtered_events
+          WHERE occurred_at >= NOW() - make_interval(days => ${rangeDays * 2})
+            AND occurred_at < NOW() - make_interval(days => ${rangeDays})
+          GROUP BY session_id
         )
         SELECT
           (SELECT COUNT(DISTINCT visitor_id) FROM filtered_events
@@ -351,6 +365,13 @@ export async function getDashboardModel(
             ) / NULLIF((SELECT COUNT(*) FROM period_session_stats), 0),
             0
           )::float AS bounce_rate_this_week,
+          COALESCE(
+            100.0 * (
+              SELECT COUNT(*) FILTER (WHERE page_views = 1)
+              FROM period_session_stats_last_week
+            ) / NULLIF((SELECT COUNT(*) FROM period_session_stats_last_week), 0),
+            0
+          )::float AS bounce_rate_last_week,
           COUNT(DISTINCT visitor_id) FILTER (
             WHERE occurred_at >= NOW() - make_interval(days => ${rangeDays})
           )::int AS visitors_this_week,
@@ -436,7 +457,8 @@ export async function getDashboardModel(
         )
         SELECT
           TO_CHAR(days.day, 'Dy') AS day,
-          COUNT(DISTINCT e.visitor_id)::int AS visitors
+          COUNT(DISTINCT e.visitor_id)::int AS visitors,
+          COUNT(DISTINCT e.session_id)::int AS sessions
         FROM days
         LEFT JOIN events e
           ON e.occurred_at >= NOW() - make_interval(days => ${rangeDays})
@@ -565,6 +587,7 @@ export async function getDashboardModel(
   const visitorsChart = visitorsChartResult.rows.map((row) => ({
     day: row.day,
     visitors: toNumber(row.visitors),
+    sessions: toNumber(row.sessions),
   }));
 
   const sourcesTotal = sourcesResult.rows.reduce(
@@ -617,6 +640,9 @@ export async function getDashboardModel(
   }));
 
   const bounceRate = Number(toNumber(stats?.bounce_rate_this_week).toFixed(1));
+  const bounceRateLastWeek = Number(
+    toNumber(stats?.bounce_rate_last_week).toFixed(1)
+  );
   const insights = buildInsights({
     bounceRate,
     trafficSources,
@@ -650,6 +676,8 @@ export async function getDashboardModel(
       avgSessionDurationThisWeek,
       avgSessionDurationLastWeek
     ),
+    bounceRate,
+    bounceRateChange: getDifference(bounceRate, bounceRateLastWeek),
     conversionRate,
     conversionRateChange: getDifference(conversionRate, conversionRateLastWeek),
   };

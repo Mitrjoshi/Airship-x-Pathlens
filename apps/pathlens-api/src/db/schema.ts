@@ -228,6 +228,16 @@ export const notifications = pgTable(
       }
     ),
 
+    channelId: uuid("channel_id").references(() => chatChannels.id, {
+      onDelete: "set null",
+    }),
+
+    messageId: bigint("message_id", {
+      mode: "number",
+    }).references(() => chatMessages.id, {
+      onDelete: "set null",
+    }),
+
     readAt: timestamp("read_at", {
       withTimezone: true,
     }),
@@ -767,5 +777,245 @@ export const replayChunks = pgTable(
       table.sessionId,
       table.firstTimestamp
     ),
+  })
+);
+
+/* -------------------------------------------------------------------------- */
+/*                                   CHAT                                     */
+/* -------------------------------------------------------------------------- */
+
+export const chatChannels = pgTable(
+  "chat_channels",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, {
+        onDelete: "cascade",
+      }),
+
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+
+    type: text("type").notNull().default("channel"),
+
+    name: text("name").notNull(),
+
+    description: text("description"),
+
+    topic: text("topic"),
+
+    visibility: text("visibility").notNull().default("public"),
+
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    archivedAt: timestamp("archived_at", {
+      withTimezone: true,
+    }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    workspaceIdx: index("chat_channels_workspace_idx").on(table.workspaceId),
+    workspaceTypeIdx: index("chat_channels_workspace_type_idx").on(
+      table.workspaceId,
+      table.type
+    ),
+    projectIdx: index("chat_channels_project_idx").on(table.projectId),
+  })
+);
+
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: bigint("id", {
+      mode: "number",
+    })
+      .generatedAlwaysAsIdentity()
+      .primaryKey(),
+
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, {
+        onDelete: "cascade",
+      }),
+
+    channelId: uuid("channel_id")
+      .notNull()
+      .references(() => chatChannels.id, {
+        onDelete: "cascade",
+      }),
+
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    content: text("content").notNull().default(""),
+
+    replyToMessageId: bigint("reply_to_message_id", {
+      mode: "number",
+    }).references((): any => chatMessages.id, {
+      onDelete: "set null",
+    }),
+
+    contextType: text("context_type"),
+
+    contextData: jsonb("context_data").$type<Record<string, unknown>>(),
+
+    contextTitle: text("context_title"),
+
+    editedAt: timestamp("edited_at", {
+      withTimezone: true,
+    }),
+
+    deletedAt: timestamp("deleted_at", {
+      withTimezone: true,
+    }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    channelIdx: index("chat_messages_channel_idx").on(
+      table.channelId,
+      table.id
+    ),
+    workspaceIdx: index("chat_messages_workspace_idx").on(table.workspaceId),
+    senderIdx: index("chat_messages_sender_idx").on(table.senderId),
+    replyToIdx: index("chat_messages_reply_to_idx").on(table.replyToMessageId),
+  })
+);
+
+export const chatChannelMembers = pgTable(
+  "chat_channel_members",
+  {
+    channelId: uuid("channel_id")
+      .notNull()
+      .references(() => chatChannels.id, {
+        onDelete: "cascade",
+      }),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    joinedAt: timestamp("joined_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+
+    lastReadMessageId: bigint("last_read_message_id", {
+      mode: "number",
+    }).references(() => chatMessages.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.channelId, table.userId] }),
+    userIdx: index("chat_channel_members_user_idx").on(table.userId),
+  })
+);
+
+export const chatMessageReactions = pgTable(
+  "chat_message_reactions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    messageId: bigint("message_id", {
+      mode: "number",
+    })
+      .notNull()
+      .references(() => chatMessages.id, {
+        onDelete: "cascade",
+      }),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    emoji: text("emoji").notNull(),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    messageUserEmojiIdx: uniqueIndex(
+      "chat_message_reactions_message_user_emoji_idx"
+    ).on(table.messageId, table.userId, table.emoji),
+    messageIdx: index("chat_message_reactions_message_idx").on(table.messageId),
+  })
+);
+
+export const chatPinnedMessages = pgTable(
+  "chat_pinned_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    channelId: uuid("channel_id")
+      .notNull()
+      .references(() => chatChannels.id, {
+        onDelete: "cascade",
+      }),
+
+    messageId: bigint("message_id", {
+      mode: "number",
+    })
+      .notNull()
+      .references(() => chatMessages.id, {
+        onDelete: "cascade",
+      }),
+
+    pinnedBy: uuid("pinned_by")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    messageIdx: uniqueIndex("chat_pinned_messages_message_idx").on(
+      table.messageId
+    ),
+    channelIdx: index("chat_pinned_messages_channel_idx").on(table.channelId),
   })
 );

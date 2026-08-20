@@ -1,4 +1,4 @@
-import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { PageLayout } from '@/components/common/page-layout'
 import { PlanLimitNotice } from '@/components/common/plan-gate'
 import {
   ProjectPageHeader,
@@ -54,7 +54,7 @@ function RouteComponent() {
   const projects = data?.data ?? []
 
   return (
-    <WorkspacePageLayout workspaceId={workspace}>
+    <PageLayout>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Workspace projects"
@@ -138,6 +138,6 @@ function RouteComponent() {
           </div>
         )}
       </div>
-    </WorkspacePageLayout>
+    </PageLayout>
   )
 }

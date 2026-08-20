@@ -4,6 +4,7 @@ import { z, ZodError } from "zod";
 import {
   acceptWorkspaceNotificationModel,
   getUserNotificationsModel,
+  markNotificationReadModel,
 } from "../models/workshop.model";
 import { AuthRequest } from "../lib/jwt";
 
@@ -67,6 +68,36 @@ export async function acceptNotification(req: AuthRequest, res: Response) {
     });
   } catch (error) {
     return res.status(error instanceof ZodError ? 400 : 409).json({
+      success: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+export async function markNotificationRead(req: AuthRequest, res: Response) {
+  const userId = getAuthenticatedUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { notification_id } = notificationParamsSchema.parse(req.params);
+    const notification = await markNotificationReadModel({
+      notificationId: notification_id,
+      userId,
+    });
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: "Notification not found." });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { id: notification.id, read: true },
+    });
+  } catch (error) {
+    return res.status(400).json({
       success: false,
       message: getErrorMessage(error),
     });

@@ -1,4 +1,4 @@
-import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { PageLayout } from '@/components/common/page-layout'
 import { PlanLimitNotice } from '@/components/common/plan-gate'
 import {
   ProjectPageHeader,
@@ -360,7 +360,7 @@ function RouteComponent() {
   const StepIcon = step === 1 ? Globe2 : Activity
 
   return (
-    <WorkspacePageLayout workspaceId={workspace}>
+    <PageLayout>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Workspace projects"
@@ -684,6 +684,6 @@ function RouteComponent() {
           <SetupSummary draft={draft} step={step} />
         </div>
       </div>
-    </WorkspacePageLayout>
+    </PageLayout>
   )
 }

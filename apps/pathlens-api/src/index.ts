@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import routes from "./routes";
 
-const app = express();
+export const app = express();
 
 app.use(
   cors({

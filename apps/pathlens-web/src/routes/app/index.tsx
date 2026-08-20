@@ -1,4 +1,3 @@
-import { AppHeader } from '@/components/common/app-header'
 import { PlanLimitNotice } from '@/components/common/plan-gate'
 import {
   PageHeader,
@@ -59,14 +58,6 @@ function RouteComponent() {
 
   return (
     <PageLayout>
-      <AppHeader
-        user={{
-          name: user?.name ?? 'PathLens user',
-          email: user?.email ?? '',
-          avatar: user?.avatar,
-        }}
-      />
-
       <PageHeader
         eyebrow="Workspace"
         title="Choose where to work."

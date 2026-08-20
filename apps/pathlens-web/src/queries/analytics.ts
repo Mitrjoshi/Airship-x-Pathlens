@@ -8,6 +8,7 @@ export type T_Analytics = {
   summary: {
     visitors: number
     sessions: number
+    pageViews: number
     bounceRate: number
     avgDuration: string
   }
@@ -33,6 +34,15 @@ export type T_Analytics = {
     name: string
     visitors: number
   }[]
+  pages: {
+    page: string | null
+    views: number
+    duration: string
+  }[]
+  visitorBreakdown: {
+    new: number
+    returning: number
+  }
 }
 
 export interface AnalyticsResponse {

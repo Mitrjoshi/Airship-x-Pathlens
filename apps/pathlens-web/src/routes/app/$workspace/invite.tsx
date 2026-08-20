@@ -3,7 +3,7 @@ import {
   ProjectPanel,
 } from '@/components/common/project-page'
 import { PlanLimitNotice } from '@/components/common/plan-gate'
-import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { PageLayout } from '@/components/common/page-layout'
 import { Button } from '@workspace/ui/components/button'
 import {
   CardContent,
@@ -129,7 +129,7 @@ function RouteComponent() {
   }
 
   return (
-    <WorkspacePageLayout workspaceId={workspace}>
+    <PageLayout>
       <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Workspace members"
@@ -207,7 +207,14 @@ function RouteComponent() {
                       id="invite-permission-profile"
                       className="w-full"
                     >
-                      <SelectValue placeholder="Choose a permission profile" />
+                      <SelectValue placeholder="Choose a permission profile">
+                        {
+                          profiles.find(
+                            (profile) =>
+                              profile.id === selectedPermissionProfileId
+                          )?.name
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {profiles.map((profile) => (
@@ -298,6 +305,6 @@ function RouteComponent() {
           </ProjectPanel>
         </div>
       </div>
-    </WorkspacePageLayout>
+    </PageLayout>
   )
 }

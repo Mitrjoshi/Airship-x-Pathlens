@@ -146,6 +146,19 @@ const rangeLabels = {
   '90d': 'Last 90 days',
 } as const
 
+const deviceLabels = {
+  all: 'All devices',
+  desktop: 'Desktop',
+  mobile: 'Mobile',
+  tablet: 'Tablet',
+} as const
+
+const segmentLabels = {
+  all: 'All paths',
+  conversion: 'Conversion paths',
+  dropoff: 'Drop-off paths',
+} as const
+
 function layoutJourneyNodes(sourceNodes: UserJourneyNode[]) {
   const columns = new Map<number, UserJourneyNode[]>()
 
@@ -608,7 +621,9 @@ function PageContent() {
               }}
             >
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="Date range" />
+                <SelectValue placeholder="Date range">
+                  {rangeLabels[range]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="24h">Last 24 hours</SelectItem>
@@ -631,7 +646,9 @@ function PageContent() {
               }}
             >
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="Device" />
+                <SelectValue placeholder="Device">
+                  {deviceLabels[device]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All devices</SelectItem>
@@ -647,7 +664,9 @@ function PageContent() {
               }}
             >
               <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Journey segment" />
+                <SelectValue placeholder="Journey segment">
+                  {segmentLabels[segment]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All paths</SelectItem>

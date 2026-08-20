@@ -3,7 +3,7 @@ import {
   ProjectPanel,
 } from '@/components/common/project-page'
 import { PlanLimitNotice } from '@/components/common/plan-gate'
-import { WorkspacePageLayout } from '@/components/app-sidebar'
+import { PageLayout } from '@/components/common/page-layout'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Badge } from '@workspace/ui/components/badge'
 import {
@@ -144,7 +144,7 @@ function RouteComponent() {
   }
 
   return (
-    <WorkspacePageLayout workspaceId={workspace}>
+    <PageLayout>
       <div>
         <ProjectPageHeader
           eyebrow="Team"
@@ -382,7 +382,13 @@ function RouteComponent() {
               disabled={profilesPending || profiles.length === 0}
             >
               <SelectTrigger id="member-permission-profile" className="w-full">
-                <SelectValue placeholder="Choose a permission profile" />
+                <SelectValue placeholder="Choose a permission profile">
+                  {
+                    profiles.find(
+                      (profile) => profile.id === memberPermissionProfileId
+                    )?.name
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {profiles.map((profile) => (
@@ -468,6 +474,6 @@ function RouteComponent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </WorkspacePageLayout>
+    </PageLayout>
   )
 }

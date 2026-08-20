@@ -27,6 +27,7 @@ import { Route as AppWorkspaceBillingRouteImport } from './routes/app/$workspace
 import { Route as AppWorkspaceInviteRouteImport } from './routes/app/$workspace/invite'
 import { Route as AppWorkspaceMembersRouteImport } from './routes/app/$workspace/members'
 import { Route as AppWorkspacePermissionProfilesRouteImport } from './routes/app/$workspace/permission-profiles'
+import { Route as AppWorkspaceUsageRouteImport } from './routes/app/$workspace/usage'
 import { Route as AppWorkspaceWorkspaceSettingsRouteImport } from './routes/app/$workspace/workspace-settings'
 import { Route as AppWorkspaceCheckoutPlanRouteImport } from './routes/app/$workspace/checkout/$plan'
 import { Route as AppWorkspaceProjectsIndexRouteImport } from './routes/app/$workspace/projects/index'
@@ -141,6 +142,11 @@ const AppWorkspacePermissionProfilesRoute =
     path: '/$workspace/permission-profiles',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppWorkspaceUsageRoute = AppWorkspaceUsageRouteImport.update({
+  id: '/$workspace/usage',
+  path: '/$workspace/usage',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppWorkspaceWorkspaceSettingsRoute =
   AppWorkspaceWorkspaceSettingsRouteImport.update({
     id: '/$workspace/workspace-settings',
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspace/invite': typeof AppWorkspaceInviteRoute
   '/app/$workspace/members': typeof AppWorkspaceMembersRoute
   '/app/$workspace/permission-profiles': typeof AppWorkspacePermissionProfilesRoute
+  '/app/$workspace/usage': typeof AppWorkspaceUsageRoute
   '/app/$workspace/workspace-settings': typeof AppWorkspaceWorkspaceSettingsRoute
   '/app/$workspace/': typeof AppWorkspaceIndexRoute
   '/app/$workspace/projects/$project': typeof AppWorkspaceProjectsProjectRouteRouteWithChildren
@@ -337,6 +344,7 @@ export interface FileRoutesByTo {
   '/app/$workspace/invite': typeof AppWorkspaceInviteRoute
   '/app/$workspace/members': typeof AppWorkspaceMembersRoute
   '/app/$workspace/permission-profiles': typeof AppWorkspacePermissionProfilesRoute
+  '/app/$workspace/usage': typeof AppWorkspaceUsageRoute
   '/app/$workspace/workspace-settings': typeof AppWorkspaceWorkspaceSettingsRoute
   '/app/$workspace': typeof AppWorkspaceIndexRoute
   '/app/$workspace/checkout/$plan': typeof AppWorkspaceCheckoutPlanRoute
@@ -380,6 +388,7 @@ export interface FileRoutesById {
   '/app/$workspace/invite': typeof AppWorkspaceInviteRoute
   '/app/$workspace/members': typeof AppWorkspaceMembersRoute
   '/app/$workspace/permission-profiles': typeof AppWorkspacePermissionProfilesRoute
+  '/app/$workspace/usage': typeof AppWorkspaceUsageRoute
   '/app/$workspace/workspace-settings': typeof AppWorkspaceWorkspaceSettingsRoute
   '/app/$workspace/': typeof AppWorkspaceIndexRoute
   '/app/$workspace/projects/$project': typeof AppWorkspaceProjectsProjectRouteRouteWithChildren
@@ -424,6 +433,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/invite'
     | '/app/$workspace/members'
     | '/app/$workspace/permission-profiles'
+    | '/app/$workspace/usage'
     | '/app/$workspace/workspace-settings'
     | '/app/$workspace/'
     | '/app/$workspace/projects/$project'
@@ -465,6 +475,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/invite'
     | '/app/$workspace/members'
     | '/app/$workspace/permission-profiles'
+    | '/app/$workspace/usage'
     | '/app/$workspace/workspace-settings'
     | '/app/$workspace'
     | '/app/$workspace/checkout/$plan'
@@ -507,6 +518,7 @@ export interface FileRouteTypes {
     | '/app/$workspace/invite'
     | '/app/$workspace/members'
     | '/app/$workspace/permission-profiles'
+    | '/app/$workspace/usage'
     | '/app/$workspace/workspace-settings'
     | '/app/$workspace/'
     | '/app/$workspace/projects/$project'
@@ -669,6 +681,13 @@ declare module '@tanstack/react-router' {
       path: '/$workspace/permission-profiles'
       fullPath: '/app/$workspace/permission-profiles'
       preLoaderRoute: typeof AppWorkspacePermissionProfilesRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/$workspace/usage': {
+      id: '/app/$workspace/usage'
+      path: '/$workspace/usage'
+      fullPath: '/app/$workspace/usage'
+      preLoaderRoute: typeof AppWorkspaceUsageRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/app/$workspace/workspace-settings': {
@@ -924,6 +943,7 @@ interface AppRouteRouteChildren {
   AppWorkspaceInviteRoute: typeof AppWorkspaceInviteRoute
   AppWorkspaceMembersRoute: typeof AppWorkspaceMembersRoute
   AppWorkspacePermissionProfilesRoute: typeof AppWorkspacePermissionProfilesRoute
+  AppWorkspaceUsageRoute: typeof AppWorkspaceUsageRoute
   AppWorkspaceWorkspaceSettingsRoute: typeof AppWorkspaceWorkspaceSettingsRoute
   AppWorkspaceIndexRoute: typeof AppWorkspaceIndexRoute
   AppWorkspaceProjectsProjectRouteRoute: typeof AppWorkspaceProjectsProjectRouteRouteWithChildren
@@ -940,6 +960,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppWorkspaceInviteRoute: AppWorkspaceInviteRoute,
   AppWorkspaceMembersRoute: AppWorkspaceMembersRoute,
   AppWorkspacePermissionProfilesRoute: AppWorkspacePermissionProfilesRoute,
+  AppWorkspaceUsageRoute: AppWorkspaceUsageRoute,
   AppWorkspaceWorkspaceSettingsRoute: AppWorkspaceWorkspaceSettingsRoute,
   AppWorkspaceIndexRoute: AppWorkspaceIndexRoute,
   AppWorkspaceProjectsProjectRouteRoute:

@@ -383,7 +383,12 @@ function RouteComponent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
+              <SelectValue>
+                {
+                  categoryOptions.find((option) => option.value === category)
+                    ?.label
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {categoryOptions.map((option) => (
@@ -401,7 +406,9 @@ function RouteComponent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
+              <SelectValue>
+                {deviceOptions.find((option) => option.value === device)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {deviceOptions.map((option) => (
@@ -419,7 +426,9 @@ function RouteComponent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
+              <SelectValue>
+                {rangeOptions.find((option) => option.value === range)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {rangeOptions.map((option) => (

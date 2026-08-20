@@ -39,18 +39,30 @@ import {
   type DashboardRange,
   type DashboardDevice,
 } from '@/queries/dashboard'
-import { formatNumber } from '@/utils/utils'
+import { getEventsOptions } from '@/queries/events'
+import { getPerformanceOptions } from '@/queries/performance'
+import { formatNumber, formatRelativeTime } from '@/utils/utils'
 import { navigationIcons } from '@/config/navigation-icons'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { cn } from '@workspace/ui/lib/utils'
+import { Button } from '@workspace/ui/components/button'
 import {
   ArrowUpRight,
   CheckCircle2,
+  Clock3,
   Eye,
+  Gauge,
   Globe,
+  Laptop,
+  MonitorSmartphone,
   Radio,
+  RefreshCw,
+  Smartphone,
+  Timer,
   TrendingDown,
   TrendingUp,
+  Zap,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
@@ -69,11 +81,42 @@ const chartConfig = {
     label: 'Visitors',
     color: 'var(--chart-1)',
   },
+  sessions: {
+    label: 'Sessions',
+    color: 'var(--chart-2)',
+  },
 } satisfies ChartConfig
+
+const rangeLabels: Record<DashboardRange, string> = {
+  '24h': 'Last 24 hours',
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+}
+
+const deviceLabels: Record<DashboardDevice, string> = {
+  all: 'All Devices',
+  desktop: 'Desktop',
+  mobile: 'Mobile',
+  tablet: 'Tablet',
+}
+
+function formatMs(value: number): string {
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}s`
+  return `${Math.round(value)}ms`
+}
 
 function formatSignedValue(value: number, suffix: string) {
   const sign = value > 0 ? '+' : ''
   return `${sign}${value}${suffix}`
+}
+
+function DeviceIcon({ name }: { name: string }) {
+  if (name === 'Mobile')
+    return <Smartphone className="text-muted-foreground h-4 w-4" />
+  if (name === 'Tablet')
+    return <MonitorSmartphone className="text-muted-foreground h-4 w-4" />
+  return <Laptop className="text-muted-foreground h-4 w-4" />
 }
 
 function InsightIcon({ text }: { text: string }) {
@@ -98,7 +141,12 @@ function RouteComponent() {
   const [range, setRange] = useState<DashboardRange>('7d')
   const [device, setDevice] = useState<DashboardDevice>('all')
 
-  const { data: dashboardData, isPending } = useQuery(
+  const {
+    data: dashboardData,
+    isPending,
+    isFetching,
+    refetch,
+  } = useQuery(
     getDashboardOptions({
       workspace_id: workspace,
       project_id: project,
@@ -107,10 +155,33 @@ function RouteComponent() {
     })
   )
 
+  const { data: perfData } = useQuery(
+    getPerformanceOptions({
+      workspace_id: workspace,
+      project_id: project,
+      range,
+      device,
+    })
+  )
+
+  const { data: eventsData } = useQuery(
+    getEventsOptions({
+      workspace_id: workspace,
+      project_id: project,
+      range,
+      category: 'all',
+      device: 'all',
+      page: 1,
+      page_size: 6,
+    })
+  )
+
   const dashboard = dashboardData?.data
   const insights = dashboard?.insights ?? []
   const topEvents = dashboard?.topEvents ?? []
   const topEventCount = topEvents[0]?.count ?? 1
+  const recentEvents = eventsData?.data.events ?? []
+  const perf = perfData?.data
 
   const summary = [
     {
@@ -118,6 +189,12 @@ function RouteComponent() {
       value: formatNumber(dashboard?.visitors ?? 0),
       icon: navigationIcons.visitors,
       change: dashboard?.weeklyChange.visitors,
+    },
+    {
+      label: 'Sessions',
+      value: formatNumber(dashboard?.sessions ?? 0),
+      icon: navigationIcons.sessions,
+      change: dashboard?.weeklyChange.sessions,
     },
     {
       label: 'Page views',
@@ -133,10 +210,31 @@ function RouteComponent() {
       suffix: ' pp',
     },
     {
-      label: 'Live visitors',
-      value: formatNumber(dashboard?.liveVisitors ?? 0),
-      icon: Radio,
-      detail: 'Active in the last 5 minutes',
+      label: 'Avg. session duration',
+      value: dashboard?.avgSessionDuration ?? '0s',
+      icon: Clock3,
+      change: dashboard?.avgSessionDurationChange,
+    },
+    {
+      label: 'Bounce rate',
+      value: `${dashboard?.bounceRate ?? 0}%`,
+      icon: Globe,
+      change: dashboard?.bounceRateChange,
+      inverted: true,
+    },
+  ]
+
+  const perfRows = [
+    { label: 'TTFB', value: formatMs(perf?.summary.avgTtfb ?? 0), icon: Zap },
+    {
+      label: 'DOM loaded',
+      value: formatMs(perf?.summary.avgDomLoaded ?? 0),
+      icon: Timer,
+    },
+    {
+      label: 'Page load',
+      value: formatMs(perf?.summary.avgLoad ?? 0),
+      icon: Gauge,
     },
   ]
 
@@ -147,6 +245,18 @@ function RouteComponent() {
           eyebrow="Overview"
           title="Dashboard"
           description="A fast read on growth, content, and conversion signals."
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw
+                className={cn('mr-2 h-4 w-4', isFetching && 'animate-spin')}
+              />
+              Refresh
+            </Button>
+          }
         />
 
         <PageToolbar>
@@ -165,7 +275,9 @@ function RouteComponent() {
               }}
             >
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="Date range" />
+                <SelectValue placeholder="Date range">
+                  {rangeLabels[range]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="24h">Last 24 hours</SelectItem>
@@ -182,7 +294,9 @@ function RouteComponent() {
               }}
             >
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="Device" />
+                <SelectValue placeholder="Device">
+                  {deviceLabels[device]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Devices</SelectItem>
@@ -194,7 +308,7 @@ function RouteComponent() {
           </div>
         </PageToolbar>
 
-        <ProjectMetricStrip className="lg:grid-cols-4">
+        <ProjectMetricStrip className="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {summary.map((stat) => {
             const { label, value, icon: Icon, change } = stat
 
@@ -206,17 +320,15 @@ function RouteComponent() {
                 icon={Icon}
                 isLoading={isPending}
                 detail={
-                  'detail' in stat ? (
-                    stat.detail
-                  ) : change ? (
+                  change ? (
                     <span
                       className={
-                        change.positive
+                        (stat.inverted ? !change.positive : change.positive)
                           ? 'text-emerald-600'
                           : 'text-destructive'
                       }
                     >
-                      {change.positive ? '↑' : '↓'}{' '}
+                      {change.value >= 0 ? '↑' : '↓'}{' '}
                       {formatSignedValue(
                         change.value,
                         'suffix' in stat && stat.suffix ? stat.suffix : '%'
@@ -233,9 +345,9 @@ function RouteComponent() {
         <div className="grid gap-4 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader>
-              <CardTitle>Growth pulse</CardTitle>
+              <CardTitle>Traffic trend</CardTitle>
               <CardDescription>
-                Unique visitors across the selected period
+                Visitors and sessions across the selected period
               </CardDescription>
             </CardHeader>
 
@@ -279,6 +391,14 @@ function RouteComponent() {
                       stroke="var(--color-visitors)"
                       strokeWidth={2}
                     />
+                    <Area
+                      type="monotone"
+                      dataKey="sessions"
+                      fill="var(--color-sessions)"
+                      fillOpacity={0.15}
+                      stroke="var(--color-sessions)"
+                      strokeWidth={2}
+                    />
                   </AreaChart>
                 </ChartContainer>
               ) : (
@@ -289,6 +409,213 @@ function RouteComponent() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>Real-time</CardTitle>
+              <CardDescription>Who is active right now</CardDescription>
+            </CardHeader>
+
+            <CardContent className="flex h-full flex-col justify-between gap-6">
+              {isPending ? (
+                <div className="bg-muted h-24 animate-pulse rounded-lg" />
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      <Radio className="text-muted-foreground size-4" />
+                      Active visitors
+                    </span>
+                    <span className="text-lg font-semibold tracking-tight tabular-nums">
+                      {formatNumber(dashboard?.liveVisitors ?? 0)}
+                    </span>
+                  </div>
+                  <div className="border-t pt-4">
+                    <p className="text-muted-foreground text-xs">
+                      Recent activity
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {recentEvents.length > 0 ? (
+                        recentEvents.map((event) => (
+                          <div
+                            key={event.id}
+                            className="flex items-center justify-between gap-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">
+                                {event.description}
+                              </p>
+                              <p className="text-muted-foreground truncate text-xs">
+                                {event.path}
+                              </p>
+                            </div>
+                            <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                              {formatRelativeTime(event.occurredAt)}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-sm">
+                          No recent activity yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <ProjectPanel>
+          <CardHeader className="border-b px-5 py-5">
+            <CardTitle>Top pages</CardTitle>
+            <CardDescription>Most visited pages</CardDescription>
+          </CardHeader>
+
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[520px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-5">Page</TableHead>
+                    <TableHead>Views</TableHead>
+                    <TableHead className="pr-5">Avg. time</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dashboard?.pages.length ? (
+                    dashboard.pages.map((page) => (
+                      <TableRow key={page.page}>
+                        <TableCell className="max-w-[300px] truncate pl-5 font-medium">
+                          {page.page ?? '/'}
+                        </TableCell>
+                        <TableCell>{formatNumber(page.views)}</TableCell>
+                        <TableCell className="pr-5 tabular-nums">
+                          {page.duration}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-muted-foreground py-10 text-center"
+                      >
+                        No pages tracked yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </ProjectPanel>
+
+        <div className="grid gap-4 xl:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Traffic sources</CardTitle>
+              <CardDescription>Where your visitors come from</CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              {isPending ? (
+                <div className="bg-muted h-32 animate-pulse rounded-lg" />
+              ) : dashboard?.trafficSources.length ? (
+                <div className="space-y-4">
+                  {dashboard.trafficSources.map((source) => (
+                    <div key={source.name}>
+                      <div className="flex items-center justify-between gap-4 text-sm">
+                        <span className="truncate font-medium">
+                          {source.name}
+                        </span>
+                        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                          {formatNumber(source.visitors)}
+                        </span>
+                      </div>
+                      <div className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full">
+                        <div
+                          className="bg-foreground h-full rounded-full"
+                          style={{
+                            width: `${Math.max(source.value, 4)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
+                  No traffic sources yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Audience snapshot</CardTitle>
+              <CardDescription>Device mix of your audience</CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              {isPending ? (
+                <div className="bg-muted h-32 animate-pulse rounded-lg" />
+              ) : dashboard?.devices.length ? (
+                <div className="space-y-2">
+                  {dashboard.devices.map((d) => (
+                    <div
+                      key={d.name}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <DeviceIcon name={d.name} />
+                        {d.name}
+                      </div>
+                      <span className="text-muted-foreground">{d.value}%</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
+                  No device data yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance snapshot</CardTitle>
+              <CardDescription>Technical health at a glance</CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <div className="space-y-3">
+                {perfRows.map((row) => {
+                  const Icon = row.icon
+
+                  return (
+                    <div
+                      key={row.label}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Icon className="text-muted-foreground h-4 w-4" />
+                        {row.label}
+                      </span>
+                      <span className="text-muted-foreground tabular-nums">
+                        {row.value}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle>Conversion snapshot</CardTitle>
@@ -345,55 +672,8 @@ function RouteComponent() {
               )}
             </CardContent>
           </Card>
-        </div>
 
-        <ProjectPanel>
-          <CardHeader className="border-b px-5 py-5">
-            <CardTitle>Top pages</CardTitle>
-            <CardDescription>Most visited pages</CardDescription>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[520px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-5">Page</TableHead>
-                    <TableHead>Views</TableHead>
-                    <TableHead className="pr-5">Avg. time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {dashboard?.pages.length ? (
-                    dashboard.pages.map((page) => (
-                      <TableRow key={page.page}>
-                        <TableCell className="max-w-[300px] truncate pl-5 font-medium">
-                          {page.page ?? '/'}
-                        </TableCell>
-                        <TableCell>{formatNumber(page.views)}</TableCell>
-                        <TableCell className="pr-5 tabular-nums">
-                          {page.duration}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        className="text-muted-foreground py-10 text-center"
-                      >
-                        No pages tracked yet.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </ProjectPanel>
-
-        <div className="grid gap-4 xl:grid-cols-3">
-          <Card className="xl:col-span-2">
+          <Card>
             <CardHeader>
               <CardTitle>High-signal actions</CardTitle>
               <CardDescription>
@@ -440,7 +720,7 @@ function RouteComponent() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Decision cues</CardTitle>
+              <CardTitle>AI insights</CardTitle>
               <CardDescription>
                 Signals to take into your next review
               </CardDescription>

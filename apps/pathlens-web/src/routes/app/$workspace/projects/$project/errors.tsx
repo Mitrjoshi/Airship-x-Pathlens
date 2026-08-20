@@ -481,7 +481,9 @@ function PageContent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
+              <SelectValue>
+                {deviceOptions.find((option) => option.value === device)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {deviceOptions.map((option) => (
@@ -499,7 +501,9 @@ function PageContent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
+              <SelectValue>
+                {rangeOptions.find((option) => option.value === range)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {rangeOptions.map((option) => (

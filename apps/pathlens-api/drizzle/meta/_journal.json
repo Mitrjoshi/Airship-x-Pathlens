@@ -169,6 +169,13 @@
       "when": 1786866702892,
       "tag": "0023_tiresome_ben_grimm",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1787144130495,
+      "tag": "0024_hard_jack_flag",
+      "breakpoints": true
     }
   ]
 }

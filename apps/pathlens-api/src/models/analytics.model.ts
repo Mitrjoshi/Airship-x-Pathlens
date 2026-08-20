@@ -15,6 +15,7 @@ export interface AnalyticsResponse {
   summary: {
     visitors: number;
     sessions: number;
+    pageViews: number;
     bounceRate: number;
     avgDuration: string;
   };
@@ -40,13 +41,34 @@ export interface AnalyticsResponse {
     name: string;
     visitors: number;
   }[];
+  pages: {
+    page: string | null;
+    views: number;
+    duration: string;
+  }[];
+  visitorBreakdown: {
+    new: number;
+    returning: number;
+  };
 }
 
 interface SummaryRow extends Record<string, unknown> {
   visitors: number | string | null;
   sessions: number | string | null;
+  page_views: number | string | null;
   bounce_rate: number | string | null;
   avg_duration_seconds: number | string | null;
+}
+
+interface PageRow extends Record<string, unknown> {
+  page: string | null;
+  views: number | string | null;
+  avg_duration_seconds: number | string | null;
+}
+
+interface VisitorBreakdownRow extends Record<string, unknown> {
+  new_visitors: number | string | null;
+  returning_visitors: number | string | null;
 }
 
 interface TrafficRow extends Record<string, unknown> {
@@ -169,6 +191,8 @@ export async function getAnalyticsModel(
     referrersResult,
     countriesResult,
     browsersResult,
+    pagesResult,
+    visitorBreakdownResult,
   ] = await Promise.all([
     db.execute<SummaryRow>(sql`
         WITH filtered_events AS (
@@ -194,6 +218,7 @@ export async function getAnalyticsModel(
         SELECT
           (SELECT COUNT(DISTINCT visitor_id) FROM filtered_events)::int AS visitors,
           (SELECT COUNT(DISTINCT session_id) FROM filtered_events)::int AS sessions,
+          COALESCE(SUM(page_views), 0)::int AS page_views,
           COALESCE(
             100.0 * COUNT(*) FILTER (WHERE page_views = 1)
               / NULLIF(COUNT(*), 0),
@@ -274,6 +299,68 @@ export async function getAnalyticsModel(
         ORDER BY visitors DESC
         LIMIT 5;
       `),
+    db.execute<PageRow>(sql`
+        WITH page_visits AS (
+          SELECT
+            session_id,
+            path,
+            occurred_at AS page_enter,
+            LEAD(occurred_at) OVER (
+              PARTITION BY session_id
+              ORDER BY occurred_at
+            ) AS next_event_at
+          FROM events
+          WHERE ${eventWhere}
+            AND type = 'page_view'
+        ),
+        page_stats AS (
+          SELECT
+            path AS page,
+            COUNT(*)::int AS views,
+            AVG(
+              EXTRACT(
+                EPOCH FROM (
+                  COALESCE(next_event_at, page_enter) - page_enter
+                )
+              )
+            )::int AS avg_duration_seconds
+          FROM page_visits
+          GROUP BY path
+        )
+        SELECT page, views, avg_duration_seconds
+        FROM page_stats
+        ORDER BY views DESC
+        LIMIT 5;
+      `),
+    db.execute<VisitorBreakdownRow>(sql`
+        WITH current_visitors AS (
+          SELECT DISTINCT visitor_id
+          FROM events
+          WHERE ${eventWhere}
+        )
+        SELECT
+          COUNT(*) FILTER (
+            WHERE NOT EXISTS (
+              SELECT 1
+              FROM events previous
+              WHERE previous.workspace_id = ${filters.workspaceId}
+                AND previous.visitor_id = current_visitors.visitor_id
+                AND previous.occurred_at < NOW() - make_interval(days => ${rangeDays})
+                ${projectFilter}
+            )
+          )::int AS new_visitors,
+          COUNT(*) FILTER (
+            WHERE EXISTS (
+              SELECT 1
+              FROM events previous
+              WHERE previous.workspace_id = ${filters.workspaceId}
+                AND previous.visitor_id = current_visitors.visitor_id
+                AND previous.occurred_at < NOW() - make_interval(days => ${rangeDays})
+                ${projectFilter}
+            )
+          )::int AS returning_visitors
+        FROM current_visitors;
+      `),
   ]);
 
   const summary = summaryResult.rows[0];
@@ -313,10 +400,13 @@ export async function getAnalyticsModel(
     };
   });
 
+  const visitorBreakdown = visitorBreakdownResult.rows[0];
+
   return {
     summary: {
       visitors: toNumber(summary?.visitors),
       sessions: toNumber(summary?.sessions),
+      pageViews: toNumber(summary?.page_views),
       bounceRate: Number(toNumber(summary?.bounce_rate).toFixed(1)),
       avgDuration: formatDuration(toNumber(summary?.avg_duration_seconds)),
     },
@@ -335,5 +425,20 @@ export async function getAnalyticsModel(
       name: row.name ?? "Other",
       visitors: toNumber(row.visitors),
     })),
+    pages: pagesResult.rows.map((row) => {
+      const seconds = toNumber(row.avg_duration_seconds);
+      const minutes = Math.floor(seconds / 60);
+      const remaining = seconds % 60;
+
+      return {
+        page: row.page,
+        views: toNumber(row.views),
+        duration: minutes > 0 ? `${minutes}m ${remaining}s` : `${remaining}s`,
+      };
+    }),
+    visitorBreakdown: {
+      new: toNumber(visitorBreakdown?.new_visitors),
+      returning: toNumber(visitorBreakdown?.returning_visitors),
+    },
   };
 }
