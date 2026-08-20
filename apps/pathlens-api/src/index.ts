@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import routes from "./routes";
 
-export const app = express();
+const app = express();
 
 app.use(
   cors({
@@ -29,4 +29,6 @@ app.use((req, _, next) => {
 
 app.use("/api", routes);
 
-app.listen(8080, () => console.log("Server running on port 8080"));
+// app.listen(8080, () => console.log("Server running on port 8080"));
+
+export default app;
