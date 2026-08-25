@@ -207,7 +207,7 @@ export async function createDefaultWorkspaceModel(data: {
     );
 
     await tx.insert(workspaceMembers).values({
-      workspaceId: workspace.id,
+      workspaceId: workspace?.id,
       userId: data.user_id,
       role: "owner",
       permissionProfileId: fullAccessProfile?.id,

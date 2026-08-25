@@ -1,34 +1,14 @@
-import express from "express";
-import cors from "cors";
-import routes from "./routes";
+import serverless from "aws-serverless-express";
+import app from "./app";
 
-const app = express();
+const server = serverless.createServer(app);
 
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-API-Key",
-      "X-Project-Key",
-      "X-Image-Width",
-      "X-Image-Height",
-    ],
-  })
-);
-
-app.use(express.json({ limit: "5mb" }));
-app.set("trust proxy", true);
-
-app.use((req, _, next) => {
-  console.log(req.method, req.url);
-  next();
-});
-
-app.use("/api", routes);
-
-app.listen(8080, () => console.log("Server running on port 8080"));
-
-export default app;
+export const handler: any = (event, context) => {
+  return new Promise((resolve, reject) => {
+    serverless.proxy(server, event, {
+      ...context,
+      succeed: resolve,
+      fail: reject,
+    });
+  });
+};

@@ -2,7 +2,6 @@
   "name": "pathlens-airship",
   "private": true,
   "packageManager": "pnpm@11.22.0",
-  "type": "module",
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
