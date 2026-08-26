@@ -453,17 +453,19 @@ function NodeDetails({ node }: { node: UserJourneyNode | null }) {
   const Icon = meta.icon
 
   return (
-    <aside className="bg-background/75 border-t p-5 lg:border-t-0 lg:border-l">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+    <aside className="bg-background/75 min-w-0 border-t p-5 lg:border-t-0 lg:border-l">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span className="bg-muted flex size-9 items-center justify-center rounded-lg">
             <Icon className={cn('size-4', meta.iconClassName)} />
           </span>
-          <div>
+          <div className="min-w-0">
             <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.16em] uppercase">
               Selected node
             </p>
-            <h2 className="mt-1 text-sm font-semibold">{node.title}</h2>
+            <h2 className="mt-1 text-sm font-semibold wrap-break-word">
+              {node.title}
+            </h2>
           </div>
         </div>
         <Badge variant="outline" className="shrink-0">
