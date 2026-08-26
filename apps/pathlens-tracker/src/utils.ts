@@ -15,8 +15,8 @@ const SESSION_LAST_ACTIVE_KEY = "pathlens_session_last_active";
 const CAMPAIGN_KEY_PREFIX = "pathlens_campaign:";
 const CAMPAIGN_VALUE_LIMIT = 512;
 const SESSION_TIMEOUT = 30 * 60 * 1000;
-const DEFAULT_API_URL = "http://localhost:8080/api/events";
-const DEFAULT_REPLAY_API_URL = "http://localhost:8080/api/replay/chunks";
+const DEFAULT_API_URL = `${process.env.BASE_API_URL}/api/events`;
+const DEFAULT_REPLAY_API_URL = `${process.env.BASE_API_URL}/api/replay/chunks`;
 
 export function createVisitorId(): string {
   let id = localStorage.getItem(VISITOR_KEY);

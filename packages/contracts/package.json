@@ -2,22 +2,69 @@
   "name": "@workspace/contracts",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./campaigns": "./src/campaigns.ts",
-    "./chat": "./src/chat.ts",
-    "./encrypted-payload": "./src/encrypted-payload.ts",
-    "./errors": "./src/errors.ts",
-    "./events": "./src/events.ts",
-    "./heatmaps": "./src/heatmaps.ts",
-    "./replay": "./src/replay.ts",
-    "./tracker": "./src/tracker.ts",
-    "./pathlens-events": "./src/pathlens-events.ts",
-    "./user-journey": "./src/user-journey.ts",
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "require": "./dist/index.js"
+    },
+    "./campaigns": {
+      "types": "./src/campaigns.ts",
+      "import": "./src/campaigns.ts",
+      "require": "./dist/campaigns.js"
+    },
+    "./chat": {
+      "types": "./src/chat.ts",
+      "import": "./src/chat.ts",
+      "require": "./dist/chat.js"
+    },
+    "./encrypted-payload": {
+      "types": "./src/encrypted-payload.ts",
+      "import": "./src/encrypted-payload.ts",
+      "require": "./dist/encrypted-payload.js"
+    },
+    "./errors": {
+      "types": "./src/errors.ts",
+      "import": "./src/errors.ts",
+      "require": "./dist/errors.js"
+    },
+    "./events": {
+      "types": "./src/events.ts",
+      "import": "./src/events.ts",
+      "require": "./dist/events.js"
+    },
+    "./heatmaps": {
+      "types": "./src/heatmaps.ts",
+      "import": "./src/heatmaps.ts",
+      "require": "./dist/heatmaps.js"
+    },
+    "./replay": {
+      "types": "./src/replay.ts",
+      "import": "./src/replay.ts",
+      "require": "./dist/replay.js"
+    },
+    "./tracker": {
+      "types": "./src/tracker.ts",
+      "import": "./src/tracker.ts",
+      "require": "./dist/tracker.js"
+    },
+    "./pathlens-events": {
+      "types": "./src/pathlens-events.ts",
+      "import": "./src/pathlens-events.ts",
+      "require": "./dist/pathlens-events.js"
+    },
+    "./user-journey": {
+      "types": "./src/user-journey.ts",
+      "import": "./src/user-journey.ts",
+      "require": "./dist/user-journey.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

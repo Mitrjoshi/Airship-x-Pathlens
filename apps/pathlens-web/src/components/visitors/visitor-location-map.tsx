@@ -1,6 +1,6 @@
 import { useId, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { geoNaturalEarth1, geoPath } from 'd3-geo'
+import { geoCentroid, geoOrthographic, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import type { Feature, FeatureCollection, Geometry } from 'geojson'
@@ -15,8 +15,10 @@ import { MapPin } from 'lucide-react'
 
 type CountryFeature = Feature<Geometry, { name?: string }>
 
-const VIEWBOX_WIDTH = 960
+const VIEWBOX_WIDTH = 640
 const VIEWBOX_HEIGHT = 500
+const GLOBE_CENTER: [number, number] = [VIEWBOX_WIDTH / 2, VIEWBOX_HEIGHT / 2]
+const GLOBE_RADIUS = 210
 const MIN_RADIUS = 5
 const MAX_RADIUS = 48
 
@@ -25,16 +27,6 @@ const countries = feature(
   worldTopology.objects.countries as unknown as GeometryCollection
 ) as FeatureCollection<Geometry, { name?: string }> | null
 
-const path = geoPath(
-  geoNaturalEarth1().fitExtent(
-    [
-      [8, 8],
-      [VIEWBOX_WIDTH - 8, VIEWBOX_HEIGHT - 8],
-    ],
-    { type: 'Sphere' }
-  )
-)
-
 const centroidByCode = new Map<string, [number, number]>()
 
 for (const country of countries?.features ?? []) {
@@ -42,7 +34,7 @@ for (const country of countries?.features ?? []) {
 
   if (!code) continue
 
-  const centroid = path.centroid(country)
+  const centroid = geoCentroid(country)
 
   if (Number.isFinite(centroid[0]) && Number.isFinite(centroid[1])) {
     centroidByCode.set(code, [centroid[0], centroid[1]])
@@ -77,18 +69,36 @@ interface VisitorLocationMapProps {
 export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
   const gradientId = useId()
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    startRotation: [number, number]
+  } | null>(null)
   const [hover, setHover] = useState<HoverState | null>(null)
+  const [rotation, setRotation] = useState<[number, number]>([-10, -18])
 
   const { data, isPending, isError } = useQuery(
     getVisitorLocationsOptions(params)
   )
 
-  const locations = data?.data.locations ?? []
+  const locations = useMemo(() => data?.data.locations ?? [], [data])
   const total = data?.data.total ?? 0
   const maxVisitors = locations.reduce(
     (maximum, location) => Math.max(maximum, location.visitors),
     0
   )
+
+  const projection = useMemo(
+    () =>
+      geoOrthographic()
+        .translate(GLOBE_CENTER)
+        .scale(GLOBE_RADIUS)
+        .rotate(rotation)
+        .clipAngle(90),
+    [rotation]
+  )
+  const path = useMemo(() => geoPath(projection), [projection])
 
   const markers = useMemo(() => {
     return locations
@@ -97,10 +107,14 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
 
         if (!centroid) return null
 
+        const point = projection(centroid)
+
+        if (!point) return null
+
         return {
           ...location,
-          x: centroid[0],
-          y: centroid[1],
+          x: point[0],
+          y: point[1],
           radius:
             maxVisitors > 0
               ? MIN_RADIUS +
@@ -110,7 +124,7 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
         }
       })
       .filter((marker): marker is NonNullable<typeof marker> => marker !== null)
-  }, [locations, maxVisitors])
+  }, [locations, maxVisitors, projection])
 
   const topLocations = [...locations]
     .sort((a, b) => b.visitors - a.visitors)
@@ -128,6 +142,39 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
     const y = Math.max(event.clientY - rect.top, 24)
 
     setHover({ ...next, x, y })
+  }
+
+  const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId)
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startRotation: rotation,
+    }
+    setHover(null)
+  }
+
+  const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    const drag = dragRef.current
+
+    if (!drag || drag.pointerId !== event.pointerId) return
+
+    const nextLongitude =
+      drag.startRotation[0] + (event.clientX - drag.startX) * 0.45
+    const nextLatitude = Math.max(
+      -85,
+      Math.min(85, drag.startRotation[1] - (event.clientY - drag.startY) * 0.45)
+    )
+
+    setRotation([nextLongitude, nextLatitude])
+  }
+
+  const handlePointerUp = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return
+
+    event.currentTarget.releasePointerCapture(event.pointerId)
+    dragRef.current = null
   }
 
   if (isError) {
@@ -180,9 +227,16 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
         >
           <svg
             viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
-            className="h-auto w-full"
+            className="h-auto w-full cursor-grab touch-none active:cursor-grabbing"
             role="img"
-            aria-label="World map showing visitor concentration by country"
+            aria-label="Draggable globe showing visitor concentration by country"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onPointerLeave={() => {
+              if (!dragRef.current) setHover(null)
+            }}
           >
             <defs>
               <radialGradient id={gradientId}>
@@ -204,16 +258,32 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
               </radialGradient>
             </defs>
 
-            <g>
+            <circle
+              cx={GLOBE_CENTER[0]}
+              cy={GLOBE_CENTER[1]}
+              r={GLOBE_RADIUS}
+              fill="var(--color-muted)"
+              fillOpacity={0.45}
+              stroke="var(--color-border)"
+              strokeWidth={1}
+            />
+
+            <path
+              d={path({ type: 'Sphere' }) ?? undefined}
+              fill="var(--color-background)"
+              fillOpacity={0.5}
+              stroke="none"
+            />
+
+            <g className="pointer-events-none">
               {(countries?.features ?? []).map((country: CountryFeature) => (
                 <path
                   key={`${country.id}-${country.properties?.name ?? ''}`}
                   d={path(country) ?? undefined}
                   fill="transparent"
                   stroke="var(--color-muted-foreground)"
-                  strokeOpacity={1}
-                  strokeWidth={0.4}
-                  strokeDasharray="3 3"
+                  strokeOpacity={0.7}
+                  strokeWidth={0.55}
                   strokeLinejoin="round"
                 />
               ))}
@@ -225,6 +295,7 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
                   key={marker.code}
                   transform={`translate(${marker.x} ${marker.y})`}
                   className="cursor-pointer"
+                  onPointerDown={(event) => event.stopPropagation()}
                   onMouseEnter={() =>
                     setHover({
                       code: marker.code,

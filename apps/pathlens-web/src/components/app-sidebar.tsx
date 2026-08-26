@@ -7,7 +7,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
-import { ChevronsUpDownIcon, PlusIcon, SquareKanbanIcon } from 'lucide-react'
+import {
+  ChevronsUpDownIcon,
+  ChevronDownIcon,
+  PlusIcon,
+  SquareKanbanIcon,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { Permission } from '@workspace/contracts'
 import * as React from 'react'
@@ -32,6 +37,11 @@ import {
 } from '@/lib/billing'
 import { Button } from '@workspace/ui/components/button'
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@workspace/ui/components/collapsible'
+import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -45,6 +55,7 @@ import {
   SidebarFooter,
 } from '@workspace/ui/components/sidebar'
 import { NavUser } from '@/components/common/nav-user'
+import { Separator } from '@workspace/ui/components/separator'
 
 type ProjectNavPath =
   | '/app/$workspace/projects/$project/dashboard'
@@ -286,7 +297,13 @@ export function AppSidebar({
               role={activeWorkspace?.role}
               permissions={activeWorkspace?.permissions ?? []}
               planId={activePlanId}
+              collapsible
             />
+
+            <div className={'px-4'}>
+              <Separator />
+            </div>
+
             <NavMain
               items={navMain
                 .filter(
@@ -476,11 +493,13 @@ function WorkspaceNav({
   role,
   permissions,
   planId,
+  collapsible = false,
 }: {
   workspaceId: string
   role?: string
   permissions: Permission[]
   planId: PlanId
+  collapsible?: boolean
 }) {
   const { pathname } = useLocation()
   const canViewMembers =
@@ -500,102 +519,127 @@ function WorkspaceNav({
   const projectsPath =
     /^\/app\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
+  const workspaceMenu = (
+    <SidebarMenu className="space-y-1">
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={projectsPath.test(pathname)}
+          render={
+            <Link to="/app/$workspace" params={{ workspace: workspaceId }} />
+          }
+        >
+          <navigationIcons.projects className="size-4" />
+          <span>Projects</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      {canViewMembers && (
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            isActive={pathname.includes('/members')}
+            render={
+              <Link
+                to="/app/$workspace/members"
+                params={{ workspace: workspaceId }}
+              />
+            }
+          >
+            <navigationIcons.members className="size-4" />
+            <span>Members</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      )}
+      {canViewPermissionProfiles &&
+        hasPlanFeature(planId, 'advancedPermissions') && (
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname.includes('/permission-profiles')}
+              render={
+                <Link
+                  to="/app/$workspace/permission-profiles"
+                  params={{ workspace: workspaceId }}
+                />
+              }
+            >
+              <navigationIcons.permissions className="size-4" />
+              <span>Permissions</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+      {canViewSettings && (
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            isActive={pathname.includes('/workspace-settings')}
+            render={
+              <Link
+                to="/app/$workspace/workspace-settings"
+                params={{ workspace: workspaceId }}
+              />
+            }
+          >
+            <navigationIcons.workspaceSettings className="size-4" />
+            <span>Workspace Settings</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      )}
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={pathname.includes('/usage')}
+          render={
+            <Link
+              to="/app/$workspace/usage"
+              params={{ workspace: workspaceId }}
+            />
+          }
+        >
+          <navigationIcons.usage className="size-4" />
+          <span>Usage</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={
+            pathname.includes('/billing') || pathname.includes('/checkout')
+          }
+          render={
+            <Link
+              to="/app/$workspace/billing"
+              params={{ workspace: workspaceId }}
+            />
+          }
+        >
+          <navigationIcons.billing className="size-4" />
+          <span>Billing</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  )
+
+  if (!collapsible) {
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+        {workspaceMenu}
+      </SidebarGroup>
+    )
+  }
+
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>Workspace</SidebarGroupLabel>
-      <SidebarMenu className="space-y-1">
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={projectsPath.test(pathname)}
-            render={
-              <Link to="/app/$workspace" params={{ workspace: workspaceId }} />
-            }
-          >
-            <navigationIcons.projects className="size-4" />
-            <span>Projects</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        {canViewMembers && (
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={pathname.includes('/members')}
-              render={
-                <Link
-                  to="/app/$workspace/members"
-                  params={{ workspace: workspaceId }}
-                />
-              }
-            >
-              <navigationIcons.members className="size-4" />
-              <span>Members</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        )}
-        {canViewPermissionProfiles &&
-          hasPlanFeature(planId, 'advancedPermissions') && (
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={pathname.includes('/permission-profiles')}
-                render={
-                  <Link
-                    to="/app/$workspace/permission-profiles"
-                    params={{ workspace: workspaceId }}
-                  />
-                }
-              >
-                <navigationIcons.permissions className="size-4" />
-                <span>Permissions</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-        {canViewSettings && (
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={pathname.includes('/workspace-settings')}
-              render={
-                <Link
-                  to="/app/$workspace/workspace-settings"
-                  params={{ workspace: workspaceId }}
-                />
-              }
-            >
-              <navigationIcons.workspaceSettings className="size-4" />
-              <span>Workspace Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        )}
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={pathname.includes('/usage')}
-            render={
-              <Link
-                to="/app/$workspace/usage"
-                params={{ workspace: workspaceId }}
-              />
-            }
-          >
-            <navigationIcons.usage className="size-4" />
-            <span>Usage</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={
-              pathname.includes('/billing') || pathname.includes('/checkout')
-            }
-            render={
-              <Link
-                to="/app/$workspace/billing"
-                params={{ workspace: workspaceId }}
-              />
-            }
-          >
-            <navigationIcons.billing className="size-4" />
-            <span>Billing</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarGroup>
+    <Collapsible
+      key="project-workspace-nav"
+      defaultOpen={false}
+      className="group/collapsible"
+      render={<SidebarGroup />}
+    >
+      <CollapsibleTrigger
+        render={
+          <SidebarGroupLabel className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer" />
+        }
+      >
+        Workspace
+        <ChevronDownIcon className="ml-auto transition-transform group-data-[panel-open]/collapsible:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>{workspaceMenu}</CollapsibleContent>
+    </Collapsible>
   )
 }
 

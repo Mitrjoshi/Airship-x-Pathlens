@@ -550,7 +550,7 @@ export const SearchOverAppDialog = ({
       <DialogTrigger
         render={
           <Button
-            className="text-muted-foreground gap-4"
+            className="text-muted-foreground w-60 justify-between gap-4"
             variant="outline"
             aria-label="Search across PathLens"
           >

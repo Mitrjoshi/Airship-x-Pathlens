@@ -2,10 +2,11 @@
   "name": "@pathlens/api",
   "version": "1.0.0",
   "private": true,
+  "main": "index.js",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
     "start": "tsx --env-file=.env src/server.ts",
-    "build": "tsc",
+    "build": "pnpm --filter @workspace/contracts build && pnpm --filter @workspace/backend-types build && tsc && tsc-alias",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist",
     "generate": "drizzle-kit generate",
@@ -19,6 +20,7 @@
     "@supabase/supabase-js": "^2.57.4",
     "@workspace/backend-types": "workspace:*",
     "@workspace/contracts": "workspace:*",
+    "aws-serverless-express": "^3.4.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
@@ -36,9 +38,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.15.5",
-    "aws-serverless-express": "^3.4.0",
     "drizzle-kit": "^0.31.10",
     "rimraf": "^6.0.1",
+    "tsc-alias": "^1.9.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }

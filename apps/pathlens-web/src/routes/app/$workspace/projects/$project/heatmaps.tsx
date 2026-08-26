@@ -70,20 +70,25 @@ function PageList({
   onSelect: (path: string) => void
 }) {
   return (
-    <Card className="h-fit">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <LayoutTemplateIcon className="text-muted-foreground size-4" />
-          Pages
-        </CardTitle>
-        <CardDescription>Choose a page to inspect.</CardDescription>
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-col gap-1 border-b sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <LayoutTemplateIcon className="text-muted-foreground size-4" />
+            Pages
+          </CardTitle>
+          <CardDescription>Choose a page to inspect.</CardDescription>
+        </div>
+        <span className="text-muted-foreground text-xs">
+          {pages.length} captured {pages.length === 1 ? 'page' : 'pages'}
+        </span>
       </CardHeader>
-      <CardContent className="space-y-1">
+      <CardContent className="grid max-h-72 gap-2 overflow-y-auto p-3 sm:grid-cols-2 xl:grid-cols-3">
         {pages.map((page) => (
           <button
             key={page.path}
             type="button"
-            className={`w-full rounded-lg border p-3 text-left transition-colors ${page.path === selectedPath ? 'border-foreground bg-muted' : 'hover:bg-muted/60 border-transparent'}`}
+            className={`w-full rounded-lg border p-3 text-left transition-colors ${page.path === selectedPath ? 'border-foreground bg-muted' : 'hover:bg-muted/60 border-border/60'}`}
             onClick={() => onSelect(page.path)}
           >
             <div className="flex items-center justify-between gap-3">
@@ -137,7 +142,6 @@ function ClickHeatmap({ page }: { page: HeatmapPageDetail }) {
             <HeatmapReplayPreview
               events={page.replayEvents}
               points={page.clickPoints}
-              url={page.url}
               viewport={page.viewport}
             />
             <div className="mt-4">
@@ -251,7 +255,6 @@ function ScrollHeatmap({ page }: { page: HeatmapPageDetail }) {
         <CardContent>
           <HeatmapReplayPreview
             events={page.replayEvents}
-            url={page.url}
             viewport={page.viewport}
           />
         </CardContent>
@@ -381,7 +384,7 @@ function PageContent() {
         {isPending ? (
           <div className="bg-muted h-96 animate-pulse rounded-xl" />
         ) : visiblePages.length && page ? (
-          <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
+          <div className="space-y-6">
             <PageList
               pages={visiblePages}
               selectedPath={activePath}
@@ -402,10 +405,10 @@ function PageContent() {
                   Scroll
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="clicks" className="pt-4">
+              <TabsContent value="clicks" className="pt-5">
                 <ClickHeatmap page={page} />
               </TabsContent>
-              <TabsContent value="scroll" className="pt-4">
+              <TabsContent value="scroll" className="pt-5">
                 <ScrollHeatmap page={page} />
               </TabsContent>
             </Tabs>

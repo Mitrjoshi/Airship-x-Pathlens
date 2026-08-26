@@ -11,3 +11,5 @@ dist-ssr/
 
 # Keep nested repository metadata out of the workspace index.
 **/.git/
+
+lambda-layers

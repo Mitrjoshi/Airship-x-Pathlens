@@ -1,13 +1,8 @@
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
 import { test } from "node:test";
 import type { Request } from "express";
+import geoip from "geoip-lite";
 import { getClientIp, getGeoLocation } from "./geoip";
-
-const require = createRequire(import.meta.url);
-const geoip = require("geoip-lite") as {
-  lookup: (ip: string) => { country?: string } | null;
-};
 
 function mockRequest(
   overrides: Partial<Pick<Request, "ip">> & {

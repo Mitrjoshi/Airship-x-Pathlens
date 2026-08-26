@@ -224,7 +224,16 @@ function getEventDetails(
         typeof value === "boolean" ||
         value === null
       ) {
-        details[key] = typeof value === "string" ? value.slice(0, 512) : value;
+        let detailValue: ProjectEventDetailValue;
+
+        if (typeof value === "string") detailValue = value.slice(0, 512);
+        else if (typeof value === "number" || typeof value === "boolean") {
+          detailValue = value;
+        } else {
+          detailValue = null;
+        }
+
+        details[key] = detailValue;
       }
     }
   }

@@ -35,7 +35,7 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-const TRACKER_SCRIPT_URL = 'http://localhost:3000/dist/tracker.global.js'
+const TRACKER_SCRIPT_URL = import.meta.env.VITE_TRACKER_SCRIPT_URL
 const PROJECT_KEY_TOKEN = '__PATHLENS_PROJECT_KEY__'
 const TRACKER_URL_TOKEN = '__PATHLENS_TRACKER_URL__'
 const CAPTURE_REPLAY_TOKEN = '__PATHLENS_CAPTURE_REPLAY__'

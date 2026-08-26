@@ -22,7 +22,7 @@ import { getProjectsOptions } from '@/queries/projects'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-const TRACKER_SCRIPT_URL = 'http://localhost:3000/dist/tracker.global.js'
+const TRACKER_SCRIPT_URL = import.meta.env.VITE_TRACKER_SCRIPT_URL
 
 export const Route = createFileRoute('/app/$workspace/projects/$project/keys')({
   component: RouteComponent,

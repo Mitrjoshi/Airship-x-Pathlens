@@ -4,6 +4,7 @@ import type { PathLensConfig } from "@workspace/contracts/tracker";
 import { postEncryptedPayload } from "./crypto";
 
 const REPLAY_CHECKOUT_INTERVAL = 60_000;
+const BASE_API_URL = process.env.BASE_API_URL;
 
 interface ReplayRecorderOptions {
   config: PathLensConfig;
@@ -143,8 +144,7 @@ export class ReplayRecorder {
     chunk: ReplayChunk,
     isFinal: boolean
   ): Promise<boolean> {
-    const apiUrl =
-      this.config.replayApiUrl ?? "http://localhost:8080/api/replay/chunks";
+    const apiUrl = this.config.replayApiUrl ?? `${BASE_API_URL}/replay/chunks`;
 
     try {
       const response = await postEncryptedPayload(
