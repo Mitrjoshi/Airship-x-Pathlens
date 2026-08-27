@@ -1,9 +1,6 @@
-import type { HeatmapClickPoint } from '@/queries/heatmaps'
+import type { HeatmapClickPoint, HeatmapScrollPoint } from '@/queries/heatmaps'
 import type { ReplayEvent } from '@workspace/contracts'
-import { EventType, Replayer } from 'rrweb'
-import type { eventWithTime } from 'rrweb'
-import { useEffect, useRef } from 'react'
-import 'rrweb/dist/style.css'
+import { ReadOnlyReplayRenderer } from './read-only-replay-renderer'
 
 interface HeatmapReplayPreviewProps {
   events: ReplayEvent[]
@@ -12,135 +9,53 @@ interface HeatmapReplayPreviewProps {
     height: number
   } | null
   points?: HeatmapClickPoint[]
-}
-
-const FALLBACK_VIEWPORT = { width: 1280, height: 720 }
-
-function toReplayerEvent(event: ReplayEvent): eventWithTime {
-  return event as eventWithTime
-}
-
-function fitReplay(
-  replayer: Replayer,
-  stage: HTMLElement,
-  overlay: HTMLElement,
-  fallback: { width: number; height: number }
-): void {
-  const width = Number(replayer.iframe.getAttribute('width')) || fallback.width
-  const height =
-    Number(replayer.iframe.getAttribute('height')) || fallback.height
-
-  if (!stage.clientWidth || !stage.clientHeight) return
-
-  const scale = Math.min(stage.clientWidth / width, stage.clientHeight / height)
-
-  replayer.wrapper.style.width = `${width}px`
-  replayer.wrapper.style.height = `${height}px`
-  replayer.wrapper.style.flex = '0 0 auto'
-  replayer.wrapper.style.transformOrigin = 'center center'
-  replayer.wrapper.style.transform = `scale(${scale})`
-  replayer.iframe.style.width = `${width}px`
-  replayer.iframe.style.height = `${height}px`
-
-  overlay.style.width = `${width}px`
-  overlay.style.height = `${height}px`
-  overlay.style.left = '50%'
-  overlay.style.top = '50%'
-  overlay.style.transformOrigin = 'center center'
-  overlay.style.transform = `translate(-50%, -50%) scale(${scale})`
+  scrollPoints?: HeatmapScrollPoint[]
 }
 
 export function HeatmapReplayPreview({
   events,
   viewport,
   points = [],
+  scrollPoints = [],
 }: HeatmapReplayPreviewProps) {
-  const stageRef = useRef<HTMLDivElement>(null)
-  const replayRootRef = useRef<HTMLDivElement>(null)
-  const overlayRef = useRef<HTMLDivElement>(null)
-  const fallbackViewport = viewport ?? FALLBACK_VIEWPORT
-  const hasReplay =
-    events.length >= 2 &&
-    events.some((event) => event.type === EventType.FullSnapshot)
-  const replayKey = `${events.length}:${events[0]?.timestamp ?? ''}:${events[events.length - 1]?.timestamp ?? ''}`
-
-  useEffect(() => {
-    if (!hasReplay) return
-
-    const stage = stageRef.current
-    const replayRoot = replayRootRef.current
-    const overlay = overlayRef.current
-
-    if (!stage || !replayRoot || !overlay) return
-
-    replayRoot.replaceChildren()
-
-    let replayer: Replayer
-
-    try {
-      replayer = new Replayer(events.map(toReplayerEvent), {
-        root: replayRoot,
-        showWarning: false,
-        showDebug: false,
-        mouseTail: false,
-      })
-    } catch (error) {
-      console.error('[PathLens] Unable to render heatmap replay.', error)
-      replayRoot.replaceChildren()
-      return
-    }
-
-    let frameRequest = 0
-    const fit = () => {
-      frameRequest = 0
-      fitReplay(replayer, stage, overlay, fallbackViewport)
-    }
-    const scheduleFit = () => {
-      if (!frameRequest) frameRequest = window.requestAnimationFrame(fit)
-    }
-    const resizeObserver = new ResizeObserver(scheduleFit)
-    const attributeObserver = new MutationObserver(scheduleFit)
-
-    resizeObserver.observe(stage)
-    attributeObserver.observe(replayer.iframe, {
-      attributes: true,
-      attributeFilter: ['width', 'height'],
-    })
-    scheduleFit()
-    replayer.pause(0)
-
-    return () => {
-      resizeObserver.disconnect()
-      attributeObserver.disconnect()
-      if (frameRequest) window.cancelAnimationFrame(frameRequest)
-      replayer.destroy()
-      replayRoot.replaceChildren()
-    }
-  }, [events, fallbackViewport, hasReplay, replayKey])
-
-  const hasSurface = hasReplay
-
   return (
-    <div
-      ref={stageRef}
-      className="bg-muted/20 relative aspect-[16/10] min-h-[320px] overflow-hidden rounded-xl border"
+    <ReadOnlyReplayRenderer
+      events={events}
+      viewport={viewport}
+      fallback={
+        <div className="text-muted-foreground flex size-full items-center justify-center p-6 text-center text-sm">
+          Page preview unavailable. Interaction data is still available for this
+          page.
+        </div>
+      }
     >
-      <div
-        ref={replayRootRef}
-        className={`absolute inset-0 flex items-center justify-center overflow-hidden ${hasSurface ? '' : 'hidden'}`}
-      />
+      <div className="pointer-events-none absolute inset-0">
+        {scrollPoints.map((point) => {
+          const center = Math.min(100, Math.max(0, point.percentage))
+          const top = Math.max(0, center - 2.5)
+          const height = Math.min(5, 100 - top)
+          const intensity = Math.min(1, Math.max(0, point.intensity))
 
-      <div
-        ref={overlayRef}
-        className={`pointer-events-none absolute z-10 overflow-hidden ${hasSurface ? '' : 'inset-0 bg-gradient-to-br from-slate-100 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950'}`}
-      >
+          return (
+            <div
+              key={point.percentage}
+              className="absolute inset-x-0 bg-gradient-to-r from-transparent via-red-500 to-transparent"
+              style={{
+                top: `${top}%`,
+                height: `${height}%`,
+                opacity: 0.12 + intensity * 0.68,
+              }}
+              title={`${point.count} sessions reached ${Math.round(center)}%`}
+            />
+          )
+        })}
         {points.map((point) => (
           <span
             key={`${point.x}-${point.y}`}
             className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
-              left: `${point.x}%`,
-              top: `${point.y}%`,
+              left: `${point.x * 100}%`,
+              top: `${point.y * 100}%`,
               width: `${24 + point.intensity * 46}px`,
               height: `${24 + point.intensity * 46}px`,
               background: `radial-gradient(circle, rgb(239 68 68 / ${0.2 + point.intensity * 0.55}) 0%, rgb(249 115 22 / ${0.12 + point.intensity * 0.25}) 35%, transparent 72%)`,
@@ -149,12 +64,6 @@ export function HeatmapReplayPreview({
           />
         ))}
       </div>
-
-      {!hasSurface && (
-        <div className="text-muted-foreground pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6 text-center text-sm">
-          No captured screen is available for this page yet.
-        </div>
-      )}
-    </div>
+    </ReadOnlyReplayRenderer>
   )
 }

@@ -117,6 +117,11 @@ export interface ClickEvent {
   scrollX: number
   scrollY: number
 
+  document: {
+    width: number
+    height: number
+  }
+
   tag: string
 
   id: string
@@ -126,12 +131,24 @@ export interface ClickEvent {
   text: string
 
   buttonText?: string
+
+  elementKey?: string
 }
 
 export interface ScrollEvent {
   scrollY: number
 
   percentage: number
+
+  viewport: {
+    width: number
+    height: number
+  }
+
+  document: {
+    width: number
+    height: number
+  }
 }
 
 export interface MouseMoveEvent {

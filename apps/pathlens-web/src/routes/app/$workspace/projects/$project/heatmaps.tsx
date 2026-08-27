@@ -5,11 +5,13 @@ import {
   ProjectPageLayout,
   PageToolbar,
 } from '@/components/common/project-page'
-import { PlanLimitNotice } from '@/components/common/plan-gate'
 import { HeatmapReplayPreview } from '@/components/common/heatmap-replay-preview'
+import { PlanLimitNotice } from '@/components/common/plan-gate'
 import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import {
   getHeatmapsOptions,
+  type HeatmapDevice,
+  type HeatmapHotArea,
   type HeatmapPage,
   type HeatmapPageDetail,
   type HeatmapsRange,
@@ -36,6 +38,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@workspace/ui/components/tabs'
+import { Progress } from '@workspace/ui/components/progress'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import {
@@ -57,7 +60,11 @@ export const Route = createFileRoute(
 })
 
 function formatPercent(value: number): string {
-  return `${Math.round(value)}%`
+  const safeValue = Number.isFinite(value)
+    ? Math.min(100, Math.max(0, value))
+    : 0
+
+  return `${Math.round(safeValue)}%`
 }
 
 function PageList({
@@ -134,16 +141,25 @@ function ClickHeatmap({ page }: { page: HeatmapPageDetail }) {
           <CardHeader>
             <CardTitle>Click heatmap</CardTitle>
             <CardDescription>
-              Click concentration for {page.path}. The reconstructed page is
-              scaled to fit the panel.
+              Click concentration for {page.path} over the captured page.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <HeatmapReplayPreview
               events={page.replayEvents}
               points={page.clickPoints}
-              viewport={page.viewport}
+              viewport={page.replayViewport ?? page.viewport}
             />
+            {page.clickPoints.length === 0 && (
+              <p className="text-muted-foreground mt-3 text-center text-sm">
+                No click data is available for this page in the selected range.
+              </p>
+            )}
+            {page.coordinateMode !== 'document' && (
+              <p className="text-muted-foreground mt-3 text-xs">
+                Click positions are shown relative to the captured viewport.
+              </p>
+            )}
             <div className="mt-4">
               <ClickLegend />
             </div>
@@ -164,7 +180,7 @@ function ClickHeatmap({ page }: { page: HeatmapPageDetail }) {
                       <span className="text-muted-foreground w-4 tabular-nums">
                         {index + 1}
                       </span>
-                      {Math.round(point.x)}% x {Math.round(point.y)}%
+                      {`${Math.round(point.x * 100)}% x ${Math.round(point.y * 100)}%`}
                     </span>
                     <span className="text-muted-foreground">
                       {formatNumber(point.count)}
@@ -186,55 +202,109 @@ function ClickHeatmap({ page }: { page: HeatmapPageDetail }) {
           </CardContent>
         </Card>
       </div>
+      <HotAreas areas={page.hotAreas} />
     </div>
   )
 }
 
-function ScrollDepthMap({ page }: { page: HeatmapPageDetail }) {
+function HotAreas({ areas }: { areas: HeatmapHotArea[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Hot Areas</CardTitle>
+        <CardDescription>
+          Ranked regions by click activity for the selected page and filters.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {areas.length > 0 ? (
+          <div className="space-y-4">
+            {areas.map((area, index) => (
+              <div key={area.key} className="space-y-2">
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-muted-foreground w-5 tabular-nums">
+                    {index + 1}.
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {area.label}
+                  </span>
+                  <span className="text-muted-foreground shrink-0 tabular-nums">
+                    {formatNumber(area.count)} clicks
+                  </span>
+                  <span className="text-muted-foreground w-12 text-right text-xs tabular-nums">
+                    {Math.round(area.percentage)}%
+                  </span>
+                </div>
+                <Progress
+                  value={area.intensity * 100}
+                  aria-label={`${area.label}: ${formatNumber(area.count)} clicks`}
+                  className="ml-8"
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground py-6 text-center text-sm">
+            No click activity for this period.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function ScrollSummary({ page }: { page: HeatmapPageDetail }) {
+  const reachMetrics = [
+    { label: 'Reached 25%', value: page.reach25 },
+    { label: 'Reached 50%', value: page.reach50 },
+    { label: 'Reached 75%', value: page.reach75 },
+    { label: 'Reached 100%', value: page.reach100 },
+  ]
+
   return (
     <Card className="h-fit">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <ArrowDownToLineIcon className="text-muted-foreground size-4" />
-          Scroll depth
+          Scroll summary
         </CardTitle>
         <CardDescription>
-          Activity intensity by the furthest percentage visitors reached.
+          Session-weighted reach for {page.path}.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex gap-4">
-          <div className="text-muted-foreground flex h-[360px] flex-col justify-between text-[11px] tabular-nums">
-            <span>0%</span>
-            <span>25%</span>
-            <span>50%</span>
-            <span>75%</span>
-            <span>100%</span>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-muted/50 rounded-lg border p-3">
+            <p className="text-muted-foreground text-xs">Average depth</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {formatPercent(page.averageScroll)}
+            </p>
           </div>
-          <div className="relative h-[360px] min-w-0 flex-1 overflow-hidden rounded-xl border bg-gradient-to-b from-red-500/10 via-orange-400/10 to-emerald-500/10">
-            <div className="absolute inset-x-0 top-0 h-1/4 border-b border-dashed border-red-500/25" />
-            <div className="absolute inset-x-0 top-1/4 h-1/4 border-b border-dashed border-orange-500/25" />
-            <div className="absolute inset-x-0 top-1/2 h-1/4 border-b border-dashed border-yellow-500/25" />
-            <div className="absolute inset-x-0 top-3/4 h-1/4" />
-            {page.scrollPoints.map((point) => (
-              <div
-                key={point.percentage}
-                className="absolute inset-x-0 h-3 -translate-y-1/2 bg-gradient-to-r from-transparent via-red-500 to-transparent"
-                style={{
-                  top: `${point.percentage}%`,
-                  opacity: 0.12 + point.intensity * 0.72,
-                }}
-                title={`${point.count} scroll events at ${Math.round(point.percentage)}%`}
-              />
-            ))}
-            <div className="absolute inset-x-3 top-3 bottom-3 rounded-full border border-white/40 dark:border-white/10" />
+          <div className="bg-muted/50 rounded-lg border p-3">
+            <p className="text-muted-foreground text-xs">Maximum depth</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {formatPercent(page.maxScroll)}
+            </p>
           </div>
         </div>
-        <div className="mt-5 flex items-center justify-between border-t pt-4 text-sm">
-          <span className="text-muted-foreground">Average reached</span>
-          <span className="font-semibold">
-            {formatPercent(page.averageScroll)}
-          </span>
+        <div className="space-y-4">
+          {reachMetrics.map((metric) => {
+            const value = Number.isFinite(metric.value)
+              ? Math.min(100, Math.max(0, metric.value))
+              : 0
+
+            return (
+              <div key={metric.label} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{metric.label}</span>
+                  <span className="font-medium tabular-nums">
+                    {formatPercent(value)}
+                  </span>
+                </div>
+                <Progress value={value} aria-label={metric.label} />
+              </div>
+            )
+          })}
         </div>
       </CardContent>
     </Card>
@@ -255,11 +325,17 @@ function ScrollHeatmap({ page }: { page: HeatmapPageDetail }) {
         <CardContent>
           <HeatmapReplayPreview
             events={page.replayEvents}
-            viewport={page.viewport}
+            scrollPoints={page.scrollPoints}
+            viewport={page.replayViewport ?? page.viewport}
           />
+          {page.scrollPoints.length === 0 && (
+            <p className="text-muted-foreground mt-3 text-center text-sm">
+              No scroll activity for this period.
+            </p>
+          )}
         </CardContent>
       </Card>
-      <ScrollDepthMap page={page} />
+      <ScrollSummary page={page} />
     </div>
   )
 }
@@ -275,18 +351,27 @@ const rangeLabels: Record<HeatmapsRange, string> = {
   '90d': 'Last 90 days',
 }
 
+const deviceLabels: Record<HeatmapDevice, string> = {
+  all: 'All devices',
+  desktop: 'Desktop',
+  mobile: 'Mobile',
+  tablet: 'Tablet',
+}
+
 function PageContent() {
   const { workspace, project } = Route.useParams()
   const currentPlanId = useWorkspacePlan(workspace)
   const currentPlan = getPlanDefinition(currentPlanId)
   const heatmapPageLimit = currentPlan.limits.heatmapPages
   const [range, setRange] = useState<HeatmapsRange>('7d')
+  const [device, setDevice] = useState<HeatmapDevice>('all')
   const [selectedPath, setSelectedPath] = useState<string | undefined>()
   const { data, isError, isFetching, isPending } = useQuery(
     getHeatmapsOptions({
       workspace_id: workspace,
       project_id: project,
       range,
+      device,
       page_path: selectedPath,
     })
   )
@@ -343,24 +428,44 @@ function PageContent() {
             <span className="size-1.5 rounded-full bg-emerald-500" />
             {isFetching ? 'Updating heatmap data...' : 'Updated automatically'}
           </div>
-          <Select
-            value={range}
-            onValueChange={(value) => {
-              if (value) setRange(value as HeatmapsRange)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Date range">
-                {rangeLabels[range]}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="24h">Last 24 hours</SelectItem>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Select
+              value={range}
+              onValueChange={(value) => {
+                if (value) setRange(value as HeatmapsRange)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Date range">
+                  {rangeLabels[range]}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="24h">Last 24 hours</SelectItem>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={device}
+              onValueChange={(value) => {
+                if (value) setDevice(value as HeatmapDevice)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue placeholder="Device">
+                  {deviceLabels[device]}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Devices</SelectItem>
+                <SelectItem value="desktop">Desktop</SelectItem>
+                <SelectItem value="mobile">Mobile</SelectItem>
+                <SelectItem value="tablet">Tablet</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </PageToolbar>
 
         {isError && (

@@ -6,6 +6,34 @@ import { throttle } from "./utils";
 const MAX_ERROR_MESSAGE_LENGTH = 2048;
 const MAX_ERROR_STACK_LENGTH = 16384;
 
+function getDocumentDimensions(): { width: number; height: number } {
+  const documentElement = document.documentElement;
+  const body = document.body;
+  const widths = [
+    documentElement.scrollWidth,
+    documentElement.offsetWidth,
+    documentElement.clientWidth,
+    body?.scrollWidth,
+    body?.offsetWidth,
+    body?.clientWidth,
+    window.innerWidth,
+  ];
+  const heights = [
+    documentElement.scrollHeight,
+    documentElement.offsetHeight,
+    documentElement.clientHeight,
+    body?.scrollHeight,
+    body?.offsetHeight,
+    body?.clientHeight,
+    window.innerHeight,
+  ];
+
+  return {
+    width: Math.max(1, ...widths.filter(Number.isFinite)),
+    height: Math.max(1, ...heights.filter(Number.isFinite)),
+  };
+}
+
 interface ErrorDetails {
   name?: string;
   message?: string;
@@ -53,6 +81,47 @@ function getNormalizedButtonText(button: HTMLButtonElement): string {
   return getSafeClickText(button).replace(/\s+/g, " ").trim();
 }
 
+function getElementKey(
+  element: HTMLElement,
+  button: HTMLButtonElement | null,
+  pageX: number,
+  pageY: number,
+  documentDimensions: { width: number; height: number }
+): string {
+  const regionKey = `region:${Math.min(19, Math.max(0, Math.floor((pageX / documentDimensions.width) * 20)))}:${Math.min(19, Math.max(0, Math.floor((pageY / documentDimensions.height) * 20)))}`;
+
+  if (element.closest("[data-pathlens-mask], [data-pathlens-block]")) {
+    return regionKey;
+  }
+
+  const id = element.id.trim();
+  if (id) return `id:${id.slice(0, 100)}`;
+
+  const buttonText = button
+    ? getSafeClickText(button).replace(/\s+/g, " ").trim()
+    : "";
+  if (buttonText && buttonText !== "[masked]") {
+    return `button:${buttonText.slice(0, 100)}`;
+  }
+
+  const text = getSafeClickText(element).replace(/\s+/g, " ").trim();
+  if (text && text !== "[masked]") return `text:${text.slice(0, 100)}`;
+
+  const className =
+    typeof element.className === "string"
+      ? element.className
+          .split(/\s+/)
+          .filter((value) => /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(value))
+          .slice(0, 3)
+          .join(".")
+      : "";
+  if (element.tagName || className) {
+    return `tag:${element.tagName.toLowerCase()}${className ? `:${className}` : ""}`;
+  }
+
+  return regionKey;
+}
+
 export function registerEvents(tracker: PathLensTracker): void {
   pageView(tracker);
 
@@ -81,6 +150,7 @@ function registerClicks(tracker: PathLensTracker) {
     if (!el) return;
 
     const button = el.closest("button");
+    const documentDimensions = getDocumentDimensions();
 
     tracker.track("click", {
       x: e.clientX,
@@ -93,11 +163,19 @@ function registerClicks(tracker: PathLensTracker) {
         width: window.innerWidth,
         height: window.innerHeight,
       },
+      document: documentDimensions,
       tag: el.tagName,
       id: el.id,
       className: el.className,
       text: getSafeClickText(el),
       ...(button ? { buttonText: getNormalizedButtonText(button) } : {}),
+      elementKey: getElementKey(
+        el,
+        button,
+        e.pageX,
+        e.pageY,
+        documentDimensions
+      ),
     });
   });
 }
@@ -108,18 +186,24 @@ function registerScroll(tracker: PathLensTracker) {
   window.addEventListener(
     "scroll",
     throttle(() => {
-      const percentage =
-        (window.scrollY /
-          (document.documentElement.scrollHeight - window.innerHeight)) *
-        100;
+      const documentDimensions = getDocumentDimensions();
+      const maxScrollableHeight = Math.max(
+        documentDimensions.height - window.innerHeight,
+        0
+      );
+      const scrollY = Number.isFinite(window.scrollY) ? window.scrollY : 0;
+      const rawPercentage =
+        maxScrollableHeight === 0 ? 100 : (scrollY / maxScrollableHeight) * 100;
+      const percentage = Math.min(100, Math.max(0, rawPercentage));
 
       tracker.track("scroll", {
-        scrollY: window.scrollY,
+        scrollY,
         percentage: Math.round(percentage),
         viewport: {
           width: window.innerWidth,
           height: window.innerHeight,
         },
+        document: documentDimensions,
       });
     }, 500)
   );

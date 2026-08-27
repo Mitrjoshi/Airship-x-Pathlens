@@ -2,6 +2,8 @@ import apiClient from '@/lib/apiClient'
 import { queryOptions } from '@tanstack/react-query'
 import type {
   HeatmapClickPoint,
+  HeatmapDevice,
+  HeatmapHotArea,
   HeatmapPage,
   HeatmapPageDetail,
   HeatmapScrollPoint,
@@ -13,6 +15,8 @@ import type {
 
 export type {
   HeatmapClickPoint,
+  HeatmapDevice,
+  HeatmapHotArea,
   HeatmapPage,
   HeatmapPageDetail,
   HeatmapScrollPoint,
@@ -35,5 +39,5 @@ export const getHeatmapsOptions = (params: HeatmapsParams) =>
     queryKey: ['HEATMAPS', params],
     queryFn: () => getHeatmaps(params),
     enabled: Boolean(params.workspace_id && params.project_id),
-    refetchInterval: 10_000,
+    // refetchInterval: 10_000,
   })

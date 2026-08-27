@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import type { HeatmapDevice } from "@workspace/contracts/heatmaps";
 import { z, ZodError } from "zod";
 import { getHeatmapsModel } from "../models/heatmaps.model";
 
@@ -6,6 +7,7 @@ const heatmapsQuerySchema = z.object({
   workspace_id: z.string().min(1),
   project_id: z.string().min(1),
   range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
+  device: z.enum(["all", "desktop", "mobile", "tablet"]).default("all"),
   page_path: z.string().trim().max(2048).optional(),
 });
 
@@ -16,6 +18,7 @@ export async function getHeatmaps(req: Request, res: Response) {
       workspaceId: query.workspace_id,
       projectId: query.project_id,
       range: query.range,
+      device: query.device as HeatmapDevice,
       pagePath: query.page_path,
     });
 

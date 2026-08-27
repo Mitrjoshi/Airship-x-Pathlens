@@ -10,6 +10,7 @@ import {
 import { navigationIcons } from '@/config/navigation-icons'
 import { formatNumber } from '@/utils/utils'
 import { useState } from 'react'
+import { Button } from '@workspace/ui/components/button'
 
 interface I_Props {
   project: T_Projects
@@ -90,10 +91,16 @@ export const ProjectCard = ({ project, workspace }: I_Props) => {
                 {isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
-            <p className="text-muted-foreground mt-2 flex items-center gap-1.5 truncate text-xs">
-              <GlobeIcon className="size-3.5 shrink-0" />
-              {project.domain ?? 'No domain connected'}
-            </p>
+            <Link target="_blank" to={project.domain}>
+              <Button
+                onClick={(e) => e.stopPropagation()}
+                variant={'link'}
+                className="text-muted-foreground flex items-center gap-1.5 truncate pl-0 text-xs"
+              >
+                <GlobeIcon className="size-3.5 shrink-0" />
+                {project.domain ?? 'No domain connected'}
+              </Button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 sm:gap-x-5">
