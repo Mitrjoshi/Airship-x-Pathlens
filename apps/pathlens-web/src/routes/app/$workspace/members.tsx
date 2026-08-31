@@ -145,7 +145,7 @@ function RouteComponent() {
 
   return (
     <PageLayout>
-      <div>
+      <div className="space-y-8">
         <ProjectPageHeader
           eyebrow="Team"
           title="Workspace members"

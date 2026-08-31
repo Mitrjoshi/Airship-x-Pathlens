@@ -57,7 +57,7 @@ function getStaticReplayOffset(events: ReplayEvent[]): number {
   for (const event of events.slice(snapshotIndex + 1)) {
     if (event.type !== EventType.IncrementalSnapshot) break
 
-    const source = event.data?.source
+    const source = (event.data as { source?: unknown }).source
 
     if (
       source === IncrementalSource.MouseMove ||

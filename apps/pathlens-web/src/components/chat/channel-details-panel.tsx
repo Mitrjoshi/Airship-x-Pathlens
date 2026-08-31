@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Archive,
   Loader2,
-  MoreHorizontal,
   Trash2,
   UserPlus,
   X,
@@ -17,12 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@workspace/ui/components/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@workspace/ui/components/dropdown-menu'
 import {
   Avatar,
   AvatarFallback,

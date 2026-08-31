@@ -91,7 +91,7 @@ export const ProjectCard = ({ project, workspace }: I_Props) => {
                 {isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
-            <Link target="_blank" to={project.domain}>
+            <Link target="_blank" to={project.domain as string}>
               <Button
                 onClick={(e) => e.stopPropagation()}
                 variant={'link'}

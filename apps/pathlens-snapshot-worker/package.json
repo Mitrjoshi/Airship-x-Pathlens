@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "local": "tsx src/local.ts",
     "start": "tsx dist/index.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
@@ -12,14 +13,18 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
+    "@aws-sdk/client-sqs": "^3.850.0",
+    "@aws-sdk/client-s3": "^3.850.0",
+    "@sparticuz/chromium": "^138.0.2",
     "dotenv": "^17.4.2",
     "pg": "^8.22.0",
-    "playwright": "^1.55.0"
+    "playwright-core": "^1.55.0"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.152",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.15.5",
+    "playwright": "^1.55.0",
     "rimraf": "^6.0.1",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"

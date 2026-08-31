@@ -17,7 +17,8 @@
     "studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
+    "@aws-sdk/client-s3": "^3.850.0",
+    "@aws-sdk/s3-request-presigner": "^3.850.0",
     "@workspace/backend-types": "workspace:*",
     "@workspace/contracts": "workspace:*",
     "aws-serverless-express": "^3.4.0",

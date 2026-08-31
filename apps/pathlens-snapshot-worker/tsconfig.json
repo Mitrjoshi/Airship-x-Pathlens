@@ -14,7 +14,7 @@
     "erasableSyntaxOnly": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ES2022"],
-    "types": ["node"],
+    "types": ["node", "aws-lambda"],
     "rootDir": "src",
     "outDir": "dist"
   },

@@ -108,11 +108,9 @@ export function useChatStream(
           buffer = messages.pop() ?? ''
 
           for (const message of messages) {
-            let event = 'message'
             let data = ''
 
             for (const line of message.split('\n')) {
-              if (line.startsWith('event:')) event = line.slice(6).trim()
               if (line.startsWith('data:')) data += line.slice(5).trim()
             }
 

@@ -14,8 +14,8 @@
     "layer": "node scripts/build-lambda-layer.mjs"
   },
   "devDependencies": {
-    "prettier": "^3.9.5",
-    "prettier-plugin-tailwindcss": "^0.8.0",
-    "turbo": "^2.5.6"
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "turbo": "^2.10.12"
   }
 }

@@ -1,7 +1,7 @@
 import { and, count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { events, projectSnapshots, projects } from "../db/schema";
-import { createSnapshotSignedUrl } from "../lib/supabase";
+import { createSnapshotSignedUrl } from "../lib/s3";
 
 interface I_CreateProjectPayload {
   name: string;

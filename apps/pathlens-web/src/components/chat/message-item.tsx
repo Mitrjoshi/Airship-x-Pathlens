@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  Loader2,
   MessageSquareReply,
   Pencil,
   Pin,

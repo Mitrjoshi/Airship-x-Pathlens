@@ -181,7 +181,7 @@ export async function claimNextSnapshot(): Promise<SnapshotJob | null> {
             )
           )
           OR (
-            s.status = 'processing'
+            s.status IN ('processing', 'queued')
             AND (
               s.last_attempt_at IS NULL
               OR s.last_attempt_at <= NOW() - INTERVAL '15 minutes'
@@ -220,6 +220,143 @@ export async function claimNextSnapshot(): Promise<SnapshotJob | null> {
     const claimedRow = claimed.rows[0]
 
     return claimedRow ? mapSnapshotRow(claimedRow) : null
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function claimSnapshot(
+  projectId: string
+): Promise<SnapshotJob | null> {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+    await syncProjectSnapshots(client)
+
+    const result = await client.query<SnapshotRow>(
+      `
+        SELECT ${qualifiedSnapshotColumns}
+        FROM project_snapshots AS s
+        INNER JOIN projects AS p ON p.id = s.project_id
+        WHERE s.project_id = $1
+          AND p.domain IS NOT NULL
+          AND s.workspace_id IS NOT DISTINCT FROM p.workspace_id
+          AND s.source_domain IS NOT DISTINCT FROM p.domain
+          AND (
+            s.status = 'pending'
+            OR (
+              s.status = 'ready'
+              AND (
+                s.requested_at IS NOT NULL
+                OR s.captured_at IS NULL
+                OR s.captured_at <= NOW() - INTERVAL '1 day'
+              )
+            )
+            OR (
+              s.status IN ('stale', 'failed')
+              AND (s.next_attempt_at IS NULL OR s.next_attempt_at <= NOW())
+            )
+            OR s.status = 'queued'
+            OR (
+              s.status = 'processing'
+              AND (
+                s.last_attempt_at IS NULL
+                OR s.last_attempt_at <= NOW() - INTERVAL '15 minutes'
+              )
+            )
+          )
+        FOR UPDATE OF s SKIP LOCKED
+      `,
+      [projectId]
+    )
+
+    const row = result.rows[0]
+
+    if (!row) {
+      await client.query('COMMIT')
+      return null
+    }
+
+    const claimed = await client.query<SnapshotRow>(
+      `
+        UPDATE project_snapshots
+        SET status = 'processing', last_attempt_at = NOW(), next_attempt_at = NULL
+        WHERE project_id = $1
+        RETURNING ${snapshotColumns}
+      `,
+      [projectId]
+    )
+
+    await client.query('COMMIT')
+    const claimedRow = claimed.rows[0]
+
+    return claimedRow ? mapSnapshotRow(claimedRow) : null
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function queueDueSnapshotProjectIds(
+  limit = 100
+): Promise<string[]> {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+    await syncProjectSnapshots(client)
+    const result = await client.query<{ project_id: string }>(
+      `
+        WITH due AS (
+          SELECT s.project_id
+          FROM project_snapshots AS s
+          INNER JOIN projects AS p ON p.id = s.project_id
+          WHERE p.domain IS NOT NULL
+            AND s.workspace_id IS NOT DISTINCT FROM p.workspace_id
+            AND s.source_domain IS NOT DISTINCT FROM p.domain
+            AND (
+              s.status = 'pending'
+              OR (
+                s.status = 'ready'
+                AND (
+                  s.requested_at IS NOT NULL
+                  OR s.captured_at IS NULL
+                  OR s.captured_at <= NOW() - INTERVAL '1 day'
+                )
+              )
+              OR (
+                s.status IN ('stale', 'failed')
+                AND (s.next_attempt_at IS NULL OR s.next_attempt_at <= NOW())
+              )
+              OR (
+                s.status IN ('processing', 'queued')
+                AND (
+                  s.last_attempt_at IS NULL
+                  OR s.last_attempt_at <= NOW() - INTERVAL '15 minutes'
+                )
+              )
+            )
+          ORDER BY COALESCE(s.requested_at, s.next_attempt_at, s.captured_at, NOW())
+          LIMIT $1
+          FOR UPDATE OF s SKIP LOCKED
+        )
+        UPDATE project_snapshots AS s
+        SET status = 'queued', last_attempt_at = NOW()
+        FROM due
+        WHERE s.project_id = due.project_id
+        RETURNING s.project_id
+      `,
+      [Math.max(1, Math.min(limit, 1000))]
+    )
+    await client.query('COMMIT')
+
+    return result.rows.map((row) => row.project_id)
   } catch (error) {
     await client.query('ROLLBACK').catch(() => undefined)
     throw error

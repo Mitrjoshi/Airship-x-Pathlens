@@ -38,9 +38,7 @@ export function ThreadPanel({
   const { data, isPending, isError } = useQuery(
     getChatMessagesOptions(workspaceId, channelId)
   )
-  const markRead = useMarkChatRead(workspaceId, channelId)
-
-const messages = (data?.data ?? []).filter(
+  const messages = (data?.data ?? []).filter(
     (message) => message.replyToMessageId === parent.id
   )
 

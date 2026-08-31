@@ -29,8 +29,8 @@ function ChannelRow({
 
   return (
     <Link
-      to="/app/$workspace/chat/$channelId"
-      params={{ channelId: channel.id }}
+      to={'/app/$workspace/chat/$channelId' as never}
+      params={{ channelId: channel.id } as never}
       className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
         active
           ? 'bg-accent text-accent-foreground'

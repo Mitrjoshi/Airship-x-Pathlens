@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: PathLens project snapshot SQS worker
+
+Parameters:
+  ImageUri:
+    Type: String
+    Description: ECR image URI for the snapshot worker
+  DatabaseUrl:
+    Type: String
+    NoEcho: true
+  SnapshotBucketName:
+    Type: String
+    Description: Globally unique private S3 bucket name for project snapshots
+
+Globals:
+  Function:
+    PackageType: Image
+    ImageUri: !Ref ImageUri
+    MemorySize: 2048
+    Timeout: 120
+    EphemeralStorage:
+      Size: 2048
+    Environment:
+      Variables:
+        DATABASE_URL: !Ref DatabaseUrl
+        S3_BUCKET: !Ref SnapshotBucket
+        SNAPSHOT_SETTLE_DELAY_MS: '750'
+
+Resources:
+  SnapshotDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+
+  SnapshotBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref SnapshotBucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  SnapshotQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 720
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SnapshotDeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  SnapshotWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: pathlens-snapshot-worker
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+                - s3:GetBucketPublicAccessBlock
+              Resource: !GetAtt SnapshotBucket.Arn
+            - Effect: Allow
+              Action: s3:PutObject
+              Resource: !Sub '${SnapshotBucket.Arn}/*'
+      Events:
+        SnapshotQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SnapshotQueue.Arn
+            BatchSize: 5
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+  SnapshotDispatcherFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: pathlens-snapshot-dispatcher
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+                - s3:GetBucketPublicAccessBlock
+              Resource: !GetAtt SnapshotBucket.Arn
+            - Effect: Allow
+              Action: s3:PutObject
+              Resource: !Sub '${SnapshotBucket.Arn}/*'
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt SnapshotQueue.QueueName
+      ImageConfig:
+        Command:
+          - dist/dispatcher.handler
+      Timeout: 60
+      Environment:
+        Variables:
+          SNAPSHOT_QUEUE_URL: !Ref SnapshotQueue
+      Events:
+        EveryMinute:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+            Enabled: true
+
+Outputs:
+  SnapshotQueueUrl:
+    Value: !Ref SnapshotQueue
+  SnapshotQueueArn:
+    Value: !GetAtt SnapshotQueue.Arn
+  SnapshotDeadLetterQueueUrl:
+    Value: !Ref SnapshotDeadLetterQueue

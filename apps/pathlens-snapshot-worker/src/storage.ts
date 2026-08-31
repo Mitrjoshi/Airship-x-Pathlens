@@ -1,4 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
+import {
+  GetPublicAccessBlockCommand,
+  HeadBucketCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3'
 
 const defaultBucket = 'project-snapshots'
 
@@ -16,48 +21,49 @@ function requiredEnvironmentValue(name: string): string {
 }
 
 export function createSnapshotStorage(): SnapshotStorage {
-  const supabase = createClient(
-    requiredEnvironmentValue('SUPABASE_URL'),
-    requiredEnvironmentValue('SUPABASE_SERVICE_ROLE_KEY'),
-    {
-      auth: {
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-        persistSession: false,
-      },
-    }
-  )
-  const bucket = process.env.SUPABASE_STORAGE_BUCKET?.trim() || defaultBucket
+  const region = requiredEnvironmentValue('AWS_REGION')
+  const bucket = process.env.S3_BUCKET?.trim() || defaultBucket
+  const s3 = new S3Client({ region })
 
   return {
     async assertPrivateBucket(): Promise<void> {
-      const { data, error } = await supabase.storage.getBucket(bucket)
-
-      if (error) {
-        throw new Error(
-          `Unable to inspect Supabase Storage bucket: ${error.message}`
+      try {
+        await s3.send(new HeadBucketCommand({ Bucket: bucket }))
+        const accessBlock = await s3.send(
+          new GetPublicAccessBlockCommand({ Bucket: bucket })
         )
-      }
+        const configuration = accessBlock.PublicAccessBlockConfiguration
 
-      if (!data) {
-        throw new Error(`Supabase Storage bucket '${bucket}' does not exist`)
-      }
-
-      if (data.public) {
-        throw new Error(`Supabase Storage bucket '${bucket}' must be private`)
+        if (
+          !configuration?.BlockPublicAcls ||
+          !configuration.IgnorePublicAcls ||
+          !configuration.BlockPublicPolicy ||
+          !configuration.RestrictPublicBuckets
+        ) {
+          throw new Error(`S3 bucket '${bucket}' must block public access`)
+        }
+      } catch (error) {
+        throw new Error(
+          `Unable to inspect private S3 bucket '${bucket}': ${error instanceof Error ? error.message : String(error)}`
+        )
       }
     },
     async upload(storagePath: string, image: Buffer): Promise<void> {
-      const { error } = await supabase.storage
-        .from(bucket)
-        .upload(storagePath, image, {
-          cacheControl: '86400',
-          contentType: 'image/jpeg',
-          upsert: true,
-        })
-
-      if (error) {
-        throw new Error(`Unable to upload snapshot: ${error.message}`)
+      try {
+        await s3.send(
+          new PutObjectCommand({
+            Bucket: bucket,
+            Key: storagePath,
+            Body: image,
+            CacheControl: '86400',
+            ContentType: 'image/jpeg',
+            ACL: 'public-read',
+          })
+        )
+      } catch (error) {
+        throw new Error(
+          `Unable to upload snapshot: ${error instanceof Error ? error.message : String(error)}`
+        )
       }
     },
   }

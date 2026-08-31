@@ -5,7 +5,6 @@ import type {
   ChatChannel,
   ChatMessage,
   ChatMessagesResponse,
-  ChatNotification,
   ChatPinnedMessage,
   ChatReaction,
 } from '@workspace/contracts'
@@ -48,7 +47,10 @@ export const useCreateChatChannel = () => {
 
       await queryClient.invalidateQueries({ queryKey: CHAT_CHANNELS(payload.workspace_id) })
       toast.success(`#${data.data.name} created.`)
-      navigate({ to: '/app/$workspace/chat/$channelId', params: { channelId: data.data.id } })
+      navigate({
+        to: '/app/$workspace/chat/$channelId' as never,
+        params: { channelId: data.data.id } as never,
+      })
     },
     onError: (error) => toast.error(error.message),
   })
@@ -77,7 +79,10 @@ export const useCreateDm = () => {
       }
 
       await queryClient.invalidateQueries({ queryKey: CHAT_CHANNELS(payload.workspace_id) })
-      navigate({ to: '/app/$workspace/chat/$channelId', params: { channelId: data.data.id } })
+      navigate({
+        to: '/app/$workspace/chat/$channelId' as never,
+        params: { channelId: data.data.id } as never,
+      })
     },
     onError: (error) => toast.error(error.message),
   })
@@ -137,7 +142,7 @@ export const useArchiveChatChannel = (workspaceId: string, channelId: string) =>
 
       await queryClient.invalidateQueries({ queryKey: CHAT_CHANNELS(workspaceId) })
       toast.success('Channel archived.')
-      navigate({ to: '/app/$workspace/chat', params: {} })
+      navigate({ to: '/app/$workspace/chat' as never, params: {} as never })
     },
     onError: (error) => toast.error(error.message),
   })
@@ -162,7 +167,7 @@ export const useDeleteChatChannel = (workspaceId: string, channelId: string) => 
 
       await queryClient.invalidateQueries({ queryKey: CHAT_CHANNELS(workspaceId) })
       toast.success('Channel deleted.')
-      navigate({ to: '/app/$workspace/chat', params: {} })
+      navigate({ to: '/app/$workspace/chat' as never, params: {} as never })
     },
     onError: (error) => toast.error(error.message),
   })
@@ -287,7 +292,7 @@ export const useSendChatMessage = (workspaceId: string, channelId: string) => {
 
       return { previous }
     },
-    onSuccess: async (data, payload, context) => {
+    onSuccess: async (data) => {
       if (!data.success) {
         throw new Error(data.message ?? 'Unable to send message.')
       }
@@ -307,7 +312,7 @@ export const useSendChatMessage = (workspaceId: string, channelId: string) => {
       await queryClient.invalidateQueries({ queryKey: CHAT_CHANNELS(workspaceId) })
       await queryClient.invalidateQueries({ queryKey: ['NOTIFICATIONS'] })
     },
-    onError: (error, payload, context) => {
+    onError: (error, _payload, context) => {
       const previous = context?.previous as ChatMessagesResponse | undefined
 
       if (previous) {

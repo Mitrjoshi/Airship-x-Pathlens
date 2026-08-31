@@ -1,6 +1,6 @@
 import { pathToFileURL } from 'node:url'
 
-import { chromium, type Browser } from 'playwright'
+import type { Browser } from 'playwright-core'
 
 import {
   claimNextSnapshot,
@@ -12,6 +12,7 @@ import {
 } from './db.js'
 import { normalizeProjectDomain } from './security.js'
 import { captureProjectScreenshot } from './screenshot.js'
+import { launchBrowser } from './browser.js'
 import {
   createSnapshotStorage,
   defaultSnapshotStoragePath,
@@ -43,7 +44,7 @@ function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
-async function processSnapshot(
+export async function processSnapshot(
   browser: Browser,
   storage: SnapshotStorage,
   job: SnapshotJob,
@@ -112,7 +113,7 @@ export async function runWorker(): Promise<void> {
   const storage = createSnapshotStorage()
   await storage.assertPrivateBucket()
 
-  const browser = await chromium.launch({ headless: true })
+  const browser = await launchBrowser()
   let stopping = false
   const requestStop = (): void => {
     stopping = true
