@@ -3,7 +3,7 @@
 ## Workspace
 
 - This is a pnpm 11 (`pnpm@11.22.0`) Turborepo; install and run commands from the repository root. Use `pnpm --filter <package> <script>` for focused work.
-- Product packages are `@pathlens/web` (dashboard), `@airship/web` (frontend), `@pathlens/api` (Express/PostgreSQL), `@airship/api` (health placeholder), `@pathlens/tracker` (browser IIFE), and `@pathlens/snapshot-worker` (Playwright worker).
+- Product packages are `@pathlens/web` (dashboard), `@airship/web` (frontend), `@pathlens/api` (Express/PostgreSQL), `@airship/api` (health placeholder), `@pathlens/tracker` (browser IIFE), and `@pathlens/snapshot-worker` (Playwright/SQS worker).
 - Shared code belongs in `@workspace/ui`, browser-safe `@workspace/contracts`, or server-only `@workspace/backend-types`; keep product features in their owning app.
 - Add shared shadcn components in `packages/ui` with `pnpm --filter @workspace/ui exec shadcn add <component>` and import them from `@workspace/ui/components/*`. Read `apps/airship-web/AGENTS.md` before changing Airship web code.
 
@@ -13,14 +13,14 @@
 - `pnpm verify` runs the repository `lint`, `typecheck`, and `build` tasks. Use `pnpm lint`, `pnpm typecheck`, `pnpm build`, or `pnpm format:check` for focused workspace-wide checks.
 - No general test suite is configured; the only test command is `pnpm --filter @pathlens/api test:geoip`.
 - For API schema changes, run `pnpm --filter @pathlens/api generate` and then `pnpm --filter @pathlens/api migrate`; do not hand-edit `apps/pathlens-api/drizzle/meta/**`. Use `push` only for deliberate direct synchronization; `studio` opens Drizzle Studio.
-- The snapshot worker's `start` script runs `dist/index.js`, so build it first. Install Chromium once with `pnpm --filter @pathlens/snapshot-worker install-browser`; it also needs a pre-created private Supabase bucket.
+- The snapshot worker's `start` script runs `tsx dist/index.js`, so build it first; its local polling runner is `pnpm --filter @pathlens/snapshot-worker local`. Install Chromium once with `pnpm --filter @pathlens/snapshot-worker install-browser`; local runs need a private AWS S3 bucket and the worker `.env.example` values. See its README for Docker/ECR/SAM deployment.
 - `pnpm layer <package-name>` creates a production dependency Lambda layer under gitignored `lambda-layers/`.
 
 ## Boundaries
 
 - Both web apps use TanStack file routes under `src/routes`; Vite generates `src/routeTree.gen.ts`. Never edit that generated file.
-- Pathlens API local development uses `apps/pathlens-api/src/server.ts` on port `8080`, with routes under `/api`; Vercel uses `apps/pathlens-api/api/index.ts`.
-- Pathlens API `dev`, `start`, and `backfill:campaigns` load `apps/pathlens-api/.env` explicitly. Drizzle CLI uses `dotenv/config`, so database commands need `DATABASE_URL`; API startup also requires `JWT_SECRET`.
+- Pathlens API local development uses `apps/pathlens-api/src/server.ts` on port `8080`, with routes mounted under `/api`.
+- Pathlens API `dev`, `start`, and `backfill:campaigns` load `apps/pathlens-api/.env` explicitly. Drizzle CLI uses `dotenv/config`, so database commands need `DATABASE_URL`; API startup requires `JWT_SECRET`, and protected requests require `INTERNAL_API_SECRET` via `x-api-key`.
 
 ## Runtime Contracts
 
@@ -33,5 +33,5 @@
 
 ## Style
 
-- Local `.prettierrc` files override the root: Pathlens web uses single quotes/no semicolons; Airship web and `packages/ui` use double quotes/no semicolons; API and tracker use double quotes/semicolons.
+- Local `.prettierrc` files override the root: Pathlens web uses single quotes/no semicolons; Airship web and `packages/ui` use double quotes/no semicolons; API and tracker use double quotes/semicolons. Tailwind classes are sorted by the configured Prettier plugin.
 - Web apps, `packages/ui`, and the snapshot worker enforce unused checks and `erasableSyntaxOnly`; avoid TypeScript syntax requiring runtime emission.

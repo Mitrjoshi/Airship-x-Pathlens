@@ -57,7 +57,6 @@ export function createSnapshotStorage(): SnapshotStorage {
             Body: image,
             CacheControl: '86400',
             ContentType: 'image/jpeg',
-            ACL: 'public-read',
           })
         )
       } catch (error) {

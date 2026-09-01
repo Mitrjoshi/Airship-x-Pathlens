@@ -1,5 +1,17 @@
 node_modules
+**/node_modules
+
 dist
+**/dist
+
 .env
 .env.*
-!.env.example
+**/.env *_/.env._
+
+.git
+.vscode
+.idea
+
+*.log
+.DS_Store
+Thumbs.db
