@@ -4,15 +4,16 @@ The worker captures public project domains with Playwright and stores the latest
 
 ## Local
 
-Copy `.env.example` to `.env`, fill in the database and AWS values, create the private S3 bucket, and install Chromium once:
+Copy `.env.example` to `.env`, fill in the database and AWS values, create the private S3 bucket and LocalStack SQS queue, and install Chromium once:
 
 ```bash
 pnpm install
+aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name pathlens-snapshot-worker-queue
 pnpm --filter @pathlens/snapshot-worker install-browser
 pnpm --filter @pathlens/snapshot-worker local
 ```
 
-The local runner preserves the database polling behavior. To build the production code locally, use `pnpm --filter @pathlens/snapshot-worker build`.
+The local runner consumes the LocalStack SQS queue using the same message flow as the Lambda. To build the production code locally, use `pnpm --filter @pathlens/snapshot-worker build`.
 
 ## AWS Deployment
 

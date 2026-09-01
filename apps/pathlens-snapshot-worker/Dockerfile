@@ -33,4 +33,7 @@ COPY --from=build /out/node_modules \
 COPY --from=build /workspace/apps/pathlens-snapshot-worker/dist \
     ${LAMBDA_TASK_ROOT}/dist
 
+COPY --from=build /workspace/apps/pathlens-snapshot-worker/package.json \
+    ${LAMBDA_TASK_ROOT}/package.json
+
 CMD ["dist/handler.handler"]

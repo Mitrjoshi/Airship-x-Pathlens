@@ -10,6 +10,7 @@ import {
   getProjectStatsModel,
   updateProjectModel,
 } from "../models/projects.model";
+import { enqueueProjectSnapshot } from "../lib/snapshot-queue";
 
 const createProjectSchema = z.object({
   name: z.string({
@@ -59,6 +60,8 @@ export async function createProject(req: Request, res: Response) {
     });
 
     const projectId = project[0].id;
+
+    if (domain) await enqueueProjectSnapshot(projectId);
 
     res.status(200).send({
       success: true,
@@ -190,6 +193,8 @@ export async function updateProject(req: Request, res: Response) {
         message: "Project not found.",
       });
     }
+
+    if (payload.domain) await enqueueProjectSnapshot(project.id);
 
     return res.status(200).json({
       success: true,

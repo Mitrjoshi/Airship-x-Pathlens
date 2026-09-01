@@ -22,7 +22,7 @@ This repository contains both products in one pnpm/Turborepo workspace.
 pnpm install
 ```
 
-Copy the relevant `.env.example` files to `.env` before running Pathlens locally.
+Copy the relevant `.env.example` files to `.env` before running Pathlens locally. Snapshot capture also requires a LocalStack SQS queue; see `apps/pathlens-snapshot-worker/README.md`.
 
 ## Commands
 
