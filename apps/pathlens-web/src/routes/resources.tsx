@@ -55,7 +55,7 @@ const resources = [
     eyebrow: 'FAQ',
     title: 'Get unstuck quickly',
     description:
-      'Clear answers for setup, tracking, plans, privacy, and working with your team.',
+      'Clear answers for setup, tracking, privacy, and working with your team.',
     href: '#faq',
     color: 'bg-violet-500/10 text-violet-600 dark:text-violet-300',
   },

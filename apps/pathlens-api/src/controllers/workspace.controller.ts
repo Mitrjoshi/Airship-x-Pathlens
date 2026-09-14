@@ -4,8 +4,8 @@ import { PERMISSIONS, type Permission } from "@workspace/contracts";
 
 import {
   createPermissionProfileModel,
-  createWorkspaceInvitationModel,
   createWorkspaceModel,
+  createWorkspaceInvitationModel,
   deletePermissionProfileModel,
   deleteWorkspaceModel,
   getPermissionProfileModel,
@@ -22,6 +22,7 @@ import {
   updateWorkspaceModel,
   updateWorkspaceMemberModel,
 } from "../models/workshop.model";
+import { getAccountEntitlement } from "../models/billing.model";
 import { getWorkspaceUsageModel } from "../models/usage.model";
 import { getUserByEmailModel } from "../models/users.model";
 import { AuthRequest } from "../lib/jwt";
@@ -36,6 +37,10 @@ const createWorkspaceSchema = z.object({
     .trim()
     .min(2, "Workspace name must be at least 2 characters.")
     .max(80, "Workspace name must be 80 characters or less."),
+});
+
+const usageQuerySchema = workspaceParamsSchema.extend({
+  project_id: z.string().min(1).optional(),
 });
 
 const createInvitationSchema = z.object({
@@ -147,16 +152,23 @@ export async function createWorkspace(req: AuthRequest, res: Response) {
   }
 
   try {
-    const { name } = createWorkspaceSchema.parse(req.body);
+    const account = await getAccountEntitlement(userId);
+
+    if (!account?.lifetimeAccess) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Lifetime account access is required to create another workspace.",
+      });
+    }
+
+    const { name } = createWorkspaceSchema.parse(req.body ?? {});
     const [workspace] = await createWorkspaceModel({
       user_id: userId,
       name,
     });
 
-    return res.status(201).json({
-      success: true,
-      data: workspace,
-    });
+    return res.status(201).json({ success: true, data: workspace });
   } catch (error) {
     return res.status(error instanceof ZodError ? 400 : 500).json({
       success: false,
@@ -234,6 +246,16 @@ export async function deleteWorkspace(req: AuthRequest, res: Response) {
       });
     }
 
+    const workspaces = await getWorkspaces(userId);
+    if (
+      workspaces.find((workspace) => workspace.id === workspace_id)?.isDefault
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: "The default workspace cannot be deleted.",
+      });
+    }
+
     const workspace = await deleteWorkspaceModel(workspace_id);
 
     if (!workspace) {
@@ -299,7 +321,10 @@ export async function getWorkspaceUsage(req: AuthRequest, res: Response) {
   }
 
   try {
-    const { workspace_id } = workspaceParamsSchema.parse(req.params);
+    const { workspace_id, project_id } = usageQuerySchema.parse({
+      ...req.params,
+      ...req.query,
+    });
     const member = await requireWorkspacePermission(
       workspace_id,
       userId,
@@ -313,7 +338,11 @@ export async function getWorkspaceUsage(req: AuthRequest, res: Response) {
       });
     }
 
-    const usage = await getWorkspaceUsageModel(workspace_id, userId);
+    const usage = await getWorkspaceUsageModel(
+      workspace_id,
+      userId,
+      project_id
+    );
 
     return res.status(200).json({
       success: true,

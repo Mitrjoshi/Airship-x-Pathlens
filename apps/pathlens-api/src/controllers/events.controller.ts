@@ -7,6 +7,7 @@ import {
 import { incomingEventsSchema } from "@workspace/contracts/events";
 import { getClientIp, getGeoLocation } from "../lib/geoip";
 import { z, ZodError } from "zod";
+import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 
 const eventsQuerySchema = z.object({
   workspace_id: z.string().min(1),
@@ -45,10 +46,15 @@ export async function ingestEvents(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
 
-    return res.status(500).json({
-      success: false,
-      message: "Unable to store analytics events.",
-    });
+    return res
+      .status(error instanceof WorkspaceUsageLimitError ? 409 : 500)
+      .json({
+        success: false,
+        message:
+          error instanceof WorkspaceUsageLimitError
+            ? error.message
+            : "Unable to store analytics events.",
+      });
   }
 }
 

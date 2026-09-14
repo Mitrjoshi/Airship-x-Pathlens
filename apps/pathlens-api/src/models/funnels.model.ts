@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { events, funnels, type FunnelStepDefinition } from "../db/schema";
+import { assertWorkspaceUsageLimit } from "./usage.model";
 
 export type FunnelRange = "24h" | "7d" | "30d" | "90d";
 
@@ -269,6 +270,7 @@ export async function createFunnelModel(data: {
   description: string | null;
   steps: FunnelStepDefinition[];
 }): Promise<string> {
+  await assertWorkspaceUsageLimit(data.workspaceId, "funnels", 1, false);
   const [funnel] = await db
     .insert(funnels)
     .values({

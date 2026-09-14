@@ -4,6 +4,7 @@ import { db } from "../db/client";
 import { replayChunks, replaySessions } from "../db/schema";
 import { getProjectIDByApiKeyModel } from "./projects.model";
 import { publishReplayChunk } from "../lib/replay-live";
+import { assertWorkspaceUsageLimit } from "./usage.model";
 
 const REPLAY_CHUNK_LIMIT = 250;
 
@@ -95,6 +96,8 @@ export async function ingestReplayChunkModel(
   ) {
     throw new Error("Replay session does not belong to this project.");
   }
+
+  await assertWorkspaceUsageLimit(project.workspace_id, "recordings");
 
   const inserted = await db.transaction(async (transaction) => {
     await transaction

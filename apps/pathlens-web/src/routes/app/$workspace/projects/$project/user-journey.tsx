@@ -5,7 +5,6 @@ import {
   ProjectPageLayout,
   PageToolbar,
 } from '@/components/common/project-page'
-import { PlanGate } from '@/components/common/plan-gate'
 import { formatNumber } from '@/utils/utils'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
@@ -455,8 +454,8 @@ function NodeDetails({ node }: { node: UserJourneyNode | null }) {
   return (
     <aside className="bg-background/75 min-w-0 border-t p-5 lg:border-t-0 lg:border-l">
       <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="bg-muted flex size-9 items-center justify-center rounded-lg">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span className="bg-muted flex size-9 shrink-0 items-center justify-center rounded-lg">
             <Icon className={cn('size-4', meta.iconClassName)} />
           </span>
           <div className="min-w-0">
@@ -538,13 +537,7 @@ function TrendingMetricIcon({ type }: { type: JourneyNodeType }) {
 }
 
 function RouteComponent() {
-  const { workspace } = Route.useParams()
-
-  return (
-    <PlanGate workspaceId={workspace} feature="userJourney">
-      <PageContent />
-    </PlanGate>
-  )
+  return <PageContent />
 }
 
 function PageContent() {

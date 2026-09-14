@@ -113,9 +113,9 @@ function ProductPage() {
               <Button
                 size="lg"
                 variant="outline"
-                render={<Link to="/pricing" />}
+                render={<Link to="/sign-up" />}
               >
-                See pricing
+                Start building
                 <ArrowRight />
               </Button>
             </div>

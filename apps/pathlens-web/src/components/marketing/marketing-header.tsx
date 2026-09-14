@@ -14,11 +14,10 @@ import {
   SheetTrigger,
 } from '@workspace/ui/components/sheet'
 
-export type MarketingNavKey = 'product' | 'pricing' | 'customers' | 'resources'
+export type MarketingNavKey = 'product' | 'customers' | 'resources'
 
 const navigation = [
   { label: 'Product', to: '/product', key: 'product' },
-  { label: 'Pricing', to: '/pricing', key: 'pricing' },
   { label: 'Customers', to: '/customers', key: 'customers' },
   { label: 'Resources', to: '/resources', key: 'resources' },
 ] as const

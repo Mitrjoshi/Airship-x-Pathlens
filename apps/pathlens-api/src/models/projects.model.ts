@@ -2,6 +2,7 @@ import { and, count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { events, projectSnapshots, projects } from "../db/schema";
 import { createSnapshotSignedUrl } from "../lib/s3";
+import { assertWorkspaceUsageLimit } from "./usage.model";
 
 interface I_CreateProjectPayload {
   name: string;
@@ -146,6 +147,7 @@ function formatActivityMeta(event: ActivityRow): string {
 export const createProjectModel = async (
   data: I_CreateProjectPayload
 ): Promise<{ id: string }[]> => {
+  await assertWorkspaceUsageLimit(data.workspace_id, "projects", 1, false);
   return await db.transaction(async (transaction) => {
     const createdProjects = await transaction
       .insert(projects)

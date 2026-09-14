@@ -4,7 +4,6 @@ import {
   ProjectPageHeader,
   ProjectPageLayout,
 } from '@/components/common/project-page'
-import { PlanLimitNotice } from '@/components/common/plan-gate'
 import {
   useCreateFunnel,
   useDeleteFunnel,
@@ -16,7 +15,6 @@ import {
   type FunnelRange,
 } from '@/queries/funnels'
 import { getWorkspacesOptions } from '@/queries/workspace'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -193,11 +191,6 @@ function PageContent() {
     currentWorkspace?.permissions.includes('analytics.funnels.manage')
 
   const funnels = data?.data ?? []
-  const currentPlanId = useWorkspacePlan(workspace)
-  const currentPlan = getPlanDefinition(currentPlanId)
-  const funnelLimit = currentPlan.limits.funnels
-  const funnelLimitReached =
-    funnelLimit !== null && funnels.length >= funnelLimit
   const selectedFunnel =
     funnels.find((funnel) => funnel.id === selectedFunnelId) ?? funnels[0]
   const enteredVisitors = selectedFunnel?.steps[0]?.visitors ?? 0
@@ -241,13 +234,6 @@ function PageContent() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
-    if (!editingFunnelId && funnelLimitReached && funnelLimit !== null) {
-      setFormError(
-        `Your ${currentPlan.name} plan allows ${funnelLimit} funnel. Upgrade to create more.`
-      )
-      return
-    }
 
     const steps = draftSteps.map((step) => ({
       name: step.name.trim(),
@@ -320,23 +306,12 @@ function PageContent() {
           title="Funnels"
           description="Track conversion through key user journeys using your captured events."
           actions={
-            <Button
-              onClick={openCreateDialog}
-              disabled={!canManageFunnels || funnelLimitReached}
-            >
+            <Button onClick={openCreateDialog} disabled={!canManageFunnels}>
               <Plus className="mr-2 h-4 w-4" />
               New Funnel
             </Button>
           }
         />
-
-        {funnelLimitReached && funnelLimit !== null && (
-          <PlanLimitNotice
-            workspaceId={workspace}
-            resource="funnel"
-            limit={funnelLimit}
-          />
-        )}
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="w-full max-w-xl!">

@@ -7,6 +7,7 @@ import {
   updateFunnelModel,
   type FunnelRange,
 } from "../models/funnels.model";
+import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 
 const funnelStepSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -57,10 +58,18 @@ export async function getFunnels(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
 
-    return res.status(error instanceof ZodError ? 400 : 500).json({
-      success: false,
-      message: getErrorMessage(error, "Unable to load funnels."),
-    });
+    return res
+      .status(
+        error instanceof WorkspaceUsageLimitError
+          ? 409
+          : error instanceof ZodError
+            ? 400
+            : 500
+      )
+      .json({
+        success: false,
+        message: getErrorMessage(error, "Unable to load funnels."),
+      });
   }
 }
 
@@ -82,10 +91,18 @@ export async function createFunnel(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
 
-    return res.status(error instanceof ZodError ? 400 : 500).json({
-      success: false,
-      message: getErrorMessage(error, "Unable to create funnel."),
-    });
+    return res
+      .status(
+        error instanceof WorkspaceUsageLimitError
+          ? 409
+          : error instanceof ZodError
+            ? 400
+            : 500
+      )
+      .json({
+        success: false,
+        message: getErrorMessage(error, "Unable to create funnel."),
+      });
   }
 }
 

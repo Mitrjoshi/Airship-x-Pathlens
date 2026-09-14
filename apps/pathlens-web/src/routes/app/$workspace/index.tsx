@@ -1,10 +1,9 @@
 import { PageLayout } from '@/components/common/page-layout'
-import { PlanLimitNotice } from '@/components/common/plan-gate'
 import {
   ProjectPageHeader,
   SectionHeader,
 } from '@/components/common/project-page'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
+import { getUsageOptions } from '@/queries/usage'
 import { getProjectsOptions } from '@/queries/projects'
 import { getWorkspacesOptions } from '@/queries/workspace'
 import { Button } from '@workspace/ui/components/button'
@@ -33,24 +32,21 @@ function RouteComponent() {
       workspace_id: workspace,
     })
   )
+  const { data: usageData } = useQuery(getUsageOptions(workspace))
 
   const currentWorkspace = workspaceData?.data.find(
     (item) => item.id === workspace
   )
-  const currentPlanId = useWorkspacePlan(workspace)
-  const currentPlan = getPlanDefinition(currentPlanId)
-  const projectLimit = currentPlan.limits.projects
+  const projectLimit = usageData?.data?.limits?.projects ?? 5
   const hasProjectCapacity =
-    projectLimit === null ||
-    Boolean(currentWorkspace && currentWorkspace.projectCount < projectLimit)
+    usageData === undefined ||
+    (usageData.data?.status !== 'paused' &&
+      currentWorkspace !== undefined &&
+      currentWorkspace.projectCount < projectLimit)
   const canCreateProject =
     (currentWorkspace?.role === 'owner' ||
       currentWorkspace?.permissions.includes('projects.create')) &&
     hasProjectCapacity
-  const projectLimitReached =
-    currentWorkspace !== undefined &&
-    projectLimit !== null &&
-    currentWorkspace.projectCount >= projectLimit
   const projects = data?.data ?? []
 
   return (
@@ -75,14 +71,6 @@ function RouteComponent() {
             </Button>
           }
         />
-
-        {projectLimitReached && projectLimit !== null && (
-          <PlanLimitNotice
-            workspaceId={workspace}
-            resource="project"
-            limit={projectLimit}
-          />
-        )}
 
         <SectionHeader
           title="All projects"

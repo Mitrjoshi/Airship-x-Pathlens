@@ -30,6 +30,12 @@ export const users = pgTable("users", {
 
   avatar: text("avatar"),
 
+  lifetimeAccess: boolean("lifetime_access").notNull().default(false),
+
+  stripeCustomerId: text("stripe_customer_id"),
+
+  stripePaymentId: text("stripe_payment_id"),
+
   createdAt: timestamp("created_at", {
     withTimezone: true,
   }).defaultNow(),
@@ -94,6 +100,19 @@ export const workspaces = pgTable(
      * Team workspaces will have isDefault = false.
      */
     isDefault: boolean("is_default").notNull().default(false),
+
+    usageStatus: text("usage_status").notNull().default("active"),
+
+    usageWarningAt: timestamp("usage_warning_at", {
+      withTimezone: true,
+    }),
+
+    usagePausedAt: timestamp("usage_paused_at", {
+      withTimezone: true,
+    }),
+
+    // Retained for migration compatibility; billing access is account-scoped.
+    unlimitedUsage: boolean("unlimited_usage").notNull().default(false),
 
     createdAt: timestamp("created_at", {
       withTimezone: true,

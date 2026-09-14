@@ -7,6 +7,7 @@ import {
   type GoalEventRow,
   type GoalType,
 } from "./goal-matching";
+import { assertWorkspaceUsageLimit } from "./usage.model";
 
 export type { GoalType } from "./goal-matching";
 export type GoalRange = "24h" | "7d" | "30d" | "90d";
@@ -254,6 +255,7 @@ export async function createGoalModel(data: {
   matchPath: string | null;
   deadline: string | null;
 }): Promise<string> {
+  await assertWorkspaceUsageLimit(data.workspaceId, "goals", 1, false);
   const [goal] = await db
     .insert(goals)
     .values({

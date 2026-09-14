@@ -16,10 +16,22 @@ export function NotificationsPopover() {
   const { data, isPending, isError } = useQuery(getNotificationsOptions())
   const acceptNotification = useAcceptNotification()
   const notifications = data?.data ?? []
-  const pendingInvitations = notifications.filter(
-    (notification) =>
-      notification.type === 'workspace_invite' && !notification.acceptedAt
+  const unreadNotifications = notifications.filter(
+    (notification) => !notification.readAt
   )
+
+  const getNotificationMessage = (type: string) => {
+    if (type.startsWith('usage_limit_exceeded:')) {
+      const metric = type.slice('usage_limit_exceeded:'.length)
+      return `Your workspace exceeded its ${metric} limit. You have 14 days to reduce usage before tracking is paused.`
+    }
+
+    if (type === 'workspace_paused') {
+      return 'Your workspace has been paused because a usage limit was exceeded.'
+    }
+
+    return null
+  }
 
   const accept = (notificationId: string) => {
     acceptNotification.mutate(notificationId, {
@@ -42,8 +54,8 @@ export function NotificationsPopover() {
             variant="outline"
             size="icon"
             aria-label={
-              pendingInvitations.length > 0
-                ? `${pendingInvitations.length} pending notifications`
+              unreadNotifications.length > 0
+                ? `${unreadNotifications.length} unread notifications`
                 : 'Notifications'
             }
           />
@@ -51,9 +63,11 @@ export function NotificationsPopover() {
       >
         <span className="relative">
           <BellIcon />
-          {pendingInvitations.length > 0 && (
+          {unreadNotifications.length > 0 && (
             <span className="bg-destructive text-destructive-foreground absolute -top-2 -right-2 flex min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-4">
-              {pendingInvitations.length > 9 ? '9+' : pendingInvitations.length}
+              {unreadNotifications.length > 9
+                ? '9+'
+                : unreadNotifications.length}
             </span>
           )}
         </span>
@@ -73,40 +87,49 @@ export function NotificationsPopover() {
           <p className="text-destructive px-2 py-8 text-center text-xs">
             Unable to load notifications.
           </p>
-        ) : pendingInvitations.length === 0 ? (
+        ) : notifications.length === 0 ? (
           <div className="text-muted-foreground flex flex-col items-center gap-2 px-2 py-8 text-center text-xs">
             <CheckIcon className="size-5" />
             You&apos;re all caught up.
           </div>
         ) : (
           <div className="space-y-2">
-            {pendingInvitations.map((notification) => (
+            {notifications.slice(0, 8).map((notification) => (
               <div
                 key={notification.id}
                 className="bg-muted/50 space-y-3 rounded-lg p-3"
               >
                 <div>
                   <p className="text-sm leading-5">
-                    <span className="font-medium">
-                      {notification.senderName}
-                    </span>{' '}
-                    invited you to join a workspace.
+                    {notification.type === 'workspace_invite' ? (
+                      <>
+                        <span className="font-medium">
+                          {notification.senderName}
+                        </span>{' '}
+                        invited you to join a workspace.
+                      </>
+                    ) : (
+                      getNotificationMessage(notification.type)
+                    )}
                   </p>
                   <p className="text-muted-foreground mt-1 text-xs">
                     {notification.workspaceName} ·{' '}
                     {notification.permissionProfileName ?? 'Permission profile'}
                   </p>
                 </div>
-                <Button
-                  className="w-full"
-                  disabled={acceptNotification.isPending}
-                  onClick={() => accept(notification.id)}
-                >
-                  {acceptNotification.isPending && (
-                    <Loader2Icon className="animate-spin" />
+                {notification.type === 'workspace_invite' &&
+                  !notification.acceptedAt && (
+                    <Button
+                      className="w-full"
+                      disabled={acceptNotification.isPending}
+                      onClick={() => accept(notification.id)}
+                    >
+                      {acceptNotification.isPending && (
+                        <Loader2Icon className="animate-spin" />
+                      )}
+                      Accept invitation
+                    </Button>
                   )}
-                  Accept invitation
-                </Button>
               </div>
             ))}
           </div>

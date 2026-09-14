@@ -5,8 +5,6 @@ import {
   ProjectPageLayout,
   PageToolbar,
 } from '@/components/common/project-page'
-import { PlanFeatureNotice } from '@/components/common/plan-gate'
-import { hasPlanFeature, useWorkspacePlan } from '@/lib/billing'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -260,7 +258,6 @@ function PageContent() {
   const { workspace, project } = Route.useParams()
   const [range, setRange] = useState<AnalyticsRange>('30d')
   const [device, setDevice] = useState<AnalyticsDevice>('all')
-  const currentPlanId = useWorkspacePlan(workspace)
   const { data: workspaceData } = useQuery(getWorkspacesOptions())
 
   const {
@@ -285,7 +282,6 @@ function PageContent() {
   const canExport =
     currentWorkspace?.role === 'owner' ||
     currentWorkspace?.permissions.includes('analytics.reports.export')
-  const canUseExport = hasPlanFeature(currentPlanId, 'dataExport')
 
   return (
     <ProjectPageLayout>
@@ -297,7 +293,7 @@ function PageContent() {
           actions={
             <Button
               variant="outline"
-              disabled={!analytics || !canExport || !canUseExport}
+              disabled={!analytics || !canExport}
               onClick={() => {
                 if (analytics) downloadReport(analytics, range, device)
               }}
@@ -307,14 +303,6 @@ function PageContent() {
             </Button>
           }
         />
-
-        {!canUseExport && (
-          <PlanFeatureNotice
-            workspaceId={workspace}
-            feature="dataExport"
-            description="Upgrade to Pro to export advanced reports and share the underlying data."
-          />
-        )}
 
         <PageToolbar className="justify-end">
           <Select

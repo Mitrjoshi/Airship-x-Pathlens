@@ -3,7 +3,6 @@ import {
   ProjectPanel,
 } from '@/components/common/project-page'
 import { PageLayout } from '@/components/common/page-layout'
-import { PlanFeatureNotice } from '@/components/common/plan-gate'
 import {
   useCreateWorkspacePermissionProfile,
   useDeleteWorkspacePermissionProfile,
@@ -63,7 +62,6 @@ import {
   UsersIcon,
 } from 'lucide-react'
 import { type Dispatch, type SetStateAction, useState } from 'react'
-import { hasPlanFeature, useWorkspacePlan } from '@/lib/billing'
 
 export const Route = createFileRoute('/app/$workspace/permission-profiles')({
   component: RouteComponent,
@@ -314,35 +312,11 @@ function RouteComponent() {
   const canCreate = hasPermission('workspace.permission_profiles.create')
   const canUpdate = hasPermission('workspace.permission_profiles.update')
   const canDelete = hasPermission('workspace.permission_profiles.delete')
-  const currentPlanId = useWorkspacePlan(workspace)
-  const hasAdvancedPermissions = hasPlanFeature(
-    currentPlanId,
-    'advancedPermissions'
-  )
   const profiles = profilesData?.data ?? []
   const assignedMembers = profiles.reduce(
     (total, profile) => total + profile.memberCount,
     0
   )
-
-  if (!hasAdvancedPermissions) {
-    return (
-      <PageLayout>
-        <div className="space-y-8">
-          <ProjectPageHeader
-            eyebrow="Workspace access"
-            title="Permission profiles"
-            description="Create advanced access profiles for larger teams."
-          />
-          <PlanFeatureNotice
-            workspaceId={workspace}
-            feature="advancedPermissions"
-            description="Advanced permissions and custom access profiles are available on the Business plan."
-          />
-        </div>
-      </PageLayout>
-    )
-  }
 
   const openCreateDialog = () => {
     setEditingProfile(null)

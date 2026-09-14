@@ -17,12 +17,14 @@ import feedbackRouter from "./feedback.route";
 import heatmapsRouter from "./heatmaps.route";
 import replayRouter from "./replay.route";
 import userJourneyRouter from "./user-journey.route";
+import billingRouter from "./billing.route";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
 
 const router = Router();
 
 router.use("/events", eventsRouter);
 router.use("/replay", replayRouter);
+router.use("/billing", billingRouter);
 
 router.use(ApiKeyMiddleware);
 

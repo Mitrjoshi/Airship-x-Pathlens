@@ -8,6 +8,7 @@ import {
   type GoalRange,
   type GoalType,
 } from "../models/goals.model";
+import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 
 const goalPayloadSchema = z
   .object({
@@ -73,10 +74,18 @@ export async function getGoals(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
 
-    return res.status(error instanceof ZodError ? 400 : 500).json({
-      success: false,
-      message: getErrorMessage(error, "Unable to load goals."),
-    });
+    return res
+      .status(
+        error instanceof WorkspaceUsageLimitError
+          ? 409
+          : error instanceof ZodError
+            ? 400
+            : 500
+      )
+      .json({
+        success: false,
+        message: getErrorMessage(error, "Unable to load goals."),
+      });
   }
 }
 
@@ -102,10 +111,18 @@ export async function createGoal(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
 
-    return res.status(error instanceof ZodError ? 400 : 500).json({
-      success: false,
-      message: getErrorMessage(error, "Unable to create goal."),
-    });
+    return res
+      .status(
+        error instanceof WorkspaceUsageLimitError
+          ? 409
+          : error instanceof ZodError
+            ? 400
+            : 500
+      )
+      .json({
+        success: false,
+        message: getErrorMessage(error, "Unable to create goal."),
+      });
   }
 }
 

@@ -2,21 +2,9 @@ import {
   ProjectPageHeader,
   ProjectPanel,
 } from '@/components/common/project-page'
-import { PlanLimitNotice } from '@/components/common/plan-gate'
 import { PageLayout } from '@/components/common/page-layout'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@workspace/ui/components/alert-dialog'
 import {
   CardContent,
   CardDescription,
@@ -26,20 +14,18 @@ import {
 } from '@workspace/ui/components/card'
 import { Input } from '@workspace/ui/components/input'
 import { Label } from '@workspace/ui/components/label'
-import { useDeleteWorkspace, useUpdateWorkspace } from '@/mutations/workspace'
+import { useUpdateWorkspace } from '@/mutations/workspace'
 import type { Permission } from '@workspace/contracts'
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { z } from 'zod'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import {
-  AlertTriangle,
   ArrowUpRight,
   FolderIcon,
   Loader2,
   ShieldCheckIcon,
-  Trash2,
   UserPlusIcon,
   UsersIcon,
 } from 'lucide-react'
@@ -49,7 +35,6 @@ import {
   getWorkspacesOptions,
 } from '@/queries/workspace'
 import { formatDate, formatNumber } from '@/utils/utils'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 
 export const Route = createFileRoute('/app/$workspace/workspace-settings')({
   component: RouteComponent,
@@ -89,9 +74,6 @@ function RouteComponent() {
     isError: workspacesError,
   } = useQuery(getWorkspacesOptions())
   const updateWorkspace = useUpdateWorkspace(workspace)
-  const deleteWorkspace = useDeleteWorkspace()
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-  const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const currentWorkspace = workspacesData?.data.find(
     (item) => item.id === workspace
   )
@@ -105,7 +87,6 @@ function RouteComponent() {
     hasPermission('workspace.permission_profiles.create') ||
     hasPermission('workspace.permission_profiles.update') ||
     hasPermission('workspace.permission_profiles.delete')
-  const canDeleteWorkspace = hasPermission('workspace.delete')
   const {
     data: invitationsData,
     isPending: invitationsPending,
@@ -114,25 +95,12 @@ function RouteComponent() {
     ...getWorkspaceInvitationsOptions(workspace),
     enabled: canViewMembers,
   })
-  const currentPlanId = useWorkspacePlan(workspace)
-  const currentPlan = getPlanDefinition(currentPlanId)
-  const projectLimit = currentPlan.limits.projects
-  const memberLimit = currentPlan.limits.members
   const pendingInvitationCount = invitationsData?.data.length ?? 0
   const invitationCountKnown = !canViewMembers || invitationsData !== undefined
-  const memberLimitReached =
-    currentWorkspace !== undefined &&
-    invitationCountKnown &&
-    memberLimit !== null &&
-    currentWorkspace.memberCount + pendingInvitationCount >= memberLimit
   const canInviteMembers =
     hasPermission('workspace.members.invite') &&
     invitationCountKnown &&
-    !invitationsError &&
-    !memberLimitReached
-  const canConfirmDelete =
-    Boolean(currentWorkspace) &&
-    deleteConfirmation.trim() === currentWorkspace?.name
+    !invitationsError
   const roleLabel = currentWorkspace
     ? currentWorkspace.role === 'owner'
       ? 'Owner'
@@ -189,14 +157,6 @@ function RouteComponent() {
             This workspace is no longer available to your account.
           </div>
         ) : null}
-
-        {memberLimitReached && memberLimit !== null && (
-          <PlanLimitNotice
-            workspaceId={workspace}
-            resource="team member"
-            limit={memberLimit}
-          />
-        )}
 
         <div className="space-y-6">
           {/* General */}
@@ -445,20 +405,14 @@ function RouteComponent() {
 
                   <div className="rounded-xl border p-4">
                     <p className="text-muted-foreground text-xs">
-                      Workspace plan
+                      Workspace access
                     </p>
-                    <div className="mt-2 flex items-center justify-between gap-3">
-                      <p className="text-lg font-semibold tracking-tight">
-                        {currentPlan.name}
-                      </p>
-                      <Badge variant="outline">
-                        {projectLimit === null
-                          ? 'Unlimited projects'
-                          : `${projectLimit} project${projectLimit === 1 ? '' : 's'}`}
-                      </Badge>
-                    </div>
+                    <p className="mt-2 text-lg font-semibold tracking-tight">
+                      Shared workspace
+                    </p>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      {currentPlan.description}
+                      Manage projects, members, and permissions from this
+                      workspace.
                     </p>
                   </div>
                 </div>
@@ -483,112 +437,6 @@ function RouteComponent() {
               </CardFooter>
             </ProjectPanel>
           </div>
-
-          {/* Danger Zone */}
-          <ProjectPanel className="border-destructive/50">
-            <CardHeader className="border-b px-5 py-5">
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="text-destructive h-5 w-5" />
-                Danger Zone
-              </CardTitle>
-              <CardDescription>
-                These actions are irreversible. Proceed with caution.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-4 p-5">
-              <div className="flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-medium">Delete Workspace</p>
-                  <p className="text-muted-foreground text-sm">
-                    Permanently delete this workspace and all its projects,
-                    analytics data, and members.
-                  </p>
-                </div>
-
-                <AlertDialog
-                  open={isDeleteOpen}
-                  onOpenChange={(open) => {
-                    setIsDeleteOpen(open)
-
-                    if (!open && !deleteWorkspace.isPending) {
-                      setDeleteConfirmation('')
-                    }
-                  }}
-                >
-                  <AlertDialogTrigger
-                    render={
-                      <Button
-                        variant="destructive"
-                        disabled={
-                          workspacesPending ||
-                          workspacesError ||
-                          !canDeleteWorkspace ||
-                          deleteWorkspace.isPending
-                        }
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Workspace
-                      </Button>
-                    }
-                  />
-
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Delete this workspace?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete the{' '}
-                        <span className="font-medium">
-                          {currentWorkspace?.name ?? 'this workspace'}
-                        </span>
-                        , including all projects and analytics data. This action
-                        cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-workspace">
-                        Type{' '}
-                        <span className="font-mono">
-                          {currentWorkspace?.name ?? 'workspace name'}
-                        </span>{' '}
-                        to confirm
-                      </Label>
-                      <Input
-                        id="confirm-workspace"
-                        value={deleteConfirmation}
-                        onChange={(event) =>
-                          setDeleteConfirmation(event.target.value)
-                        }
-                        disabled={deleteWorkspace.isPending}
-                        placeholder={currentWorkspace?.name ?? 'Workspace name'}
-                      />
-                    </div>
-
-                    <AlertDialogFooter>
-                      <AlertDialogCancel disabled={deleteWorkspace.isPending}>
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        disabled={
-                          !canConfirmDelete || deleteWorkspace.isPending
-                        }
-                        onClick={() => deleteWorkspace.mutate(workspace)}
-                      >
-                        {deleteWorkspace.isPending && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Delete workspace
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardContent>
-          </ProjectPanel>
         </div>
       </div>
     </PageLayout>

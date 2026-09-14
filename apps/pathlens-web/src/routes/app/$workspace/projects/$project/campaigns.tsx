@@ -5,7 +5,6 @@ import {
   ProjectPageHeader,
   ProjectPageLayout,
 } from '@/components/common/project-page'
-import { PlanGate } from '@/components/common/plan-gate'
 import {
   getCampaignsOptions,
   type CampaignDevice,
@@ -257,13 +256,7 @@ function CampaignTable({
 }
 
 function RouteComponent() {
-  const { workspace } = Route.useParams()
-
-  return (
-    <PlanGate workspaceId={workspace} feature="campaignTracking">
-      <PageContent />
-    </PlanGate>
-  )
+  return <PageContent />
 }
 
 function PageContent() {

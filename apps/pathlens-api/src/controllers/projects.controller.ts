@@ -11,6 +11,7 @@ import {
   updateProjectModel,
 } from "../models/projects.model";
 import { enqueueProjectSnapshot } from "../lib/snapshot-queue";
+import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 
 const createProjectSchema = z.object({
   name: z.string({
@@ -80,10 +81,18 @@ export async function createProject(req: Request, res: Response) {
       errorMessage = error.message;
     }
 
-    return res.status(400).json({
-      success: false,
-      message: errorMessage,
-    });
+    return res
+      .status(
+        error instanceof WorkspaceUsageLimitError
+          ? 409
+          : error instanceof ZodError
+            ? 400
+            : 500
+      )
+      .json({
+        success: false,
+        message: errorMessage,
+      });
   }
 }
 

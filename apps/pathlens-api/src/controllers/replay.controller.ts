@@ -5,6 +5,7 @@ import {
   ingestReplayChunkModel,
   InvalidReplayProjectKeyError,
 } from "../models/replay.model";
+import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 
 export async function ingestReplayChunk(req: Request, res: Response) {
   try {
@@ -30,9 +31,14 @@ export async function ingestReplayChunk(req: Request, res: Response) {
 
     console.error(error);
 
-    return res.status(500).json({
-      success: false,
-      message: "Unable to store replay chunk.",
-    });
+    return res
+      .status(error instanceof WorkspaceUsageLimitError ? 409 : 500)
+      .json({
+        success: false,
+        message:
+          error instanceof WorkspaceUsageLimitError
+            ? error.message
+            : "Unable to store replay chunk.",
+      });
   }
 }

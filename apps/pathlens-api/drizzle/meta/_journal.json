@@ -176,6 +176,20 @@
       "when": 1787144130495,
       "tag": "0024_hard_jack_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789316254469,
+      "tag": "0025_cooing_virginia_dare",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789404273760,
+      "tag": "0026_rich_paper_doll",
+      "breakpoints": true
     }
   ]
 }

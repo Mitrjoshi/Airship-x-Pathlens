@@ -5,8 +5,6 @@ import {
   ProjectPageLayout,
   PageToolbar,
 } from '@/components/common/project-page'
-import { PlanLimitNotice } from '@/components/common/plan-gate'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import { SessionReplayPlayer } from '@/components/common/session-replay-player'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
@@ -80,9 +78,6 @@ const rangeLabels: Record<SessionReplayRange, string> = {
 
 function PageContent() {
   const { workspace, project } = Route.useParams()
-  const currentPlanId = useWorkspacePlan(workspace)
-  const currentPlan = getPlanDefinition(currentPlanId)
-  const recordingLimit = currentPlan.limits.sessionRecordings
   const [search, setSearch] = useState('')
   const [range, setRange] = useState<SessionReplayRange>('7d')
   const [device, setDevice] = useState<SessionReplayDevice>('all')
@@ -103,9 +98,7 @@ function PageContent() {
   )
 
   const sessionReplay = data?.data
-  const visibleSessions = sessionReplay?.sessions.slice(0, recordingLimit) ?? []
-  const recordingLimitReached =
-    (sessionReplay?.pagination.total ?? 0) > recordingLimit
+  const visibleSessions = sessionReplay?.sessions ?? []
   const replayDetailQuery = useQuery(
     getSessionReplayDetailOptions({
       workspace_id: workspace,
@@ -144,14 +137,6 @@ function PageContent() {
           title="Session Replay"
           description="Watch recordings of visitor sessions to understand user behaviour."
         />
-
-        {recordingLimitReached && (
-          <PlanLimitNotice
-            workspaceId={workspace}
-            resource="session recording"
-            limit={recordingLimit}
-          />
-        )}
 
         {isError && (
           <p className="text-destructive text-sm">

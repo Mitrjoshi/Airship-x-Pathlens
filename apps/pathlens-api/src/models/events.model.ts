@@ -12,6 +12,10 @@ import type {
 } from "@workspace/contracts";
 import type { GeoLocation } from "../lib/geoip";
 import { getProjectIDByApiKeyModel } from "./projects.model";
+import {
+  assertWorkspaceHeatmapPages,
+  assertWorkspaceUsageLimit,
+} from "./usage.model";
 
 export type EventsRange = "24h" | "7d" | "30d" | "90d";
 
@@ -363,6 +367,11 @@ export async function createEvents(
     typeof visitorCampaignAttribution.$inferInsert
   >();
 
+  const workspaceIncrements = new Map<
+    string,
+    { events: number; pageViews: number; pagePaths: string[] }
+  >();
+
   for (const event of incomingEvents) {
     let project = projectCache.get(event.projectId);
 
@@ -386,6 +395,16 @@ export async function createEvents(
     if (Number.isNaN(occurredAt.getTime())) {
       throw new Error("Invalid event timestamp.");
     }
+
+    const increment = workspaceIncrements.get(project.workspaceId) ?? {
+      events: 0,
+      pageViews: 0,
+      pagePaths: [],
+    };
+    increment.events += 1;
+    if (event.type === "page_view") increment.pageViews += 1;
+    if (event.type === "page_view") increment.pagePaths.push(event.path ?? "/");
+    workspaceIncrements.set(project.workspaceId, increment);
 
     const attribution = getCampaignAttribution(
       event,
@@ -451,6 +470,18 @@ export async function createEvents(
 
       payload: Object.fromEntries(Object.entries(event)),
     });
+  }
+
+  for (const [workspaceId, increments] of workspaceIncrements) {
+    await assertWorkspaceUsageLimit(workspaceId, "events", increments.events);
+    if (increments.pageViews > 0) {
+      await assertWorkspaceUsageLimit(
+        workspaceId,
+        "pageViews",
+        increments.pageViews
+      );
+      await assertWorkspaceHeatmapPages(workspaceId, increments.pagePaths);
+    }
   }
 
   await db.transaction(async (transaction) => {

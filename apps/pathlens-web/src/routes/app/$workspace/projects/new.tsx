@@ -1,10 +1,9 @@
 import { PageLayout } from '@/components/common/page-layout'
-import { PlanLimitNotice } from '@/components/common/plan-gate'
 import {
   ProjectPageHeader,
   ProjectPanel,
 } from '@/components/common/project-page'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
+import { getUsageOptions } from '@/queries/usage'
 import { useCreateProject } from '@/mutations/projects'
 import { getWorkspacesOptions } from '@/queries/workspace'
 import { Button } from '@workspace/ui/components/button'
@@ -303,23 +302,21 @@ function RouteComponent() {
   const { data: workspaceData, isPending: workspacePending } = useQuery(
     getWorkspacesOptions()
   )
-  const currentPlanId = useWorkspacePlan(workspace)
-  const currentPlan = getPlanDefinition(currentPlanId)
+  const { data: usageData, isPending: usagePending } = useQuery(
+    getUsageOptions(workspace)
+  )
   const currentWorkspace = workspaceData?.data.find(
     (item) => item.id === workspace
   )
-  const projectLimit = currentPlan.limits.projects
+  const projectLimit = usageData?.data?.limits?.projects ?? 5
   const hasProjectCapacity =
-    projectLimit === null ||
+    !usagePending &&
+    usageData?.data?.status !== 'paused' &&
     Boolean(currentWorkspace && currentWorkspace.projectCount < projectLimit)
   const canCreateProject =
     (currentWorkspace?.role === 'owner' ||
       currentWorkspace?.permissions.includes('projects.create')) &&
     hasProjectCapacity
-  const projectLimitReached =
-    currentWorkspace !== undefined &&
-    projectLimit !== null &&
-    currentWorkspace.projectCount >= projectLimit
 
   const form = useForm({
     defaultValues: {
@@ -376,14 +373,6 @@ function RouteComponent() {
             </Button>
           }
         />
-
-        {projectLimitReached && projectLimit !== null && (
-          <PlanLimitNotice
-            workspaceId={workspace}
-            resource="project"
-            limit={projectLimit}
-          />
-        )}
 
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(19rem,0.82fr)]">
           <ProjectPanel>

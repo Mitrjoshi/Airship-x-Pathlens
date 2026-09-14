@@ -19,6 +19,8 @@ app.use(
   })
 );
 
+// Stripe signs the exact request bytes, so this route must precede JSON parsing.
+app.use("/api/billing/webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "5mb" }));
 app.set("trust proxy", true);
 

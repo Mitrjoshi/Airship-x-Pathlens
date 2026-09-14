@@ -182,7 +182,7 @@ export async function updateWorkspaceModel(data: {
 export async function deleteWorkspaceModel(workspaceId: string) {
   const [workspace] = await db
     .delete(workspaces)
-    .where(eq(workspaces.id, workspaceId))
+    .where(and(eq(workspaces.id, workspaceId), eq(workspaces.isDefault, false)))
     .returning({ id: workspaces.id });
 
   return workspace;

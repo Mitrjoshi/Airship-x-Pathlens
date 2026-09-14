@@ -14,7 +14,11 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { BadgeCheckIcon, LogOutIcon } from 'lucide-react'
+import {
+  BadgeCheckIcon,
+  DollarSign,
+  LogOutIcon,
+} from 'lucide-react'
 import { useTheme } from '@/components/common/theme-provider'
 
 export interface NavUserData {
@@ -60,10 +64,14 @@ export function NavUser({ user }: { user: NavUserData }) {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuGroup>
+        <DropdownMenuGroup className={'space-y-1'}>
           <DropdownMenuItem render={<Link to="/app/account" />}>
             <BadgeCheckIcon />
             Account
+          </DropdownMenuItem>
+          <DropdownMenuItem render={<Link to="/app/billing" />}>
+            <DollarSign />
+            Upgrade
           </DropdownMenuItem>
         </DropdownMenuGroup>
 

@@ -60,12 +60,6 @@ export function MarketingFooter() {
               >
                 Session replay
               </a>
-              <Link
-                className="text-muted-foreground hover:text-foreground block transition-colors"
-                to="/pricing"
-              >
-                Pricing
-              </Link>
             </div>
           </div>
 

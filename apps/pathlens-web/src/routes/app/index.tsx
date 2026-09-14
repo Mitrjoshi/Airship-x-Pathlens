@@ -1,90 +1,93 @@
-import { PlanLimitNotice } from '@/components/common/plan-gate'
 import {
   PageHeader,
   PageLayout,
   SectionHeader,
 } from '@/components/common/page-layout'
-import { Button } from '@workspace/ui/components/button'
 import { Card, CardContent } from '@workspace/ui/components/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@workspace/ui/components/dialog'
-import { Input } from '@workspace/ui/components/input'
-import { Label } from '@workspace/ui/components/label'
 import { Skeleton } from '@workspace/ui/components/skeleton'
-import { useCreateWorkspace } from '@/mutations/workspace'
+import { Button } from '@workspace/ui/components/button'
+import { Input } from '@workspace/ui/components/input'
 import { getWorkspacesOptions } from '@/queries/workspace'
+import { useCreateWorkspace } from '@/mutations/workspace'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useState } from 'react'
 import {
   ArrowUpRightIcon,
   BuildingIcon,
   FolderIcon,
-  Loader2Icon,
   PlusIcon,
   UsersIcon,
 } from 'lucide-react'
-import { useState } from 'react'
 import { formatNumber } from '@/utils/utils'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 
 export const Route = createFileRoute('/app/')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const user = useRouteContext({
-    from: '/app',
-    select: (context) => context.user,
-  })
-  const { data, isPending, isError } = useQuery(getWorkspacesOptions())
-  const createWorkspace = useCreateWorkspace()
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
   const [workspaceName, setWorkspaceName] = useState('')
+  const createWorkspace = useCreateWorkspace()
+  const { data, isPending, isError } = useQuery(getWorkspacesOptions())
 
   const workspaces = data?.data ?? []
-  const defaultWorkspaceId = user?.defaultWorkspace?.id ?? ''
-  const currentPlanId = useWorkspacePlan(defaultWorkspaceId)
-  const currentPlan = getPlanDefinition(currentPlanId)
-  const workspaceLimit = currentPlan.limits.workspaces
-  const workspaceLimitReached =
-    workspaceLimit !== null && workspaces.length >= workspaceLimit
-  const canCreateWorkspace = !isPending && !workspaceLimitReached
 
   return (
     <PageLayout>
       <PageHeader
         eyebrow="Workspace"
-        title="Choose where to work."
-        description="Select a workspace to see its projects and analytics."
+        title="Your workspace."
+        description="Open your workspace to see its projects and analytics."
         actions={
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            disabled={!canCreateWorkspace}
-          >
+          <Button onClick={() => setIsCreating((value) => !value)}>
             <PlusIcon />
             New workspace
           </Button>
         }
       />
 
-      {workspaceLimitReached &&
-        workspaceLimit !== null &&
-        defaultWorkspaceId && (
-          <PlanLimitNotice
-            workspaceId={defaultWorkspaceId}
-            resource="workspace"
-            limit={workspaceLimit}
-          />
-        )}
+      {isCreating && (
+        <form
+          className="bg-muted/40 flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-end"
+          onSubmit={(event) => {
+            event.preventDefault()
+            const name = workspaceName.trim()
+            if (!name) return
+
+            createWorkspace.mutate({ name })
+          }}
+        >
+          <label className="flex-1 space-y-2 text-sm font-medium">
+            Workspace name
+            <Input
+              autoFocus
+              value={workspaceName}
+              onChange={(event) => setWorkspaceName(event.target.value)}
+              placeholder="Acme Analytics"
+              maxLength={80}
+            />
+          </label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCreating(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={createWorkspace.isPending || !workspaceName.trim()}
+            >
+              {createWorkspace.isPending ? 'Creating...' : 'Create workspace'}
+            </Button>
+          </div>
+        </form>
+      )}
 
       <SectionHeader
-        title="All workspaces"
+        title="Default workspace"
         action={
           !isPending && !isError ? (
             <span className="text-muted-foreground text-xs">
@@ -185,81 +188,12 @@ function RouteComponent() {
         </div>
       ) : (
         <div className="rounded-xl border border-dashed px-5 py-12 text-center">
-          <p className="text-sm font-medium">No workspaces yet</p>
+          <p className="text-sm font-medium">Default workspace unavailable</p>
           <p className="text-muted-foreground mt-2 text-sm">
-            Create your first workspace to start organizing your projects.
+            Contact support to restore access to your default workspace.
           </p>
         </div>
       )}
-
-      <Dialog
-        open={isCreateOpen}
-        onOpenChange={(open) => {
-          setIsCreateOpen(open)
-          if (!open) setWorkspaceName('')
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create a workspace</DialogTitle>
-            <DialogDescription>
-              Give your team a shared home for projects and analytics.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form
-            className="space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault()
-              const name = workspaceName.trim()
-
-              if (name.length < 2 || !canCreateWorkspace) return
-
-              createWorkspace.mutate(
-                { name },
-                {
-                  onSuccess: () => {
-                    setIsCreateOpen(false)
-                    setWorkspaceName('')
-                  },
-                }
-              )
-            }}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="workspace-name">Workspace name</Label>
-              <Input
-                id="workspace-name"
-                value={workspaceName}
-                onChange={(event) => setWorkspaceName(event.target.value)}
-                placeholder="Acme product team"
-                autoFocus
-              />
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  workspaceName.trim().length < 2 || createWorkspace.isPending
-                }
-              >
-                {createWorkspace.isPending && (
-                  <Loader2Icon className="animate-spin" />
-                )}
-                Create workspace
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </PageLayout>
   )
 }

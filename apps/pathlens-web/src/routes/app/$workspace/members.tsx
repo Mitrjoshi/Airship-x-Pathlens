@@ -2,7 +2,6 @@ import {
   ProjectPageHeader,
   ProjectPanel,
 } from '@/components/common/project-page'
-import { PlanLimitNotice } from '@/components/common/plan-gate'
 import { PageLayout } from '@/components/common/page-layout'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Badge } from '@workspace/ui/components/badge'
@@ -40,7 +39,6 @@ import {
   useUpdateWorkspaceMember,
 } from '@/mutations/workspace'
 import { Button } from '@workspace/ui/components/button'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import { Loader2, MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import {
@@ -115,21 +113,7 @@ function RouteComponent() {
   const hasPermission = (permission: Permission) =>
     currentWorkspace?.role === 'owner' ||
     currentWorkspace?.permissions.includes(permission)
-  const currentPlanId = useWorkspacePlan(workspace)
-  const currentPlan = getPlanDefinition(currentPlanId)
-  const memberLimit = currentPlan.limits.members
-  const hasMemberCapacity =
-    memberLimit === null ||
-    Boolean(
-      currentWorkspace &&
-      currentWorkspace.memberCount + pendingInvitations.length < memberLimit
-    )
-  const canInviteMembers =
-    hasPermission('workspace.members.invite') && hasMemberCapacity
-  const memberLimitReached =
-    currentWorkspace !== undefined &&
-    memberLimit !== null &&
-    currentWorkspace.memberCount + pendingInvitations.length >= memberLimit
+  const canInviteMembers = hasPermission('workspace.members.invite')
   const canUpdateMembers = hasPermission('workspace.members.update')
   const canRemoveMembers = hasPermission('workspace.members.remove')
   const profiles = profilesData?.data ?? []
@@ -162,14 +146,6 @@ function RouteComponent() {
             ) : undefined
           }
         />
-
-        {memberLimitReached && memberLimit !== null && (
-          <PlanLimitNotice
-            workspaceId={workspace}
-            resource="team member"
-            limit={memberLimit}
-          />
-        )}
 
         {/* Members */}
         <ProjectPanel>

@@ -3,136 +3,129 @@ import {
   ProjectPanel,
 } from '@/components/common/project-page'
 import { PageLayout } from '@/components/common/page-layout'
+import { getProjectsOptions } from '@/queries/projects'
+import { getUsageOptions } from '@/queries/usage'
+import { navigationIcons } from '@/config/navigation-icons'
+import { formatNumber } from '@/utils/utils'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { z } from 'zod'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card'
 import { Progress } from '@workspace/ui/components/progress'
 import { cn } from '@workspace/ui/lib/utils'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
-import { getUsageOptions } from '@/queries/usage'
-import { navigationIcons } from '@/config/navigation-icons'
-import { formatDate, formatNumber } from '@/utils/utils'
 import type { LucideIcon } from 'lucide-react'
-import {
-  CalendarDays,
-  Database,
-  Globe,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-} from 'lucide-react'
+import { Database, Globe, ShieldCheck } from 'lucide-react'
 
 export const Route = createFileRoute('/app/$workspace/usage')({
   component: RouteComponent,
-  staticData: {
-    breadcrumb: 'Usage',
-  },
+  validateSearch: z.object({ project_id: z.string().optional() }),
+  staticData: { breadcrumb: 'Usage' },
 })
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-
-  const units = ['KB', 'MB', 'GB', 'TB']
-  let value = bytes
-  let unitIndex = -1
-
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024
-    unitIndex++
-  }
-
-  return `${Number(value.toFixed(value < 10 ? 1 : 0))} ${units[unitIndex]}`
-}
 
 type UsageMetric = {
   label: string
   icon: LucideIcon
   used: number
-  limit: number | null
-  enforcement: 'enforced' | 'advisory'
+  limit: number
+}
+
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`
+  const units = ['KB', 'MB', 'GB', 'TB']
+  let value = bytes
+  let index = -1
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024
+    index++
+  }
+  return `${Number(value.toFixed(value < 10 ? 1 : 0))} ${units[index]}`
 }
 
 function RouteComponent() {
   const { workspace } = Route.useParams()
-  const currentPlanId = useWorkspacePlan(workspace)
-  const currentPlan = getPlanDefinition(currentPlanId)
-  const { data, isPending, isError } = useQuery(getUsageOptions(workspace))
+  const { project_id: projectId } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const { data: projectsData } = useQuery(
+    getProjectsOptions({ workspace_id: workspace })
+  )
+  const { data, isPending, isError } = useQuery(
+    getUsageOptions(workspace, projectId)
+  )
   const usage = data?.data
-  const used = usage?.usage
+  const selectedProject = projectsData?.data.find(
+    (project) => project.id === projectId
+  )
+  const breakdown = projectId
+    ? usage?.projectBreakdown.find((project) => project.projectId === projectId)
+    : undefined
+  const values = projectId
+    ? {
+        pageViews: breakdown?.pageViews ?? 0,
+        events: breakdown?.events ?? 0,
+        recordings: breakdown?.recordings ?? 0,
+        heatmapPages: breakdown?.heatmapPages ?? 0,
+        funnels: breakdown?.funnels ?? 0,
+        goals: breakdown?.goals ?? 0,
+      }
+    : usage?.usage
 
-  const metrics: UsageMetric[] = [
-    {
-      label: 'Page Views',
-      icon: Globe,
-      used: used?.pageViews ?? 0,
-      limit: currentPlan.limits.pageViews,
-      enforcement: 'advisory',
-    },
-    {
-      label: 'Events',
-      icon: navigationIcons.events,
-      used: used?.events ?? 0,
-      limit: currentPlan.limits.events,
-      enforcement: 'advisory',
-    },
-    {
-      label: 'Session Recordings',
-      icon: navigationIcons.sessionReplay,
-      used: used?.recordings ?? 0,
-      limit: currentPlan.limits.sessionRecordings,
-      enforcement: 'advisory',
-    },
-    {
-      label: 'Projects',
-      icon: navigationIcons.projects,
-      used: used?.projects ?? 0,
-      limit: currentPlan.limits.projects,
-      enforcement: 'enforced',
-    },
-    {
-      label: 'Members',
-      icon: navigationIcons.members,
-      used: used?.members ?? 0,
-      limit: currentPlan.limits.members,
-      enforcement: 'enforced',
-    },
-    {
-      label: 'Funnels',
-      icon: navigationIcons.funnels,
-      used: used?.funnels ?? 0,
-      limit: currentPlan.limits.funnels,
-      enforcement: 'advisory',
-    },
-    {
-      label: 'Goals',
-      icon: navigationIcons.goals,
-      used: used?.goals ?? 0,
-      limit: currentPlan.limits.goals,
-      enforcement: 'advisory',
-    },
-    {
-      label: 'Workspaces',
-      icon: navigationIcons.projects,
-      used: used?.workspaces ?? 0,
-      limit: currentPlan.limits.workspaces,
-      enforcement: 'enforced',
-    },
-  ]
+  const metrics: UsageMetric[] = usage?.limits
+    ? [
+        ['Page Views', Globe, values?.pageViews ?? 0, usage.limits.pageViews],
+        [
+          'Events',
+          navigationIcons.events,
+          values?.events ?? 0,
+          usage.limits.events,
+        ],
+        [
+          'Recordings',
+          navigationIcons.sessionReplay,
+          values?.recordings ?? 0,
+          usage.limits.recordings,
+        ],
+        [
+          'Heatmap Pages',
+          navigationIcons.heatmaps,
+          values?.heatmapPages ?? 0,
+          usage.limits.heatmapPages,
+        ],
+        [
+          'Projects',
+          navigationIcons.projects,
+          usage.usage.projects,
+          usage.limits.projects,
+        ],
+        [
+          'Funnels',
+          navigationIcons.funnels,
+          values?.funnels ?? usage.usage.funnels,
+          usage.limits.funnels,
+        ],
+        [
+          'Goals',
+          navigationIcons.goals,
+          values?.goals ?? usage.usage.goals,
+          usage.limits.goals,
+        ],
+      ].map(([label, icon, used, limit]) => ({
+        label: label as string,
+        icon: icon as LucideIcon,
+        used: used as number,
+        limit: limit as number,
+      }))
+    : []
 
   const maxPercent = Math.max(
     0,
-    ...metrics.map((metric) =>
-      metric.limit === null ? 0 : Math.round((metric.used / metric.limit) * 100)
-    )
+    ...metrics.map((metric) => Math.round((metric.used / metric.limit) * 100))
   )
-  const resetDate = usage?.period.end
 
   return (
     <PageLayout>
@@ -140,120 +133,60 @@ function RouteComponent() {
         <ProjectPageHeader
           eyebrow="Workspace"
           title="Usage."
-          description="How much of your plan you are using this period, and what happens when you hit a limit."
+          description="Lifetime usage across this workspace and its projects."
           actions={
-            <Badge variant="outline" className="w-fit">
-              {currentPlan.name} plan ·{' '}
-              {currentPlan.price === 0 ? 'No renewal' : 'Monthly'}
-            </Badge>
+            <label className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground whitespace-nowrap">
+                Project
+              </span>
+              <select
+                value={projectId ?? ''}
+                onChange={(event) =>
+                  navigate({
+                    search: {
+                      project_id: event.target.value || undefined,
+                    },
+                  })
+                }
+                className="bg-background h-9 max-w-52 rounded-md border px-3 text-sm"
+                aria-label="Filter usage by project"
+              >
+                <option value="">All projects</option>
+                {(projectsData?.data ?? []).map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           }
         />
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
-          <ProjectPanel>
-            <CardContent className="p-5 pt-6 sm:p-6 sm:pt-7">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium tracking-[0.16em] uppercase">
-                    <Sparkles className="size-3.5" />
-                    Current plan
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2.5">
-                    <h2 className="text-2xl font-semibold tracking-tight">
-                      {currentPlan.name}
-                    </h2>
-                    <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/15">
-                      Active
-                    </Badge>
-                  </div>
-                  <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-6">
-                    {currentPlan.description}
-                  </p>
-                </div>
+        {usage?.accountLifetimeAccess ? (
+          <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-700">
+            Lifetime account access is active. Workspace usage limits still
+            apply independently.
+          </div>
+        ) : (
+          <div className="bg-muted/40 flex flex-col gap-3 rounded-xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">Need more usage?</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Get lifetime account access. Workspace usage limits still apply.
+              </p>
+            </div>
+            <Button size="sm" render={<Link to="/app/billing" />}>
+              View billing
+            </Button>
+          </div>
+        )}
 
-                <div className="sm:text-right">
-                  <p className="text-muted-foreground text-xs">Current rate</p>
-                  <p className="mt-1 text-3xl font-semibold tracking-tight">
-                    {currentPlan.price === 0 ? 'Free' : `$${currentPlan.price}`}
-                    {currentPlan.price > 0 && (
-                      <span className="text-muted-foreground text-sm font-normal">
-                        /mo
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-3 border-t pt-5 sm:grid-cols-3">
-                <div>
-                  <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                    <CalendarDays className="size-3.5" />
-                    Reset date
-                  </p>
-                  <p className="mt-2 text-sm font-medium">
-                    {isPending || !resetDate
-                      ? '—'
-                      : currentPlan.price === 0
-                        ? 'No renewal'
-                        : formatDate(resetDate)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                    <ShieldCheck className="size-3.5" />
-                    Data retention
-                  </p>
-                  <p className="mt-2 text-sm font-medium">
-                    {currentPlan.limits.retentionDays} days
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                    <TrendingUp className="size-3.5" />
-                    Peak usage
-                  </p>
-                  <p className="mt-2 text-sm font-medium">
-                    {isPending ? '—' : `${maxPercent}% of limit`}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </ProjectPanel>
-
-          <ProjectPanel className="bg-muted/30">
-            <CardHeader className="px-5 py-5 sm:px-6">
-              <div className="flex items-start gap-3">
-                <span className="bg-background text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-xl border">
-                  <ShieldCheck className="size-4" />
-                </span>
-                <div>
-                  <CardTitle>How limits work</CardTitle>
-                  <CardDescription className="mt-1">
-                    What happens when you reach a limit.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 px-5 pb-5 sm:px-6 sm:pb-6">
-              <div className="bg-background rounded-xl border p-4 text-sm">
-                <Badge className="border-green-500/30 bg-green-500/10 text-green-600 hover:bg-green-500/10">
-                  Enforced
-                </Badge>
-                <p className="text-muted-foreground mt-2 text-xs leading-5">
-                  Projects, members, and workspaces are blocked from being
-                  created once the limit is reached.
-                </p>
-              </div>
-              <div className="bg-background rounded-xl border p-4 text-sm">
-                <Badge variant="outline">Advisory</Badge>
-                <p className="text-muted-foreground mt-2 text-xs leading-5">
-                  Page views, events, funnels, goals, and recordings continue to
-                  work, but you are shown a notice with an upgrade prompt.
-                </p>
-              </div>
-            </CardContent>
-          </ProjectPanel>
-        </div>
+        {selectedProject && (
+          <div className="bg-muted/40 rounded-xl border px-4 py-3 text-sm">
+            Showing <span className="font-medium">{selectedProject.name}</span>{' '}
+            against the shared workspace limits.
+          </div>
+        )}
 
         {isError ? (
           <div
@@ -265,114 +198,48 @@ function RouteComponent() {
           </div>
         ) : null}
 
-        {!isPending && maxPercent >= 90 && (
-          <div className="bg-muted/40 flex flex-col gap-3 rounded-xl border p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground">
-              You have used {maxPercent}% of your {currentPlan.name} plan limits
-              this period. Upgrade for more room.
-            </p>
-            <Button
-              size="sm"
-              className="shrink-0"
-              render={
-                <Link to="/app/$workspace/billing" params={{ workspace }} />
-              }
-            >
-              Upgrade plan
-            </Button>
-          </div>
-        )}
-
-        <section className="space-y-4">
-          <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-muted-foreground text-xs font-medium tracking-[0.18em] uppercase">
-                Usage this period
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                How you are tracking against your limits.
-              </h2>
+        <ProjectPanel>
+          <CardHeader className="px-5 py-5 sm:px-6">
+            <div className="flex items-start gap-3">
+              <span className="bg-muted text-muted-foreground flex size-9 items-center justify-center rounded-xl">
+                <ShieldCheck className="size-4" />
+              </span>
+              <div>
+                <CardTitle>Workspace limits</CardTitle>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Limits are shared across the workspace and do not reset.
+                </p>
+              </div>
             </div>
-            <Badge variant="outline" className="w-fit">
-              {currentPlan.price === 0
-                ? 'No renewal'
-                : `Resets ${resetDate ? formatDate(resetDate) : '—'}`}
-            </Badge>
-          </div>
-
-          {isPending ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {metrics.map((metric) => (
-                <div
-                  key={metric.label}
-                  className="bg-muted/40 animate-pulse rounded-xl border p-4"
-                >
-                  <div className="bg-muted h-4 w-24 rounded" />
-                  <div className="bg-muted mt-3 h-8 w-16 rounded" />
-                  <div className="bg-muted mt-4 h-2 rounded-full" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {metrics.map((metric) => {
-                const Icon = metric.icon
-                const percent =
-                  metric.limit === null
-                    ? 0
-                    : Math.min(
-                        100,
-                        Math.round((metric.used / metric.limit) * 100)
-                      )
-                const isUnlimited = metric.limit === null
-
-                return (
-                  <div key={metric.label} className="rounded-xl border p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
+          </CardHeader>
+          <CardContent className="grid gap-4 px-5 pb-5 sm:grid-cols-3 sm:px-6">
+            {isPending
+              ? Array.from({ length: 7 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="bg-muted/40 h-24 animate-pulse rounded-xl"
+                  />
+                ))
+              : metrics.map((metric) => {
+                  const Icon = metric.icon
+                  const percent = Math.min(
+                    100,
+                    Math.round((metric.used / metric.limit) * 100)
+                  )
+                  return (
+                    <div key={metric.label} className="rounded-xl border p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="bg-muted text-muted-foreground flex size-9 items-center justify-center rounded-lg">
                           <Icon className="size-4" />
                         </span>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">
-                            {metric.label}
-                          </p>
+                        <div>
+                          <p className="text-sm font-medium">{metric.label}</p>
                           <p className="text-muted-foreground mt-1 text-xs">
                             {formatNumber(metric.used)} of{' '}
-                            {isUnlimited
-                              ? 'Unlimited'
-                              : formatNumber(metric.limit)}
+                            {formatNumber(metric.limit)}
                           </p>
                         </div>
                       </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1.5">
-                        {isUnlimited ? (
-                          <span className="text-muted-foreground text-xs">
-                            Unlimited
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs tabular-nums">
-                            {percent}%
-                          </span>
-                        )}
-                        <Badge
-                          variant={
-                            metric.enforcement === 'enforced'
-                              ? 'outline'
-                              : 'secondary'
-                          }
-                          className={cn(
-                            metric.enforcement === 'enforced' &&
-                              'border-green-500/30 bg-green-500/10 text-green-600 hover:bg-green-500/10'
-                          )}
-                        >
-                          {metric.enforcement === 'enforced'
-                            ? 'Enforced'
-                            : 'Advisory'}
-                        </Badge>
-                      </div>
-                    </div>
-                    {!isUnlimited && (
                       <Progress
                         value={percent}
                         className={cn(
@@ -380,45 +247,36 @@ function RouteComponent() {
                           percent >= 90 && '[&>div]:bg-destructive'
                         )}
                       />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
+                    </div>
+                  )
+                })}
+          </CardContent>
+        </ProjectPanel>
 
-        <section className="space-y-4">
+        <div className="flex items-center justify-between border-b pb-4">
           <div>
             <p className="text-muted-foreground text-xs font-medium tracking-[0.18em] uppercase">
-              Storage
+              Status
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-              Replay data footprint.
-            </h2>
+            <p className="mt-2 text-sm">
+              {usage?.status === 'paused'
+                ? 'Workspace paused'
+                : usage?.status === 'warning'
+                  ? `Grace period ends ${usage.pauseAt ? new Date(usage.pauseAt).toLocaleDateString() : 'soon'}`
+                  : 'Usage active'}
+            </p>
           </div>
+          <Badge variant={maxPercent >= 90 ? 'destructive' : 'outline'}>
+            {isPending ? 'Loading' : `${maxPercent}% used`}
+          </Badge>
+        </div>
 
-          <ProjectPanel>
-            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
-                  <Database className="size-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-medium">Storage Used</p>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {isPending
-                      ? '—'
-                      : `${formatBytes(used?.storageBytes ?? 0)} of session replay data stored`}
-                  </p>
-                </div>
-              </div>
-              <p className="text-muted-foreground text-xs leading-5">
-                No storage limit applies on your {currentPlan.name} plan.
-              </p>
-            </CardContent>
-          </ProjectPanel>
-        </section>
+        {usage && (
+          <div className="text-muted-foreground flex items-center gap-3 text-sm">
+            <Database className="size-4" />
+            {formatBytes(usage.usage.storageBytes)} of replay data stored
+          </div>
+        )}
       </div>
     </PageLayout>
   )

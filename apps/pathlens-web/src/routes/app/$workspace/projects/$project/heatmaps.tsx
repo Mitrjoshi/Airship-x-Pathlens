@@ -6,8 +6,6 @@ import {
   PageToolbar,
 } from '@/components/common/project-page'
 import { HeatmapReplayPreview } from '@/components/common/heatmap-replay-preview'
-import { PlanLimitNotice } from '@/components/common/plan-gate'
-import { getPlanDefinition, useWorkspacePlan } from '@/lib/billing'
 import {
   getHeatmapsOptions,
   type HeatmapDevice,
@@ -360,9 +358,6 @@ const deviceLabels: Record<HeatmapDevice, string> = {
 
 function PageContent() {
   const { workspace, project } = Route.useParams()
-  const currentPlanId = useWorkspacePlan(workspace)
-  const currentPlan = getPlanDefinition(currentPlanId)
-  const heatmapPageLimit = currentPlan.limits.heatmapPages
   const [range, setRange] = useState<HeatmapsRange>('7d')
   const [device, setDevice] = useState<HeatmapDevice>('all')
   const [selectedPath, setSelectedPath] = useState<string | undefined>()
@@ -376,11 +371,7 @@ function PageContent() {
     })
   )
   const heatmaps = data?.data
-  const visiblePages =
-    heatmaps?.pages.slice(0, heatmapPageLimit ?? undefined) ?? []
-  const heatmapLimitReached =
-    heatmapPageLimit !== null &&
-    (heatmaps?.pages.length ?? 0) > heatmapPageLimit
+  const visiblePages = heatmaps?.pages ?? []
   const page = heatmaps?.selectedPage
   const activePath = page?.path ?? selectedPath
   const summary = [
@@ -414,14 +405,6 @@ function PageContent() {
           title="Heatmaps"
           description="Understand where visitors click and how far they scroll on each page."
         />
-
-        {heatmapLimitReached && heatmapPageLimit !== null && (
-          <PlanLimitNotice
-            workspaceId={workspace}
-            resource="heatmap page"
-            limit={heatmapPageLimit}
-          />
-        )}
 
         <PageToolbar className="justify-between">
           <div className="text-muted-foreground flex items-center gap-2 text-xs">
