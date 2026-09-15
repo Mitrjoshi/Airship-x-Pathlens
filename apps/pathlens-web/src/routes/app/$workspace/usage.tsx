@@ -28,6 +28,7 @@ import {
 import { cn } from '@workspace/ui/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 import { Database, Globe, ShieldCheck } from 'lucide-react'
+import { Label } from '@workspace/ui/components/label'
 
 export const Route = createFileRoute('/app/$workspace/usage')({
   component: RouteComponent,
@@ -142,10 +143,7 @@ function RouteComponent() {
           title="Usage."
           description="Lifetime usage across this workspace and its projects."
           actions={
-            <label className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground whitespace-nowrap">
-                Project
-              </span>
+            <Label className="flex items-center gap-2 text-sm">
               <Select
                 value={projectId ?? 'all'}
                 onValueChange={(value) =>
@@ -173,7 +171,7 @@ function RouteComponent() {
                   ))}
                 </SelectContent>
               </Select>
-            </label>
+            </Label>
           }
         />
 
