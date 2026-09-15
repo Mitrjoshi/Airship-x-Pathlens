@@ -591,7 +591,7 @@ export function ProjectSwitcher({
           <Button
             variant="ghost"
             size="lg"
-            className="hover:bg-muted data-open:bg-muted h-auto w-64 min-w-0 px-2"
+            className="hover:bg-muted data-open:bg-muted h-10 w-64 min-w-0 px-2"
           />
         }
       >

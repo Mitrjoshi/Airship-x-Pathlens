@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client";
+import { getGeoLocation } from "../lib/geoip";
 
 export type VisitorsRange = "24h" | "7d" | "30d" | "90d";
 export type VisitorStatus = "all" | "online" | "offline";
@@ -49,6 +50,10 @@ export interface VisitorsResponse {
 
 export interface VisitorLocation {
   code: string;
+  country: string;
+  city: string;
+  latitude: number | null;
+  longitude: number | null;
   visitors: number;
 }
 
@@ -59,6 +64,9 @@ export interface VisitorLocationsResponse {
 
 interface VisitorLocationRow extends Record<string, unknown> {
   code: string | null;
+  country: string | null;
+  city: string | null;
+  ip: string | null;
   visitors: number | string | null;
 }
 
@@ -174,6 +182,9 @@ export async function getVisitorLocationsModel(filters: {
       SELECT
         visitor_id,
         country_code,
+        country,
+        city,
+        ip,
         occurred_at
       FROM events
       WHERE ${eventWhere}
@@ -182,18 +193,24 @@ export async function getVisitorLocationsModel(filters: {
       SELECT DISTINCT ON (visitor_id)
         visitor_id,
         NULLIF(country_code, '') AS code,
+        NULLIF(country, '') AS country,
+        NULLIF(city, '') AS city,
+        ip,
         occurred_at AS last_seen
       FROM filtered_events
       ORDER BY visitor_id, occurred_at DESC
     )
     SELECT
       COALESCE(lv.code, 'Unknown') AS code,
+      MAX(lv.country) AS country,
+      MAX(lv.city) AS city,
+      MAX(lv.ip) AS ip,
       COUNT(*)::int AS visitors,
       SUM(COUNT(*)) OVER ()::int AS total
     FROM latest_visitors lv
     WHERE TRUE
       ${statusFilter}
-    GROUP BY lv.code
+      GROUP BY lv.code, lv.country, lv.city
     ORDER BY visitors DESC
   `);
 
@@ -203,10 +220,18 @@ export async function getVisitorLocationsModel(filters: {
   return {
     locations: rows
       .filter((row) => row.code && row.code !== "Unknown")
-      .map((row) => ({
-        code: row.code as string,
-        visitors: toNumber(row.visitors),
-      })),
+      .map((row) => {
+        const geo = getGeoLocation(row.ip);
+
+        return {
+          code: row.code as string,
+          country: row.country?.trim() || (row.code as string),
+          city: row.city?.trim() || "Unknown city",
+          latitude: geo?.latitude ?? null,
+          longitude: geo?.longitude ?? null,
+          visitors: toNumber(row.visitors),
+        };
+      }),
     total,
   };
 }

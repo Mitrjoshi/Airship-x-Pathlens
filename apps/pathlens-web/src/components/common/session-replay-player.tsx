@@ -25,6 +25,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CircleIcon,
+  Maximize2Icon,
+  Minimize2Icon,
   PauseIcon,
   PlayIcon,
   RadioIcon,
@@ -156,6 +158,7 @@ export function SessionReplayPlayer({
   onOpenChange,
 }: SessionReplayPlayerProps) {
   const replayRootRef = useRef<HTMLDivElement>(null)
+  const dialogContentRef = useRef<HTMLDivElement>(null)
   const replayerRef = useRef<Replayer | null>(null)
   const lastSequenceRef = useRef(-1)
   const [currentEventIndex, setCurrentEventIndex] = useState(0)
@@ -168,6 +171,7 @@ export function SessionReplayPlayer({
   const [wantsLive, setWantsLive] = useState(false)
   const [streamStatus, setStreamStatus] = useState<StreamStatus>('idle')
   const [replayErrorKey, setReplayErrorKey] = useState<string | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const events = detail?.events ?? EMPTY_SESSION_EVENTS
   const currentEvent = events[currentEventIndex]
   const initialReplayEvents = detail?.replay.events ?? EMPTY_REPLAY_EVENTS
@@ -389,9 +393,46 @@ export function SessionReplayPlayer({
     replayerRef.current?.startLive()
   }
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === dialogContentRef.current)
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (open) return
+
+    if (document.fullscreenElement === dialogContentRef.current) {
+      void document.exitFullscreen()
+    }
+  }, [open])
+
+  const toggleFullscreen = () => {
+    const element = dialogContentRef.current
+
+    if (!element) return
+
+    if (document.fullscreenElement === element) {
+      void document.exitFullscreen()
+    } else {
+      void element.requestFullscreen().catch(() => {
+        setIsFullscreen(false)
+      })
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[min(92vh,860px)] max-h-[calc(100vh-1rem)] w-[calc(100%-1rem)] max-w-7xl! min-w-0 flex-col gap-0 overflow-hidden p-0">
+      <DialogContent
+        ref={dialogContentRef}
+        className={`${isFullscreen ? 'top-0 left-0 h-screen w-screen max-w-none translate-x-0 translate-y-0 rounded-none' : 'h-[min(92vh,860px)] max-h-[calc(100vh-1rem)] w-[calc(100%-1rem)] max-w-7xl!'} flex min-w-0 flex-col gap-0 overflow-hidden p-0`}
+      >
         <DialogHeader className="border-b px-6 py-5 pr-12">
           <div className="flex flex-wrap items-center gap-2">
             <DialogTitle>Session replay</DialogTitle>
@@ -412,6 +453,16 @@ export function SessionReplayPlayer({
               ? `${session.country} · ${session.device} · ${session.duration}`
               : 'Review the reconstructed screen and interaction timeline.'}
           </DialogDescription>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-2 right-12"
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? <Minimize2Icon /> : <Maximize2Icon />}
+          </Button>
         </DialogHeader>
 
         {isLoading ? (

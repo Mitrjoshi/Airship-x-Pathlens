@@ -8,6 +8,8 @@ export interface GeoLocation {
   region: string | null;
   city: string | null;
   timezone: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 const IPV4_MAPPED_IPV6_PREFIX = "::ffff:";
@@ -46,6 +48,8 @@ export function getGeoLocation(ip: string | null): GeoLocation | null {
       region: lookup.region || null,
       city: lookup.city || null,
       timezone: lookup.timezone || null,
+      latitude: lookup.ll?.[0] ?? null,
+      longitude: lookup.ll?.[1] ?? null,
     };
   } catch {
     return null;

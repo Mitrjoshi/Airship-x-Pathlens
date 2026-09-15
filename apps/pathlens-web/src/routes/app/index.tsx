@@ -7,6 +7,7 @@ import { Card, CardContent } from '@workspace/ui/components/card'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
+import { getBillingEntitlementOptions } from '@/queries/billing'
 import { getWorkspacesOptions } from '@/queries/workspace'
 import { useCreateWorkspace } from '@/mutations/workspace'
 import { useQuery } from '@tanstack/react-query'
@@ -20,6 +21,7 @@ import {
   UsersIcon,
 } from 'lucide-react'
 import { formatNumber } from '@/utils/utils'
+import { Label } from '@workspace/ui/components/label'
 
 export const Route = createFileRoute('/app/')({
   component: RouteComponent,
@@ -29,7 +31,11 @@ function RouteComponent() {
   const [isCreating, setIsCreating] = useState(false)
   const [workspaceName, setWorkspaceName] = useState('')
   const createWorkspace = useCreateWorkspace()
+  const navigate = Route.useNavigate()
   const { data, isPending, isError } = useQuery(getWorkspacesOptions())
+  const { data: entitlementData, isPending: entitlementPending } = useQuery(
+    getBillingEntitlementOptions()
+  )
 
   const workspaces = data?.data ?? []
 
@@ -40,7 +46,17 @@ function RouteComponent() {
         title="Your workspace."
         description="Open your workspace to see its projects and analytics."
         actions={
-          <Button onClick={() => setIsCreating((value) => !value)}>
+          <Button
+            disabled={entitlementPending}
+            onClick={() => {
+              if (entitlementData?.data.lifetime_access) {
+                setIsCreating((value) => !value)
+                return
+              }
+
+              navigate({ to: '/app/billing' })
+            }}
+          >
             <PlusIcon />
             New workspace
           </Button>
@@ -58,8 +74,10 @@ function RouteComponent() {
             createWorkspace.mutate({ name })
           }}
         >
-          <label className="flex-1 space-y-2 text-sm font-medium">
-            Workspace name
+          <div className="w-full space-y-2">
+            <Label className="flex-1 space-y-2 text-sm font-medium">
+              Workspace name
+            </Label>
             <Input
               autoFocus
               value={workspaceName}
@@ -67,7 +85,7 @@ function RouteComponent() {
               placeholder="Acme Analytics"
               maxLength={80}
             />
-          </label>
+          </div>
           <div className="flex gap-2">
             <Button
               type="button"

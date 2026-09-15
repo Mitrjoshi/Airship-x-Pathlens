@@ -18,6 +18,13 @@ import {
   CardTitle,
 } from '@workspace/ui/components/card'
 import { Progress } from '@workspace/ui/components/progress'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@workspace/ui/components/select'
 import { cn } from '@workspace/ui/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 import { Database, Globe, ShieldCheck } from 'lucide-react'
@@ -139,25 +146,33 @@ function RouteComponent() {
               <span className="text-muted-foreground whitespace-nowrap">
                 Project
               </span>
-              <select
-                value={projectId ?? ''}
-                onChange={(event) =>
+              <Select
+                value={projectId ?? 'all'}
+                onValueChange={(value) =>
                   navigate({
                     search: {
-                      project_id: event.target.value || undefined,
+                      project_id: value === 'all' ? undefined : value,
                     },
                   })
                 }
-                className="bg-background h-9 max-w-52 rounded-md border px-3 text-sm"
-                aria-label="Filter usage by project"
               >
-                <option value="">All projects</option>
-                {(projectsData?.data ?? []).map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  className="bg-background h-9 max-w-52 text-sm"
+                  aria-label="Filter usage by project"
+                >
+                  <SelectValue>
+                    {selectedProject?.name ?? 'All projects'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All projects</SelectItem>
+                  {(projectsData?.data ?? []).map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
           }
         />

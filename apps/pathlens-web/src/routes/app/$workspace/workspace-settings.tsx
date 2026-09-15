@@ -269,8 +269,8 @@ function RouteComponent() {
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="grid gap-3 p-5 sm:grid-cols-3">
-                <div className="rounded-xl border p-4">
+              <CardContent className="grid h-full gap-3 p-5 sm:grid-cols-3">
+                <div className="h-fit rounded-xl border p-4">
                   <p className="text-muted-foreground flex items-center gap-2 text-xs">
                     <UsersIcon className="size-3.5" />
                     Members
@@ -285,7 +285,7 @@ function RouteComponent() {
                   </p>
                 </div>
 
-                <div className="rounded-xl border p-4">
+                <div className="h-fit rounded-xl border p-4">
                   <p className="text-muted-foreground flex items-center gap-2 text-xs">
                     <UserPlusIcon className="size-3.5" />
                     Pending invites
@@ -300,7 +300,7 @@ function RouteComponent() {
                   </p>
                 </div>
 
-                <div className="rounded-xl border p-4">
+                <div className="h-fit rounded-xl border p-4">
                   <p className="text-muted-foreground flex items-center gap-2 text-xs">
                     <ShieldCheckIcon className="size-3.5" />
                     Your access profile

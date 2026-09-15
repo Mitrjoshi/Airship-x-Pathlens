@@ -1,19 +1,21 @@
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { geoCentroid, geoOrthographic, geoPath } from 'd3-geo'
+import { geoCentroid, geoDistance, geoOrthographic, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import type { GeometryCollection, Topology } from 'topojson-specification'
-import type { Feature, FeatureCollection, Geometry } from 'geojson'
-import worldTopology from 'world-atlas/countries-50m.json'
+import type { FeatureCollection, Geometry } from 'geojson'
+import worldTopology from 'world-atlas/countries-110m.json'
 import { Badge } from '@workspace/ui/components/badge'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { ISO_NUMERIC_TO_ALPHA2 } from '@/lib/country-codes'
 import { getVisitorLocationsOptions } from '@/queries/visitors'
-import type { VisitorLocationsParams } from '@/queries/visitors'
+import type {
+  VisitorLocation,
+  VisitorLocationsParams,
+} from '@/queries/visitors'
 import { formatNumber } from '@/utils/utils'
 import { MapPin } from 'lucide-react'
-
-type CountryFeature = Feature<Geometry, { name?: string }>
+import { Button } from '@workspace/ui/components/button'
 
 const VIEWBOX_WIDTH = 640
 const VIEWBOX_HEIGHT = 500
@@ -53,7 +55,22 @@ function getCountryName(code: string): string {
   return displayNames?.of(code) ?? code
 }
 
+function getLocationCoordinates(
+  location: VisitorLocation
+): [number, number] | null {
+  if (location.longitude !== null && location.latitude !== null) {
+    return [location.longitude, location.latitude]
+  }
+
+  return centroidByCode.get(location.code) ?? null
+}
+
+function getLocationKey(location: VisitorLocation): string {
+  return `${location.code}-${location.city}`
+}
+
 interface HoverState {
+  city: string
   code: string
   name: string
   visitors: number
@@ -67,16 +84,33 @@ interface VisitorLocationMapProps {
 }
 
 export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
-  const gradientId = useId()
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const dragRef = useRef<{
     pointerId: number
     startX: number
     startY: number
     startRotation: [number, number]
   } | null>(null)
+  const rotationFrameRef = useRef<number | null>(null)
+  const focusAnimationFrameRef = useRef<number | null>(null)
+  const pendingRotationRef = useRef<[number, number] | null>(null)
+  const rotationRef = useRef<[number, number]>([-10, -18])
   const [hover, setHover] = useState<HoverState | null>(null)
-  const [rotation, setRotation] = useState<[number, number]>([-10, -18])
+  const [highlightedLocation, setHighlightedLocation] = useState<string | null>(
+    null
+  )
+
+  useEffect(() => {
+    return () => {
+      if (rotationFrameRef.current !== null) {
+        window.cancelAnimationFrame(rotationFrameRef.current)
+      }
+      if (focusAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(focusAnimationFrameRef.current)
+      }
+    }
+  }, [])
 
   const { data, isPending, isError } = useQuery(
     getVisitorLocationsOptions(params)
@@ -89,73 +123,194 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
     0
   )
 
-  const projection = useMemo(
-    () =>
-      geoOrthographic()
+  const getProjectedMarkers = useMemo(
+    () => (currentRotation: [number, number]) => {
+      const projection = geoOrthographic()
         .translate(GLOBE_CENTER)
         .scale(GLOBE_RADIUS)
-        .rotate(rotation)
-        .clipAngle(90),
-    [rotation]
+        .rotate(currentRotation)
+        .clipAngle(90)
+      const visibleCenter = projection.invert(GLOBE_CENTER)
+
+      return {
+        projection,
+        markers: locations
+          .map((location) => {
+            const coordinates = getLocationCoordinates(location)
+
+            if (!coordinates) return null
+
+            if (
+              !visibleCenter ||
+              geoDistance(coordinates, visibleCenter) > Math.PI / 2
+            ) {
+              return null
+            }
+
+            const point = projection(coordinates)
+
+            if (!point) return null
+
+            return {
+              ...location,
+              x: point[0],
+              y: point[1],
+              radius:
+                maxVisitors > 0
+                  ? MIN_RADIUS +
+                    (MAX_RADIUS - MIN_RADIUS) *
+                      Math.sqrt(location.visitors / maxVisitors)
+                  : MIN_RADIUS,
+            }
+          })
+          .filter(
+            (marker): marker is NonNullable<typeof marker> => marker !== null
+          ),
+      }
+    },
+    [locations, maxVisitors]
   )
-  const path = useMemo(() => geoPath(projection), [projection])
 
-  const markers = useMemo(() => {
-    return locations
-      .map((location) => {
-        const centroid = centroidByCode.get(location.code)
+  const drawGlobe = useMemo(
+    () => (currentRotation: [number, number]) => {
+      const canvas = canvasRef.current
+      const context = canvas?.getContext('2d')
 
-        if (!centroid) return null
+      if (!canvas || !context) return
 
-        const point = projection(centroid)
+      const scale = window.devicePixelRatio || 1
+      const width = canvas.clientWidth
+      const height = canvas.clientHeight
+      const styles = getComputedStyle(canvas)
+      const mutedColor = styles.getPropertyValue('--color-muted').trim()
+      const backgroundColor = styles
+        .getPropertyValue('--color-background')
+        .trim()
+      const borderColor = styles.getPropertyValue('--color-border').trim()
+      const foregroundColor = styles
+        .getPropertyValue('--color-muted-foreground')
+        .trim()
+      const chartColor = styles.getPropertyValue('--color-primary').trim()
 
-        if (!point) return null
+      if (!width || !height) return
 
-        return {
-          ...location,
-          x: point[0],
-          y: point[1],
-          radius:
-            maxVisitors > 0
-              ? MIN_RADIUS +
-                (MAX_RADIUS - MIN_RADIUS) *
-                  Math.sqrt(location.visitors / maxVisitors)
-              : MIN_RADIUS,
-        }
-      })
-      .filter((marker): marker is NonNullable<typeof marker> => marker !== null)
-  }, [locations, maxVisitors, projection])
+      const pixelWidth = Math.round(width * scale)
+      const pixelHeight = Math.round(height * scale)
+
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth
+        canvas.height = pixelHeight
+      }
+      context.setTransform(
+        scale * (width / VIEWBOX_WIDTH),
+        0,
+        0,
+        scale * (height / VIEWBOX_HEIGHT),
+        0,
+        0
+      )
+      context.clearRect(0, 0, VIEWBOX_WIDTH, VIEWBOX_HEIGHT)
+
+      const { projection, markers } = getProjectedMarkers(currentRotation)
+      const path = geoPath(projection, context)
+
+      context.beginPath()
+      context.arc(
+        GLOBE_CENTER[0],
+        GLOBE_CENTER[1],
+        GLOBE_RADIUS,
+        0,
+        Math.PI * 2
+      )
+      context.fillStyle = mutedColor
+      context.globalAlpha = 0.45
+      context.fill()
+      context.globalAlpha = 1
+      context.strokeStyle = borderColor
+      context.lineWidth = 1
+      context.stroke()
+
+      context.beginPath()
+      path({ type: 'Sphere' })
+      context.fillStyle = backgroundColor
+      context.globalAlpha = 0.5
+      context.fill()
+      context.globalAlpha = 1
+
+      context.beginPath()
+      for (const country of countries?.features ?? []) path(country)
+      context.strokeStyle = foregroundColor
+      context.globalAlpha = 0.7
+      context.lineWidth = 0.55
+      context.stroke()
+      context.globalAlpha = 1
+
+      for (const marker of markers) {
+        const gradient = context.createRadialGradient(
+          marker.x,
+          marker.y,
+          0,
+          marker.x,
+          marker.y,
+          24
+        )
+        gradient.addColorStop(0, chartColor)
+        gradient.addColorStop(1, 'transparent')
+        context.beginPath()
+        context.arc(marker.x, marker.y, 24, 0, Math.PI * 2)
+        context.fillStyle = gradient
+        context.fill()
+        context.beginPath()
+        context.arc(
+          marker.x,
+          marker.y,
+          Math.max(2, marker.radius * 0.05),
+          0,
+          Math.PI * 2
+        )
+        context.fillStyle = chartColor
+        context.globalAlpha = 0.9
+        context.fill()
+        context.globalAlpha = 1
+      }
+    },
+    [getProjectedMarkers]
+  )
+
+  useEffect(() => {
+    drawGlobe(rotationRef.current)
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const resizeObserver = new ResizeObserver(() =>
+      drawGlobe(rotationRef.current)
+    )
+    resizeObserver.observe(canvas)
+
+    return () => resizeObserver.disconnect()
+  }, [drawGlobe])
 
   const topLocations = [...locations]
     .sort((a, b) => b.visitors - a.visitors)
     .slice(0, 5)
 
-  const updateHoverPosition = (
-    event: React.MouseEvent<SVGGElement>,
-    next: HoverState
-  ) => {
-    const rect = wrapperRef.current?.getBoundingClientRect()
-
-    if (!rect) return
-
-    const x = Math.min(Math.max(event.clientX - rect.left, 90), rect.width - 90)
-    const y = Math.max(event.clientY - rect.top, 24)
-
-    setHover({ ...next, x, y })
-  }
-
-  const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (focusAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(focusAnimationFrameRef.current)
+      focusAnimationFrameRef.current = null
+    }
     event.currentTarget.setPointerCapture(event.pointerId)
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      startRotation: rotation,
+      startRotation: rotationRef.current,
     }
     setHover(null)
   }
 
-  const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const drag = dragRef.current
 
     if (!drag || drag.pointerId !== event.pointerId) return
@@ -167,14 +322,125 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
       Math.min(85, drag.startRotation[1] - (event.clientY - drag.startY) * 0.45)
     )
 
-    setRotation([nextLongitude, nextLatitude])
+    pendingRotationRef.current = [nextLongitude, nextLatitude]
+
+    if (rotationFrameRef.current !== null) return
+
+    rotationFrameRef.current = window.requestAnimationFrame(() => {
+      rotationFrameRef.current = null
+
+      if (pendingRotationRef.current) {
+        rotationRef.current = pendingRotationRef.current
+        drawGlobe(rotationRef.current)
+        pendingRotationRef.current = null
+      }
+    })
   }
 
-  const handlePointerUp = (event: React.PointerEvent<SVGSVGElement>) => {
+  const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (dragRef.current?.pointerId !== event.pointerId) return
 
     event.currentTarget.releasePointerCapture(event.pointerId)
     dragRef.current = null
+  }
+
+  const handleCanvasPointerMove = (
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) => {
+    handlePointerMove(event)
+
+    if (dragRef.current) return
+
+    const canvas = canvasRef.current
+    const rect = canvas?.getBoundingClientRect()
+
+    if (!canvas || !rect) return
+
+    const pointX = ((event.clientX - rect.left) / rect.width) * VIEWBOX_WIDTH
+    const pointY = ((event.clientY - rect.top) / rect.height) * VIEWBOX_HEIGHT
+    const { markers } = getProjectedMarkers(rotationRef.current)
+    const marker = markers.find((candidate) => {
+      const distance = Math.hypot(candidate.x - pointX, candidate.y - pointY)
+
+      return distance <= Math.max(candidate.radius, 10)
+    })
+
+    if (!marker) {
+      setHover(null)
+      return
+    }
+
+    setHover({
+      city: marker.city,
+      code: marker.code,
+      name: marker.country || getCountryName(marker.code),
+      visitors: marker.visitors,
+      share: total > 0 ? (marker.visitors / total) * 100 : 0,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    })
+  }
+
+  const focusLocation = (location: VisitorLocation) => {
+    const coordinates = getLocationCoordinates(location)
+
+    if (!coordinates) return
+
+    if (focusAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(focusAnimationFrameRef.current)
+    }
+
+    const locationKey = getLocationKey(location)
+    setHighlightedLocation(locationKey)
+    setHover(null)
+
+    const startRotation = rotationRef.current
+    const targetLongitude = -coordinates[0]
+    const targetLatitude = Math.max(-85, Math.min(85, -coordinates[1]))
+    let longitudeDelta = targetLongitude - startRotation[0]
+
+    while (longitudeDelta > 180) longitudeDelta -= 360
+    while (longitudeDelta < -180) longitudeDelta += 360
+
+    let startedAt: number | null = null
+    const duration = 700
+
+    const animate = (now: number) => {
+      startedAt ??= now
+      const progress = Math.min(1, (now - startedAt) / duration)
+      const easedProgress = 1 - Math.pow(1 - progress, 3)
+
+      rotationRef.current = [
+        startRotation[0] + longitudeDelta * easedProgress,
+        startRotation[1] + (targetLatitude - startRotation[1]) * easedProgress,
+      ]
+      drawGlobe(rotationRef.current)
+
+      if (progress < 1) {
+        focusAnimationFrameRef.current = window.requestAnimationFrame(animate)
+      } else {
+        focusAnimationFrameRef.current = null
+        const rect = wrapperRef.current?.getBoundingClientRect()
+        const { markers } = getProjectedMarkers(rotationRef.current)
+        const marker = markers.find(
+          (candidate) => getLocationKey(candidate) === locationKey
+        )
+
+        if (rect && marker) {
+          setHover({
+            city: marker.city,
+            code: marker.code,
+            name: marker.country || getCountryName(marker.code),
+            visitors: marker.visitors,
+            share: total > 0 ? (marker.visitors / total) * 100 : 0,
+            x: (marker.x / VIEWBOX_WIDTH) * rect.width,
+            y: (marker.y / VIEWBOX_HEIGHT) * rect.height,
+          })
+        }
+      }
+    }
+
+    focusAnimationFrameRef.current = window.requestAnimationFrame(animate)
   }
 
   if (isError) {
@@ -225,117 +491,26 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
           className="relative lg:col-span-2"
           onMouseLeave={() => setHover(null)}
         >
-          <svg
-            viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
-            className="h-auto w-full cursor-grab touch-none active:cursor-grabbing"
+          <canvas
+            ref={canvasRef}
+            className="aspect-[640/500] h-auto w-full cursor-grab touch-none active:cursor-grabbing"
             role="img"
-            aria-label="Draggable globe showing visitor concentration by country"
+            aria-label="Draggable globe showing visitor concentration by city and country"
             onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
+            onPointerMove={handleCanvasPointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            onPointerLeave={() => {
-              if (!dragRef.current) setHover(null)
-            }}
-          >
-            <defs>
-              <radialGradient id={gradientId}>
-                <stop
-                  offset="0%"
-                  stopColor="var(--color-chart-1)"
-                  stopOpacity="0.45"
-                />
-                <stop
-                  offset="55%"
-                  stopColor="var(--color-chart-1)"
-                  stopOpacity="0.15"
-                />
-                <stop
-                  offset="100%"
-                  stopColor="var(--color-chart-1)"
-                  stopOpacity="0"
-                />
-              </radialGradient>
-            </defs>
-
-            <circle
-              cx={GLOBE_CENTER[0]}
-              cy={GLOBE_CENTER[1]}
-              r={GLOBE_RADIUS}
-              fill="var(--color-muted)"
-              fillOpacity={0.45}
-              stroke="var(--color-border)"
-              strokeWidth={1}
-            />
-
-            <path
-              d={path({ type: 'Sphere' }) ?? undefined}
-              fill="var(--color-background)"
-              fillOpacity={0.5}
-              stroke="none"
-            />
-
-            <g className="pointer-events-none">
-              {(countries?.features ?? []).map((country: CountryFeature) => (
-                <path
-                  key={`${country.id}-${country.properties?.name ?? ''}`}
-                  d={path(country) ?? undefined}
-                  fill="transparent"
-                  stroke="var(--color-muted-foreground)"
-                  strokeOpacity={0.7}
-                  strokeWidth={0.55}
-                  strokeLinejoin="round"
-                />
-              ))}
-            </g>
-
-            <g>
-              {markers.map((marker) => (
-                <g
-                  key={marker.code}
-                  transform={`translate(${marker.x} ${marker.y})`}
-                  className="cursor-pointer"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onMouseEnter={() =>
-                    setHover({
-                      code: marker.code,
-                      name: getCountryName(marker.code),
-                      visitors: marker.visitors,
-                      share: total > 0 ? (marker.visitors / total) * 100 : 0,
-                      x: marker.x,
-                      y: marker.y,
-                    })
-                  }
-                  onMouseMove={(event) => {
-                    if (hover?.code === marker.code) {
-                      updateHoverPosition(event, hover)
-                    }
-                  }}
-                >
-                  <title>
-                    {`${getCountryName(marker.code)}: ${formatNumber(marker.visitors)} visitors`}
-                  </title>
-                  <circle
-                    r={marker.radius}
-                    fill={`url(#${gradientId})`}
-                    stroke="none"
-                  />
-                  <circle
-                    r={Math.max(2, marker.radius * 0.18)}
-                    fill="var(--color-chart-1)"
-                    opacity={0.9}
-                  />
-                </g>
-              ))}
-            </g>
-          </svg>
+            onPointerLeave={() => setHover(null)}
+          />
 
           {hover && (
             <div
               className="bg-background/95 pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[calc(100%+12px)] rounded-lg border px-3 py-2 shadow-sm backdrop-blur"
               style={{ left: hover.x, top: hover.y }}
             >
-              <p className="text-sm font-medium">{hover.name}</p>
+              <p className="text-sm font-medium">
+                {hover.city}, {hover.name}
+              </p>
               <p className="text-muted-foreground mt-0.5 text-xs">
                 {formatNumber(hover.visitors)} visitors ·{' '}
                 {hover.share.toFixed(1)}% of visitors
@@ -344,35 +519,43 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
           )}
         </div>
 
-        <div className="lg:border-border/70 lg:border-l lg:pl-6">
-          <p className="text-muted-foreground mb-3 text-xs font-medium tracking-wide uppercase">
+        <div className="lg:border-border/70 px-2 lg:border-l">
+          <p className="text-muted-foreground mb-3 text-xs font-medium tracking-wide uppercase lg:pl-4">
             Top locations
           </p>
-          <ul className="space-y-3">
+          <ul className="space-y-1">
             {topLocations.map((location) => (
-              <li
-                key={location.code}
-                className="flex items-center justify-between gap-3"
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <Badge variant="outline" className="shrink-0">
-                    {location.code}
-                  </Badge>
-                  <span className="truncate text-sm">
-                    {getCountryName(location.code)}
-                  </span>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-medium">
-                    {formatNumber(location.visitors)}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {total > 0
-                      ? ((location.visitors / total) * 100).toFixed(1)
-                      : '0'}
-                    %
-                  </p>
-                </div>
+              <li key={getLocationKey(location)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  aria-pressed={
+                    highlightedLocation === getLocationKey(location)
+                  }
+                  className={`w-full justify-between gap-3 rounded-lg py-6 text-left`}
+                  onClick={() => focusLocation(location)}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Badge variant="outline" className="shrink-0">
+                      {location.code}
+                    </Badge>
+                    <span className="truncate text-sm">
+                      {location.city},{' '}
+                      {location.country || getCountryName(location.code)}
+                    </span>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-medium">
+                      {formatNumber(location.visitors)}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {total > 0
+                        ? ((location.visitors / total) * 100).toFixed(1)
+                        : '0'}
+                      %
+                    </p>
+                  </div>
+                </Button>
               </li>
             ))}
           </ul>
