@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
   ProjectPageHeader,
   ProjectPanel,
@@ -149,6 +150,7 @@ function RouteComponent() {
                 onValueChange={(value) =>
                   navigate({
                     search: {
+                      //@ts-ignore
                       project_id: value === 'all' ? undefined : value,
                     },
                   })

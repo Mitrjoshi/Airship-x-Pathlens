@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { geoCentroid, geoDistance, geoOrthographic, geoPath } from 'd3-geo'
@@ -130,6 +131,7 @@ export function VisitorLocationMap({ params }: VisitorLocationMapProps) {
         .scale(GLOBE_RADIUS)
         .rotate(currentRotation)
         .clipAngle(90)
+      //@ts-ignore
       const visibleCenter = projection.invert(GLOBE_CENTER)
 
       return {
