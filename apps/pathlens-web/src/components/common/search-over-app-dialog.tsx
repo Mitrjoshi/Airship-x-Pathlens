@@ -494,13 +494,13 @@ export const SearchOverAppDialog = ({
       <DialogTrigger
         render={
           <Button
-            className="text-muted-foreground w-60 justify-between gap-4"
+            className="text-muted-foreground w-full justify-between gap-4"
             variant="outline"
-            aria-label="Search across PathLens"
+            aria-label="Quick Search"
           >
             <span className="flex items-center gap-2">
               <SearchIcon />
-              <span>Search...</span>
+              <span>Quick Search...</span>
             </span>
             <kbd className="text-xs font-normal">Ctrl+K</kbd>
           </Button>

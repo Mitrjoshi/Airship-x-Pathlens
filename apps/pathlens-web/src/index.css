@@ -1,5 +1,144 @@
 @import '@workspace/ui/styles.css';
 
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Geist Variable', sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: #f9f9f9;
+  --foreground: #101719;
+
+  --card: #ffffff;
+  --card-foreground: #101719;
+
+  --popover: #ffffff;
+  --popover-foreground: #101719;
+
+  --primary: #ffb54d;
+  --primary-foreground: #241706;
+
+  --secondary: #f1f1ef;
+  --secondary-foreground: #252525;
+
+  --muted: #f2f2f0;
+  --muted-foreground: #6b6b67;
+
+  --accent: #fff3df;
+  --accent-foreground: #7a4b0a;
+
+  --destructive: #dc4545;
+
+  --border: #e3e1dc;
+  --input: #e3e1dc;
+  --ring: #ffb54d;
+
+  --chart-1: #ffb54d;
+  --chart-2: #e89432;
+  --chart-3: #c97820;
+  --chart-4: #a55d16;
+  --chart-5: #7d4612;
+
+  --radius: 0.625rem;
+
+  --sidebar: #f6f6f3;
+  --sidebar-foreground: #101719;
+
+  --sidebar-primary: #ffb54d;
+  --sidebar-primary-foreground: #241706;
+
+  --sidebar-accent: #fff3df;
+  --sidebar-accent-foreground: #7a4b0a;
+
+  --sidebar-border: #e3e1dc;
+  --sidebar-ring: #ffb54d;
+}
+
+.dark {
+  --background: #121212;
+  --foreground: #f5f5f5;
+
+  --card: #181818;
+  --card-foreground: #f5f5f5;
+
+  --popover: #1a1a1a;
+  --popover-foreground: #f5f5f5;
+
+  --primary: #ffb54d;
+  --primary-foreground: #211507;
+
+  --secondary: #20201f;
+  --secondary-foreground: #eeeeec;
+
+  --muted: #1b1b1a;
+  --muted-foreground: #969691;
+
+  --accent: #382a18;
+  --accent-foreground: #ffd99a;
+
+  --destructive: #ef5350;
+
+  --border: #2b2b29;
+  --input: #323230;
+  --ring: #ffb54d;
+
+  --chart-1: #ffb54d;
+  --chart-2: #f09a3e;
+  --chart-3: #d57b28;
+  --chart-4: #ad5f1b;
+  --chart-5: #824711;
+
+  --sidebar: #151515;
+  --sidebar-foreground: #f5f5f5;
+
+  --sidebar-primary: #ffb54d;
+  --sidebar-primary-foreground: #211507;
+
+  --sidebar-accent: #382a18;
+  --sidebar-accent-foreground: #ffd99a;
+
+  --sidebar-border: #2a2a28;
+  --sidebar-ring: #ffb54d;
+}
+
 @keyframes landing-float {
   0%,
   100% {
@@ -50,5 +189,246 @@
 
   .landing-float {
     animation: none;
+  }
+}
+
+.dotted-background {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--color-foreground) 20%, transparent) 1px,
+    transparent 1px
+  );
+
+  background-size: 16px 16px;
+  animation: dots-drift 20s linear infinite;
+}
+
+@keyframes dots-drift {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 32px 32px;
+  }
+}
+
+.nut-top-left,
+.nut-top-right,
+.nut-bottom-left,
+.nut-bottom-right,
+.nut-all {
+  position: relative;
+}
+
+/* =========================================
+   SINGLE CORNER NUTS
+   ========================================= */
+
+.nut-top-left::before,
+.nut-top-right::after,
+.nut-bottom-left::before,
+.nut-bottom-right::after {
+  content: '';
+
+  position: absolute;
+  z-index: 2;
+
+  width: 12px;
+  height: 12px;
+
+  border: 3px solid color-mix(in srgb, var(--color-foreground) 20%, transparent);
+  background: var(--background);
+
+  clip-path: polygon(
+    25% 0%,
+    75% 0%,
+    100% 25%,
+    100% 75%,
+    75% 100%,
+    25% 100%,
+    0% 75%,
+    0% 25%
+  );
+}
+
+.nut-top-left::before {
+  top: -8px;
+  left: -8px;
+}
+
+.nut-top-right::after {
+  top: -8px;
+  right: -8px;
+}
+
+.nut-bottom-left::before {
+  bottom: -8px;
+  left: -8px;
+}
+
+.nut-bottom-right::after {
+  bottom: -8px;
+  right: -8px;
+}
+
+/* =========================================
+   ALL 4 CORNERS
+   ========================================= */
+
+.nut-all {
+  --nut-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='25,0 75,0 100,25 100,75 75,100 25,100 0,75 0,25'/%3E%3C/svg%3E");
+}
+
+.nut-all::before,
+.nut-all::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  z-index: 2;
+  pointer-events: none;
+
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+
+  -webkit-mask-image:
+    var(--nut-shape), var(--nut-shape), var(--nut-shape), var(--nut-shape);
+  mask-image:
+    var(--nut-shape), var(--nut-shape), var(--nut-shape), var(--nut-shape);
+}
+
+/* Outer octagon */
+.nut-all::before {
+  background: color-mix(in srgb, var(--color-foreground) 20%, transparent);
+
+  -webkit-mask-size: 12px 12px;
+  mask-size: 12px 12px;
+
+  -webkit-mask-position:
+    top left,
+    top right,
+    bottom left,
+    bottom right;
+  mask-position:
+    top left,
+    top right,
+    bottom left,
+    bottom right;
+}
+
+/* Inner octagon
+   3px inset = 6px smaller */
+.nut-all::after {
+  background: var(--background);
+
+  -webkit-mask-size: 6px 6px;
+  mask-size: 6px 6px;
+
+  -webkit-mask-position:
+    left 3px top 3px,
+    right 3px top 3px,
+    left 3px bottom 3px,
+    right 3px bottom 3px;
+  mask-position:
+    left 3px top 3px,
+    right 3px top 3px,
+    left 3px bottom 3px,
+    right 3px bottom 3px;
+}
+
+.flashlight-bottom {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.flashlight-bottom::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+
+  left: 50%;
+  bottom: -60%;
+  width: 100%;
+  height: 140%;
+
+  transform: translateX(-50%);
+
+  background: radial-gradient(
+    ellipse at center bottom,
+    white 0%,
+    color-mix(in oklab, white 60%, transparent) 25%,
+    color-mix(in oklab, white 25%, transparent) 45%,
+    transparent 70%
+  );
+
+  filter: blur(35px);
+}
+.line-grid-uni {
+  position: relative;
+  overflow: hidden;
+
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
+
+  background-size:
+    40px 40px,
+    40px 40px,
+    40px 40px;
+
+  background-position:
+    0 0,
+    0 0,
+    0 0;
+
+  background-repeat: repeat;
+
+  animation: grid-block-highlight 6s steps(1) infinite;
+}
+
+@keyframes grid-block-highlight {
+  0% {
+    background-position:
+      0 0,
+      0 0,
+      -40px -40px;
+  }
+
+  20% {
+    background-position:
+      0 0,
+      0 0,
+      40px 0;
+  }
+
+  40% {
+    background-position:
+      0 0,
+      0 0,
+      80px 40px;
+  }
+
+  60% {
+    background-position:
+      0 0,
+      0 0,
+      40px 80px;
+  }
+
+  80% {
+    background-position:
+      0 0,
+      0 0,
+      0 40px;
+  }
+
+  100% {
+    background-position:
+      0 0,
+      0 0,
+      -40px -40px;
   }
 }

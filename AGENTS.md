@@ -4,20 +4,20 @@
 
 - This is a pnpm 11 (`pnpm@11.22.0`) Turborepo. Run commands from the root; use `pnpm --filter <package> <script>` for focused work.
 - Apps are `@pathlens/web`, `@airship/web`, `@pathlens/api`, `@airship/api`, `@pathlens/tracker`, and `@pathlens/snapshot-worker`. Shared packages are `@workspace/ui`, `@workspace/contracts`, and `@workspace/backend-types`.
-- Read `apps/airship-web/AGENTS.md` before changing Airship web code. Add shared shadcn components with `pnpm --filter @workspace/ui exec shadcn add <component>` and import them from `@workspace/ui/components/*`.
+- Read `apps/airship-web/AGENTS.md` before changing Airship web code. Shared shadcn components belong in `packages/ui`; add them with `pnpm --filter @workspace/ui exec shadcn add <component>` and import them from `@workspace/ui/components/*`.
 
 ## Commands
 
 - `pnpm verify` runs Turbo lint, typecheck, and build. Other root checks are `pnpm lint`, `pnpm typecheck`, `pnpm build`, and `pnpm format:check`.
 - Use `pnpm --filter @pathlens/web dev`, `pnpm --filter @airship/web dev`, or `pnpm --filter @pathlens/api dev` for focused development. There is no general test suite; the configured test is `pnpm --filter @pathlens/api test:geoip`.
-- For API schema changes, run `pnpm --filter @pathlens/api generate` then `pnpm --filter @pathlens/api migrate`. Do not hand-edit `apps/pathlens-api/drizzle/meta/**`; use `push` only for deliberate direct synchronization.
-- Snapshot local capture needs copied `.env` values, a private S3 bucket, a LocalStack SQS queue, and one-time `pnpm --filter @pathlens/snapshot-worker install-browser`; then run `pnpm --filter @pathlens/snapshot-worker local`. Build before its `start` script. See its README for deployment.
+- For API schema changes, run `pnpm --filter @pathlens/api generate` then `pnpm --filter @pathlens/api migrate`. Drizzle reads `DATABASE_URL` via `dotenv/config`; do not hand-edit `apps/pathlens-api/drizzle/meta/**`, and use `push` only for deliberate direct synchronization.
+- Snapshot local capture needs copied `.env` values, a private S3 bucket, a LocalStack SQS queue, and one-time `pnpm --filter @pathlens/snapshot-worker install-browser`; then run `pnpm --filter @pathlens/snapshot-worker local`. Run its `build` before `start`; see its README for deployment.
 - `pnpm layer <package-name>` writes the production Lambda layer to gitignored `lambda-layers/`.
 
 ## Boundaries
 
 - Both web apps use TanStack file routes under `src/routes`; Vite generates `src/routeTree.gen.ts`. Never edit that file directly.
-- Pathlens API starts at `apps/pathlens-api/src/server.ts` on port `8080`, mounts routes under `/api`, and loads `.env` in its scripts. Drizzle CLI loads `dotenv/config` and requires `DATABASE_URL`.
+- Pathlens API starts at `apps/pathlens-api/src/server.ts` on port `8080`, mounts routes under `/api`, and its dev/start scripts load `.env`.
 - Airship API only serves `/health` and defaults to port `8081`; `PORT` overrides it.
 
 ## Runtime Contracts
