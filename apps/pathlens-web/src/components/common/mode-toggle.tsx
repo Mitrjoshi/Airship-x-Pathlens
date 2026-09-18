@@ -10,7 +10,7 @@ import {
 import { useTheme } from '@/components/common/theme-provider'
 
 export function ModeToggle() {
-  const { setTheme } = useTheme()
+  const { setTheme, theme } = useTheme()
 
   return (
     <DropdownMenu>
@@ -25,12 +25,21 @@ export function ModeToggle() {
       />
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme('light')}>
+          <span
+            className={`bg-foreground h-1.5 w-1.5 rounded-full duration-200 ${theme === 'light' ? 'opacity-100' : 'opacity-0'}`}
+          />
           Light
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('dark')}>
+          <span
+            className={`bg-foreground h-1.5 w-1.5 rounded-full duration-200 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'}`}
+          />
           Dark
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('system')}>
+          <span
+            className={`bg-foreground h-1.5 w-1.5 rounded-full duration-200 ${theme === 'system' ? 'opacity-100' : 'opacity-0'}`}
+          />
           System
         </DropdownMenuItem>
       </DropdownMenuContent>

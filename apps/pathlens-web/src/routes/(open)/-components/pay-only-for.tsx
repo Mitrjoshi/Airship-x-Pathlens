@@ -23,7 +23,7 @@ export const PayOnlyFor = () => {
         </p>
       </div>
 
-      <div className="nut-all grid grid-cols-2 items-center gap-8 border px-10 py-12">
+      <div className="nut-top-left nut-top-right grid grid-cols-2 items-center gap-8 border-t px-10 py-12">
         <div>
           <p className="text-lg font-medium">Track everything that matters</p>
           <p className="text-muted-foreground text-sm">

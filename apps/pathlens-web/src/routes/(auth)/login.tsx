@@ -7,7 +7,7 @@ import {
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
 import { Label } from '@workspace/ui/components/label'
-import { EyeIcon } from 'lucide-react'
+import { ArrowLeft, EyeIcon } from 'lucide-react'
 
 export const Route = createFileRoute('/(auth)/login')({
   component: RouteComponent,
@@ -17,11 +17,15 @@ function RouteComponent() {
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="relative flex h-screen flex-1 items-center justify-center">
-        <div className="absolute top-4 left-4 flex items-center">
-          <img src="logo.png" className="size-12 dark:invert" alt="pathlens" />
-          <p className="text-2xl font-bold">Pathlens</p>
+        <div className="absolute top-4 left-0 flex w-full items-center justify-between px-4">
+          <Link to="/">
+            <Button variant="ghost" size="lg">
+              <ArrowLeft />
+              Home
+            </Button>
+          </Link>
         </div>
-        <div className="w-sm space-y-4">
+        <div className="w-sm space-y-2">
           <div className="mb-12">
             <p className="text-4xl font-semibold">Welcome Back</p>
             <p className="text-muted-foreground">Sign in to Continue</p>
@@ -49,7 +53,7 @@ function RouteComponent() {
             <MarkerContent>or</MarkerContent>
           </Marker> */}
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="space-y-2">
               <Label>Email</Label>
               <Input placeholder="you@example.com" className="h-10" />
@@ -62,8 +66,13 @@ function RouteComponent() {
                   Forgot Password?
                 </Button>
               </div>
-              <InputGroup className="h-10">
-                <InputGroupInput placeholder="000000" type="password" />
+              <InputGroup className="h-10 overflow-hidden">
+                <InputGroupInput
+                  className="h-10 overflow-hidden"
+                  placeholder="000000"
+                  autoComplete="current-password"
+                  type="password"
+                />
                 <InputGroupButton variant={'outline'} size="icon-sm">
                   <EyeIcon />
                 </InputGroupButton>
@@ -88,13 +97,13 @@ function RouteComponent() {
           </div>
 
           <p className="text-muted-foreground mx-auto mt-8 max-w-[75%] text-center text-xs">
-            By continuing, I agree to Cloudflare's terms, privacy policy, and
+            By continuing, I agree to Pathlens's terms, privacy policy, and
             cookie policy.
           </p>
         </div>
       </div>
 
-      <div className="bg-primary h-screen flex-1"></div>
+      <div className="bg-primary relative h-screen flex-1"></div>
     </div>
   )
 }

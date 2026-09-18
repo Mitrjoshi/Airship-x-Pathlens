@@ -12,18 +12,16 @@ function RouteComponent() {
     <HomeLayout>
       <div className="mx-auto space-y-10">
         <div className="mx-auto w-fit space-y-2 py-20">
-          <h1 className="text-5xl font-medium">
-            One payment. Lifetime access.
-          </h1>
+          <h1 className="text-5xl font-medium">Pathlens Pricing</h1>
           <p className="text-muted-foreground text-center">
-            Get everything you need to understand your users, forever.
+            One payment. Lifetime access.
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-[50%] grid-cols-2 gap-4">
+        {/* <div className="mx-auto grid max-w-[50%] grid-cols-2 gap-4">
           <PricingCard />
           <PricingCard />
-        </div>
+        </div> */}
       </div>
     </HomeLayout>
   )

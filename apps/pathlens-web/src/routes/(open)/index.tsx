@@ -6,6 +6,7 @@ import { WhyChooseUs } from './-components/why-choose-us'
 import { DotLayout } from './-components/dot-layout'
 import { PayOnlyFor } from './-components/pay-only-for'
 import { Region } from './-components/region'
+import { Features } from './-components/features'
 
 export const Route = createFileRoute('/(open)/')({
   component: RouteComponent,
@@ -13,7 +14,7 @@ export const Route = createFileRoute('/(open)/')({
 
 function RouteComponent() {
   return (
-    <div>
+    <>
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
           <div className="bg-background mx-auto w-[75%] border-x-2 border-dashed">
@@ -22,8 +23,8 @@ function RouteComponent() {
         </DotLayout>
       </HomeLayout>
 
-      <HomeLayout>
-        <DotLayout className="border-x-2 border-t-2 border-dashed">
+      <HomeLayout className="border-x-2 border-y-2 border-dashed">
+        <DotLayout>
           <div className="bg-background nut-top-left nut-bottom-right mx-auto w-[75%] border-x-2 border-dashed">
             <Region />
           </div>
@@ -31,7 +32,17 @@ function RouteComponent() {
       </HomeLayout>
 
       <HomeLayout>
-        <DotLayout className="border-x-2 border-t-2 border-dashed">
+        <DotLayout className="border-x-2 border-dashed">
+          <div className="bg-background nut-top-left mx-auto w-[75%] border-x-2 border-dashed">
+            <Features />
+          </div>
+        </DotLayout>
+      </HomeLayout>
+
+      <Separator className={'border-t-2 border-dashed bg-transparent'} />
+
+      <HomeLayout>
+        <DotLayout className="border-x-2 border-dashed">
           <div className="bg-background nut-top-left mx-auto w-[75%] border-x-2 border-dashed">
             <WhyChooseUs />
           </div>
@@ -47,6 +58,6 @@ function RouteComponent() {
           </div>
         </DotLayout>
       </HomeLayout>
-    </div>
+    </>
   )
 }
