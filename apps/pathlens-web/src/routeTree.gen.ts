@@ -15,7 +15,9 @@ import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as openIndexRouteImport } from './routes/(open)/index'
 import { Route as openPricingRouteImport } from './routes/(open)/pricing'
 import { Route as openProductsIndexRouteImport } from './routes/(open)/products/index'
+import { Route as openSolutionsIndexRouteImport } from './routes/(open)/solutions/index'
 import { Route as openProductsProductIdIndexRouteImport } from './routes/(open)/products/$productId/index'
+import { Route as openSolutionsSolutionIdIndexRouteImport } from './routes/(open)/solutions/$solutionId/index'
 
 const openRouteRoute = openRouteRouteImport.update({
   id: '/(open)',
@@ -46,10 +48,21 @@ const openProductsIndexRoute = openProductsIndexRouteImport.update({
   path: '/products/',
   getParentRoute: () => openRouteRoute,
 } as any)
+const openSolutionsIndexRoute = openSolutionsIndexRouteImport.update({
+  id: '/solutions/',
+  path: '/solutions/',
+  getParentRoute: () => openRouteRoute,
+} as any)
 const openProductsProductIdIndexRoute =
   openProductsProductIdIndexRouteImport.update({
     id: '/products/$productId/',
     path: '/products/$productId/',
+    getParentRoute: () => openRouteRoute,
+  } as any)
+const openSolutionsSolutionIdIndexRoute =
+  openSolutionsSolutionIdIndexRouteImport.update({
+    id: '/solutions/$solutionId/',
+    path: '/solutions/$solutionId/',
     getParentRoute: () => openRouteRoute,
   } as any)
 
@@ -59,7 +72,9 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof openPricingRoute
   '/': typeof openIndexRoute
   '/products/': typeof openProductsIndexRoute
+  '/solutions/': typeof openSolutionsIndexRoute
   '/products/$productId/': typeof openProductsProductIdIndexRoute
+  '/solutions/$solutionId/': typeof openSolutionsSolutionIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
@@ -67,7 +82,9 @@ export interface FileRoutesByTo {
   '/pricing': typeof openPricingRoute
   '/': typeof openIndexRoute
   '/products': typeof openProductsIndexRoute
+  '/solutions': typeof openSolutionsIndexRoute
   '/products/$productId': typeof openProductsProductIdIndexRoute
+  '/solutions/$solutionId': typeof openSolutionsSolutionIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,7 +94,9 @@ export interface FileRoutesById {
   '/(open)/pricing': typeof openPricingRoute
   '/(open)/': typeof openIndexRoute
   '/(open)/products/': typeof openProductsIndexRoute
+  '/(open)/solutions/': typeof openSolutionsIndexRoute
   '/(open)/products/$productId/': typeof openProductsProductIdIndexRoute
+  '/(open)/solutions/$solutionId/': typeof openSolutionsSolutionIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,7 +106,9 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/'
     | '/products/'
+    | '/solutions/'
     | '/products/$productId/'
+    | '/solutions/$solutionId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -95,7 +116,9 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/'
     | '/products'
+    | '/solutions'
     | '/products/$productId'
+    | '/solutions/$solutionId'
   id:
     | '__root__'
     | '/(open)'
@@ -104,7 +127,9 @@ export interface FileRouteTypes {
     | '/(open)/pricing'
     | '/(open)/'
     | '/(open)/products/'
+    | '/(open)/solutions/'
     | '/(open)/products/$productId/'
+    | '/(open)/solutions/$solutionId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -157,11 +182,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof openProductsIndexRouteImport
       parentRoute: typeof openRouteRoute
     }
+    '/(open)/solutions/': {
+      id: '/(open)/solutions/'
+      path: '/solutions'
+      fullPath: '/solutions/'
+      preLoaderRoute: typeof openSolutionsIndexRouteImport
+      parentRoute: typeof openRouteRoute
+    }
     '/(open)/products/$productId/': {
       id: '/(open)/products/$productId/'
       path: '/products/$productId'
       fullPath: '/products/$productId/'
       preLoaderRoute: typeof openProductsProductIdIndexRouteImport
+      parentRoute: typeof openRouteRoute
+    }
+    '/(open)/solutions/$solutionId/': {
+      id: '/(open)/solutions/$solutionId/'
+      path: '/solutions/$solutionId'
+      fullPath: '/solutions/$solutionId/'
+      preLoaderRoute: typeof openSolutionsSolutionIdIndexRouteImport
       parentRoute: typeof openRouteRoute
     }
   }
@@ -171,14 +210,18 @@ interface openRouteRouteChildren {
   openPricingRoute: typeof openPricingRoute
   openIndexRoute: typeof openIndexRoute
   openProductsIndexRoute: typeof openProductsIndexRoute
+  openSolutionsIndexRoute: typeof openSolutionsIndexRoute
   openProductsProductIdIndexRoute: typeof openProductsProductIdIndexRoute
+  openSolutionsSolutionIdIndexRoute: typeof openSolutionsSolutionIdIndexRoute
 }
 
 const openRouteRouteChildren: openRouteRouteChildren = {
   openPricingRoute: openPricingRoute,
   openIndexRoute: openIndexRoute,
   openProductsIndexRoute: openProductsIndexRoute,
+  openSolutionsIndexRoute: openSolutionsIndexRoute,
   openProductsProductIdIndexRoute: openProductsProductIdIndexRoute,
+  openSolutionsSolutionIdIndexRoute: openSolutionsSolutionIdIndexRoute,
 }
 
 const openRouteRouteWithChildren = openRouteRoute._addFileChildren(

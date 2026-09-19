@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   geoDistance,
+  geoEquirectangular,
   geoGraticule,
   geoInterpolate,
   geoOrthographic,
@@ -11,26 +12,135 @@ import type { FeatureCollection, Geometry } from 'geojson'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import worldTopology from 'world-atlas/countries-110m.json'
 
-const VIEWBOX_WIDTH = 1300
-const VIEWBOX_HEIGHT = 550
+const VIEWBOX_WIDTH = 900
+const VIEWBOX_HEIGHT = 450
 
-const GLOBE_CENTER: [number, number] = [
-  VIEWBOX_WIDTH / 2,
-  VIEWBOX_HEIGHT / 1.68,
-]
+const GLOBE_CENTER: [number, number] = [VIEWBOX_WIDTH / 2, VIEWBOX_HEIGHT / 1.4]
 
 const GLOBE_RADIUS = 290
 const GLOBE_TILT = -15
+const DOT_STEP = 1.5
+const BACK_DOT_OPACITY = 0.08
+const CARD_ANIMATION_DURATION = 380
 
 const TARGET_FPS = 60
 const FRAME_INTERVAL = 1000 / TARGET_FPS
 
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
+
 const countries = feature(
   worldTopology as unknown as Topology,
-  worldTopology.objects.countries as unknown as GeometryCollection
+  worldTopology.objects.land as unknown as GeometryCollection
 ) as FeatureCollection<Geometry>
 
 const graticule = geoGraticule().step([15, 15]).precision(4)()
+
+/*
+ * Rasterized land mask.
+ *
+ * Drawing the land geometry once
+ * onto an offscreen canvas and
+ * reading pixels back is far
+ * cheaper than running geoContains
+ * (point-in-polygon) tens of
+ * thousands of times.
+ */
+type LandMask = {
+  data: Uint8ClampedArray
+  width: number
+  height: number
+  projection: ReturnType<typeof geoEquirectangular>
+}
+
+const buildLandMask = (): LandMask | null => {
+  if (typeof document === 'undefined') return null
+
+  const maskWidth = 720
+
+  const maskHeight = 360
+
+  const maskCanvas = document.createElement('canvas')
+
+  maskCanvas.width = maskWidth
+
+  maskCanvas.height = maskHeight
+
+  const maskContext = maskCanvas.getContext('2d', {
+    willReadFrequently: true,
+  })
+
+  if (!maskContext) return null
+
+  const maskProjection = geoEquirectangular()
+    .translate([maskWidth / 2, maskHeight / 2])
+    .scale(maskWidth / (2 * Math.PI))
+
+  const maskPath = geoPath(maskProjection, maskContext)
+
+  maskContext.beginPath()
+
+  maskPath(countries)
+
+  maskContext.fillStyle = '#000'
+
+  maskContext.fill()
+
+  const { data } = maskContext.getImageData(0, 0, maskWidth, maskHeight)
+
+  return {
+    data,
+    width: maskWidth,
+    height: maskHeight,
+    projection: maskProjection,
+  }
+}
+
+const isLand = (mask: LandMask, lng: number, lat: number) => {
+  const point = mask.projection([lng, lat])
+
+  if (!point) return false
+
+  const x = Math.round(point[0])
+
+  const y = Math.round(point[1])
+
+  if (x < 0 || x >= mask.width || y < 0 || y >= mask.height) return false
+
+  return mask.data[(y * mask.width + x) * 4 + 3] > 0
+}
+
+/*
+ * Lazy, cached grid of land dots.
+ *
+ * Only ever computed once per
+ * page session, and never on
+ * the initial render path —
+ * the component kicks this off
+ * inside a useEffect.
+ */
+let landDotsCache: [number, number][] | null = null
+
+const getLandDots = (step: number) => {
+  if (landDotsCache) return landDotsCache
+
+  const mask = buildLandMask()
+
+  const dots: [number, number][] = []
+
+  if (mask) {
+    for (let lat = -85; lat <= 85; lat += step) {
+      for (let lng = -180; lng <= 180; lng += step) {
+        if (isLand(mask, lng, lat)) {
+          dots.push([lng, lat])
+        }
+      }
+    }
+  }
+
+  landDotsCache = dots
+
+  return dots
+}
 
 type City = {
   id: string
@@ -50,7 +160,7 @@ const cities: City[] = [
     country: 'India',
     lat: 19.076,
     lng: 72.8777,
-    message: '2,842 live sessions',
+    message: '2,842 pages visited',
     offsetX: -45,
     offsetY: -70,
   },
@@ -60,7 +170,7 @@ const cities: City[] = [
     country: 'Singapore',
     lat: 1.3521,
     lng: 103.8198,
-    message: '1,426 pageviews',
+    message: '1,426 pages visited',
     offsetX: 55,
     offsetY: -68,
   },
@@ -70,7 +180,7 @@ const cities: City[] = [
     country: 'UAE',
     lat: 25.2048,
     lng: 55.2708,
-    message: '684 events tracked',
+    message: '684 events captured',
     offsetX: -65,
     offsetY: -76,
   },
@@ -80,7 +190,7 @@ const cities: City[] = [
     country: 'United Kingdom',
     lat: 51.5072,
     lng: -0.1276,
-    message: '1,892 live sessions',
+    message: '1,892 pages visited',
     offsetX: -30,
     offsetY: -72,
   },
@@ -90,7 +200,7 @@ const cities: City[] = [
     country: 'United States',
     lat: 40.7128,
     lng: -74.006,
-    message: '3,241 pageviews',
+    message: '3,241 pages visited',
     offsetX: 45,
     offsetY: -72,
   },
@@ -100,9 +210,69 @@ const cities: City[] = [
     country: 'Australia',
     lat: -33.8688,
     lng: 151.2093,
-    message: '327 conversions',
+    message: '327 events captured',
     offsetX: 50,
     offsetY: -72,
+  },
+  {
+    id: 'sao-paulo',
+    name: 'São Paulo',
+    country: 'Brazil',
+    lat: -23.5505,
+    lng: -46.6333,
+    message: '1,104 pages visited',
+    offsetX: -50,
+    offsetY: -68,
+  },
+  {
+    id: 'tokyo',
+    name: 'Tokyo',
+    country: 'Japan',
+    lat: 35.6762,
+    lng: 139.6503,
+    message: '2,567 pages visited',
+    offsetX: 55,
+    offsetY: -70,
+  },
+  {
+    id: 'berlin',
+    name: 'Berlin',
+    country: 'Germany',
+    lat: 52.52,
+    lng: 13.405,
+    message: '918 events captured',
+    offsetX: -35,
+    offsetY: -74,
+  },
+  {
+    id: 'toronto',
+    name: 'Toronto',
+    country: 'Canada',
+    lat: 43.6532,
+    lng: -79.3832,
+    message: '1,357 pages visited',
+    offsetX: -55,
+    offsetY: -70,
+  },
+  {
+    id: 'cape-town',
+    name: 'Cape Town',
+    country: 'South Africa',
+    lat: -33.9249,
+    lng: 18.4241,
+    message: '412 events captured',
+    offsetX: -40,
+    offsetY: -70,
+  },
+  {
+    id: 'jakarta',
+    name: 'Jakarta',
+    country: 'Indonesia',
+    lat: -6.2088,
+    lng: 106.8456,
+    message: '1,680 pages visited',
+    offsetX: 40,
+    offsetY: -68,
   },
 ]
 
@@ -112,6 +282,15 @@ const routePairs = [
   ['mumbai', 'london'],
   ['london', 'new-york'],
   ['singapore', 'sydney'],
+  ['singapore', 'jakarta'],
+  ['dubai', 'cape-town'],
+  ['dubai', 'berlin'],
+  ['london', 'berlin'],
+  ['london', 'toronto'],
+  ['new-york', 'toronto'],
+  ['new-york', 'sao-paulo'],
+  ['tokyo', 'singapore'],
+  ['tokyo', 'sydney'],
 ] as const
 
 const createRoute = (start: City, end: City) => {
@@ -142,19 +321,6 @@ const routes = routePairs
   })
   .filter((route): route is ReturnType<typeof createRoute> => route !== null)
 
-const drawRoundedRect = (
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
-) => {
-  context.beginPath()
-
-  context.roundRect(x, y, width, height, radius)
-}
-
 type GlobeColors = {
   primary: string
   card: string
@@ -175,6 +341,10 @@ export const RegionGlobe = () => {
   const rotationRef = useRef<[number, number]>([-80, -20])
 
   const isVisibleRef = useRef(true)
+
+  const landDotsRef = useRef<[number, number][]>([])
+
+  const cardEnterRef = useRef<Map<string, number>>(new Map())
 
   const dragRef = useRef<{
     pointerId: number
@@ -245,14 +415,28 @@ export const RegionGlobe = () => {
 
       context.clearRect(0, 0, VIEWBOX_WIDTH, VIEWBOX_HEIGHT)
 
-      const { primary, card, cardForeground, mutedForeground, border } =
-        colorsRef.current
+      const { primary, card, mutedForeground } = colorsRef.current
 
       const projection = geoOrthographic()
         .translate(GLOBE_CENTER)
         .scale(GLOBE_RADIUS)
         .rotate([rotation[0], rotation[1], GLOBE_TILT])
         .clipAngle(90)
+        .precision(1)
+
+      /*
+       * Front-face projection only
+       * clips at the horizon. For
+       * the back face we need an
+       * unclipped projection so
+       * points behind the globe
+       * still resolve to a pixel.
+       */
+      const backProjection = geoOrthographic()
+        .translate(GLOBE_CENTER)
+        .scale(GLOBE_RADIUS)
+        .rotate([rotation[0], rotation[1], GLOBE_TILT])
+        .clipAngle(null)
         .precision(1)
 
       const path = geoPath(projection, context)
@@ -296,50 +480,161 @@ export const RegionGlobe = () => {
       context.stroke()
 
       /*
-       * Countries
-       */
-      context.beginPath()
-
-      for (const country of countries.features) {
-        path(country)
-      }
-
-      /*
-       * Very light primary tint.
+       * Countries (back-of-globe dots)
+       *
+       * Rendered first, at a low
+       * fixed opacity, using the
+       * unclipped projection so
+       * they still land at the
+       * correct on-screen position
+       * even though they're behind
+       * the sphere.
        */
       context.fillStyle = primary
 
-      context.globalAlpha = 0.025
+      for (const [lng, lat] of landDotsRef.current) {
+        const distance = geoDistance([lng, lat], visibleCenter)
 
-      context.fill()
+        if (distance < Math.PI / 2) {
+          continue
+        }
+
+        const point = backProjection([lng, lat])
+
+        if (!point) continue
+
+        const [x, y] = point
+
+        context.globalAlpha = BACK_DOT_OPACITY
+
+        context.beginPath()
+
+        context.arc(x, y, 1.5, 0, Math.PI * 2)
+
+        context.fill()
+      }
+
+      context.globalAlpha = 1
 
       /*
-       * Country outlines.
+       * Countries (front-of-globe dots)
+       */
+      context.fillStyle = primary
+
+      for (const [lng, lat] of landDotsRef.current) {
+        const distance = geoDistance([lng, lat], visibleCenter)
+
+        if (distance >= Math.PI / 2) {
+          continue
+        }
+
+        const point = projection([lng, lat])
+
+        if (!point) continue
+
+        const [x, y] = point
+
+        /*
+         * Fade dots near the horizon,
+         * same as cities/routes.
+         */
+        const horizonDistance = Math.PI / 2 - distance
+
+        const opacity = Math.min(1, horizonDistance / 0.15)
+
+        if (opacity <= 0) continue
+
+        context.globalAlpha = opacity * 0.5
+
+        context.beginPath()
+
+        context.arc(x, y, 1.5, 0, Math.PI * 2)
+
+        context.fill()
+      }
+
+      context.globalAlpha = 1
+
+      /*
+       * Routes (elevated arcs)
        *
-       * Main Pathlens primary color.
+       * Each route is drawn as its own
+       * path, lifted away from the globe
+       * center — peaking at the midpoint,
+       * touching down at both cities.
        */
-      context.strokeStyle = primary
-
-      context.globalAlpha = 0.55
-
-      context.lineWidth = 0.65
-
-      context.stroke()
-
-      /*
-       * Routes
-       */
-      context.beginPath()
-
-      path(routeCollection)
-
       context.strokeStyle = primary
 
       context.globalAlpha = 0.38
 
       context.lineWidth = 1
 
-      context.stroke()
+      routes.forEach((route) => {
+        const points = route.coordinates
+
+        const segments = points.length - 1
+
+        const routeDistance = geoDistance(points[0], points[segments])
+
+        /*
+         * Longer routes arc higher.
+         */
+        const maxLift = 14 + routeDistance * 36
+
+        let isDrawing = false
+
+        context.beginPath()
+
+        points.forEach((coordinate, index) => {
+          const distance = geoDistance(coordinate, visibleCenter)
+
+          /*
+           * Hide the segment while
+           * it's behind the globe.
+           */
+          if (distance >= Math.PI / 2) {
+            isDrawing = false
+
+            return
+          }
+
+          const projected = projection(coordinate)
+
+          if (!projected) {
+            isDrawing = false
+
+            return
+          }
+
+          const [x, y] = projected
+
+          const dx = x - GLOBE_CENTER[0]
+
+          const dy = y - GLOBE_CENTER[1]
+
+          const length = Math.hypot(dx, dy) || 1
+
+          const t = index / segments
+
+          const lift = maxLift * Math.sin(t * Math.PI)
+
+          const liftedX = x + (dx / length) * lift
+
+          const liftedY = y + (dy / length) * lift
+
+          if (!isDrawing) {
+            context.moveTo(liftedX, liftedY)
+
+            isDrawing = true
+          } else {
+            context.lineTo(liftedX, liftedY)
+          }
+        })
+
+        context.stroke()
+      })
+
+      context.globalAlpha = 1
 
       /*
        * Cities
@@ -354,6 +649,8 @@ export const RegionGlobe = () => {
          * if it is behind globe.
          */
         if (distance >= Math.PI / 2) {
+          cardEnterRef.current.delete(city.id)
+
           return
         }
 
@@ -372,8 +669,28 @@ export const RegionGlobe = () => {
         const opacity = Math.min(1, horizonDistance / 0.2)
 
         if (opacity <= 0) {
+          cardEnterRef.current.delete(city.id)
+
           return
         }
+
+        /*
+         * Card enter animation.
+         *
+         * First frame a city is
+         * visible, record the time;
+         * ease its card in over
+         * CARD_ANIMATION_DURATION.
+         */
+        if (!cardEnterRef.current.has(city.id)) {
+          cardEnterRef.current.set(city.id, time)
+        }
+
+        const enterTime = cardEnterRef.current.get(city.id) ?? time
+
+        const animT = Math.min(1, (time - enterTime) / CARD_ANIMATION_DURATION)
+
+        const cardEase = easeOutCubic(animT)
 
         /*
          * Animated pulse
@@ -417,21 +734,19 @@ export const RegionGlobe = () => {
         const cardY = pointY + city.offsetY
 
         /*
-         * Connector line
+         * Card grows in from the
+         * city dot and fades in
+         * alongside the horizon fade.
          */
-        context.beginPath()
+        context.save()
 
-        context.moveTo(pointX, pointY - 6)
+        context.translate(pointX, pointY)
 
-        context.lineTo(pointX, cardY + cardHeight)
+        context.scale(0.85 + cardEase * 0.15, 0.85 + cardEase * 0.15)
 
-        context.strokeStyle = primary
+        context.translate(-pointX, -pointY)
 
-        context.globalAlpha = opacity * 0.35
-
-        context.lineWidth = 0.75
-
-        context.stroke()
+        const cardOpacity = opacity * cardEase
 
         /*
          * Card background
@@ -439,26 +754,74 @@ export const RegionGlobe = () => {
          * Equivalent:
          * bg-card
          */
-        drawRoundedRect(context, cardX, cardY, cardWidth, cardHeight, 8)
+        context.beginPath()
+
+        context.rect(cardX, cardY, cardWidth, cardHeight)
 
         context.fillStyle = card
 
-        context.globalAlpha = opacity * 0.96
+        context.globalAlpha = cardOpacity * 0.96
 
         context.fill()
 
         /*
-         * Card border
+         * Card border (dashed, primary)
          *
          * Equivalent:
-         * border-border
+         * border-primary border-dashed
          */
-        context.strokeStyle = border
+        context.setLineDash([4, 3])
 
-        context.globalAlpha = opacity
+        context.strokeStyle = primary
+
+        context.globalAlpha = cardOpacity
 
         context.lineWidth = 0.7
 
+        context.stroke()
+
+        context.setLineDash([])
+
+        /*
+         * Solid corner accents (all four)
+         *
+         * Equivalent:
+         * before:border-primary before:border-solid
+         */
+        const cornerSize = 10
+
+        context.strokeStyle = primary
+
+        context.globalAlpha = cardOpacity
+
+        context.lineWidth = 1.5
+
+        // Top-left
+        context.beginPath()
+        context.moveTo(cardX, cardY + cornerSize)
+        context.lineTo(cardX, cardY)
+        context.lineTo(cardX + cornerSize, cardY)
+        context.stroke()
+
+        // Top-right
+        context.beginPath()
+        context.moveTo(cardX + cardWidth - cornerSize, cardY)
+        context.lineTo(cardX + cardWidth, cardY)
+        context.lineTo(cardX + cardWidth, cardY + cornerSize)
+        context.stroke()
+
+        // Bottom-right
+        context.beginPath()
+        context.moveTo(cardX + cardWidth, cardY + cardHeight - cornerSize)
+        context.lineTo(cardX + cardWidth, cardY + cardHeight)
+        context.lineTo(cardX + cardWidth - cornerSize, cardY + cardHeight)
+        context.stroke()
+
+        // Bottom-left
+        context.beginPath()
+        context.moveTo(cardX + cornerSize, cardY + cardHeight)
+        context.lineTo(cardX, cardY + cardHeight)
+        context.lineTo(cardX, cardY + cardHeight - cornerSize)
         context.stroke()
 
         /*
@@ -467,15 +830,15 @@ export const RegionGlobe = () => {
          * Equivalent:
          * bg-primary
          */
-        context.beginPath()
+        // context.beginPath()
 
-        context.arc(cardX + 13, cardY + 14, 3, 0, Math.PI * 2)
+        // context.arc(cardX + 13, cardY + 14, 3, 0, Math.PI * 2)
 
-        context.fillStyle = primary
+        // context.fillStyle = primary
 
-        context.globalAlpha = opacity
+        // context.globalAlpha = cardOpacity
 
-        context.fill()
+        // context.fill()
 
         /*
          * City title
@@ -483,15 +846,15 @@ export const RegionGlobe = () => {
          * Equivalent:
          * text-card-foreground
          */
-        context.fillStyle = cardForeground
+        context.fillStyle = primary
 
-        context.globalAlpha = opacity
+        context.globalAlpha = cardOpacity
 
         context.font = '500 11px "Geist Variable", Geist, system-ui, sans-serif'
 
         context.textBaseline = 'middle'
 
-        context.fillText(city.name, cardX + 22, cardY + 14)
+        context.fillText(city.name, cardX + 14, cardY + 14)
 
         /*
          * Metric
@@ -501,11 +864,13 @@ export const RegionGlobe = () => {
          */
         context.fillStyle = mutedForeground
 
-        context.globalAlpha = opacity
+        context.globalAlpha = cardOpacity
 
         context.font = '400 9px "Geist Variable", Geist, system-ui, sans-serif'
 
         context.fillText(city.message, cardX + 13, cardY + 31)
+
+        context.restore()
 
         context.globalAlpha = 1
       })
@@ -514,6 +879,21 @@ export const RegionGlobe = () => {
     },
     [routeCollection]
   )
+
+  /*
+   * Compute the land dot grid
+   * off the initial render path.
+   *
+   * Rasterized + cached, so this
+   * only runs once per session
+   * even across remounts, and
+   * never blocks first paint.
+   */
+  useEffect(() => {
+    landDotsRef.current = getLandDots(DOT_STEP)
+
+    drawGlobe(rotationRef.current, performance.now())
+  }, [drawGlobe])
 
   /*
    * Read your Tailwind / shadcn
@@ -538,7 +918,8 @@ export const RegionGlobe = () => {
       colorsRef.current = {
         primary: styles.getPropertyValue('--primary').trim() || '#44d59d',
 
-        card: styles.getPropertyValue('--card').trim() || '#ffffff',
+        card:
+          styles.getPropertyValue('--primary-foreground').trim() || '#ffffff',
 
         cardForeground:
           styles.getPropertyValue('--card-foreground').trim() || '#101719',
@@ -684,10 +1065,17 @@ export const RegionGlobe = () => {
 
     /*
      * Latitude remains unchanged.
+     *
+     * Don't redraw here directly —
+     * the animate loop (already
+     * running via requestAnimationFrame)
+     * picks up the new rotation on its
+     * next throttled frame. Calling
+     * drawGlobe on every raw pointermove
+     * event double-renders and causes
+     * jank at high dot densities.
      */
     rotationRef.current = [longitude, rotationRef.current[1]]
-
-    drawGlobe(rotationRef.current, performance.now())
   }
 
   const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -705,11 +1093,11 @@ export const RegionGlobe = () => {
   return (
     <div
       ref={wrapperRef}
-      className="relative aspect-[16/5] w-full overflow-hidden"
+      className="relative z-5 aspect-[16/7.6] w-full overflow-hidden"
     >
       <canvas
         ref={canvasRef}
-        className="absolute top-0 left-0 h-[125%] w-full -translate-y-[4%] touch-pan-y"
+        className="absolute top-0 left-0 w-full -translate-y-[4%] touch-pan-y"
         role="img"
         aria-label="Interactive globe showing worldwide Pathlens activity"
         onPointerDown={handlePointerDown}

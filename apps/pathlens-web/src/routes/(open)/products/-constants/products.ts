@@ -17,12 +17,28 @@ import {
   UsersRound,
 } from 'lucide-react'
 
+const colors = {
+  emerald: { hex: '#10B981', hue: 160 },
+  teal: { hex: '#0D9488', hue: 174 },
+  cyan: { hex: '#06B6D4', hue: 189 },
+  blue: { hex: '#3B82F6', hue: 217 },
+  indigo: { hex: '#6366F1', hue: 239 },
+  violet: { hex: '#8B5CF6', hue: 258 },
+  slate: { hex: '#64748B', hue: 215 },
+  amber: { hex: '#F59E0B', hue: 38 },
+  orange: { hex: '#F97316', hue: 25 },
+  red: { hex: '#EF4444', hue: 0 },
+}
+
+export type ProductData = (typeof productSections)[number]['items'][number]
+
 export const productSections = [
   {
     title: 'Analytics',
     items: [
       {
         title: 'Web Analytics',
+        color: colors.blue,
         description: 'Understand traffic, engagement and conversions',
         icon: BarChart3,
         href: '/product/web-analytics',
@@ -115,6 +131,7 @@ export const productSections = [
 
       {
         title: 'Visitors',
+        color: colors.teal,
         description: 'Explore anonymous visitors and their activity',
         icon: Users,
         href: '/product/visitors',
@@ -207,6 +224,7 @@ export const productSections = [
 
       {
         title: 'Events',
+        color: colors.cyan,
         description: 'See every meaningful action happening on your website',
         icon: Activity,
         href: '/product/events',
@@ -301,6 +319,7 @@ export const productSections = [
 
       {
         title: 'Funnels',
+        color: colors.violet,
         description: 'See where users progress, convert or drop off',
         icon: TrendingUp,
         href: '/product/funnels',
@@ -391,6 +410,7 @@ export const productSections = [
 
       {
         title: 'Goals',
+        color: colors.amber,
         description: 'Turn important business outcomes into measurable targets',
         icon: Target,
         href: '/product/goals',
@@ -489,6 +509,7 @@ export const productSections = [
     items: [
       {
         title: 'Session Replay',
+        color: colors.indigo,
         description: 'Watch how real visitors experience your website',
         icon: Play,
         href: '/product/session-replay',
@@ -582,6 +603,7 @@ export const productSections = [
 
       {
         title: 'Heatmaps',
+        color: colors.orange,
         description: 'See where visitors click and how far they scroll',
         icon: Crosshair,
         href: '/product/heatmaps',
@@ -671,6 +693,7 @@ export const productSections = [
 
       {
         title: 'Click Analytics',
+        color: colors.red,
         description: 'Understand which elements receive the most interaction',
         icon: MousePointerClick,
         href: '/product/click-analytics',
@@ -759,6 +782,7 @@ export const productSections = [
 
       {
         title: 'Visitor Activity',
+        color: colors.emerald,
         description: 'Follow visitor behavior across sessions and pages',
         icon: Eye,
         href: '/product/visitor-activity',
@@ -854,6 +878,7 @@ export const productSections = [
     items: [
       {
         title: 'Performance',
+        color: colors.emerald,
         description: 'Measure page speed across pages, devices and browsers',
         icon: Gauge,
         href: '/product/performance',
@@ -943,6 +968,7 @@ export const productSections = [
 
       {
         title: 'Traffic Sources',
+        color: colors.cyan,
         description: 'Understand where visitors discover your website',
         icon: Globe2,
         href: '/product/traffic-sources',
@@ -1023,6 +1049,7 @@ export const productSections = [
 
       {
         title: 'Reports',
+        color: colors.slate,
         description: 'Turn website performance into shareable reports',
         icon: FileBarChart,
         href: '/product/reports',
@@ -1118,6 +1145,7 @@ export const productSections = [
     items: [
       {
         title: 'AI Insights',
+        color: colors.violet,
         description:
           'Discover trends, anomalies and opportunities automatically',
         icon: Brain,
@@ -1213,6 +1241,7 @@ export const productSections = [
     items: [
       {
         title: 'Privacy',
+        color: colors.slate,
         description: 'Understand behavior without identifying visitors by name',
         icon: ShieldCheck,
         href: '/product/privacy',
@@ -1301,6 +1330,7 @@ export const productSections = [
 
       {
         title: 'Workspaces',
+        color: colors.emerald,
         description: 'Organize websites, projects and teams in one place',
         icon: UsersRound,
         href: '/product/workspaces',
@@ -1394,6 +1424,7 @@ export const productSections = [
 
       {
         title: 'Access Control',
+        color: colors.blue,
         description: 'Control what teammates can view and manage',
         icon: KeyRound,
         href: '/product/access-control',

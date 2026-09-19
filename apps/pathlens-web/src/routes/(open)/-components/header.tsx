@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowRightIcon, ChevronRightIcon } from 'lucide-react'
 
@@ -8,6 +7,7 @@ import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
+  NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
@@ -17,22 +17,12 @@ import { Separator } from '@workspace/ui/components/separator'
 import { productSections } from '../products/-constants/products'
 import { solutionSections } from '../products/-constants/solutions'
 
-type MenuContentProps = {
-  onNavigate: () => void
-}
-
 export const Header = () => {
-  const [menuValue, setMenuValue] = useState('')
-
-  const closeMenu = () => {
-    setMenuValue('')
-  }
-
   return (
     <div className="dotted-background sticky top-0 z-10 border-b-2 border-dashed">
       <nav className="bg-background z-10 mx-auto w-full max-w-[90vw] border-x-2 border-dashed">
         <div className="mx-auto flex max-w-[75%] items-center justify-between border-x-2 border-dashed px-5 py-2">
-          <Link to="/" className="flex items-center" onClick={closeMenu}>
+          <Link to="/" className="flex items-center">
             <img
               src="/logo.png"
               className="size-10 dark:invert"
@@ -43,51 +33,67 @@ export const Header = () => {
           </Link>
 
           <div className="flex items-center gap-2">
-            <NavigationMenu
-              align="center"
-              value={menuValue}
-              onValueChange={setMenuValue}
-            >
+            <NavigationMenu align="center">
               <NavigationMenuList>
                 <NavigationMenuItem value="products">
-                  <NavigationMenuTrigger className="cursor-pointer">
+                  <NavigationMenuTrigger
+                    render={
+                      <Link
+                        onClick={(e) => {
+                          e.stopPropagation()
+                        }}
+                        to="/products"
+                      />
+                    }
+                    className="cursor-pointer"
+                  >
                     Products
                   </NavigationMenuTrigger>
 
                   <NavigationMenuContent className="p-2">
-                    <Products onNavigate={closeMenu} />
+                    <Products />
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem value="solutions">
-                  <NavigationMenuTrigger className="cursor-pointer">
+                  <NavigationMenuTrigger
+                    render={
+                      <Link
+                        onClick={(e) => {
+                          e.stopPropagation()
+                        }}
+                        to="/solutions"
+                      />
+                    }
+                    className="cursor-pointer"
+                  >
                     Solutions
                   </NavigationMenuTrigger>
 
                   <NavigationMenuContent className="p-2">
-                    <Solutions onNavigate={closeMenu} />
+                    <Solutions />
                   </NavigationMenuContent>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
 
-            <Link to="/pricing" onClick={closeMenu}>
+            <Link to="/pricing">
               <p className={navigationMenuTriggerStyle()}>Pricing</p>
             </Link>
           </div>
 
           <div className="flex items-center gap-2">
-            <Link to="/login" onClick={closeMenu}>
+            <Link to="/login">
               <Button variant="outline">Log in</Button>
             </Link>
 
-            <Link to="/login" onClick={closeMenu}>
+            <Link to="/login">
               <Button>Start Tracking</Button>
             </Link>
 
-            {/* <Separator orientation="vertical" />
+            <Separator orientation="vertical" />
 
-            <ModeToggle /> */}
+            <ModeToggle />
           </div>
         </div>
       </nav>
@@ -95,7 +101,7 @@ export const Header = () => {
   )
 }
 
-export function Products({ onNavigate }: MenuContentProps) {
+export function Products() {
   return (
     <>
       <div className="bg-background grid w-7xl grid-cols-5 divide-x self-center rounded-md border">
@@ -110,14 +116,23 @@ export function Products({ onNavigate }: MenuContentProps) {
                 const productId = item.title.replaceAll(' ', '-').toLowerCase()
 
                 return (
-                  <Link
-                    key={item.title}
-                    to="/products/$productId"
-                    params={{
-                      productId,
+                  <NavigationMenuLink
+                    onClick={(e) => {
+                      e.stopPropagation()
                     }}
-                    onClick={onNavigate}
-                    className="group flex w-full items-start gap-4 rounded-md p-2"
+                    render={
+                      <Link
+                        key={item.title}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                        }}
+                        to="/products/$productId"
+                        params={{
+                          productId,
+                        }}
+                        className="group flex w-full items-start gap-4 rounded-md p-2"
+                      />
+                    }
                   >
                     <div className="bg-secondary/80 flex aspect-square size-8 shrink-0 items-center justify-center rounded-md border">
                       <item.icon
@@ -140,7 +155,7 @@ export function Products({ onNavigate }: MenuContentProps) {
                         {item.description}
                       </p>
                     </div>
-                  </Link>
+                  </NavigationMenuLink>
                 )
               })}
             </div>
@@ -149,18 +164,27 @@ export function Products({ onNavigate }: MenuContentProps) {
       </div>
 
       <div className="flex items-center justify-between pt-2">
-        <Link to="/products" onClick={onNavigate}>
+        <NavigationMenuLink
+          render={
+            <Link
+              onClick={(e) => {
+                e.stopPropagation()
+              }}
+              to="/products"
+            />
+          }
+        >
           <Button variant="link" size="sm" className="text-primary">
             See all Products
             <ArrowRightIcon />
           </Button>
-        </Link>
+        </NavigationMenuLink>
       </div>
     </>
   )
 }
 
-export function Solutions({ onNavigate }: MenuContentProps) {
+export function Solutions() {
   return (
     <div className="bg-background grid w-4xl grid-cols-3 divide-x self-center rounded-md border">
       {solutionSections.slice(0, 4).map((section) => (
@@ -174,14 +198,23 @@ export function Solutions({ onNavigate }: MenuContentProps) {
               const solutionId = item.title.replaceAll(' ', '-').toLowerCase()
 
               return (
-                <Link
-                  key={item.title}
-                  to="/products/$productId"
-                  params={{
-                    productId: solutionId,
+                <NavigationMenuLink
+                  onClick={(e) => {
+                    e.stopPropagation()
                   }}
-                  onClick={onNavigate}
-                  className="group flex w-full items-start gap-4 rounded-md p-2"
+                  render={
+                    <Link
+                      key={item.title}
+                      to="/solutions/$solutionId"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                      }}
+                      params={{
+                        solutionId: solutionId,
+                      }}
+                      className="group flex w-full items-start gap-4 rounded-md p-2"
+                    />
+                  }
                 >
                   <div className="bg-secondary/80 flex aspect-square size-8 shrink-0 items-center justify-center rounded-md border">
                     <item.icon
@@ -204,7 +237,7 @@ export function Solutions({ onNavigate }: MenuContentProps) {
                       {item.description}
                     </p>
                   </div>
-                </Link>
+                </NavigationMenuLink>
               )
             })}
           </div>

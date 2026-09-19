@@ -76,7 +76,7 @@ export const HeroIcons = () => {
           </p>
 
           <Link to="/login">
-            <Button className="h-12 rounded-full border border-white bg-white px-6 backdrop-blur-3xl duration-200 hover:border-white hover:bg-transparent">
+            <Button className="h-12 rounded-full border border-white bg-white px-6 text-black backdrop-blur-3xl duration-200 hover:border-white hover:bg-transparent">
               Start tracking for free
             </Button>
           </Link>

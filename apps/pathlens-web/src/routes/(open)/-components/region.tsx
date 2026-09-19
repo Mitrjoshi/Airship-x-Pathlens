@@ -22,8 +22,7 @@ export const Region = () => {
 
       <div>
         <RegionGlobe />
-
-        <div className="nut-all grid grid-cols-3 divide-x border">
+        <div className="nut-all bg-background grid grid-cols-3 divide-x border">
           <div className="w-full p-4">
             <GlobeIcon size={24} className="text-muted-foreground" />
 
