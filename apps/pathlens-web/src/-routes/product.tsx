@@ -101,7 +101,7 @@ function ProductPage() {
               See the whole customer journey.
             </h1>
             <p className="text-muted-foreground mt-7 max-w-xl text-base leading-7 sm:text-lg sm:leading-8">
-              PathLens brings traffic, behavior, replay, performance, and team
+              Pathlens brings traffic, behavior, replay, performance, and team
               context into one clear product view, so your next decision starts
               with evidence.
             </p>
@@ -264,7 +264,7 @@ function ProductPage() {
             </h2>
           </div>
           <p className="text-muted-foreground max-w-sm text-sm leading-6">
-            PathLens gives each answer enough context to become useful, not just
+            Pathlens gives each answer enough context to become useful, not just
             another dashboard to check.
           </p>
         </div>

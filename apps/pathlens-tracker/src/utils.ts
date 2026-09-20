@@ -325,7 +325,7 @@ export function debug(
 ) {
   if (!config.debug) return;
 
-  console.log(`[PathLens] ${message}`, ...args);
+  console.log(`[Pathlens] ${message}`, ...args);
 }
 
 export function flushQueue(
@@ -347,7 +347,7 @@ export function flushQueue(
       }
     })
     .catch((err) => {
-      console.error("[PathLens]", err);
+      console.error("[Pathlens]", err);
     });
 }
 
@@ -355,13 +355,13 @@ export function readConfig(): PathLensConfig {
   const script = document.currentScript as HTMLScriptElement | null;
 
   if (!script) {
-    throw new Error("PathLens: Unable to locate current script.");
+    throw new Error("Pathlens: Unable to locate current script.");
   }
 
   const dataset = script.dataset;
 
   if (!dataset.projectId) {
-    throw new Error("PathLens: data-project-id is required.");
+    throw new Error("Pathlens: data-project-id is required.");
   }
 
   return {

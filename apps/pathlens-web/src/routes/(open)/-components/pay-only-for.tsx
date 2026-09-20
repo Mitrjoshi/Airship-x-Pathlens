@@ -27,7 +27,7 @@ export const PayOnlyFor = () => {
         <div>
           <p className="text-lg font-medium">Track everything that matters</p>
           <p className="text-muted-foreground text-sm">
-            Add one lightweight script to your website and PathLens
+            Add one lightweight script to your website and Pathlens
             automatically captures the interactions that matter — clicks,
             scrolls, form changes, invalid inputs, and live visitors.
           </p>

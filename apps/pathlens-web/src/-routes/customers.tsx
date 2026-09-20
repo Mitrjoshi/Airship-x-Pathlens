@@ -27,7 +27,7 @@ export const Route = createFileRoute('/customers')({
 const stories = [
   {
     quote:
-      'PathLens gives our team the context we used to spend hours stitching together.',
+      'Pathlens gives our team the context we used to spend hours stitching together.',
     name: 'Maya Chen',
     role: 'Head of Product, Northstar',
     initials: 'MC',
@@ -92,7 +92,7 @@ function CustomersPage() {
               Less guessing. More momentum.
             </h1>
             <p className="text-muted-foreground mt-7 max-w-xl text-base leading-7 sm:text-lg sm:leading-8">
-              The teams using PathLens do not need more dashboards. They need a
+              The teams using Pathlens do not need more dashboards. They need a
               clearer reason to act, shared across the people building the
               product.
             </p>

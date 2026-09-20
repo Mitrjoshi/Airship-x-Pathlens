@@ -57,12 +57,12 @@ function CheckoutResultPage() {
             <span className="bg-background flex size-9 items-center justify-center overflow-hidden rounded-xl border shadow-sm">
               <img
                 src="/logo.png"
-                alt="PathLens"
+                alt="Pathlens"
                 className="size-full object-contain"
               />
             </span>
             <span className="text-sm font-semibold tracking-tight">
-              PathLens
+              Pathlens
             </span>
           </Link>
           <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1">

@@ -88,11 +88,11 @@ function RouteComponent() {
             <span className="flex size-8 items-center justify-center overflow-hidden rounded-lg bg-white/10 ring-1 ring-white/20">
               <img
                 src="/logo.png"
-                alt="PathLens"
+                alt="Pathlens"
                 className="landing-logo landing-logo-dark size-full object-contain"
               />
             </span>
-            PathLens
+            Pathlens
           </Link>
 
           <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-8">
@@ -204,11 +204,11 @@ function RouteComponent() {
             <span className="bg-background ring-foreground/10 size-7 overflow-hidden rounded-md ring-1">
               <img
                 src="/logo.png"
-                alt="PathLens"
+                alt="Pathlens"
                 className="landing-logo size-full object-contain"
               />
             </span>
-            PathLens
+            Pathlens
           </Link>
           <Link
             to="/"
@@ -415,7 +415,7 @@ function RouteComponent() {
             </Button>
 
             <p className="text-muted-foreground mt-6 text-center text-xs leading-5 lg:mt-4">
-              By creating an account, you agree to use PathLens responsibly and
+              By creating an account, you agree to use Pathlens responsibly and
               keep your workspace secure.
             </p>
 
@@ -433,7 +433,7 @@ function RouteComponent() {
 
         <footer className="border-border shrink-0 border-t px-5 py-4 sm:px-8 lg:px-10">
           <p className="text-muted-foreground text-center text-xs lg:text-left">
-            © 2026 PathLens · Privacy-first analytics.
+            © 2026 Pathlens · Privacy-first analytics.
           </p>
         </footer>
       </section>
@@ -443,7 +443,7 @@ function RouteComponent() {
         <div className="relative flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-medium tracking-[0.16em] text-violet-200/70 uppercase">
-              PathLens
+              Pathlens
             </p>
             <p className="mt-2 max-w-xs text-xl font-semibold tracking-tight">
               Build your clearest product view.

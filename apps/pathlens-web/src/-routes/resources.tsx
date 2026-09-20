@@ -70,10 +70,10 @@ const faqs = [
   {
     question: 'What can I track?',
     answer:
-      'PathLens can capture page views, clicks, forms, scrolls, custom events, performance signals, errors, funnels, and privacy-conscious session replays.',
+      'Pathlens can capture page views, clicks, forms, scrolls, custom events, performance signals, errors, funnels, and privacy-conscious session replays.',
   },
   {
-    question: 'How does PathLens approach privacy?',
+    question: 'How does Pathlens approach privacy?',
     answer:
       'Visitors are represented through anonymous identifiers. Replay supports masking inputs and text, blocking elements, and excluding password values from ordinary input activity.',
   },
@@ -164,7 +164,7 @@ function ResourcesPage() {
                 From zero to first signal.
               </h2>
               <p className="text-muted-foreground mt-5 max-w-sm text-sm leading-6">
-                Keep the first run simple. PathLens is designed to help you get
+                Keep the first run simple. Pathlens is designed to help you get
                 value before you need a data team.
               </p>
             </div>
@@ -232,7 +232,7 @@ function ResourcesPage() {
               Useful context without losing trust.
             </h2>
             <p className="text-muted-foreground mt-5 max-w-xl text-sm leading-6 sm:text-base">
-              PathLens is designed to help teams understand behavior without
+              Pathlens is designed to help teams understand behavior without
               asking them to turn people into names and profiles.
             </p>
             <ul className="mt-7 space-y-3 text-sm">

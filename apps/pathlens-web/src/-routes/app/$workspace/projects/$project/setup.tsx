@@ -310,7 +310,7 @@ function RouteComponent() {
               ? `Connect ${projectData.name}.`
               : 'Connect your project.'
           }
-          description="Add the PathLens tracker to your frontend, send a first page view, and start seeing customer behavior."
+          description="Add the Pathlens tracker to your frontend, send a first page view, and start seeing customer behavior."
           actions={
             <Button
               variant="outline"
@@ -353,7 +353,7 @@ function RouteComponent() {
               icon: CircleCheck,
               title: 'Verify events',
               description:
-                'Return to PathLens and watch your first signal arrive.',
+                'Return to Pathlens and watch your first signal arrive.',
             },
           ].map((step) => {
             const Icon = step.icon
@@ -382,7 +382,7 @@ function RouteComponent() {
                 <Terminal className="size-5" />
               </div>
               <div>
-                <CardTitle>Install the PathLens tracker</CardTitle>
+                <CardTitle>Install the Pathlens tracker</CardTitle>
                 <CardDescription className="mt-1">
                   The same client-side tracker works with any frontend stack.
                   The local script URL below is ready for development.
@@ -444,7 +444,7 @@ function RouteComponent() {
                 <div>
                   <CardTitle>Verify your installation</CardTitle>
                   <CardDescription className="mt-1">
-                    Once your app is running, PathLens will begin collecting
+                    Once your app is running, Pathlens will begin collecting
                     page views and events automatically.
                   </CardDescription>
                 </div>

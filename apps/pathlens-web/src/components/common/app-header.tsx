@@ -22,10 +22,10 @@ export function AppHeader({
       >
         <img
           src="/logo.png"
-          alt="PathLens"
+          alt="Pathlens"
           className="size-7 rounded-md object-contain"
         />
-        PathLens
+        Pathlens
       </Link>
 
       <div className="flex shrink-0 items-center gap-2">

@@ -511,7 +511,7 @@ export const SearchOverAppDialog = ({
         className="flex max-h-[calc(100vh-12rem)] max-w-xl! flex-col gap-0 overflow-hidden p-0"
       >
         <DialogHeader className="sr-only">
-          <DialogTitle>Search PathLens</DialogTitle>
+          <DialogTitle>Search Pathlens</DialogTitle>
           <DialogDescription>
             Search pages, workspaces, and projects.
           </DialogDescription>

@@ -17,11 +17,11 @@ export function MarketingFooter() {
               <span className="bg-muted/40 ring-border size-8 overflow-hidden rounded-lg ring-1">
                 <img
                   src="/logo.png"
-                  alt="PathLens"
+                  alt="Pathlens"
                   className="landing-logo landing-logo-dark size-full object-contain"
                 />
               </span>
-              PathLens
+              Pathlens
             </Link>
             <p className="text-muted-foreground mt-5 max-w-xs text-sm leading-6">
               Calm, complete analytics for teams building what matters.
@@ -130,7 +130,7 @@ export function MarketingFooter() {
 
         <div className="border-border mt-12 flex flex-col items-center justify-between gap-4 border-t pt-6 text-xs sm:flex-row">
           <div className="text-muted-foreground/70 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span>© 2026 PathLens. All rights reserved.</span>
+            <span>© 2026 Pathlens. All rights reserved.</span>
             <span>Made for teams who care about the details.</span>
           </div>
           <div className="flex items-center gap-3">

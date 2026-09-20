@@ -1,8 +1,8 @@
 {
   "name": "@pathlens/tracker",
   "version": "1.0.0",
-  "description": "Lightweight website analytics tracker for PathLens",
-  "author": "PathLens",
+  "description": "Lightweight website analytics tracker for Pathlens",
+  "author": "Pathlens",
   "license": "MIT",
   "private": true,
   "type": "module",

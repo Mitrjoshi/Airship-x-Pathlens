@@ -10,10 +10,10 @@ export const AuthHeader = () => {
       >
         <img
           src="/logo.png"
-          alt="PathLens"
+          alt="Pathlens"
           className="size-7 rounded-md object-contain"
         />
-        PathLens
+        Pathlens
       </Link>
       <ModeToggle />
     </header>

@@ -293,7 +293,7 @@ export function AppSidebar({
         <div className="flow-row flex items-center justify-between">
           <NavUser
             user={{
-              name: user?.name ?? 'PathLens user',
+              name: user?.name ?? 'Pathlens user',
               email: user?.email ?? '',
               avatar: user?.avatar,
             }}

@@ -34,7 +34,7 @@ async function runLocalConsumer(): Promise<void> {
   const browser = await launchBrowser()
 
   try {
-    console.info('PathLens local snapshot SQS consumer started')
+    console.info('Pathlens local snapshot SQS consumer started')
 
     while (true) {
       const result = await sqs.send(

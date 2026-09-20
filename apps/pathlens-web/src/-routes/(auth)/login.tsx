@@ -70,11 +70,11 @@ function RouteComponent() {
             <span className="flex size-8 items-center justify-center overflow-hidden rounded-lg bg-white/10 ring-1 ring-white/20">
               <img
                 src="/logo.png"
-                alt="PathLens"
+                alt="Pathlens"
                 className="landing-logo landing-logo-dark size-full object-contain"
               />
             </span>
-            PathLens
+            Pathlens
           </Link>
 
           <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center py-8">
@@ -86,7 +86,7 @@ function RouteComponent() {
               See the moments that move your product forward.
             </h1>
             <p className="mt-4 max-w-md text-xs leading-5 text-blue-100/65 xl:text-sm">
-              PathLens brings your customer journey into focus, so every team
+              Pathlens brings your customer journey into focus, so every team
               can make a better next decision.
             </p>
 
@@ -208,11 +208,11 @@ function RouteComponent() {
             <span className="bg-background ring-foreground/10 size-7 overflow-hidden rounded-md ring-1">
               <img
                 src="/logo.png"
-                alt="PathLens"
+                alt="Pathlens"
                 className="landing-logo size-full object-contain"
               />
             </span>
-            PathLens
+            Pathlens
           </Link>
           <Link
             to="/"
@@ -358,7 +358,7 @@ function RouteComponent() {
                     Your workspace stays private
                   </p>
                   <p className="text-muted-foreground mt-1 text-xs leading-5">
-                    PathLens protects your analytics data by default.
+                    Pathlens protects your analytics data by default.
                   </p>
                 </div>
                 <CheckIcon className="ml-auto size-4 shrink-0 text-emerald-500" />
@@ -379,7 +379,7 @@ function RouteComponent() {
 
         <footer className="border-border shrink-0 border-t px-5 py-4 sm:px-8 lg:px-10">
           <p className="text-muted-foreground text-center text-xs lg:text-left">
-            © 2026 PathLens · Privacy-first analytics.
+            © 2026 Pathlens · Privacy-first analytics.
           </p>
         </footer>
       </section>
@@ -389,7 +389,7 @@ function RouteComponent() {
         <div className="relative flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-medium tracking-[0.16em] text-cyan-200/70 uppercase">
-              PathLens
+              Pathlens
             </p>
             <p className="mt-2 max-w-xs text-xl font-semibold tracking-tight">
               A clearer view of every customer path.

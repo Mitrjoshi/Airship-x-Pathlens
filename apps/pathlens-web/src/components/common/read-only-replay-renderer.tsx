@@ -146,7 +146,7 @@ export function ReadOnlyReplayRenderer({
         mouseTail: false,
       })
     } catch (error) {
-      console.error('[PathLens] Unable to render read-only replay.', error)
+      console.error('[Pathlens] Unable to render read-only replay.', error)
       replayRoot.replaceChildren()
       return
     }

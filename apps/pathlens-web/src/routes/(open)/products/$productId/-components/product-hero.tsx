@@ -84,7 +84,6 @@ export const ProductHero = ({ productData }: { productData: ProductData }) => {
             <span className="text-sm">{productData.title}</span>
 
             {/* LEFT */}
-            {/* LEFT */}
             <span
               className="connection-node bg-background absolute top-1/2 -left-1 z-20 h-2 w-2 -translate-y-1/2 border"
               style={{ borderColor: productData.color.hex }}
@@ -131,8 +130,8 @@ export const ProductHero = ({ productData }: { productData: ProductData }) => {
         </div>
 
         <TitleReveal
-          title={productData.page.hero.title}
-          description={productData.page.hero.description}
+          title={productData.page.hero?.title}
+          description={productData.page.hero?.description}
           className="z-2 space-y-4"
         />
 
@@ -144,12 +143,12 @@ export const ProductHero = ({ productData }: { productData: ProductData }) => {
               }}
               size="lg"
             >
-              {productData.page.hero.primaryAction}
+              {productData.page.hero?.primaryAction}
             </Button>
           </Link>
 
           <Button size="lg" variant="outline">
-            {productData.page.hero.secondaryAction}
+            {productData.page.hero?.secondaryAction}
           </Button>
         </div>
       </div>

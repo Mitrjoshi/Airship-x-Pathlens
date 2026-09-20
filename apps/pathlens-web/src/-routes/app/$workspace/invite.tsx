@@ -137,7 +137,7 @@ function RouteComponent() {
                 Send an invitation
               </CardTitle>
               <CardDescription>
-                The recipient must already have a PathLens account.
+                The recipient must already have a Pathlens account.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5">
@@ -230,7 +230,7 @@ function RouteComponent() {
             <CardHeader className="border-b px-5 py-5">
               <CardTitle>How it works</CardTitle>
               <CardDescription>
-                Invitations stay inside PathLens.
+                Invitations stay inside Pathlens.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 p-5">
@@ -243,7 +243,7 @@ function RouteComponent() {
                     Send to an existing user
                   </p>
                   <p className="text-muted-foreground mt-1 text-xs leading-5">
-                    Use the email address tied to their PathLens account.
+                    Use the email address tied to their Pathlens account.
                   </p>
                 </div>
               </div>

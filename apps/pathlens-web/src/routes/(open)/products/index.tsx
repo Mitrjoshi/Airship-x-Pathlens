@@ -5,6 +5,7 @@ import { TitleReveal } from './$productId/-components/title-reveal'
 import { productSections } from './-constants/products'
 import { useState } from 'react'
 import { motion } from 'motion/react'
+import { ArrowUpRightIcon } from 'lucide-react'
 
 export const Route = createFileRoute('/(open)/products/')({
   component: RouteComponent,
@@ -21,15 +22,15 @@ function RouteComponent() {
             <TitleReveal
               className="flex flex-col gap-2 text-center"
               title="Pathlens products"
-              description={`Everything you need to build, deploy, and scale applications on Cloudflare's global network.`}
+              description="Everything you need to understand your website, uncover user behavior, and turn real-world activity into better digital experiences."
             />
 
-            <div>
+            <div className="space-y-10">
               <div className="mx-auto flex w-fit items-center rounded-full border p-1">
                 {/* All tab */}
                 <button
                   onClick={() => setActiveTab(-1)}
-                  className="relative cursor-pointer rounded-full px-4 py-2"
+                  className="hover:bg-secondary relative cursor-pointer rounded-full px-4 py-2 duration-150"
                 >
                   {activeTab === -1 && (
                     <motion.div
@@ -60,7 +61,7 @@ function RouteComponent() {
                     <button
                       key={item.title}
                       onClick={() => setActiveTab(index)}
-                      className="relative cursor-pointer rounded-full px-4 py-2"
+                      className="hover:bg-secondary relative cursor-pointer rounded-full px-4 py-2 duration-150"
                     >
                       {isActive && (
                         <motion.div
@@ -86,14 +87,16 @@ function RouteComponent() {
                 })}
               </div>
 
-              <div className="space-y-10 p-10">
+              <div className="space-y-10 px-10">
                 {productSections
                   .filter((_, index) => activeTab === -1 || index === activeTab)
                   .map((item, index) => (
                     <div key={index}>
-                      <p className="text-muted-foreground">{item.title}</p>
+                      <p className="text-muted-foreground px-3 pb-2">
+                        {item.title}
+                      </p>
 
-                      <div className="nut-all mt-4 grid grid-cols-4 divide-y border">
+                      <div className="nut-all grid grid-cols-4 divide-y border">
                         {item.items.map((p, index) => {
                           const isLastColumn = (index + 1) % 4 === 0
                           const isLastRow = index >= item.items.length - 4
@@ -107,7 +110,7 @@ function RouteComponent() {
                                   .toLowerCase(),
                               }}
                               key={index}
-                              className={`group hover:bg-primary-foreground/20 p-6 duration-200 ${
+                              className={`group p-6 duration-200 ${
                                 !isLastColumn ? 'border-r' : ''
                               } ${!isLastRow ? 'border-b' : ''}`}
                             >
@@ -120,6 +123,13 @@ function RouteComponent() {
 
                               <p className="text-muted-foreground text-sm">
                                 {p.description}
+                              </p>
+
+                              <p className="group-hover:text-primary text-muted-foreground mt-8 flex items-center gap-1 text-sm underline-offset-2 duration-200 group-hover:underline">
+                                See Product{' '}
+                                <span className="inline-block">
+                                  <ArrowUpRightIcon size={15} />
+                                </span>
                               </p>
                             </Link>
                           )

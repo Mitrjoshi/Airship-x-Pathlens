@@ -533,7 +533,7 @@ export async function createWorkspaceInvitation(
     if (!recipient) {
       return res.status(404).json({
         success: false,
-        message: "That user does not have a PathLens account yet.",
+        message: "That user does not have a Pathlens account yet.",
       });
     }
 

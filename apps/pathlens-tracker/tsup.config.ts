@@ -8,7 +8,7 @@ export default defineConfig({
 
   format: ["iife"],
 
-  globalName: "PathLens",
+  globalName: "Pathlens",
 
   outDir: "dist",
 

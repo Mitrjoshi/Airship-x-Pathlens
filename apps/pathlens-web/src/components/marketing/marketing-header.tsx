@@ -35,11 +35,11 @@ export function MarketingHeader({ active }: { active?: MarketingNavKey }) {
           <span className="bg-background/80 ring-foreground/10 size-8 overflow-hidden rounded-lg shadow-sm ring-1">
             <img
               src="/logo.png"
-              alt="PathLens"
+              alt="Pathlens"
               className="landing-logo size-full object-contain"
             />
           </span>
-          PathLens
+          Pathlens
         </Link>
 
         <nav className="text-muted-foreground hidden items-center gap-7 text-sm md:flex">
@@ -99,7 +99,7 @@ export function MarketingHeader({ active }: { active?: MarketingNavKey }) {
                         className="landing-logo size-full object-contain"
                       />
                     </span>
-                    PathLens
+                    Pathlens
                   </SheetTitle>
                   <SheetDescription>
                     Product intelligence without the noise.

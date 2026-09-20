@@ -215,7 +215,7 @@ function RouteComponent() {
               <Avatar className="size-16 shrink-0">
                 <AvatarImage
                   src={user?.avatar ?? undefined}
-                  alt={user?.name ?? 'PathLens user'}
+                  alt={user?.name ?? 'Pathlens user'}
                 />
                 <AvatarFallback className="text-lg">
                   {getInitials(user?.name ?? '')}
@@ -525,7 +525,7 @@ function RouteComponent() {
             <CardHeader className="border-b px-5 py-5">
               <CardTitle>Notifications</CardTitle>
               <CardDescription>
-                Workspace invitations and account notifications from PathLens.
+                Workspace invitations and account notifications from Pathlens.
               </CardDescription>
             </CardHeader>
 

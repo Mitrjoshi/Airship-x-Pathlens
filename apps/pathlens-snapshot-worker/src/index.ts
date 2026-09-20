@@ -122,7 +122,7 @@ export async function runWorker(): Promise<void> {
   process.once('SIGINT', requestStop)
   process.once('SIGTERM', requestStop)
 
-  console.info('PathLens snapshot worker started')
+  console.info('Pathlens snapshot worker started')
 
   try {
     while (!stopping) {

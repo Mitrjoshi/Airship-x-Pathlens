@@ -212,7 +212,7 @@ export function SessionReplayPlayer({
         mouseTail: { duration: 400 },
       })
     } catch (error) {
-      console.error('[PathLens] Unable to initialize session replay.', error)
+      console.error('[Pathlens] Unable to initialize session replay.', error)
       window.setTimeout(() => {
         if (!disposed) setReplayErrorKey(replayKey)
       }, 0)

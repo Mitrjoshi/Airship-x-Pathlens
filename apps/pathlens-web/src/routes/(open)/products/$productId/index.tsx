@@ -5,6 +5,9 @@ import { ProductHero } from './-components/product-hero'
 import { HomeLayout } from '../../-components/home-layout'
 import { DotLayout } from '../../-components/dot-layout'
 import { Separator } from '@workspace/ui/components/separator'
+import { FewLinesOfCode } from '../../-components/few-lines-of-code'
+import { HowItWorks } from './-components/how-it-works'
+import { WorkFlow } from './-components/work-flow'
 
 export const Route = createFileRoute('/(open)/products/$productId/')({
   component: RouteComponent,
@@ -26,16 +29,27 @@ function RouteComponent() {
       <Separator className={'border-t-2 border-dashed bg-transparent'} />
 
       <HomeLayout>
+        <DotLayout className="border-x-2 border-dashed">
+          <div className="bg-background mx-auto max-w-[75%] space-y-10 border-x-2 border-dashed p-20">
+            <WorkFlow />
+          </div>
+        </DotLayout>
+      </HomeLayout>
+
+      <Separator className={'border-t-2 border-dashed bg-transparent'} />
+
+      <HomeLayout>
         <DotLayout className="nut-top-left nut-top-right border-x-2 border-dashed">
-          <div className="bg-background relative mx-auto w-[75%] border-x-2 border-dashed p-10">
-            {/* <div className="nut-all grid grid-cols-3 divide-x border">
-              {productData.page.highlights.map((item, index) => (
-                <div key={index} className="space-y-4 p-10">
-                  <p className="">{item.label}</p>
-                  <p className="">{item.value}</p>
-                </div>
-              ))}
-            </div> */}
+          <div className="bg-background mx-auto max-w-[75%] space-y-10 border-x-2 border-dashed p-20">
+            <HowItWorks productData={productData} />
+          </div>
+        </DotLayout>
+      </HomeLayout>
+
+      <HomeLayout>
+        <DotLayout className="border-x-2 border-t-2 border-dashed">
+          <div className="bg-background mx-auto max-w-[75%] border-x-2 border-dashed p-20">
+            <FewLinesOfCode />
           </div>
         </DotLayout>
       </HomeLayout>

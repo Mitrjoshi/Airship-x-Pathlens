@@ -89,7 +89,7 @@ export const PERMISSION_GROUPS = [
       {
         key: 'workspace.members.invite',
         label: 'Invite members',
-        description: 'Send invitations to existing PathLens users.',
+        description: 'Send invitations to existing Pathlens users.',
       },
       {
         key: 'workspace.members.update',

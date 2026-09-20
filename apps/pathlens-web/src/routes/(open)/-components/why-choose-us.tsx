@@ -150,7 +150,7 @@ export const WhyChooseUs = () => {
 
         {/* Border proximity highlight — unchanged */}
         <div
-          className="pointer-events-none absolute inset-0 z-30 opacity-0 transition-opacity duration-300 group-hover/grid:opacity-100"
+          className="pointer-events-none absolute inset-0 z-10 opacity-0 transition-opacity duration-300 group-hover/grid:opacity-100"
           style={{
             background: `
               radial-gradient(
@@ -208,7 +208,7 @@ export const WhyChooseUs = () => {
               Redesigned: a monospace signal readout grid instead of scattered badges.
             */}
             <div
-              className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-200 group-hover/grid:opacity-100"
+              className="pointer-events-none absolute inset-0 z-10 opacity-0 transition-opacity duration-200 group-hover/grid:opacity-100"
               style={{
                 WebkitMaskImage: `
                   radial-gradient(

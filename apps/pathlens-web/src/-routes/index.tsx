@@ -54,7 +54,7 @@ function LandingPage() {
   const testimonials = [
     {
       quote:
-        'PathLens gives our team the context we used to spend hours stitching together.',
+        'Pathlens gives our team the context we used to spend hours stitching together.',
       name: 'Maya Chen',
       role: 'Head of Product, Northstar',
       initials: 'MC',
@@ -85,9 +85,9 @@ function LandingPage() {
         'Add one lightweight script to your site, create a project, and your first signals will start arriving in minutes.',
     },
     {
-      question: 'Is PathLens privacy-friendly?',
+      question: 'Is Pathlens privacy-friendly?',
       answer:
-        'Yes. PathLens focuses on useful product signals while keeping your analytics setup privacy-first by default.',
+        'Yes. Pathlens focuses on useful product signals while keeping your analytics setup privacy-first by default.',
     },
     {
       question: 'What can I track?',
@@ -584,7 +584,7 @@ function LandingPage() {
               Your team sees the same story.
             </h2>
             <p className="text-muted-foreground mt-5 text-sm leading-6 sm:text-base">
-              From the first event to the next product decision, PathLens keeps
+              From the first event to the next product decision, Pathlens keeps
               the signal connected.
             </p>
           </div>
@@ -703,7 +703,7 @@ function LandingPage() {
                 Less guessing. More momentum.
               </h2>
               <p className="text-muted-foreground mt-4 max-w-lg text-sm leading-6">
-                The teams using PathLens do not need more dashboards. They need
+                The teams using Pathlens do not need more dashboards. They need
                 a clearer reason to act.
               </p>
             </div>

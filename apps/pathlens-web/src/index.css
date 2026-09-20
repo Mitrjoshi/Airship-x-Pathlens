@@ -54,7 +54,7 @@
   --popover-foreground: #101719;
 
   /* Brand */
-  --primary: #44d59d;
+  --primary: #41ce8f;
   --primary-foreground: #06291d;
 
   /* Neutral UI */
@@ -73,10 +73,10 @@
   /* Structure */
   --border: #dedfdf;
   --input: #dedfdf;
-  --ring: #44d59d;
+  --ring: #41ce8f;
 
   /* Charts */
-  --chart-1: #44d59d;
+  --chart-1: #41ce8f;
   --chart-2: #5b7c8a;
   --chart-3: #8b6f5a;
   --chart-4: #7a6b8f;
@@ -88,19 +88,14 @@
   --sidebar: #f5f6f6;
   --sidebar-foreground: #101719;
 
-  --sidebar-primary: #44d59d;
+  --sidebar-primary: #41ce8f;
   --sidebar-primary-foreground: #06291d;
 
   --sidebar-accent: #e9eceb;
   --sidebar-accent-foreground: #202526;
 
   --sidebar-border: #dedfdf;
-  --sidebar-ring: #44d59d;
-
-  --nut-size: 8px;
-  --nut-radius: 4px;
-  --nut-color: #888;
-  --nut-offset: 2px;
+  --sidebar-ring: #41ce8f;
 }
 
 .dark {
@@ -114,7 +109,7 @@
   --popover-foreground: #f3f5f4;
 
   /* Brand stays exactly the same */
-  --primary: #44d59d;
+  --primary: #41ce8f;
   --primary-foreground: #06291d;
 
   /* Neutral dark UI */
@@ -133,10 +128,10 @@
   /* Structure */
   --border: #2b302f;
   --input: #343938;
-  --ring: #44d59d;
+  --ring: #41ce8f;
 
   /* Charts */
-  --chart-1: #44d59d;
+  --chart-1: #41ce8f;
   --chart-2: #6f93a0;
   --chart-3: #a17d62;
   --chart-4: #8b79a3;
@@ -146,19 +141,14 @@
   --sidebar: #151918;
   --sidebar-foreground: #f3f5f4;
 
-  --sidebar-primary: #44d59d;
+  --sidebar-primary: #41ce8f;
   --sidebar-primary-foreground: #06291d;
 
   --sidebar-accent: #232827;
   --sidebar-accent-foreground: #f3f5f4;
 
   --sidebar-border: #2a2f2e;
-  --sidebar-ring: #44d59d;
-
-  --nut-size: 8px;
-  --nut-radius: 4px;
-  --nut-color: #888;
-  --nut-offset: 2px;
+  --sidebar-ring: #41ce8f;
 }
 
 @keyframes landing-float {
@@ -252,39 +242,47 @@ html {
   width: 12px;
   height: 12px;
 
-  border: 3px solid color-mix(in srgb, var(--color-foreground) 20%, transparent);
+  border: 3px solid color-mix(in srgb, var(--color-border) 100%, transparent);
   background: var(--background);
 
   clip-path: polygon(
-    25% 0%,
-    75% 0%,
-    100% 25%,
-    100% 75%,
-    75% 100%,
-    25% 100%,
-    0% 75%,
-    0% 25%
+    15% 0%,
+    85% 0%,
+    92% 2%,
+    98% 8%,
+    100% 15%,
+    100% 85%,
+    98% 92%,
+    92% 98%,
+    85% 100%,
+    15% 100%,
+    8% 98%,
+    2% 92%,
+    0% 85%,
+    0% 15%,
+    2% 8%,
+    8% 2%
   );
 }
 
 .nut-top-left::before {
-  top: -8px;
-  left: -8px;
+  top: -7px;
+  left: -7px;
 }
 
 .nut-top-right::after {
-  top: -8px;
-  right: -8px;
+  top: -7px;
+  right: -7px;
 }
 
 .nut-bottom-left::before {
-  bottom: -8px;
-  left: -8px;
+  bottom: -7px;
+  left: -7px;
 }
 
 .nut-bottom-right::after {
-  bottom: -8px;
-  right: -8px;
+  bottom: -7px;
+  right: -7px;
 }
 
 /* =========================================
@@ -292,14 +290,14 @@ html {
    ========================================= */
 
 .nut-all {
-  --nut-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='25,0 75,0 100,25 100,75 75,100 25,100 0,75 0,25'/%3E%3C/svg%3E");
+  --nut-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='8,0 92,0 100,8 100,92 92,100 8,100 0,92 0,8'/%3E%3C/svg%3E");
 }
 
 .nut-all::before,
 .nut-all::after {
   content: '';
   position: absolute;
-  inset: -8px;
+  inset: -6px;
   z-index: 2;
   pointer-events: none;
 
@@ -314,7 +312,7 @@ html {
 
 /* Outer octagon */
 .nut-all::before {
-  background: color-mix(in srgb, var(--color-foreground) 20%, transparent);
+  background: color-mix(in srgb, var(--color-border) 100%, transparent);
 
   -webkit-mask-size: 12px 12px;
   mask-size: 12px 12px;
@@ -605,7 +603,7 @@ html {
   stroke-dasharray: 1000;
   stroke-dashoffset: 1000;
 
-  animation: string-appear 5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: string-appear 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* ============================
@@ -698,5 +696,40 @@ html {
     opacity: 1;
     filter: blur(0);
     transform: translateY(0);
+  }
+}
+
+.pathlens-code {
+  background: transparent;
+}
+
+.pathlens-code pre {
+  margin: 0;
+  background: transparent !important;
+}
+
+.pathlens-code code {
+  font-family: var(--font-mono);
+}
+
+.copy-icon-animate {
+  display: flex;
+  animation: copy-icon-pop 180ms ease-out;
+}
+
+@keyframes copy-icon-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
   }
 }

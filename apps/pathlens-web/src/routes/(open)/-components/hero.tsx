@@ -70,7 +70,7 @@ export const HeroIcons = () => {
           </p>
 
           <p className="max-w-2xl text-center text-black/80">
-            Every click. Every scroll. Every hesitation. PathLens turns real
+            Every click. Every scroll. Every hesitation. Pathlens turns real
             user behavior into a clear picture of what’s working, what isn’t,
             and where people get stuck.
           </p>

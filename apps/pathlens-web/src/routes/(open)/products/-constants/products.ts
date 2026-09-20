@@ -30,7 +30,29 @@ const colors = {
   red: { hex: '#EF4444', hue: 0 },
 }
 
-export type ProductData = (typeof productSections)[number]['items'][number]
+export type ProductSection = (typeof productSections)[number]
+
+type ProductItem = ProductSection['items'][number]
+
+type ProductPage = ProductItem['page']
+
+type AllPageKeys = ProductPage extends infer Page
+  ? Page extends unknown
+    ? keyof Page
+    : never
+  : never
+
+type DynamicProductPage = {
+  [K in AllPageKeys]?: ProductPage extends infer Page
+    ? Page extends Record<K, infer Value>
+      ? Value
+      : never
+    : never
+}
+
+export type ProductData = Omit<ProductItem, 'page'> & {
+  page: DynamicProductPage
+}
 
 export const productSections = [
   {
@@ -55,76 +77,32 @@ export const productSections = [
             visual: 'analytics-dashboard',
           },
 
-          highlights: [
-            {
-              value: 'Visitors',
-              label: 'Understand audience volume',
-            },
-            {
-              value: 'Sessions',
-              label: 'Measure website activity',
-            },
-            {
-              value: 'Conversions',
-              label: 'Track meaningful outcomes',
-            },
-          ],
-
-          sections: [
-            {
-              eyebrow: 'Overview',
-              title: 'Everything important, without digging through reports',
-              description:
-                'Start with a clear overview of your website performance and quickly identify where you should investigate further.',
-              points: [
-                'Visitors and sessions',
-                'Page views',
-                'Average session duration',
-                'Bounce rate',
-                'Conversion rate',
-                'Active visitors',
-                'New versus returning visitors',
-              ],
-              visual: 'metric-dashboard',
-            },
-
-            {
-              eyebrow: 'Traffic trends',
-              title: 'See how your audience changes over time',
-              description:
-                'Compare website activity across time periods and spot meaningful increases or declines.',
-              points: [
-                'Daily visitor trends',
-                'Daily session trends',
-                'Period-over-period comparison',
-                'Date-range filtering',
-                'Device filtering',
-              ],
-              visual: 'trend-chart',
-            },
-
-            {
-              eyebrow: 'Breakdowns',
-              title: 'Understand where your traffic comes from',
-              description:
-                'Break your audience down by the dimensions that explain who is visiting and how they reach you.',
-              points: [
-                'Traffic sources',
-                'Countries',
-                'Devices',
-                'Browsers',
-                'Top pages',
-                'Referrers',
-              ],
-              visual: 'analytics-breakdown',
-            },
-          ],
-
-          cta: {
-            title: 'See your website more clearly',
+          howItWorks: {
+            eyebrow: 'How it works',
+            title: 'Turn website activity into clear insights',
             description:
-              'Connect PathLens and turn everyday website activity into useful insights.',
-            action: 'Start tracking',
+              'Pathlens brings your website data together so you can understand where visitors come from, what they do and what drives conversions.',
+            steps: [
+              {
+                number: '01',
+                title: 'Collect',
+                description:
+                  'Capture visitors, sessions, page views, traffic sources and interactions across your website.',
+              },
+              {
+                number: '02',
+                title: 'Analyze',
+                description:
+                  'Explore engagement, user journeys, devices, pages and other signals to understand how people use your site.',
+              },
+              {
+                number: '03',
+                title: 'Optimize',
+                description:
+                  'Spot drop-offs, identify high-performing pages and use real user behavior to improve your website.',
+              },
+            ],
+            visual: 'analytics-how-it-works',
           },
         },
       },
@@ -147,78 +125,6 @@ export const productSections = [
             secondaryAction: 'View analytics',
             visual: 'visitor-directory',
           },
-
-          highlights: [
-            {
-              value: 'New',
-              label: 'First-time visitors',
-            },
-            {
-              value: 'Returning',
-              label: 'Repeat visitors',
-            },
-            {
-              value: 'Live',
-              label: 'Visitors active right now',
-            },
-          ],
-
-          sections: [
-            {
-              eyebrow: 'Visitor directory',
-              title: 'Turn traffic into individual journeys',
-              description:
-                'Explore anonymous visitor records with the context needed to understand how each person interacted with your website.',
-              points: [
-                'Anonymous visitor reference',
-                'Country or location',
-                'Device',
-                'Browser',
-                'Session count',
-                'Page views',
-                'Total duration',
-                'Last seen activity',
-              ],
-              visual: 'visitor-table',
-            },
-
-            {
-              eyebrow: 'Live visitors',
-              title: 'See who is active right now',
-              description:
-                'Observe current visitor activity during campaigns, launches and important product moments.',
-              points: [
-                'Active visitor status',
-                'Current sessions',
-                'Recently active visitors',
-                'Last-seen information',
-              ],
-              visual: 'live-visitors',
-            },
-
-            {
-              eyebrow: 'Explore',
-              title: 'Find the visitors that matter',
-              description:
-                'Search and filter visitor activity to move quickly from a broad audience to a specific experience.',
-              points: [
-                'Visitor search',
-                'Date filters',
-                'Active visitors',
-                'Inactive visitors',
-                'Pagination',
-                'Clear filters',
-              ],
-              visual: 'visitor-filters',
-            },
-          ],
-
-          cta: {
-            title: 'Go beyond aggregate analytics',
-            description:
-              'Understand visitor behavior while keeping identities anonymous.',
-            action: 'Explore visitors',
-          },
         },
       },
 
@@ -239,80 +145,6 @@ export const productSections = [
             primaryAction: 'Explore events',
             secondaryAction: 'View session replay',
             visual: 'event-stream',
-          },
-
-          highlights: [
-            {
-              value: 'Clicks',
-              label: 'Interaction activity',
-            },
-            {
-              value: 'Forms',
-              label: 'Submission activity',
-            },
-            {
-              value: 'Errors',
-              label: 'Technical signals',
-            },
-          ],
-
-          sections: [
-            {
-              eyebrow: 'Activity feed',
-              title: 'Every important action in one timeline',
-              description:
-                'Follow a chronological stream of interactions and technical events across your website.',
-              points: [
-                'Page views',
-                'Navigation changes',
-                'Clicks',
-                'Form submissions',
-                'Scroll activity',
-                'Custom events',
-                'JavaScript errors',
-                'Session activity',
-              ],
-              visual: 'activity-feed',
-            },
-
-            {
-              eyebrow: 'Event context',
-              title: 'Understand what surrounded every event',
-              description:
-                'Open an event to understand where it happened, who experienced it and what happened around it.',
-              points: [
-                'Page path and title',
-                'Visitor reference',
-                'Session reference',
-                'Country',
-                'Device',
-                'Browser',
-                'Operating system',
-                'Event-specific values',
-              ],
-              visual: 'event-detail',
-            },
-
-            {
-              eyebrow: 'Connected investigation',
-              title: 'Jump from an event directly into the session',
-              description:
-                'When replay is available, PathLens can open the corresponding session at the moment the event occurred.',
-              points: [
-                'Replay availability',
-                'Event-linked playback',
-                'Selected event context',
-                'Exact moment investigation',
-              ],
-              visual: 'event-to-replay',
-            },
-          ],
-
-          cta: {
-            title: 'Understand every meaningful action',
-            description:
-              'Connect events with the visitor experience surrounding them.',
-            action: 'Explore events',
           },
         },
       },
@@ -335,76 +167,6 @@ export const productSections = [
             secondaryAction: 'Explore conversions',
             visual: 'funnel-chart',
           },
-
-          highlights: [
-            {
-              value: 'Entry',
-              label: 'Visitors starting',
-            },
-            {
-              value: 'Steps',
-              label: 'Journey progression',
-            },
-            {
-              value: 'Conversion',
-              label: 'Visitors completing',
-            },
-          ],
-
-          sections: [
-            {
-              eyebrow: 'Build',
-              title: 'Define the journey that matters',
-              description:
-                'Create funnels around real business journeys such as signup, checkout, onboarding or lead submission.',
-              points: [
-                'Named funnels',
-                'Ordered steps',
-                'Page-path targets',
-                'Event targets',
-                'Editable steps',
-                'Reordering',
-              ],
-              visual: 'funnel-builder',
-            },
-
-            {
-              eyebrow: 'Measure',
-              title: 'See conversion at every step',
-              description:
-                'Understand how many visitors reached each stage and exactly where people stopped progressing.',
-              points: [
-                'Visitors entering',
-                'Visitors completing',
-                'Overall conversion rate',
-                'Step-level visitors',
-                'Step-level drop-off',
-                'Previous-period comparison',
-              ],
-              visual: 'funnel-results',
-            },
-
-            {
-              eyebrow: 'Improve',
-              title: 'Find the step worth investigating',
-              description:
-                'Use funnel drop-off as the starting point for deeper investigation through events, replay and heatmaps.',
-              points: [
-                'Drop-off identification',
-                'Journey comparison',
-                'Date-range analysis',
-                'Connected investigation',
-              ],
-              visual: 'funnel-dropoff',
-            },
-          ],
-
-          cta: {
-            title: 'Turn journeys into measurable funnels',
-            description:
-              'See exactly where visitors complete or abandon important flows.',
-            action: 'Create a funnel',
-          },
         },
       },
 
@@ -425,79 +187,6 @@ export const productSections = [
             primaryAction: 'Create a goal',
             secondaryAction: 'Explore conversions',
             visual: 'goal-dashboard',
-          },
-
-          highlights: [
-            {
-              value: 'Events',
-              label: 'Track key actions',
-            },
-            {
-              value: 'Revenue',
-              label: 'Track value',
-            },
-            {
-              value: 'Progress',
-              label: 'Measure completion',
-            },
-          ],
-
-          sections: [
-            {
-              eyebrow: 'Flexible goals',
-              title: 'Track outcomes your way',
-              description:
-                'Create goals around the actions and results that matter most to your website.',
-              points: [
-                'Event goals',
-                'Revenue goals',
-                'Page-view goals',
-                'Button-click goals',
-                'Form-submission goals',
-              ],
-              visual: 'goal-types',
-            },
-
-            {
-              eyebrow: 'Configuration',
-              title: 'Define exactly what success means',
-              description:
-                'Set the target, matching rules and optional deadline needed for each business objective.',
-              points: [
-                'Numeric targets',
-                'Measurement units',
-                'Matching targets',
-                'Page paths',
-                'Event matching',
-                'Deadlines',
-              ],
-              visual: 'goal-builder',
-            },
-
-            {
-              eyebrow: 'Progress',
-              title: 'Know what is on track and what needs attention',
-              description:
-                'Monitor progress toward each target and quickly understand goal status.',
-              points: [
-                'Current value',
-                'Target value',
-                'Completion percentage',
-                'Trend',
-                'Deadline',
-                'On track',
-                'At risk',
-                'Achieved',
-              ],
-              visual: 'goal-progress',
-            },
-          ],
-
-          cta: {
-            title: 'Turn business outcomes into measurable goals',
-            description:
-              'Keep important targets visible alongside the behavior driving them.',
-            action: 'Create a goal',
           },
         },
       },
@@ -524,79 +213,6 @@ export const productSections = [
             primaryAction: 'Explore replay',
             secondaryAction: 'View events',
             visual: 'session-player',
-          },
-
-          highlights: [
-            {
-              value: 'Replay',
-              label: 'Reconstructed sessions',
-            },
-            {
-              value: 'Timeline',
-              label: 'Navigate every event',
-            },
-            {
-              value: 'Live',
-              label: 'Follow active sessions',
-            },
-          ],
-
-          sections: [
-            {
-              eyebrow: 'Replay library',
-              title: 'Find the session you need',
-              description:
-                'Browse recorded visitor sessions with enough context to identify the experiences worth investigating.',
-              points: [
-                'Visitor reference',
-                'Country',
-                'Device',
-                'Pages visited',
-                'Session duration',
-                'Traffic source',
-                'Recording time',
-                'Replay status',
-              ],
-              visual: 'replay-library',
-            },
-
-            {
-              eyebrow: 'Replay player',
-              title: 'Move through every interaction',
-              description:
-                'Use the timeline and event navigation to see what happened and when.',
-              points: [
-                'Play and pause',
-                'Timeline scrubbing',
-                'Previous event',
-                'Next event',
-                'Click-to-seek events',
-                'Selected event details',
-                'Elapsed session time',
-              ],
-              visual: 'replay-player',
-            },
-
-            {
-              eyebrow: 'Privacy',
-              title: 'Understand behavior without exposing sensitive content',
-              description:
-                'Replay privacy controls help prevent sensitive website content from appearing in recorded sessions.',
-              points: [
-                'Masked inputs',
-                'Masked text',
-                'Blocked elements',
-                'Password exclusion',
-              ],
-              visual: 'replay-privacy',
-            },
-          ],
-
-          cta: {
-            title: 'See what visitors experienced',
-            description:
-              'Turn anonymous interactions into understandable sessions.',
-            action: 'Explore session replay',
           },
         },
       },
@@ -730,7 +346,7 @@ export const productSections = [
               eyebrow: 'Interactions',
               title: 'Know exactly what visitors clicked',
               description:
-                'PathLens captures useful context around click activity instead of showing an isolated click count.',
+                'Pathlens captures useful context around click activity instead of showing an isolated click count.',
               points: [
                 'Clicked element',
                 'Visible text',
@@ -915,7 +531,7 @@ export const productSections = [
               eyebrow: 'Timing metrics',
               title: 'Understand how pages load',
               description:
-                'PathLens captures browser navigation timing signals that reveal where page-loading time is being spent.',
+                'Pathlens captures browser navigation timing signals that reveal where page-loading time is being spent.',
               points: [
                 'DNS lookup time',
                 'TCP connection time',
@@ -1112,7 +728,7 @@ export const productSections = [
 
             {
               eyebrow: 'Export',
-              title: 'Take analytics outside PathLens when needed',
+              title: 'Take analytics outside Pathlens when needed',
               description:
                 'Export the current report to CSV while respecting workspace permissions.',
               points: [
@@ -1157,7 +773,7 @@ export const productSections = [
           hero: {
             title: 'Find the changes worth paying attention to',
             description:
-              'PathLens surfaces notable trends, anomalies and opportunities from your project activity.',
+              'Pathlens surfaces notable trends, anomalies and opportunities from your project activity.',
             primaryAction: 'Explore insights',
             secondaryAction: 'View analytics',
             visual: 'ai-insights-feed',
@@ -1183,7 +799,7 @@ export const productSections = [
               eyebrow: 'Automatic insights',
               title: 'Surface signals without searching every dashboard',
               description:
-                'PathLens organizes observations into focused insight categories so teams can quickly identify noteworthy activity.',
+                'Pathlens organizes observations into focused insight categories so teams can quickly identify noteworthy activity.',
               points: [
                 'Trends',
                 'Anomalies',
@@ -1211,7 +827,7 @@ export const productSections = [
 
             {
               eyebrow: 'Feedback',
-              title: 'Tell PathLens which insights are useful',
+              title: 'Tell Pathlens which insights are useful',
               description:
                 'Users can provide positive or negative feedback on generated insights.',
               points: [
@@ -1228,7 +844,7 @@ export const productSections = [
           cta: {
             title: 'Spend less time searching for changes',
             description:
-              'Let PathLens surface important signals from your website activity.',
+              'Let Pathlens surface important signals from your website activity.',
             action: 'Explore AI insights',
           },
         },
@@ -1279,7 +895,7 @@ export const productSections = [
               eyebrow: 'Anonymous visitors',
               title: 'Understand behavior without requiring visitor names',
               description:
-                'PathLens represents visitors through anonymous identifiers while retaining the context required for useful analytics.',
+                'Pathlens represents visitors through anonymous identifiers while retaining the context required for useful analytics.',
               points: [
                 'Anonymous identifiers',
                 'Session context',
@@ -1309,7 +925,7 @@ export const productSections = [
               eyebrow: 'Control',
               title: 'Keep analytics useful without collecting everything',
               description:
-                'PathLens is designed to preserve meaningful behavioral context while limiting unnecessary sensitive information.',
+                'Pathlens is designed to preserve meaningful behavioral context while limiting unnecessary sensitive information.',
               points: [
                 'Privacy-conscious collection',
                 'Replay controls',
@@ -1323,7 +939,7 @@ export const productSections = [
             title: 'Understand behavior with privacy in mind',
             description:
               'Capture useful product context without requiring personally named visitors.',
-            action: 'Explore PathLens',
+            action: 'Explore Pathlens',
           },
         },
       },
@@ -1475,7 +1091,7 @@ export const productSections = [
 
             {
               eyebrow: 'Granular access',
-              title: 'Control access across the PathLens workspace',
+              title: 'Control access across the Pathlens workspace',
               description:
                 'Permissions can cover workspace administration, projects and individual analytics areas.',
               points: [

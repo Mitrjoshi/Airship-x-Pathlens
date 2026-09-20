@@ -171,7 +171,7 @@ function RouteComponent() {
               <CardHeader className="border-b px-5 py-5">
                 <CardTitle>Workspace details</CardTitle>
                 <CardDescription>
-                  Update the name your team sees throughout PathLens.
+                  Update the name your team sees throughout Pathlens.
                 </CardDescription>
               </CardHeader>
 

@@ -75,13 +75,13 @@ async function sendPasswordResetEmail(email: string, token: string) {
     body: JSON.stringify({
       from,
       to: [email],
-      subject: "Reset your PathLens password",
-      text: `Reset your PathLens password here: ${resetUrl.toString()}\n\nThis link expires in 30 minutes and can only be used once.`,
+      subject: "Reset your Pathlens password",
+      text: `Reset your Pathlens password here: ${resetUrl.toString()}\n\nThis link expires in 30 minutes and can only be used once.`,
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.6;color:#172033;max-width:560px">
-          <p style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#64748b">PathLens account recovery</p>
+          <p style="font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#64748b">Pathlens account recovery</p>
           <h1 style="font-size:28px;line-height:1.2;margin:16px 0 8px">Reset your password</h1>
-          <p>Use the button below to choose a new password for your PathLens workspace.</p>
+          <p>Use the button below to choose a new password for your Pathlens workspace.</p>
           <p style="margin:28px 0"><a href="${safeUrl}" style="background:#172033;color:#fff;border-radius:8px;padding:12px 18px;text-decoration:none;display:inline-block">Choose a new password</a></p>
           <p style="font-size:13px;color:#64748b">This link expires in 30 minutes and can only be used once. If you did not request this email, you can safely ignore it.</p>
         </div>

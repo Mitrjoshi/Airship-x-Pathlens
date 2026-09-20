@@ -19,8 +19,8 @@ import { solutionSections } from '../products/-constants/solutions'
 
 export const Header = () => {
   return (
-    <div className="dotted-background sticky top-0 z-10 border-b-2 border-dashed">
-      <nav className="bg-background z-10 mx-auto w-full max-w-[90vw] border-x-2 border-dashed">
+    <div className="dotted-background sticky top-0 z-12 border-b-2 border-dashed">
+      <nav className="bg-background z-12 mx-auto w-full max-w-[90vw] border-x-2 border-dashed">
         <div className="mx-auto flex max-w-[75%] items-center justify-between border-x-2 border-dashed px-5 py-2">
           <Link to="/" className="flex items-center">
             <img
@@ -32,7 +32,7 @@ export const Header = () => {
             <p className="text-2xl font-bold">Pathlens</p>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2">
             <NavigationMenu align="center">
               <NavigationMenuList>
                 <NavigationMenuItem value="products">

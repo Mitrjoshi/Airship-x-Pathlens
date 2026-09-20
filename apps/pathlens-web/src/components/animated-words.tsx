@@ -5,12 +5,14 @@ type AnimatedWordsProps = {
   words: string[]
   interval?: number
   className?: string
+  extraWidth?: number
 }
 
 export const AnimatedWords = ({
   words,
   interval = 4000,
   className = 'text-primary',
+  extraWidth = 16,
 }: AnimatedWordsProps) => {
   const [index, setIndex] = useState(0)
   const [width, setWidth] = useState<number>()
@@ -26,7 +28,7 @@ export const AnimatedWords = ({
 
   useLayoutEffect(() => {
     if (measureRef.current) {
-      setWidth(measureRef.current.offsetWidth + 16)
+      setWidth(measureRef.current.offsetWidth + extraWidth)
     }
   }, [index])
 

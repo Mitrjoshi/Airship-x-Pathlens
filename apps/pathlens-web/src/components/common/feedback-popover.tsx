@@ -162,9 +162,9 @@ export const FeedbackPopover = ({
 
               <p className="text-muted-foreground mt-1 text-xs">
                 {submitted
-                  ? 'Your feedback helps us make PathLens better.'
+                  ? 'Your feedback helps us make Pathlens better.'
                   : (selectedOption?.description ??
-                    'Help us make PathLens better.')}
+                    'Help us make Pathlens better.')}
               </p>
             </div>
           </PopoverHeader>
@@ -272,7 +272,7 @@ export const FeedbackPopover = ({
         {!category && !submitted && (
           <div className="border-t px-4 py-2.5">
             <p className="text-muted-foreground text-[10px]">
-              Your feedback helps shape PathLens.
+              Your feedback helps shape Pathlens.
             </p>
           </div>
         )}
