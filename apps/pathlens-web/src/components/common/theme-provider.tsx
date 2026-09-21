@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 type Theme = 'dark' | 'light' | 'system'
+type ResolvedTheme = 'dark' | 'light'
 
 type ThemeProviderProps = {
   children: React.ReactNode
@@ -10,11 +11,13 @@ type ThemeProviderProps = {
 
 type ThemeProviderState = {
   theme: Theme
+  resolvedTheme: ResolvedTheme
   setTheme: (theme: Theme) => void
 }
 
 const initialState: ThemeProviderState = {
   theme: 'system',
+  resolvedTheme: 'light',
   setTheme: () => null,
 }
 
@@ -30,26 +33,38 @@ export function ThemeProvider({
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   )
 
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light')
+
   useEffect(() => {
     const root = window.document.documentElement
 
-    root.classList.remove('light', 'dark')
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light'
+    const applyTheme = () => {
+      root.classList.remove('light', 'dark')
 
-      root.classList.add(systemTheme)
-      return
+      const currentTheme: ResolvedTheme =
+        theme === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : theme
+
+      root.classList.add(currentTheme)
+      setResolvedTheme(currentTheme)
     }
 
-    root.classList.add(theme)
+    applyTheme()
+
+    if (theme === 'system') {
+      mediaQuery.addEventListener('change', applyTheme)
+
+      return () => {
+        mediaQuery.removeEventListener('change', applyTheme)
+      }
+    }
   }, [theme])
 
-  const value = {
+  const value: ThemeProviderState = {
     theme,
+    resolvedTheme,
+
     setTheme: (theme: Theme) => {
       localStorage.setItem(storageKey, theme)
       setTheme(theme)
@@ -66,8 +81,9 @@ export function ThemeProvider({
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext)
 
-  if (context === undefined)
+  if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider')
+  }
 
   return context
 }

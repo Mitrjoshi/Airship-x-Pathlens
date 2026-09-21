@@ -22,7 +22,7 @@ export const HowItWorks = ({ productData }: { productData: ProductData }) => {
               <span className="bg-foreground/50 absolute top-12 left-6 h-[calc(100%+2rem)] w-px" />
             )}
 
-            <p className="bg-background border-foreground/50 relative z-10 flex size-12 shrink-0 items-center justify-center rounded-full border">
+            <p className="bg-background border-foreground/50 relative z-10 flex size-12 shrink-0 items-center justify-center rounded-full border duration-100 hover:scale-110">
               <span className="bg-foreground/50 h-2 w-2 rounded-full" />
             </p>
 

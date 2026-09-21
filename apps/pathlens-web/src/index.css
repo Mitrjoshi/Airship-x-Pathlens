@@ -44,111 +44,145 @@
 }
 
 :root {
-  --background: #fafafa;
-  --foreground: #101719;
+  /* Base */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
 
+  /* Surfaces */
   --card: #ffffff;
-  --card-foreground: #101719;
+  --card-foreground: #0a0a0a;
 
   --popover: #ffffff;
-  --popover-foreground: #101719;
+  --popover-foreground: #0a0a0a;
 
   /* Brand */
   --primary: #41ce8f;
-  --primary-foreground: #06291d;
+  --primary-foreground: #f2fcf7;
 
   /* Neutral UI */
-  --secondary: #f3f4f4;
-  --secondary-foreground: #252a2b;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
 
-  --muted: #f1f2f2;
-  --muted-foreground: #697174;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
 
-  --accent: #e9eceb;
-  --accent-foreground: #202526;
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
 
   /* Status */
-  --destructive: #dc4545;
+  --destructive: #dc2626;
 
   /* Structure */
-  --border: #dedfdf;
-  --input: #dedfdf;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
   --ring: #41ce8f;
 
   /* Charts */
   --chart-1: #41ce8f;
-  --chart-2: #5b7c8a;
-  --chart-3: #8b6f5a;
-  --chart-4: #7a6b8f;
-  --chart-5: #53656b;
+  --chart-2: #525252;
+  --chart-3: #737373;
+  --chart-4: #a3a3a3;
+  --chart-5: #d4d4d4;
 
   --radius: 0.625rem;
 
   /* Sidebar */
-  --sidebar: #f5f6f6;
-  --sidebar-foreground: #101719;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0a0a0a;
 
   --sidebar-primary: #41ce8f;
-  --sidebar-primary-foreground: #06291d;
+  --sidebar-primary-foreground: #052e1e;
 
-  --sidebar-accent: #e9eceb;
-  --sidebar-accent-foreground: #202526;
+  --sidebar-accent: #f5f5f5;
+  --sidebar-accent-foreground: #171717;
 
-  --sidebar-border: #dedfdf;
+  --sidebar-border: #e5e5e5;
   --sidebar-ring: #41ce8f;
 }
 
 .dark {
-  --background: #121212;
-  --foreground: #f3f5f4;
+  /* Base */
+  --background: #0a0a0a;
+  --foreground: #fafafa;
 
-  --card: #171b1a;
-  --card-foreground: #f3f5f4;
+  /* Surfaces */
+  --card: #171717;
+  --card-foreground: #fafafa;
 
-  --popover: #191d1c;
-  --popover-foreground: #f3f5f4;
+  --popover: #171717;
+  --popover-foreground: #fafafa;
 
-  /* Brand stays exactly the same */
+  /* Brand */
   --primary: #41ce8f;
-  --primary-foreground: #06291d;
+  --primary-foreground: #052e1e;
 
-  /* Neutral dark UI */
-  --secondary: #202424;
-  --secondary-foreground: #eeeeee;
+  /* Neutral UI */
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
 
-  --muted: #1b1f1e;
-  --muted-foreground: #969d9b;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
 
-  --accent: #272c2b;
-  --accent-foreground: #f3f5f4;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
 
   /* Status */
-  --destructive: #ef5350;
+  --destructive: #ef4444;
 
   /* Structure */
-  --border: #2b302f;
-  --input: #343938;
+  --border: #262626;
+  --input: #262626;
   --ring: #41ce8f;
 
   /* Charts */
   --chart-1: #41ce8f;
-  --chart-2: #6f93a0;
-  --chart-3: #a17d62;
-  --chart-4: #8b79a3;
-  --chart-5: #64777b;
+  --chart-2: #d4d4d4;
+  --chart-3: #a3a3a3;
+  --chart-4: #737373;
+  --chart-5: #525252;
 
   /* Sidebar */
-  --sidebar: #151918;
-  --sidebar-foreground: #f3f5f4;
+  --sidebar: #171717;
+  --sidebar-foreground: #fafafa;
 
   --sidebar-primary: #41ce8f;
-  --sidebar-primary-foreground: #06291d;
+  --sidebar-primary-foreground: #052e1e;
 
-  --sidebar-accent: #232827;
-  --sidebar-accent-foreground: #f3f5f4;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #fafafa;
 
-  --sidebar-border: #2a2f2e;
+  --sidebar-border: #262626;
   --sidebar-ring: #41ce8f;
+}
+
+/* Scrollbar */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: var(--muted-foreground) var(--muted);
+}
+
+/* Chrome, Edge, Safari */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--muted);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--muted);
 }
 
 @keyframes landing-float {

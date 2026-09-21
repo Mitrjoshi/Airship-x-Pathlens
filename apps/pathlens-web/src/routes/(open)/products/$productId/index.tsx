@@ -7,7 +7,7 @@ import { DotLayout } from '../../-components/dot-layout'
 import { Separator } from '@workspace/ui/components/separator'
 import { FewLinesOfCode } from '../../-components/few-lines-of-code'
 import { HowItWorks } from './-components/how-it-works'
-import { WorkFlow } from './-components/work-flow'
+import { WorkFlow, type WorkflowNodeItem } from './-components/work-flow'
 
 export const Route = createFileRoute('/(open)/products/$productId/')({
   component: RouteComponent,
@@ -30,8 +30,13 @@ function RouteComponent() {
 
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
-          <div className="bg-background mx-auto max-w-[75%] space-y-10 border-x-2 border-dashed p-20">
-            <WorkFlow />
+          <div className="bg-background mx-auto max-w-[75%] space-y-10 border-x-2 border-dashed pt-20">
+            <WorkFlow
+              nodes={productData.page.workflow?.nodes as WorkflowNodeItem[]}
+              connections={productData.page.workflow?.connections}
+              title={productData.page.workflow?.title}
+              description={productData.page.workflow?.description}
+            />
           </div>
         </DotLayout>
       </HomeLayout>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { codeToHtml } from 'shiki'
 import { motion } from 'motion/react'
 import { AnimatedWords } from '@/components/animated-words'
+import { useTheme } from '@/components/common/theme-provider'
 
 const TRACKER_SCRIPT_URL = import.meta.env.VITE_TRACKER_SCRIPT_URL
 
@@ -13,7 +14,7 @@ const integrations = [
     language: 'html',
     code: `<script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="your-project-id"
+  data-project-id="pk_********
   defer
 ></script>`,
   },
@@ -28,7 +29,7 @@ useEffect(() => {
   const script = document.createElement('script')
 
   script.src = '${TRACKER_SCRIPT_URL}'
-  script.dataset.projectId = 'your-project-id'
+  script.dataset.projectId = 'pk_********
   script.defer = true
 
   document.head.appendChild(script)
@@ -47,7 +48,7 @@ useEffect(() => {
 
 <Script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="your-project-id"
+  data-project-id="pk_********
   strategy="afterInteractive"
 />`,
   },
@@ -63,7 +64,7 @@ onMounted(() => {
   const script = document.createElement('script')
 
   script.src = '${TRACKER_SCRIPT_URL}'
-  script.dataset.projectId = 'your-project-id'
+  script.dataset.projectId = 'pk_********
   script.defer = true
 
   document.head.appendChild(script)
@@ -81,7 +82,7 @@ onMounted(() => {
       script: [
         {
           src: '${TRACKER_SCRIPT_URL}',
-          'data-project-id': 'your-project-id',
+          'data-project-id': 'pk_********
           defer: true,
         },
       ],
@@ -96,7 +97,7 @@ onMounted(() => {
     language: 'html',
     code: `<script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="your-project-id"
+  data-project-id="pk_********
   defer
 ></script>`,
   },
@@ -107,7 +108,7 @@ onMounted(() => {
     language: 'html',
     code: `<script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="your-project-id"
+  data-project-id="pk_********
   defer
 ></script>`,
   },
@@ -118,20 +119,21 @@ onMounted(() => {
     language: 'astro',
     code: `<script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="your-project-id"
+  data-project-id="pk_********
 ></script>`,
   },
 ]
 
 const CodeBlock = ({ code, language }: { code: string; language: string }) => {
   const [html, setHtml] = useState('')
+  const { resolvedTheme } = useTheme()
 
   useEffect(() => {
     let mounted = true
 
     codeToHtml(code, {
       lang: language,
-      theme: 'github-dark',
+      theme: resolvedTheme === 'light' ? 'github-light' : 'github-dark',
     }).then((result) => {
       if (mounted) {
         setHtml(result)
@@ -141,7 +143,7 @@ const CodeBlock = ({ code, language }: { code: string; language: string }) => {
     return () => {
       mounted = false
     }
-  }, [code, language])
+  }, [code, language, resolvedTheme])
 
   if (!html) {
     return (
@@ -195,7 +197,7 @@ export const FewLinesOfCode = () => {
       </div>
 
       <div className="space-y-8">
-        <div className="mx-auto flex w-fit items-center justify-center gap-1 rounded-full border p-1">
+        <div className="mx-auto flex w-fit items-center justify-center rounded-full border p-1">
           {integrations.map((item) => {
             const isActive = activeIntegration === item.id
 
@@ -231,10 +233,10 @@ export const FewLinesOfCode = () => {
         </div>
 
         <div className="nut-all mx-auto max-w-2xl border-2 border-dashed">
-          <div className="bg-muted/70 nut-bottom-left nut-bottom-right flex items-center gap-1 border-b-2 border-dashed px-4 py-3">
-            <span className="size-3 rounded-full border-2 bg-red-400" />
-            <span className="size-3 rounded-full border-2 bg-yellow-400" />
-            <span className="size-3 rounded-full border-2 bg-green-400" />
+          <div className="bg-input/20 nut-bottom-left nut-bottom-right flex items-center gap-1 border-b-2 border-dashed px-4 py-3">
+            <span className="size-3 rounded-full bg-red-400" />
+            <span className="size-3 rounded-full bg-yellow-400" />
+            <span className="size-3 rounded-full bg-green-400" />
 
             <span className="text-muted-foreground ml-2 text-xs">
               {integration.filename}

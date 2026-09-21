@@ -12,10 +12,10 @@ import type { FeatureCollection, Geometry } from 'geojson'
 import type { GeometryCollection, Topology } from 'topojson-specification'
 import worldTopology from 'world-atlas/countries-110m.json'
 
-const VIEWBOX_WIDTH = 900
-const VIEWBOX_HEIGHT = 450
+const VIEWBOX_WIDTH = 1000
+const VIEWBOX_HEIGHT = 500
 
-const GLOBE_CENTER: [number, number] = [VIEWBOX_WIDTH / 2, VIEWBOX_HEIGHT / 1.4]
+const GLOBE_CENTER: [number, number] = [VIEWBOX_WIDTH / 2, VIEWBOX_HEIGHT / 1.5]
 
 const GLOBE_RADIUS = 290
 const GLOBE_TILT = -15
@@ -1097,7 +1097,7 @@ export const RegionGlobe = () => {
     >
       <canvas
         ref={canvasRef}
-        className="absolute top-0 left-0 w-full -translate-y-[4%] touch-pan-y"
+        className="absolute top-0 left-0 w-full translate-y-[-4%] touch-pan-y"
         role="img"
         aria-label="Interactive globe showing worldwide Pathlens activity"
         onPointerDown={handlePointerDown}
