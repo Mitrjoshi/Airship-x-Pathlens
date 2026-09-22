@@ -14,7 +14,7 @@ import {
 import { Separator } from '@workspace/ui/components/separator'
 
 import { productSections } from '../products/-constants/products'
-import { solutionSections } from '../products/-constants/solutions'
+import { solutionSections } from '../solutions/-constants/solutions'
 
 export const Header = () => {
   return (
@@ -192,7 +192,11 @@ export function Solutions() {
 
           <div className="flex flex-col space-y-2">
             {section.items.map((item) => {
-              const solutionId = item.title.replaceAll(' ', '-').toLowerCase()
+              const solutionId = item.title
+                .toLowerCase()
+                .replace(/&/g, 'and')
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
 
               return (
                 <NavigationMenuLink

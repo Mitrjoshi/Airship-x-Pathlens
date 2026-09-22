@@ -3,9 +3,9 @@ import { HomeLayout } from '../-components/home-layout'
 import { DotLayout } from '../-components/dot-layout'
 import { TitleReveal } from '../products/$productId/-components/title-reveal'
 import { useState } from 'react'
-import { solutionSections } from '../products/-constants/solutions'
 import { motion } from 'motion/react'
 import { ArrowUpRightIcon } from 'lucide-react'
+import { solutionSections } from './-constants/solutions'
 
 export const Route = createFileRoute('/(open)/solutions/')({
   component: RouteComponent,
@@ -106,8 +106,10 @@ function RouteComponent() {
                               to="/solutions/$solutionId"
                               params={{
                                 solutionId: p.title
-                                  .replace(' ', '-')
-                                  .toLowerCase(),
+                                  .toLowerCase()
+                                  .replace(/&/g, 'and')
+                                  .replace(/[^a-z0-9]+/g, '-')
+                                  .replace(/^-+|-+$/g, ''),
                               }}
                               key={index}
                               className={`group p-6 duration-200 ${

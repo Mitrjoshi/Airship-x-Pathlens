@@ -1,9 +1,9 @@
 import { Button } from '@workspace/ui/components/button'
 import type { LucideIcon } from 'lucide-react'
-import { type ProductData } from '../../-constants/products'
 import { Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { TitleReveal } from './title-reveal'
+import type { SolutionData } from '../../-constants/solutions'
+import { TitleReveal } from '@/routes/(open)/products/$productId/-components/title-reveal'
 
 const createWavePath = (direction: 'left' | 'right', index: number) => {
   // Much wider vertical spread at the outer edge
@@ -37,30 +37,34 @@ const createWavePath = (direction: 'left' | 'right', index: number) => {
   `
 }
 
-export const ProductHero = ({ productData }: { productData: ProductData }) => {
-  const ProductIcon = productData.icon as LucideIcon
+export const SolutionHero = ({
+  solutionData,
+}: {
+  solutionData: SolutionData
+}) => {
+  const ProductIcon = solutionData.icon as LucideIcon
 
   const leftPaths = useMemo(
     () => Array.from({ length: 9 }, (_, i) => createWavePath('left', i)),
-    [productData.title]
+    [solutionData.title]
   )
 
   const rightPaths = useMemo(
     () => Array.from({ length: 9 }, (_, i) => createWavePath('right', i)),
-    [productData.title]
+    [solutionData.title]
   )
 
   return (
     <section
       style={
         {
-          '--product-color': productData.color.hex,
+          '--product-color': solutionData.color.hex,
         } as React.CSSProperties
       }
       className="bg-background flashlight-bottom-low relative flex min-h-[calc(100dvh-30vh)] items-center justify-center overflow-hidden px-6 py-20"
     >
       <div
-        key={productData.title}
+        key={solutionData.title}
         className="dotted-background center-blur-reveal pointer-events-none absolute inset-0"
         style={{
           maskImage:
@@ -74,22 +78,22 @@ export const ProductHero = ({ productData }: { productData: ProductData }) => {
         <div className="relative flex w-full max-w-4xl flex-col items-center text-center">
           <div
             style={{
-              borderColor: productData.color.hex,
-              backgroundColor: `${productData.color.hex}25`,
-              color: productData.color.hex,
+              borderColor: solutionData.color.hex,
+              backgroundColor: `${solutionData.color.hex}25`,
+              color: solutionData.color.hex,
             }}
             className="bg-background/30 relative mb-8 flex w-fit items-center gap-2 rounded-md border-[1.5px] border-dashed px-4 py-2 font-medium backdrop-blur-2xl"
           >
             <ProductIcon size={16} />
-            <span className="text-sm">{productData.title}</span>
+            <span className="text-sm">{solutionData.title}</span>
 
             {/* LEFT */}
             <span
               className="connection-node bg-background absolute top-1/2 -left-1 z-20 h-2 w-2 -translate-y-1/2 border"
-              style={{ borderColor: productData.color.hex }}
+              style={{ borderColor: solutionData.color.hex }}
             >
               <svg
-                key={productData.title}
+                key={solutionData.title}
                 className="connection-string connection-string-left"
                 viewBox="0 0 600 100"
                 preserveAspectRatio="none"
@@ -108,10 +112,10 @@ export const ProductHero = ({ productData }: { productData: ProductData }) => {
             {/* RIGHT */}
             <span
               className="connection-node bg-background absolute top-1/2 -right-1 z-20 h-2 w-2 -translate-y-1/2 border"
-              style={{ borderColor: productData.color.hex }}
+              style={{ borderColor: solutionData.color.hex }}
             >
               <svg
-                key={productData.title}
+                key={solutionData.title}
                 className="connection-string connection-string-right"
                 viewBox="0 0 600 100"
                 preserveAspectRatio="none"
@@ -130,8 +134,8 @@ export const ProductHero = ({ productData }: { productData: ProductData }) => {
         </div>
 
         <TitleReveal
-          title={productData.page.hero?.title}
-          description={productData.page.hero?.description}
+          title={solutionData.page.hero?.title}
+          description={solutionData.page.hero?.description}
           className="z-2 space-y-4"
         />
 
@@ -139,17 +143,17 @@ export const ProductHero = ({ productData }: { productData: ProductData }) => {
           <Link to="/login">
             <Button
               style={{
-                backgroundColor: `${productData.color.hex}`,
+                backgroundColor: `${solutionData.color.hex}`,
               }}
               size="lg"
               className={'text-white'}
             >
-              {productData.page.hero?.primaryAction}
+              {solutionData.page.hero?.primaryAction}
             </Button>
           </Link>
 
           <Button size="lg" variant="outline">
-            {productData.page.hero?.secondaryAction}
+            {solutionData.page.hero?.secondaryAction}
           </Button>
         </div>
       </div>
