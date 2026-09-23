@@ -41,11 +41,9 @@ export const Hero = () => {
             </p>
 
             <div className="flex items-center gap-2">
-              <Button className="h-10 w-32" size="lg">
-                Get started
-              </Button>
+              <Button className="w-32">Get started</Button>
 
-              <Button className="h-10 w-32" size="lg" variant="outline">
+              <Button className="w-32" variant="outline">
                 Request a demo
               </Button>
             </div>
@@ -60,7 +58,7 @@ export const Hero = () => {
 
 export const HeroIcons = () => {
   return (
-    <div className="bg-primary line-grid-uni rounded-xl">
+    <div className="bg-primary dots-grid-uni rounded-xl">
       <div className="flashlight-bottom @container relative flex w-full flex-col items-center justify-center space-y-6 overflow-hidden py-32">
         <IconAnimations />
         <div className="relative z-10 flex max-w-3xl flex-col items-center space-y-6">

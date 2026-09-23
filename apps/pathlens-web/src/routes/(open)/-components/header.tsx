@@ -15,11 +15,12 @@ import { Separator } from '@workspace/ui/components/separator'
 
 import { productSections } from '../products/-constants/products'
 import { solutionSections } from '../solutions/-constants/solutions'
+import { Link } from '@tanstack/react-router'
 
 export const Header = () => {
   return (
     <div className="dotted-background sticky top-0 z-12 border-b-2 border-dashed">
-      <nav className="bg-background z-12 mx-auto w-full max-w-[90vw] border-x-2 border-dashed">
+      <nav className="bg-background z-12 mx-auto w-full max-w-[100rem] border-x-2 border-dashed">
         <div className="mx-auto flex max-w-[75%] items-center justify-between border-x-2 border-dashed px-5 py-2">
           <a href="/" className="flex items-center">
             <img
@@ -82,13 +83,13 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <a href="/login">
+            <Link to="/login">
               <Button variant="outline">Log in</Button>
-            </a>
+            </Link>
 
-            <a href="/login">
-              <Button>Start Tracking</Button>
-            </a>
+            <Link to="/sign-up">
+              <Button>Sign up</Button>
+            </Link>
 
             <Separator orientation="vertical" />
 

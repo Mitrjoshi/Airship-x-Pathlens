@@ -1,3 +1,4 @@
+import { motion } from 'motion/react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
@@ -15,11 +16,11 @@ export const Route = createFileRoute('/(auth)/login')({
 
 function RouteComponent() {
   return (
-    <div className="flex h-screen items-center justify-center">
+    <div className="grid h-screen grid-cols-[0.5fr_1fr] items-center justify-center divide-x">
       <div className="relative flex h-screen flex-1 items-center justify-center">
         <div className="absolute top-4 left-0 flex w-full items-center justify-between px-4">
           <Link to="/">
-            <Button variant="ghost" size="lg">
+            <Button variant="ghost">
               <ArrowLeft />
               Home
             </Button>
@@ -31,32 +32,10 @@ function RouteComponent() {
             <p className="text-muted-foreground">Sign in to Continue</p>
           </div>
 
-          {/* <div className="space-y-2">
-            <div className="grid w-full grid-cols-3 gap-2">
-              <Button size="lg" variant="outline">
-                Google
-              </Button>
-              <Button size="lg" variant="outline">
-                Apple
-              </Button>
-              <Button size="lg" variant="outline">
-                Github
-              </Button>
-            </div>
-
-            <Button size="lg" variant="outline" className={'w-full'}>
-              Continue with SSO
-            </Button>
-          </div>
-
-          <Marker variant="separator">
-            <MarkerContent>or</MarkerContent>
-          </Marker> */}
-
           <div className="space-y-2">
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input placeholder="you@example.com" className="h-10" />
+              <Input placeholder="you@example.com" className="" />
             </div>
 
             <div className="space-y-2">
@@ -66,9 +45,9 @@ function RouteComponent() {
                   Forgot Password?
                 </Button>
               </div>
-              <InputGroup className="h-10 overflow-hidden">
+              <InputGroup className="overflow-hidden">
                 <InputGroupInput
-                  className="h-10 overflow-hidden"
+                  className="overflow-hidden"
                   placeholder="000000"
                   autoComplete="current-password"
                   type="password"
@@ -79,16 +58,14 @@ function RouteComponent() {
               </InputGroup>
             </div>
           </div>
-          <Button className={'h-10 w-full'} size="lg">
-            Sign in
-          </Button>
+          <Button className={'w-full'}>Sign in</Button>
 
           <div>
             <p className="text-muted-foreground text-center text-sm">
               Don't have an Account?{' '}
               <Button
                 className={'h-6 p-0 underline'}
-                size="lg"
+
                 variant={'link'}
               >
                 Sign Up
@@ -103,7 +80,70 @@ function RouteComponent() {
         </div>
       </div>
 
-      <div className="bg-primary relative h-screen flex-1"></div>
+      <div className="relative flex h-screen flex-1 items-center justify-center overflow-hidden">
+        {/* subtle background grid */}
+        <div className="line-grid-uni pointer-events-none absolute inset-0 opacity-40" />
+
+        <div className="relative z-10 max-w-4xl px-6 text-center">
+          {/* quote mark */}
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-primary/20 absolute -top-20 left-1/2 -translate-x-1/2 text-[180px] leading-none select-none"
+          >
+            “
+          </motion.span>
+
+          {/* eyebrow */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-muted-foreground mb-5 flex items-center justify-center gap-2 text-xs"
+          >
+            Loved by people who care about clarity
+          </motion.div>
+
+          {/* quote */}
+          <motion.p
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{
+              delay: 0.18,
+              duration: 0.6,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="text-foreground text-4xl font-medium tracking-tight md:text-6xl md:leading-[1.08]"
+          >
+            Pathlens makes website analytics feel
+            <span className="text-muted-foreground"> ridiculously simple.</span>
+          </motion.p>
+
+          {/* author */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="mt-8 flex items-center justify-center gap-2"
+          >
+            <div className="bg-primary/10 flex size-10 items-center justify-center rounded-full">
+              <img
+                src="/logo.png"
+                alt="Pathlens"
+                className="size-7 object-contain dark:invert"
+              />
+            </div>
+
+            <div className="text-left">
+              <p className="text-foreground text-sm font-medium">@Pathlens</p>
+            </div>
+          </motion.div>
+        </div>
+      </div>
     </div>
   )
 }

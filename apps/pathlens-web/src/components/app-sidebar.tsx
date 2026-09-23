@@ -367,10 +367,7 @@ export function WorkspaceSwitcher({
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <SidebarMenuButton
-                size="lg"
-                className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
-              />
+              <SidebarMenuButton className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground" />
             }
           >
             <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
@@ -590,7 +587,6 @@ export function ProjectSwitcher({
         render={
           <Button
             variant="ghost"
-            size="lg"
             className="hover:bg-muted data-open:bg-muted h-10 w-64 min-w-0 px-2"
           />
         }

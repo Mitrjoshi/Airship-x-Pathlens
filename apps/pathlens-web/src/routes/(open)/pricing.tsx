@@ -158,12 +158,8 @@ export const PricingCard = ({
       <p className="text-muted-foreground">{description}</p>
 
       <Link to="/login" className="block">
-        <Button
-          variant={!best ? 'outline' : 'default'}
-          className="w-full"
-          size="lg"
-        >
-          Try Now
+        <Button variant={!best ? 'outline' : 'default'} className="w-full">
+          Get Started
         </Button>
       </Link>
 

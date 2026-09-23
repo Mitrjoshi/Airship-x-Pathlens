@@ -54,6 +54,94 @@ const faqs = [
     answer:
       'Your usage is limited according to your plan. You can upgrade to a higher plan when you need more traffic, recordings, projects, or advanced analytics.',
   },
+
+  // More relatable FAQs
+
+  {
+    question: 'Why are visitors leaving my website?',
+    answer:
+      'Pathlens helps you identify where visitors lose interest by showing drop-offs, navigation patterns, session recordings, and engagement across important pages.',
+  },
+  {
+    question: 'Can I see what users actually do on my website?',
+    answer:
+      'Yes. Session recordings and interaction data help you understand where users click, how far they scroll, which pages they visit, and where they may get stuck.',
+  },
+  {
+    question: 'Can Pathlens help me improve conversions?',
+    answer:
+      'Yes. Funnels, goals, events, and behavioral insights can help you discover where users drop off and which parts of your website may need improvement.',
+  },
+  {
+    question: 'Can I see which pages are performing best?',
+    answer:
+      'Yes. Pathlens shows page views, visits, engagement, user activity, and other metrics so you can understand which pages attract and retain the most attention.',
+  },
+  {
+    question: 'Can I find out where my visitors are coming from?',
+    answer:
+      'Yes. Pathlens can help you understand traffic sources and referral information so you can see which channels are bringing visitors to your website.',
+  },
+  {
+    question: 'Can I track button clicks and important actions?',
+    answer:
+      'Yes. You can track interactions such as button clicks, links, form actions, sign-ups, purchases, and other events that matter to your website.',
+  },
+  {
+    question: 'Can I track sign-ups or purchases?',
+    answer:
+      'Yes. You can define important actions as goals or events and measure how many visitors complete them.',
+  },
+  {
+    question: 'How do I know where users are dropping off?',
+    answer:
+      'Funnels help you visualize each step of a user journey and identify the exact stages where visitors are leaving before completing an action.',
+  },
+  {
+    question: 'Can I understand which parts of a page get the most attention?',
+    answer:
+      'Yes. Heatmaps help you understand where users click, scroll, and interact most frequently on your pages.',
+  },
+  {
+    question: 'Can I use Pathlens on an existing website?',
+    answer:
+      'Yes. You can add Pathlens to an existing website without rebuilding it. Simply install the tracking script and connect it to your project.',
+  },
+  {
+    question: 'Do I need to be a developer to use Pathlens?',
+    answer:
+      'Not for everyday analytics. Once Pathlens is installed, you can explore dashboards, recordings, funnels, heatmaps, and reports without writing code.',
+  },
+  {
+    question: 'How quickly will I start seeing data?',
+    answer:
+      'Once the tracking script is installed correctly and visitors start using your website, activity will begin appearing in your Pathlens project.',
+  },
+  {
+    question: 'Can I track users across different pages?',
+    answer:
+      'Yes. Pathlens connects activity across a visitor session so you can understand the journey users take from one page to another.',
+  },
+  {
+    question: 'Can Pathlens help me find website problems?',
+    answer:
+      'Yes. Session recordings and behavioral data can reveal confusing navigation, ignored buttons, repeated clicks, unexpected drop-offs, and other usability issues.',
+  },
+  {
+    question: 'What is the difference between events and goals?',
+    answer:
+      'Events represent individual user actions such as clicks or form submissions, while goals represent important outcomes you want users to complete, such as signing up or making a purchase.',
+  },
+  {
+    question: 'What is a funnel?',
+    answer:
+      'A funnel represents a sequence of steps users are expected to complete. It helps you see how many users move through each step and where they drop off.',
+  },
+  {
+    question: 'Who is Pathlens useful for?',
+    answer:
+      'Pathlens can be useful for product teams, marketers, founders, designers, developers, agencies, and anyone who wants to better understand how people use a website.',
+  },
 ]
 
 export const FAQ = () => {

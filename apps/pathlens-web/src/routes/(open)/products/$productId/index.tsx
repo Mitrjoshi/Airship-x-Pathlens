@@ -42,9 +42,7 @@ function RouteComponent() {
               </div>
 
               <Link to="/products">
-                <Button size="lg" className="mt-2">
-                  All Products
-                </Button>
+                <Button className="mt-2">All Products</Button>
               </Link>
             </div>
           </div>

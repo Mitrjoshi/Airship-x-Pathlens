@@ -342,7 +342,6 @@ function RouteComponent() {
               form="login-form"
               type="submit"
               className="mt-7 w-full lg:mt-5"
-              size="lg"
             >
               <LoadingSwap isLoading={loginPending}>Log in</LoadingSwap>
               {!loginPending && <ArrowUpRightIcon />}

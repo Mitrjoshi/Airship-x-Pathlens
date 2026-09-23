@@ -141,14 +141,14 @@ export const ProductHero = ({ productData }: { productData: ProductData }) => {
               style={{
                 backgroundColor: `${productData.color.hex}`,
               }}
-              size="lg"
+
               className={'text-white'}
             >
               {productData.page.hero?.primaryAction}
             </Button>
           </Link>
 
-          <Button size="lg" variant="outline">
+          <Button variant="outline">
             {productData.page.hero?.secondaryAction}
           </Button>
         </div>

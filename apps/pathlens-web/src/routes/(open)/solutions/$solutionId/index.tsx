@@ -7,6 +7,7 @@ import { Button } from '@workspace/ui/components/button'
 import { SolutionHero } from './-components/solution-hero'
 import { Separator } from '@workspace/ui/components/separator'
 import { FewLinesOfCode } from '../../-components/few-lines-of-code'
+import { BuiltFor } from './-components/built-for'
 
 export const Route = createFileRoute('/(open)/solutions/$solutionId/')({
   component: RouteComponent,
@@ -39,9 +40,7 @@ function RouteComponent() {
               </div>
 
               <Link to="/solutions">
-                <Button size="lg" className="mt-2">
-                  All Solutions
-                </Button>
+                <Button className="mt-2">All Solutions</Button>
               </Link>
             </div>
           </div>
@@ -57,7 +56,9 @@ function RouteComponent() {
 
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
-          <div className="bg-background mx-auto max-w-[75%] space-y-10 border-x-2 border-dashed pt-20"></div>
+          <div className="bg-background mx-auto max-w-[75%] space-y-10 border-x-2 border-dashed px-10 py-20">
+            <BuiltFor />
+          </div>
         </DotLayout>
       </HomeLayout>
 

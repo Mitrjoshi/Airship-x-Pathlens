@@ -145,14 +145,14 @@ export const SolutionHero = ({
               style={{
                 backgroundColor: `${solutionData.color.hex}`,
               }}
-              size="lg"
+
               className={'text-white'}
             >
               {solutionData.page.hero?.primaryAction}
             </Button>
           </Link>
 
-          <Button size="lg" variant="outline">
+          <Button variant="outline">
             {solutionData.page.hero?.secondaryAction}
           </Button>
         </div>

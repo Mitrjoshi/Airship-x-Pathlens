@@ -7,7 +7,7 @@ export const HomeLayout = ({
   ...props
 }: ComponentProps<'div'>) => {
   return (
-    <div className={cn('mx-auto w-full max-w-[90vw]', className)} {...props}>
+    <div className={cn('mx-auto w-full max-w-[100rem]', className)} {...props}>
       {children}
     </div>
   )

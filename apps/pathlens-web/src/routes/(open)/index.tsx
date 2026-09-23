@@ -6,8 +6,8 @@ import { WhyChooseUs } from './-components/why-choose-us'
 import { DotLayout } from './-components/dot-layout'
 import { PayOnlyFor } from './-components/pay-only-for'
 import { Region } from './-components/region'
-import { Features } from './-components/features'
 import { FewLinesOfCode } from './-components/few-lines-of-code'
+import { BuiltFor } from './solutions/$solutionId/-components/built-for'
 
 export const Route = createFileRoute('/(open)/')({
   component: RouteComponent,
@@ -24,6 +24,14 @@ function RouteComponent() {
         </DotLayout>
       </HomeLayout>
 
+      <HomeLayout>
+        <DotLayout className="border-x-2 border-t-2 border-dashed">
+          <div className="bg-background nut-top-left nut-bottom-right mx-auto max-w-[75%] space-y-10 border-x-2 border-dashed px-10 py-20">
+            <BuiltFor />
+          </div>
+        </DotLayout>
+      </HomeLayout>
+
       <HomeLayout className="border-x-2 border-t-2 border-dashed">
         <DotLayout>
           <div className="bg-background nut-top-left nut-bottom-right mx-auto w-[75%] border-x-2 border-dashed">
@@ -36,14 +44,6 @@ function RouteComponent() {
         <DotLayout className="border-x-2 border-t-2 border-dashed">
           <div className="bg-background nut-top-left mx-auto max-w-[75%] border-x-2 border-dashed p-20">
             <FewLinesOfCode />
-          </div>
-        </DotLayout>
-      </HomeLayout>
-
-      <HomeLayout>
-        <DotLayout className="border-x-2 border-t-2 border-dashed">
-          <div className="bg-background nut-top-left mx-auto w-[75%] border-x-2 border-dashed">
-            <Features />
           </div>
         </DotLayout>
       </HomeLayout>

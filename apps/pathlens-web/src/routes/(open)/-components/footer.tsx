@@ -2,13 +2,11 @@ import { Link } from '@tanstack/react-router'
 import { ArrowUpRightIcon } from 'lucide-react'
 
 import { Button } from '@workspace/ui/components/button'
-import { ModeToggle } from '@/components/common/mode-toggle'
-import { Separator } from '@workspace/ui/components/separator'
 
 export const Footer = () => {
   return (
     <div className="dotted-background border-t-2 border-dashed">
-      <footer className="bg-background mx-auto w-full max-w-[90vw] border-x-2 border-dashed">
+      <footer className="bg-background mx-auto w-full max-w-[100rem] border-x-2 border-dashed">
         <div className="nut-top-right nut-top-left mx-auto max-w-[75%] border-x-2 border-dashed">
           <div className="border-b-2 border-dashed px-6 py-16 md:px-10 md:py-20">
             <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
@@ -32,16 +30,14 @@ export const Footer = () => {
 
               <div className="flex flex-wrap gap-3">
                 <Link to="/sign-up">
-                  <Button size="lg">
+                  <Button>
                     Get started
                     <ArrowUpRightIcon />
                   </Button>
                 </Link>
 
                 <Link to="/docs">
-                  <Button size="lg" variant="outline">
-                    View documentation
-                  </Button>
+                  <Button variant="outline">View documentation</Button>
                 </Link>
               </div>
             </div>
