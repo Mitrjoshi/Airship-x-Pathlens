@@ -22,7 +22,6 @@ import { Route as AppentryRouteRouteImport } from './routes/app/(entry)/route'
 import { Route as openProductsIndexRouteImport } from './routes/(open)/products/index'
 import { Route as openSolutionsIndexRouteImport } from './routes/(open)/solutions/index'
 import { Route as AppWorkspaceIdIndexRouteImport } from './routes/app/$workspaceId/index'
-import { Route as AppWorkspaceIdCreateRouteImport } from './routes/app/$workspaceId/create'
 import { Route as AppWorkspaceIdSettingsRouteImport } from './routes/app/$workspaceId/settings'
 import { Route as AppWorkspaceIdTeamRouteImport } from './routes/app/$workspaceId/team'
 import { Route as AppWorkspaceIdUsageRouteImport } from './routes/app/$workspaceId/usage'
@@ -37,17 +36,14 @@ import { Route as AppWorkspaceIdProjectIdAiInsightsRouteImport } from './routes/
 import { Route as AppWorkspaceIdProjectIdAnalyticsRouteImport } from './routes/app/$workspaceId/$projectId/analytics'
 import { Route as AppWorkspaceIdProjectIdApiKeysRouteImport } from './routes/app/$workspaceId/$projectId/api-keys'
 import { Route as AppWorkspaceIdProjectIdCampaignsRouteImport } from './routes/app/$workspaceId/$projectId/campaigns'
-import { Route as AppWorkspaceIdProjectIdDomainsRouteImport } from './routes/app/$workspaceId/$projectId/domains'
 import { Route as AppWorkspaceIdProjectIdErrorsRouteImport } from './routes/app/$workspaceId/$projectId/errors'
 import { Route as AppWorkspaceIdProjectIdEventsRouteImport } from './routes/app/$workspaceId/$projectId/events'
 import { Route as AppWorkspaceIdProjectIdGoalsRouteImport } from './routes/app/$workspaceId/$projectId/goals'
 import { Route as AppWorkspaceIdProjectIdHeatmapsRouteImport } from './routes/app/$workspaceId/$projectId/heatmaps'
-import { Route as AppWorkspaceIdProjectIdMembersRouteImport } from './routes/app/$workspaceId/$projectId/members'
 import { Route as AppWorkspaceIdProjectIdPerformanceRouteImport } from './routes/app/$workspaceId/$projectId/performance'
 import { Route as AppWorkspaceIdProjectIdReportsRouteImport } from './routes/app/$workspaceId/$projectId/reports'
 import { Route as AppWorkspaceIdProjectIdSessionReplayRouteImport } from './routes/app/$workspaceId/$projectId/session-replay'
 import { Route as AppWorkspaceIdProjectIdSettingsRouteImport } from './routes/app/$workspaceId/$projectId/settings'
-import { Route as AppWorkspaceIdProjectIdUsageRouteImport } from './routes/app/$workspaceId/$projectId/usage'
 import { Route as AppWorkspaceIdProjectIdUserJourneyRouteImport } from './routes/app/$workspaceId/$projectId/user-journey'
 import { Route as AppWorkspaceIdProjectIdVisitorsRouteImport } from './routes/app/$workspaceId/$projectId/visitors'
 
@@ -111,11 +107,6 @@ const openSolutionsIndexRoute = openSolutionsIndexRouteImport.update({
 const AppWorkspaceIdIndexRoute = AppWorkspaceIdIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppWorkspaceIdRouteRoute,
-} as any)
-const AppWorkspaceIdCreateRoute = AppWorkspaceIdCreateRouteImport.update({
-  id: '/create',
-  path: '/create',
   getParentRoute: () => AppWorkspaceIdRouteRoute,
 } as any)
 const AppWorkspaceIdSettingsRoute = AppWorkspaceIdSettingsRouteImport.update({
@@ -195,12 +186,6 @@ const AppWorkspaceIdProjectIdCampaignsRoute =
     path: '/$projectId/campaigns',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
-const AppWorkspaceIdProjectIdDomainsRoute =
-  AppWorkspaceIdProjectIdDomainsRouteImport.update({
-    id: '/$projectId/domains',
-    path: '/$projectId/domains',
-    getParentRoute: () => AppWorkspaceIdRouteRoute,
-  } as any)
 const AppWorkspaceIdProjectIdErrorsRoute =
   AppWorkspaceIdProjectIdErrorsRouteImport.update({
     id: '/$projectId/errors',
@@ -223,12 +208,6 @@ const AppWorkspaceIdProjectIdHeatmapsRoute =
   AppWorkspaceIdProjectIdHeatmapsRouteImport.update({
     id: '/$projectId/heatmaps',
     path: '/$projectId/heatmaps',
-    getParentRoute: () => AppWorkspaceIdRouteRoute,
-  } as any)
-const AppWorkspaceIdProjectIdMembersRoute =
-  AppWorkspaceIdProjectIdMembersRouteImport.update({
-    id: '/$projectId/members',
-    path: '/$projectId/members',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
 const AppWorkspaceIdProjectIdPerformanceRoute =
@@ -255,12 +234,6 @@ const AppWorkspaceIdProjectIdSettingsRoute =
     path: '/$projectId/settings',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
-const AppWorkspaceIdProjectIdUsageRoute =
-  AppWorkspaceIdProjectIdUsageRouteImport.update({
-    id: '/$projectId/usage',
-    path: '/$projectId/usage',
-    getParentRoute: () => AppWorkspaceIdRouteRoute,
-  } as any)
 const AppWorkspaceIdProjectIdUserJourneyRoute =
   AppWorkspaceIdProjectIdUserJourneyRouteImport.update({
     id: '/$projectId/user-journey',
@@ -282,7 +255,6 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof authSignUpRoute
   '/pricing': typeof openPricingRoute
   '/': typeof openIndexRoute
-  '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
@@ -297,17 +269,14 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/$projectId/analytics': typeof AppWorkspaceIdProjectIdAnalyticsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
   '/app/$workspaceId/$projectId/campaigns': typeof AppWorkspaceIdProjectIdCampaignsRoute
-  '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
   '/app/$workspaceId/$projectId/errors': typeof AppWorkspaceIdProjectIdErrorsRoute
   '/app/$workspaceId/$projectId/events': typeof AppWorkspaceIdProjectIdEventsRoute
   '/app/$workspaceId/$projectId/goals': typeof AppWorkspaceIdProjectIdGoalsRoute
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
-  '/app/$workspaceId/$projectId/members': typeof AppWorkspaceIdProjectIdMembersRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
-  '/app/$workspaceId/$projectId/usage': typeof AppWorkspaceIdProjectIdUsageRoute
   '/app/$workspaceId/$projectId/user-journey': typeof AppWorkspaceIdProjectIdUserJourneyRoute
   '/app/$workspaceId/$projectId/visitors': typeof AppWorkspaceIdProjectIdVisitorsRoute
   '/products/$productId/': typeof openProductsProductIdIndexRoute
@@ -321,7 +290,6 @@ export interface FileRoutesByTo {
   '/sign-up': typeof authSignUpRoute
   '/pricing': typeof openPricingRoute
   '/': typeof openIndexRoute
-  '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
@@ -335,17 +303,14 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/$projectId/analytics': typeof AppWorkspaceIdProjectIdAnalyticsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
   '/app/$workspaceId/$projectId/campaigns': typeof AppWorkspaceIdProjectIdCampaignsRoute
-  '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
   '/app/$workspaceId/$projectId/errors': typeof AppWorkspaceIdProjectIdErrorsRoute
   '/app/$workspaceId/$projectId/events': typeof AppWorkspaceIdProjectIdEventsRoute
   '/app/$workspaceId/$projectId/goals': typeof AppWorkspaceIdProjectIdGoalsRoute
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
-  '/app/$workspaceId/$projectId/members': typeof AppWorkspaceIdProjectIdMembersRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
-  '/app/$workspaceId/$projectId/usage': typeof AppWorkspaceIdProjectIdUsageRoute
   '/app/$workspaceId/$projectId/user-journey': typeof AppWorkspaceIdProjectIdUserJourneyRoute
   '/app/$workspaceId/$projectId/visitors': typeof AppWorkspaceIdProjectIdVisitorsRoute
   '/products/$productId': typeof openProductsProductIdIndexRoute
@@ -364,7 +329,6 @@ export interface FileRoutesById {
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(open)/pricing': typeof openPricingRoute
   '/(open)/': typeof openIndexRoute
-  '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
@@ -379,17 +343,14 @@ export interface FileRoutesById {
   '/app/$workspaceId/$projectId/analytics': typeof AppWorkspaceIdProjectIdAnalyticsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
   '/app/$workspaceId/$projectId/campaigns': typeof AppWorkspaceIdProjectIdCampaignsRoute
-  '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
   '/app/$workspaceId/$projectId/errors': typeof AppWorkspaceIdProjectIdErrorsRoute
   '/app/$workspaceId/$projectId/events': typeof AppWorkspaceIdProjectIdEventsRoute
   '/app/$workspaceId/$projectId/goals': typeof AppWorkspaceIdProjectIdGoalsRoute
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
-  '/app/$workspaceId/$projectId/members': typeof AppWorkspaceIdProjectIdMembersRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
-  '/app/$workspaceId/$projectId/usage': typeof AppWorkspaceIdProjectIdUsageRoute
   '/app/$workspaceId/$projectId/user-journey': typeof AppWorkspaceIdProjectIdUserJourneyRoute
   '/app/$workspaceId/$projectId/visitors': typeof AppWorkspaceIdProjectIdVisitorsRoute
   '/(open)/products/$productId/': typeof openProductsProductIdIndexRoute
@@ -406,7 +367,6 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/pricing'
     | '/'
-    | '/app/$workspaceId/create'
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
@@ -421,17 +381,14 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/analytics'
     | '/app/$workspaceId/$projectId/api-keys'
     | '/app/$workspaceId/$projectId/campaigns'
-    | '/app/$workspaceId/$projectId/domains'
     | '/app/$workspaceId/$projectId/errors'
     | '/app/$workspaceId/$projectId/events'
     | '/app/$workspaceId/$projectId/goals'
     | '/app/$workspaceId/$projectId/heatmaps'
-    | '/app/$workspaceId/$projectId/members'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
-    | '/app/$workspaceId/$projectId/usage'
     | '/app/$workspaceId/$projectId/user-journey'
     | '/app/$workspaceId/$projectId/visitors'
     | '/products/$productId/'
@@ -445,7 +402,6 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/pricing'
     | '/'
-    | '/app/$workspaceId/create'
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
@@ -459,17 +415,14 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/analytics'
     | '/app/$workspaceId/$projectId/api-keys'
     | '/app/$workspaceId/$projectId/campaigns'
-    | '/app/$workspaceId/$projectId/domains'
     | '/app/$workspaceId/$projectId/errors'
     | '/app/$workspaceId/$projectId/events'
     | '/app/$workspaceId/$projectId/goals'
     | '/app/$workspaceId/$projectId/heatmaps'
-    | '/app/$workspaceId/$projectId/members'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
-    | '/app/$workspaceId/$projectId/usage'
     | '/app/$workspaceId/$projectId/user-journey'
     | '/app/$workspaceId/$projectId/visitors'
     | '/products/$productId'
@@ -487,7 +440,6 @@ export interface FileRouteTypes {
     | '/(auth)/sign-up'
     | '/(open)/pricing'
     | '/(open)/'
-    | '/app/$workspaceId/create'
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
@@ -502,17 +454,14 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/analytics'
     | '/app/$workspaceId/$projectId/api-keys'
     | '/app/$workspaceId/$projectId/campaigns'
-    | '/app/$workspaceId/$projectId/domains'
     | '/app/$workspaceId/$projectId/errors'
     | '/app/$workspaceId/$projectId/events'
     | '/app/$workspaceId/$projectId/goals'
     | '/app/$workspaceId/$projectId/heatmaps'
-    | '/app/$workspaceId/$projectId/members'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
-    | '/app/$workspaceId/$projectId/usage'
     | '/app/$workspaceId/$projectId/user-journey'
     | '/app/$workspaceId/$projectId/visitors'
     | '/(open)/products/$productId/'
@@ -619,13 +568,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdIndexRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
-    '/app/$workspaceId/create': {
-      id: '/app/$workspaceId/create'
-      path: '/create'
-      fullPath: '/app/$workspaceId/create'
-      preLoaderRoute: typeof AppWorkspaceIdCreateRouteImport
-      parentRoute: typeof AppWorkspaceIdRouteRoute
-    }
     '/app/$workspaceId/settings': {
       id: '/app/$workspaceId/settings'
       path: '/settings'
@@ -724,13 +666,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdCampaignsRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
-    '/app/$workspaceId/$projectId/domains': {
-      id: '/app/$workspaceId/$projectId/domains'
-      path: '/$projectId/domains'
-      fullPath: '/app/$workspaceId/$projectId/domains'
-      preLoaderRoute: typeof AppWorkspaceIdProjectIdDomainsRouteImport
-      parentRoute: typeof AppWorkspaceIdRouteRoute
-    }
     '/app/$workspaceId/$projectId/errors': {
       id: '/app/$workspaceId/$projectId/errors'
       path: '/$projectId/errors'
@@ -759,13 +694,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdHeatmapsRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
-    '/app/$workspaceId/$projectId/members': {
-      id: '/app/$workspaceId/$projectId/members'
-      path: '/$projectId/members'
-      fullPath: '/app/$workspaceId/$projectId/members'
-      preLoaderRoute: typeof AppWorkspaceIdProjectIdMembersRouteImport
-      parentRoute: typeof AppWorkspaceIdRouteRoute
-    }
     '/app/$workspaceId/$projectId/performance': {
       id: '/app/$workspaceId/$projectId/performance'
       path: '/$projectId/performance'
@@ -792,13 +720,6 @@ declare module '@tanstack/react-router' {
       path: '/$projectId/settings'
       fullPath: '/app/$workspaceId/$projectId/settings'
       preLoaderRoute: typeof AppWorkspaceIdProjectIdSettingsRouteImport
-      parentRoute: typeof AppWorkspaceIdRouteRoute
-    }
-    '/app/$workspaceId/$projectId/usage': {
-      id: '/app/$workspaceId/$projectId/usage'
-      path: '/$projectId/usage'
-      fullPath: '/app/$workspaceId/$projectId/usage'
-      preLoaderRoute: typeof AppWorkspaceIdProjectIdUsageRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
     '/app/$workspaceId/$projectId/user-journey': {
@@ -857,7 +778,6 @@ const openRouteRouteWithChildren = openRouteRoute._addFileChildren(
 )
 
 interface AppWorkspaceIdRouteRouteChildren {
-  AppWorkspaceIdCreateRoute: typeof AppWorkspaceIdCreateRoute
   AppWorkspaceIdSettingsRoute: typeof AppWorkspaceIdSettingsRoute
   AppWorkspaceIdTeamRoute: typeof AppWorkspaceIdTeamRoute
   AppWorkspaceIdUsageRoute: typeof AppWorkspaceIdUsageRoute
@@ -866,24 +786,20 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdProjectIdAnalyticsRoute: typeof AppWorkspaceIdProjectIdAnalyticsRoute
   AppWorkspaceIdProjectIdApiKeysRoute: typeof AppWorkspaceIdProjectIdApiKeysRoute
   AppWorkspaceIdProjectIdCampaignsRoute: typeof AppWorkspaceIdProjectIdCampaignsRoute
-  AppWorkspaceIdProjectIdDomainsRoute: typeof AppWorkspaceIdProjectIdDomainsRoute
   AppWorkspaceIdProjectIdErrorsRoute: typeof AppWorkspaceIdProjectIdErrorsRoute
   AppWorkspaceIdProjectIdEventsRoute: typeof AppWorkspaceIdProjectIdEventsRoute
   AppWorkspaceIdProjectIdGoalsRoute: typeof AppWorkspaceIdProjectIdGoalsRoute
   AppWorkspaceIdProjectIdHeatmapsRoute: typeof AppWorkspaceIdProjectIdHeatmapsRoute
-  AppWorkspaceIdProjectIdMembersRoute: typeof AppWorkspaceIdProjectIdMembersRoute
   AppWorkspaceIdProjectIdPerformanceRoute: typeof AppWorkspaceIdProjectIdPerformanceRoute
   AppWorkspaceIdProjectIdReportsRoute: typeof AppWorkspaceIdProjectIdReportsRoute
   AppWorkspaceIdProjectIdSessionReplayRoute: typeof AppWorkspaceIdProjectIdSessionReplayRoute
   AppWorkspaceIdProjectIdSettingsRoute: typeof AppWorkspaceIdProjectIdSettingsRoute
-  AppWorkspaceIdProjectIdUsageRoute: typeof AppWorkspaceIdProjectIdUsageRoute
   AppWorkspaceIdProjectIdUserJourneyRoute: typeof AppWorkspaceIdProjectIdUserJourneyRoute
   AppWorkspaceIdProjectIdVisitorsRoute: typeof AppWorkspaceIdProjectIdVisitorsRoute
   AppWorkspaceIdProjectIdIndexRoute: typeof AppWorkspaceIdProjectIdIndexRoute
 }
 
 const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
-  AppWorkspaceIdCreateRoute: AppWorkspaceIdCreateRoute,
   AppWorkspaceIdSettingsRoute: AppWorkspaceIdSettingsRoute,
   AppWorkspaceIdTeamRoute: AppWorkspaceIdTeamRoute,
   AppWorkspaceIdUsageRoute: AppWorkspaceIdUsageRoute,
@@ -893,19 +809,16 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
   AppWorkspaceIdProjectIdAnalyticsRoute: AppWorkspaceIdProjectIdAnalyticsRoute,
   AppWorkspaceIdProjectIdApiKeysRoute: AppWorkspaceIdProjectIdApiKeysRoute,
   AppWorkspaceIdProjectIdCampaignsRoute: AppWorkspaceIdProjectIdCampaignsRoute,
-  AppWorkspaceIdProjectIdDomainsRoute: AppWorkspaceIdProjectIdDomainsRoute,
   AppWorkspaceIdProjectIdErrorsRoute: AppWorkspaceIdProjectIdErrorsRoute,
   AppWorkspaceIdProjectIdEventsRoute: AppWorkspaceIdProjectIdEventsRoute,
   AppWorkspaceIdProjectIdGoalsRoute: AppWorkspaceIdProjectIdGoalsRoute,
   AppWorkspaceIdProjectIdHeatmapsRoute: AppWorkspaceIdProjectIdHeatmapsRoute,
-  AppWorkspaceIdProjectIdMembersRoute: AppWorkspaceIdProjectIdMembersRoute,
   AppWorkspaceIdProjectIdPerformanceRoute:
     AppWorkspaceIdProjectIdPerformanceRoute,
   AppWorkspaceIdProjectIdReportsRoute: AppWorkspaceIdProjectIdReportsRoute,
   AppWorkspaceIdProjectIdSessionReplayRoute:
     AppWorkspaceIdProjectIdSessionReplayRoute,
   AppWorkspaceIdProjectIdSettingsRoute: AppWorkspaceIdProjectIdSettingsRoute,
-  AppWorkspaceIdProjectIdUsageRoute: AppWorkspaceIdProjectIdUsageRoute,
   AppWorkspaceIdProjectIdUserJourneyRoute:
     AppWorkspaceIdProjectIdUserJourneyRoute,
   AppWorkspaceIdProjectIdVisitorsRoute: AppWorkspaceIdProjectIdVisitorsRoute,

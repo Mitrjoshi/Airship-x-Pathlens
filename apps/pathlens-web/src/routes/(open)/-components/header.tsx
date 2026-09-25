@@ -18,11 +18,13 @@ import { solutionSections } from '../solutions/-constants/solutions'
 import { Link } from '@tanstack/react-router'
 
 export const Header = () => {
+  const token = localStorage.getItem('pathlens-token')
+
   return (
     <div className="dotted-background sticky top-0 z-12 border-b-2 border-dashed">
       <nav className="bg-background z-12 mx-auto w-full max-w-[100rem] border-x-2 border-dashed">
         <div className="mx-auto flex max-w-[75%] items-center justify-between border-x-2 border-dashed px-5 py-2">
-          <a href="/" className="flex items-center">
+          <Link to="/" className="flex items-center">
             <img
               src="/logo.png"
               className="size-10 dark:invert"
@@ -30,7 +32,7 @@ export const Header = () => {
             />
 
             <p className="text-2xl font-bold">Pathlens</p>
-          </a>
+          </Link>
 
           <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2">
             <NavigationMenu align="center">
@@ -83,13 +85,21 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link to="/login">
-              <Button variant="outline">Log in</Button>
-            </Link>
+            {token ? (
+              <Link to="/app">
+                <Button>Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="outline">Log in</Button>
+                </Link>
 
-            <Link to="/sign-up">
-              <Button>Sign up</Button>
-            </Link>
+                <Link to="/sign-up">
+                  <Button>Sign up</Button>
+                </Link>
+              </>
+            )}
 
             <Separator orientation="vertical" />
 

@@ -41,7 +41,9 @@ export const Hero = () => {
             </p>
 
             <div className="flex items-center gap-2">
-              <Button className="w-32">Get started</Button>
+              <Link to="/login">
+                <Button className="w-32">Get started</Button>
+              </Link>
 
               <Button className="w-32" variant="outline">
                 Request a demo

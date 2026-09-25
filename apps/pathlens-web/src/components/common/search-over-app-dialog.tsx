@@ -494,7 +494,7 @@ export const SearchOverAppDialog = ({
       <DialogTrigger
         render={
           <Button
-            className="text-muted-foreground w-full justify-between gap-4"
+            className="text-muted-foreground justify-between gap-4"
             variant="outline"
             aria-label="Quick Search"
           >

@@ -10,15 +10,15 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { Link, useNavigate } from '@tanstack/react-router'
-import {
-  BadgeCheckIcon,
-  DollarSign,
-  LogOutIcon,
-} from 'lucide-react'
+import { BadgeCheckIcon, CheckIcon, DollarSign, LogOutIcon } from 'lucide-react'
 import { useTheme } from '@/components/common/theme-provider'
 
 export interface NavUserData {
@@ -33,14 +33,24 @@ export function NavUser({ user }: { user: NavUserData }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button size="icon" variant="ghost" />}>
+      <DropdownMenuTrigger
+        render={<Button size="icon" className={''} variant="ghost" />}
+      >
         <Avatar>
-          <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+          <AvatarImage
+            className={''}
+            src={user.avatar ?? undefined}
+            alt={user.name}
+          />
+          <AvatarFallback
+            className={'bg-primary/40 text-black dark:text-white'}
+          >
+            {user.name.charAt(0)}
+          </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="my-2 w-64"
+        className="my-2 w-50"
         side="bottom"
         align="end"
         sideOffset={4}
@@ -48,12 +58,8 @@ export function NavUser({ user }: { user: NavUserData }) {
         <DropdownMenuGroup>
           <DropdownMenuLabel className="p-0 font-normal">
             <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <Avatar>
-                <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium text-white">
+                <span className="text-foreground truncate font-medium">
                   {user.name}
                 </span>
                 <span className="truncate text-xs">{user.email}</span>
@@ -65,46 +71,94 @@ export function NavUser({ user }: { user: NavUserData }) {
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup className={'space-y-1'}>
-          <DropdownMenuItem render={<Link to="/app/account" />}>
-            <BadgeCheckIcon />
-            Account
+          <DropdownMenuItem
+            render={
+              <Button
+                className={'flex w-full cursor-pointer justify-between'}
+                variant="ghost"
+              />
+            }
+          >
+            Profile
           </DropdownMenuItem>
-          <DropdownMenuItem render={<Link to="/app/billing" />}>
-            <DollarSign />
-            Upgrade
+          <DropdownMenuItem
+            render={
+              <Button
+                className={'flex w-full cursor-pointer justify-between'}
+                variant="ghost"
+              />
+            }
+          >
+            Billing
           </DropdownMenuItem>
         </DropdownMenuGroup>
 
-        <DropdownMenuSeparator />
-
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Theme</DropdownMenuLabel>
-          <DropdownMenuGroup>
-            {(['light', 'dark', 'system'] as const).map((value) => (
-              <DropdownMenuItem
-                key={value}
-                onClick={() => setTheme(value)}
-                className="flex items-center gap-3"
-              >
-                <span
-                  data-active={theme === value}
-                  className="bg-muted-foreground h-1.5 w-1.5 rounded-full duration-200 data-[active=false]:opacity-0 data-[active=true]:opacity-100"
-                />
-                {value.charAt(0).toUpperCase() + value.slice(1)}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger
+              render={<Button variant="ghost" className={'w-full'} />}
+            >
+              Appearance
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className={'w-32'} sideOffset={10}>
+                <DropdownMenuItem
+                  render={
+                    <Button
+                      className={'flex w-full cursor-pointer justify-between'}
+                      variant="ghost"
+                    />
+                  }
+                  onClick={() => setTheme('light')}
+                >
+                  Light
+                  {theme === 'light' && <CheckIcon />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  render={
+                    <Button
+                      className={'flex w-full cursor-pointer justify-between'}
+                      variant="ghost"
+                    />
+                  }
+                  onClick={() => setTheme('dark')}
+                >
+                  Dark
+                  {theme === 'dark' && <CheckIcon />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  render={
+                    <Button
+                      className={'flex w-full cursor-pointer justify-between'}
+                      variant="ghost"
+                    />
+                  }
+                  onClick={() => setTheme('system')}
+                >
+                  System
+                  {theme === 'system' && <CheckIcon />}
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
+          render={
+            <Button
+              className={
+                'text-destructive flex w-full cursor-pointer justify-between'
+              }
+              variant="ghost"
+            />
+          }
           onClick={() => {
             localStorage.removeItem('pathlens-token')
             navigate({ to: '/login', replace: true })
           }}
         >
-          <LogOutIcon />
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
