@@ -78,11 +78,11 @@
   --ring: #41ce8f;
 
   /* Charts */
-  --chart-1: #41ce8f;
-  --chart-2: #525252;
-  --chart-3: #737373;
-  --chart-4: #a3a3a3;
-  --chart-5: #d4d4d4;
+  --chart-1: #16a34a; /* Emerald green */
+  --chart-2: #2563eb; /* Blue */
+  --chart-3: #9333ea; /* Purple */
+  --chart-4: #ea580c; /* Orange */
+  --chart-5: #64748b; /* Slate */
 
   --radius: 0.625rem;
 
@@ -135,11 +135,11 @@
   --ring: #41ce8f;
 
   /* Charts */
-  --chart-1: #41ce8f;
-  --chart-2: #d4d4d4;
-  --chart-3: #a3a3a3;
-  --chart-4: #737373;
-  --chart-5: #525252;
+  --chart-1: #44d59d; /* Brand green */
+  --chart-2: #60a5fa; /* Blue */
+  --chart-3: #c084fc; /* Purple */
+  --chart-4: #fb923c; /* Orange */
+  --chart-5: #94a3b8; /* Slate */
 
   /* Sidebar */
   --sidebar: #171717;

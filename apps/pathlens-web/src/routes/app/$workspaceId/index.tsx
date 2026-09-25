@@ -25,6 +25,7 @@ import {
 } from '@workspace/ui/components/dropdown-menu'
 import { formatNumber } from '@/utils/utils'
 import { toast } from 'sonner'
+import { Skeleton } from '@workspace/ui/components/skeleton'
 
 export const Route = createFileRoute('/app/$workspaceId/')({
   component: RouteComponent,
@@ -63,7 +64,7 @@ function RouteComponent() {
       label: 'Go to Domain Management',
       onClick: () => {
         navigate({
-          to: '/app/$workspaceId/$projectId/settings',
+          to: '/app/$workspaceId/$projectId/domain',
           params: {
             workspaceId,
             projectId: item.id,
@@ -150,14 +151,6 @@ function RouteComponent() {
     },
   ]
 
-  if (projectsLoading) {
-    return (
-      <div className="mx-auto max-w-4xl pt-10">
-        <p className="text-muted-foreground text-sm">Loading projects...</p>
-      </div>
-    )
-  }
-
   if (projectsError) {
     return (
       <div className="mx-auto max-w-4xl pt-10">
@@ -171,7 +164,9 @@ function RouteComponent() {
       <div className="mx-auto max-w-4xl pt-10">
         <div className="space-y-5">
           <p className="text-2xl font-medium">
-            Projects ({projects?.data.length ?? 0})
+            {projectsLoading
+              ? 'Loading...'
+              : `Projects (${projects?.data.length ?? 0})`}
           </p>
 
           <div className="space-y-5">
@@ -200,172 +195,199 @@ function RouteComponent() {
             </div>
 
             <div className="space-y-2">
-              {projects?.data.map((item) => {
-                const isActive = item.stats.status === 'active'
-                const projectMenuItems = getProjectMenuItems(item)
+              {projectsLoading ? (
+                <>
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      className="grid w-full grid-cols-[0.4fr_1fr] gap-4 rounded-lg border-2 border-dashed p-5 duration-150"
+                      key={i}
+                    >
+                      <Skeleton className="aspect-video w-full" />
 
-                return (
-                  <Link
-                    key={item.id}
-                    to="/app/$workspaceId/$projectId"
-                    params={{
-                      workspaceId,
-                      projectId: item.id,
-                    }}
-                    className="hover:bg-card/30 grid grid-cols-[0.4fr_1fr] gap-4 rounded-lg border-2 border-dashed p-5 duration-150"
-                  >
-                    {/* Project Preview */}
-                    <div className="aspect-video max-w-60 overflow-hidden">
-                      {!item.snapshot.url ? (
-                        <div className="bg-muted-foreground/10 flex aspect-video w-full items-center justify-center">
-                          <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
-                            <InfoIcon size={14} />
-                            Preview not available.
-                          </p>
+                      <div className="flex flex-1 flex-col justify-between">
+                        <div className="space-y-2">
+                          <Skeleton className="h-6 w-50" />
+                          <Skeleton className="h-6 w-32" />
                         </div>
-                      ) : (
-                        <img
-                          src={item.snapshot.url}
-                          className="bg-muted-foreground/10 aspect-video w-full object-cover"
-                          alt={`${item.name} preview`}
-                        />
-                      )}
+
+                        <div className="flex items-center gap-8">
+                          <Skeleton className="h-6 w-20"></Skeleton>
+                          <Skeleton className="h-6 w-20"></Skeleton>
+                          <Skeleton className="h-6 w-20"></Skeleton>
+                          <Skeleton className="h-6 w-20"></Skeleton>
+                        </div>
+                      </div>
                     </div>
+                  ))}
+                </>
+              ) : (
+                projects?.data.map((item) => {
+                  const isActive = item.stats.status === 'active'
+                  const projectMenuItems = getProjectMenuItems(item)
 
-                    {/* Project Content */}
-                    <div className="flex min-w-0 flex-col justify-between">
-                      <div>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span
-                              className={`${
-                                isActive
-                                  ? 'bg-primary'
-                                  : 'bg-muted-foreground/20'
-                              } h-2 w-2 shrink-0`}
-                            />
+                  return (
+                    <Link
+                      key={item.id}
+                      to="/app/$workspaceId/$projectId"
+                      params={{
+                        workspaceId,
+                        projectId: item.id,
+                      }}
+                      className="hover:bg-card/30 grid grid-cols-[0.4fr_1fr] gap-4 rounded-lg border-2 border-dashed p-5 duration-150"
+                    >
+                      {/* Project Preview */}
+                      <div className="aspect-video max-w-60 overflow-hidden">
+                        {!item.snapshot.url ? (
+                          <div className="bg-muted-foreground/10 flex aspect-video w-full items-center justify-center">
+                            <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
+                              <InfoIcon size={14} />
+                              Preview not available.
+                            </p>
+                          </div>
+                        ) : (
+                          <img
+                            src={item.snapshot.url}
+                            className="bg-muted-foreground/10 aspect-video w-full object-cover"
+                            alt={`${item.name} preview`}
+                          />
+                        )}
+                      </div>
 
-                            <p className="truncate">{item.name}</p>
+                      {/* Project Content */}
+                      <div className="flex min-w-0 flex-col justify-between">
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span
+                                className={`${
+                                  isActive
+                                    ? 'bg-primary'
+                                    : 'bg-muted-foreground/20'
+                                } h-2 w-2 shrink-0`}
+                              />
 
-                            <Badge
-                              className={
-                                isActive
-                                  ? 'text-primary'
-                                  : 'text-muted-foreground'
-                              }
-                              variant="ghost"
-                            >
-                              {isActive ? 'Active' : 'Inactive'}
-                            </Badge>
+                              <p className="truncate">{item.name}</p>
+
+                              <Badge
+                                className={
+                                  isActive
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground'
+                                }
+                                variant="ghost"
+                              >
+                                {isActive ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </div>
+
+                            {/* Project Actions */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                render={
+                                  <Button
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                    }}
+                                    variant="ghost"
+                                    size="icon"
+                                  />
+                                }
+                              >
+                                <EllipsisIcon />
+                              </DropdownMenuTrigger>
+
+                              <DropdownMenuContent
+                                className="w-fit min-w-52"
+                                align="end"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                }}
+                              >
+                                {projectMenuItems.map((menuItem, index) => {
+                                  if (menuItem.type === 'separator') {
+                                    return (
+                                      <DropdownMenuSeparator
+                                        key={`separator-${index}`}
+                                      />
+                                    )
+                                  }
+
+                                  return (
+                                    <DropdownMenuItem
+                                      key={menuItem.label}
+                                      variant={menuItem.variant}
+                                      render={
+                                        <Button
+                                          className="w-full justify-start"
+                                          variant="ghost"
+                                          onClick={(e) => {
+                                            e.preventDefault()
+                                            e.stopPropagation()
+
+                                            menuItem.onClick?.()
+                                          }}
+                                        />
+                                      }
+                                    >
+                                      {menuItem.label}
+                                    </DropdownMenuItem>
+                                  )
+                                })}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
 
-                          {/* Project Actions */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={
-                                <Button
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                  }}
-                                  variant="ghost"
-                                  size="icon"
-                                />
-                              }
-                            >
-                              <EllipsisIcon />
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent
-                              className="w-fit min-w-52"
-                              align="end"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                              }}
-                            >
-                              {projectMenuItems.map((menuItem, index) => {
-                                if (menuItem.type === 'separator') {
-                                  return (
-                                    <DropdownMenuSeparator
-                                      key={`separator-${index}`}
-                                    />
-                                  )
-                                }
-
-                                return (
-                                  <DropdownMenuItem
-                                    key={menuItem.label}
-                                    variant={menuItem.variant}
-                                    render={
-                                      <Button
-                                        className="w-full justify-start"
-                                        variant="ghost"
-                                        onClick={(e) => {
-                                          e.preventDefault()
-                                          e.stopPropagation()
-
-                                          menuItem.onClick?.()
-                                        }}
-                                      />
-                                    }
-                                  >
-                                    {menuItem.label}
-                                  </DropdownMenuItem>
-                                )
-                              })}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {/* Domain */}
+                          <p className="text-muted-foreground mt-1 flex items-center gap-2 px-0 text-sm underline underline-offset-4 duration-200">
+                            <GlobeIcon size={14} />
+                            {item.domain}
+                          </p>
                         </div>
 
-                        {/* Domain */}
-                        <p className="text-muted-foreground mt-1 flex items-center gap-2 px-0 text-sm underline underline-offset-4 duration-200">
-                          <GlobeIcon size={14} />
-                          {item.domain}
-                        </p>
-                      </div>
+                        {/* Stats */}
+                        <div className="flex items-center gap-8">
+                          <div>
+                            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                              <navigationIcons.visitors size={12} />
+                              Visitors
+                            </p>
 
-                      {/* Stats */}
-                      <div className="flex items-center gap-8">
-                        <div>
-                          <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                            <navigationIcons.visitors size={12} />
-                            Visitors
-                          </p>
+                            <p>{formatNumber(item.stats.visitors)}</p>
+                          </div>
 
-                          <p>{formatNumber(item.stats.visitors)}</p>
-                        </div>
+                          <div>
+                            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                              <navigationIcons.sessions size={12} />
+                              Sessions
+                            </p>
 
-                        <div>
-                          <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                            <navigationIcons.sessions size={12} />
-                            Sessions
-                          </p>
+                            <p>{formatNumber(item.stats.sessions)}</p>
+                          </div>
 
-                          <p>{formatNumber(item.stats.sessions)}</p>
-                        </div>
+                          <div>
+                            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                              <navigationIcons.events size={12} />
+                              Events
+                            </p>
 
-                        <div>
-                          <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                            <navigationIcons.events size={12} />
-                            Events
-                          </p>
+                            <p>{formatNumber(item.stats.events)}</p>
+                          </div>
 
-                          <p>{formatNumber(item.stats.events)}</p>
-                        </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">
+                              Conversions
+                            </p>
 
-                        <div>
-                          <p className="text-muted-foreground text-xs">
-                            Conversions
-                          </p>
-
-                          <p>{item.stats.conversion}%</p>
+                            <p>{item.stats.conversion}%</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                )
-              })}
+                    </Link>
+                  )
+                })
+              )}
             </div>
           </div>
         </div>

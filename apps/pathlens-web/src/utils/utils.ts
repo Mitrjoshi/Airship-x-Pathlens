@@ -51,3 +51,8 @@ export function formatRelativeTime(date: string, now = Date.now()): string {
     month: 'short',
   })
 }
+
+export function formatMs(value: number): string {
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}s`
+  return `${Math.round(value)}ms`
+}

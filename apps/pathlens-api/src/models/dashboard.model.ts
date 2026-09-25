@@ -45,6 +45,14 @@ export interface DashboardResponse {
     visitors: number;
     sessions: number;
   }[];
+  eventsChart: {
+    day: string;
+    events: number;
+  }[];
+  sessionChart: {
+    day: string;
+    sessions: number;
+  }[];
   trafficSources: {
     name: string;
     value: number;
@@ -103,6 +111,16 @@ interface PageRow extends Record<string, unknown> {
 interface VisitorChartRow extends Record<string, unknown> {
   day: string;
   visitors: number | string | null;
+  sessions: number | string | null;
+}
+
+interface EventChartRow extends Record<string, unknown> {
+  day: string;
+  events: number | string | null;
+}
+
+interface SessionChartRow extends Record<string, unknown> {
+  day: string;
   sessions: number | string | null;
 }
 
@@ -260,6 +278,8 @@ export async function getDashboardModel(
     statsResult,
     pagesResult,
     visitorsChartResult,
+    eventsChartResult,
+    sessionChartResult,
     sourcesResult,
     devicesResult,
     visitorBreakdownResult,
@@ -468,8 +488,52 @@ export async function getDashboardModel(
           AND e.type = 'page_view'
           ${projectFilter}
         GROUP BY days.day
-        ORDER BY days.day;
-      `),
+           ORDER BY days.day;
+       `),
+    db.execute<EventChartRow>(sql`
+         WITH days AS (
+           SELECT generate_series(
+             CURRENT_DATE - make_interval(days => ${rangeDays - 1}),
+             CURRENT_DATE,
+             INTERVAL '1 day'
+           )::date AS day
+         )
+         SELECT
+           TO_CHAR(days.day, 'Dy') AS day,
+           COUNT(e.*)::int AS events
+         FROM days
+         LEFT JOIN events e
+           ON e.occurred_at >= NOW() - make_interval(days => ${rangeDays})
+           AND e.occurred_at >= days.day
+           AND e.occurred_at < days.day + INTERVAL '1 day'
+           AND e.workspace_id = ${filters.workspaceId}
+           ${projectFilter}
+           ${deviceFilter}
+         GROUP BY days.day
+         ORDER BY days.day;
+       `),
+    db.execute<SessionChartRow>(sql`
+         WITH days AS (
+           SELECT generate_series(
+             CURRENT_DATE - make_interval(days => ${rangeDays - 1}),
+             CURRENT_DATE,
+             INTERVAL '1 day'
+           )::date AS day
+         )
+         SELECT
+           TO_CHAR(days.day, 'Dy') AS day,
+           COUNT(DISTINCT e.session_id)::int AS sessions
+         FROM days
+         LEFT JOIN events e
+           ON e.occurred_at >= NOW() - make_interval(days => ${rangeDays})
+           AND e.occurred_at >= days.day
+           AND e.occurred_at < days.day + INTERVAL '1 day'
+           AND e.workspace_id = ${filters.workspaceId}
+           ${projectFilter}
+           ${deviceFilter}
+         GROUP BY days.day
+         ORDER BY days.day;
+       `),
     db.execute<SourceRow>(sql`
         SELECT
           COALESCE(NULLIF(referrer_domain, ''), 'Direct') AS name,
@@ -590,6 +654,16 @@ export async function getDashboardModel(
     sessions: toNumber(row.sessions),
   }));
 
+  const eventsChart = eventsChartResult.rows.map((row) => ({
+    day: row.day,
+    events: toNumber(row.events),
+  }));
+
+  const sessionChart = sessionChartResult.rows.map((row) => ({
+    day: row.day,
+    sessions: toNumber(row.sessions),
+  }));
+
   const sourcesTotal = sourcesResult.rows.reduce(
     (total, row) => total + toNumber(row.visitors),
     0
@@ -666,6 +740,8 @@ export async function getDashboardModel(
     },
     pages,
     visitorsChart,
+    eventsChart,
+    sessionChart,
     trafficSources,
     devices,
     visitorBreakdown: visitorBreakdownData,

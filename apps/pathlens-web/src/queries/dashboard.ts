@@ -42,6 +42,14 @@ export type T_Dashboard = {
 
   pages: T_Page[]
   visitorsChart: T_VisitorsChart[]
+  eventsChart: {
+    day: string
+    events: number
+  }[]
+  sessionChart: {
+    day: string
+    sessions: number
+  }[]
   trafficSources: {
     name: string
     value: number
@@ -97,5 +105,4 @@ export const getDashboardOptions = (params: {
     queryKey: ['DASHBOARD', params],
     queryFn: () => getDashboard(params),
     enabled: !!params.workspace_id,
-    refetchInterval: 30_000,
   })

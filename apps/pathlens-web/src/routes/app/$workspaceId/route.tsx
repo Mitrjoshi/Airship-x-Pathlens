@@ -22,28 +22,11 @@ import {
 } from '@workspace/ui/components/sidebar'
 import { Button } from '@workspace/ui/components/button'
 import {
-  ActivityIcon,
-  BarChart3Icon,
-  BotIcon,
-  BugIcon,
-  EyeIcon,
-  FileBarChartIcon,
-  FlameIcon,
-  GaugeIcon,
-  GoalIcon,
-  KeyRoundIcon,
-  LayoutDashboardIcon,
-  MegaphoneIcon,
-  MousePointerClickIcon,
-  SettingsIcon,
-  UsersIcon,
   SidebarIcon,
   ChevronsUpDownIcon,
   SearchIcon,
   PlusIcon,
   CheckIcon,
-  FolderIcon,
-  ChartAreaIcon,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -89,9 +72,7 @@ function RouteComponent() {
         />
         <SidebarInset>
           <Header />
-          <div className="px-5">
-            <Outlet />
-          </div>
+          <Outlet />
         </SidebarInset>
       </SidebarProvider>
     </>
@@ -107,129 +88,190 @@ interface I_AppSidebarProps {
 
 const sidebarProjectsItems = [
   {
-    label: 'Dashboard',
-    icon: navigationIcons.dashboard,
-    to: '/app/$workspaceId/$projectId',
-    isActive: (pathname: string, activeWorkspace: string, projectId?: string) =>
-      pathname === `/app/${activeWorkspace}/${projectId}`,
+    label: 'Overview',
+    items: [
+      {
+        label: 'Dashboard',
+        icon: navigationIcons.dashboard,
+        to: '/app/$workspaceId/$projectId',
+        isActive: (
+          pathname: string,
+          activeWorkspace: string,
+          projectId?: string
+        ) => pathname === `/app/${activeWorkspace}/${projectId}`,
+      },
+    ],
   },
+
   {
     label: 'Analytics',
-    icon: navigationIcons.analytics,
-    to: '/app/$workspaceId/$projectId/analytics',
-    isActive: (pathname: string) => pathname.includes('analytics'),
+    items: [
+      {
+        label: 'Analytics',
+        icon: navigationIcons.analytics,
+        to: '/app/$workspaceId/$projectId/analytics',
+        isActive: (pathname: string) => pathname.includes('analytics'),
+      },
+      {
+        label: 'User Journey',
+        icon: navigationIcons.userJourney,
+        to: '/app/$workspaceId/$projectId/user-journey',
+        isActive: (pathname: string) => pathname.includes('user-journey'),
+      },
+      {
+        label: 'Goals',
+        icon: navigationIcons.goals,
+        to: '/app/$workspaceId/$projectId/goals',
+        isActive: (pathname: string) => pathname.includes('goals'),
+      },
+      {
+        label: 'Events',
+        icon: navigationIcons.events,
+        to: '/app/$workspaceId/$projectId/events',
+        isActive: (pathname: string) => pathname.includes('events'),
+      },
+      {
+        label: 'Campaigns',
+        icon: navigationIcons.campaigns,
+        to: '/app/$workspaceId/$projectId/campaigns',
+        isActive: (pathname: string) => pathname.includes('campaigns'),
+      },
+    ],
   },
+
   {
-    label: 'User Journey',
-    icon: navigationIcons.userJourney,
-    to: '/app/$workspaceId/$projectId/user-journey',
-    isActive: (pathname: string) => pathname.includes('user-journey'),
+    label: 'Behavior',
+    items: [
+      {
+        label: 'Session Replay',
+        icon: navigationIcons.sessionReplay,
+        to: '/app/$workspaceId/$projectId/session-replay',
+        isActive: (pathname: string) => pathname.includes('session-replay'),
+      },
+      {
+        label: 'Heatmaps',
+        icon: navigationIcons.heatmaps,
+        to: '/app/$workspaceId/$projectId/heatmaps',
+        isActive: (pathname: string) => pathname.includes('heatmaps'),
+      },
+      {
+        label: 'Visitors',
+        icon: navigationIcons.visitors,
+        to: '/app/$workspaceId/$projectId/visitors',
+        isActive: (pathname: string) => pathname.includes('visitors'),
+      },
+      {
+        label: 'Errors',
+        icon: navigationIcons.errors,
+        to: '/app/$workspaceId/$projectId/errors',
+        isActive: (pathname: string) => pathname.includes('errors'),
+      },
+    ],
   },
-  {
-    label: 'Goals',
-    icon: navigationIcons.goals,
-    to: '/app/$workspaceId/$projectId/goals',
-    isActive: (pathname: string) => pathname.includes('goals'),
-  },
-  {
-    label: 'Events',
-    icon: navigationIcons.events,
-    to: '/app/$workspaceId/$projectId/events',
-    isActive: (pathname: string) => pathname.includes('events'),
-  },
-  {
-    label: 'Errors',
-    icon: navigationIcons.errors,
-    to: '/app/$workspaceId/$projectId/errors',
-    isActive: (pathname: string) => pathname.includes('errors'),
-  },
-  {
-    label: 'Campaigns',
-    icon: navigationIcons.campaigns,
-    to: '/app/$workspaceId/$projectId/campaigns',
-    isActive: (pathname: string) => pathname.includes('campaigns'),
-  },
-  {
-    label: 'Session Replay',
-    icon: navigationIcons.sessionReplay,
-    to: '/app/$workspaceId/$projectId/session-replay',
-    isActive: (pathname: string) => pathname.includes('session-replay'),
-  },
-  {
-    label: 'Heatmaps',
-    icon: navigationIcons.heatmaps,
-    to: '/app/$workspaceId/$projectId/heatmaps',
-    isActive: (pathname: string) => pathname.includes('heatmaps'),
-  },
-  {
-    label: 'Visitors',
-    icon: navigationIcons.visitors,
-    to: '/app/$workspaceId/$projectId/visitors',
-    isActive: (pathname: string) => pathname.includes('visitors'),
-  },
+
   {
     label: 'Performance',
-    icon: navigationIcons.performance,
-    to: '/app/$workspaceId/$projectId/performance',
-    isActive: (pathname: string) => pathname.includes('performance'),
+    items: [
+      {
+        label: 'Performance',
+        icon: navigationIcons.performance,
+        to: '/app/$workspaceId/$projectId/performance',
+        isActive: (pathname: string) => pathname.includes('performance'),
+      },
+    ],
   },
+
   {
-    label: 'Reports',
-    icon: navigationIcons.reports,
-    to: '/app/$workspaceId/$projectId/reports',
-    isActive: (pathname: string) => pathname.includes('reports'),
+    label: 'Insights',
+    items: [
+      {
+        label: 'Reports',
+        icon: navigationIcons.reports,
+        to: '/app/$workspaceId/$projectId/reports',
+        isActive: (pathname: string) => pathname.includes('reports'),
+      },
+      {
+        label: 'AI Insights',
+        icon: navigationIcons.aiInsights,
+        to: '/app/$workspaceId/$projectId/ai-insights',
+        isActive: (pathname: string) => pathname.includes('ai-insights'),
+      },
+    ],
   },
+
   {
-    label: 'AI Insights',
-    icon: navigationIcons.aiInsights,
-    to: '/app/$workspaceId/$projectId/ai-insights',
-    isActive: (pathname: string) => pathname.includes('ai-insights'),
+    label: 'Workspace',
+    items: [
+      {
+        label: 'Usage',
+        icon: navigationIcons.usage,
+        to: '/app/$workspaceId/$projectId/usage',
+        isActive: (pathname: string) => pathname.includes('usage'),
+      },
+      {
+        label: 'Members',
+        icon: navigationIcons.team,
+        to: '/app/$workspaceId/$projectId/members',
+        isActive: (pathname: string) => pathname.includes('members'),
+      },
+    ],
   },
+
   {
-    label: 'Domains',
-    icon: navigationIcons.domain,
-    to: '/app/$workspaceId/$projectId/domains',
-    isActive: (pathname: string) => pathname.includes('domains'),
-  },
-  {
-    label: 'API Keys',
-    icon: navigationIcons.apiKeys,
-    to: '/app/$workspaceId/$projectId/api-keys',
-    isActive: (pathname: string) => pathname.includes('api-keys'),
-  },
-  {
-    label: 'Settings',
-    icon: navigationIcons.settings,
-    to: '/app/$workspaceId/$projectId/settings',
-    isActive: (pathname: string) => pathname.includes('settings'),
+    label: 'Configuration',
+    items: [
+      {
+        label: 'Domains',
+        icon: navigationIcons.domain,
+        to: '/app/$workspaceId/$projectId/domains',
+        isActive: (pathname: string) => pathname.includes('domains'),
+      },
+      {
+        label: 'API Keys',
+        icon: navigationIcons.apiKeys,
+        to: '/app/$workspaceId/$projectId/api-keys',
+        isActive: (pathname: string) => pathname.includes('api-keys'),
+      },
+      {
+        label: 'Settings',
+        icon: navigationIcons.settings,
+        to: '/app/$workspaceId/$projectId/settings',
+        isActive: (pathname: string) => pathname.includes('settings'),
+      },
+    ],
   },
 ]
 
 const sidebarWorkspaceItems = [
   {
-    label: 'Projects',
-    icon: navigationIcons.projects,
-    to: '/app/$workspaceId',
-    isActive: (pathname: string, activeWorkspace: string) =>
-      pathname === `/app/${activeWorkspace}`,
-  },
-  {
-    label: 'Team',
-    icon: navigationIcons.team,
-    to: '/app/$workspaceId/team',
-    isActive: (pathname: string) => pathname.includes('team'),
-  },
-  {
-    label: 'Usage',
-    icon: navigationIcons.usage,
-    to: '/app/$workspaceId/usage',
-    isActive: (pathname: string) => pathname.includes('usage'),
-  },
-  {
-    label: 'Settings',
-    icon: navigationIcons.workspaceSettings,
-    to: '/app/$workspaceId/settings',
-    isActive: (pathname: string) => pathname.includes('settings'),
+    label: 'General',
+    items: [
+      {
+        label: 'Projects',
+        icon: navigationIcons.projects,
+        to: '/app/$workspaceId',
+        isActive: (pathname: string, activeWorkspace: string) =>
+          pathname === `/app/${activeWorkspace}`,
+      },
+      {
+        label: 'Team',
+        icon: navigationIcons.team,
+        to: '/app/$workspaceId/team',
+        isActive: (pathname: string) => pathname.includes('team'),
+      },
+      {
+        label: 'Usage',
+        icon: navigationIcons.usage,
+        to: '/app/$workspaceId/usage',
+        isActive: (pathname: string) => pathname.includes('usage'),
+      },
+      {
+        label: 'Settings',
+        icon: navigationIcons.workspaceSettings,
+        to: '/app/$workspaceId/settings',
+        isActive: (pathname: string) => pathname.includes('settings'),
+      },
+    ],
   },
 ]
 
@@ -264,10 +306,7 @@ export const AppSidebar = ({
             <SearchOverAppDialog />
           </SidebarGroup>
 
-          <Separator />
           <SidebarGroup>
-            <SidebarGroupLabel>General</SidebarGroupLabel>
-
             <AnimatePresence mode="wait">
               <motion.div
                 key={projectId ? 'project-menu' : 'workspace-menu'}
@@ -296,64 +335,82 @@ export const AppSidebar = ({
                     ))}
                   </div>
                 ) : (
-                  <motion.div key={`${activeWorkspace}-${projectId}`}>
+                  <motion.div
+                    className="space-y-2"
+                    key={`${activeWorkspace}-${projectId}`}
+                  >
                     {(projectId
                       ? sidebarProjectsItems
                       : sidebarWorkspaceItems
-                    ).map((item, index) => {
-                      const Icon = item.icon
-
-                      const active = projectId
-                        ? item.isActive(pathname, activeWorkspace, projectId)
-                        : item.isActive(pathname, activeWorkspace)
-
+                    ).map((label, index) => {
                       return (
-                        <div
-                          key={item.label}
-                          className="relative h-8 overflow-hidden rounded-md"
-                        >
-                          {/* Temporary loading background */}
-                          <motion.div
-                            className="bg-muted/20 absolute inset-0 mb-1 rounded-md"
-                            initial={{ opacity: 1 }}
-                            animate={{ opacity: 0 }}
-                            transition={{
-                              duration: 0.2,
-                              delay: index * 0.01,
-                            }}
-                          />
+                        <div className="pb-2">
+                          <SidebarGroupLabel key={index}>
+                            {label.label}
+                          </SidebarGroupLabel>
 
-                          {/* Actual sidebar item */}
-                          <motion.div
-                            initial={{
-                              opacity: 0,
-                              y: 3,
-                            }}
-                            animate={{
-                              opacity: 1,
-                              y: 0,
-                            }}
-                            transition={{
-                              duration: 0.18,
-                              delay: index * 0.01,
-                              ease: 'easeOut',
-                            }}
-                          >
-                            <SidebarMenuItem>
-                              <SidebarMenuButton
-                                render={
-                                  <Button
-                                    className="justify-start"
-                                    variant={active ? 'secondary' : 'ghost'}
-                                    render={<Link to={item.to} />}
+                          {label.items.map((item, index) => {
+                            const Icon = item.icon
+
+                            const active = projectId
+                              ? item.isActive(
+                                  pathname,
+                                  activeWorkspace,
+                                  projectId
+                                )
+                              : item.isActive(pathname, activeWorkspace)
+
+                            return (
+                              <div key={item.label}>
+                                <div className="relative h-8 overflow-hidden rounded-md">
+                                  {/* Temporary loading background */}
+                                  <motion.div
+                                    className="bg-muted/20 absolute inset-0 mb-1 rounded-md"
+                                    initial={{ opacity: 1 }}
+                                    animate={{ opacity: 0 }}
+                                    transition={{
+                                      duration: 0.2,
+                                      delay: index * 0.01,
+                                    }}
                                   />
-                                }
-                              >
-                                <Icon />
-                                {item.label}
-                              </SidebarMenuButton>
-                            </SidebarMenuItem>
-                          </motion.div>
+
+                                  {/* Actual sidebar item */}
+                                  <motion.div
+                                    initial={{
+                                      opacity: 0,
+                                      y: 3,
+                                    }}
+                                    animate={{
+                                      opacity: 1,
+                                      y: 0,
+                                    }}
+                                    transition={{
+                                      duration: 0.18,
+                                      delay: index * 0.01,
+                                      ease: 'easeOut',
+                                    }}
+                                  >
+                                    <SidebarMenuItem>
+                                      <SidebarMenuButton
+                                        render={
+                                          <Button
+                                            className="justify-start"
+                                            variant={
+                                              active ? 'secondary' : 'ghost'
+                                            }
+                                            render={<Link to={item.to} />}
+                                          />
+                                        }
+                                      >
+                                        <Icon />
+                                        {item.label}
+                                      </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                  </motion.div>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       )
                     })}
