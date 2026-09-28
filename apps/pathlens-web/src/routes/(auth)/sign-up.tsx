@@ -76,7 +76,7 @@ function RouteComponent() {
           variant="ghost"
         >
           <ArrowLeft />
-          Back
+          Home
         </Button>
 
         <div className="w-sm space-y-2">
@@ -297,6 +297,24 @@ function RouteComponent() {
             <LoadingSwap isLoading={signUpPending}>Create account</LoadingSwap>
             {!signUpPending && <ArrowUpRightIcon />}
           </Button>
+
+          <div>
+            <p className="text-muted-foreground text-center text-sm">
+              Already have an Account?{' '}
+              <Button
+                className={'h-6 p-0 underline'}
+                variant={'link'}
+                render={<Link to="/login" />}
+              >
+                Sign in
+              </Button>
+            </p>
+          </div>
+
+          <p className="text-muted-foreground mx-auto mt-8 max-w-[75%] text-center text-xs">
+            By continuing, I agree to Pathlens's terms, privacy policy, and
+            cookie policy.
+          </p>
         </div>
       </div>
       <div></div>

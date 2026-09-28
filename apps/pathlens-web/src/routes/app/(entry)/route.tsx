@@ -37,7 +37,7 @@ function RouteComponent() {
         <EntrySidebar />
         <SidebarInset>
           <Header />
-          <div className="px-5">
+          <div className="p-5">
             <Outlet />
           </div>
         </SidebarInset>

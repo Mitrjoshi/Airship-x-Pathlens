@@ -1,4 +1,4 @@
-import { createFileRoute, useLocation, useRouter } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { ArrowLeftIcon } from 'lucide-react'
 
@@ -18,7 +18,7 @@ function RouteComponent() {
               onClick={() => {
                 router.history.back()
               }}
-              variant="outline"
+              variant="ghost"
             >
               <ArrowLeftIcon />
               Back

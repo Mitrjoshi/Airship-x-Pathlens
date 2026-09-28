@@ -19,7 +19,6 @@ type CreateWorkspaceResponse = {
 }
 
 export const useCreateWorkspace = () => {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -36,10 +35,6 @@ export const useCreateWorkspace = () => {
 
       await queryClient.invalidateQueries({ queryKey: ['WORKSPACES'] })
       toast.success('Workspace created.')
-      await navigate({
-        to: '/app/$workspace',
-        params: { workspace: data.data.id },
-      })
     },
     onError: (error) => toast.error(error.message),
   })

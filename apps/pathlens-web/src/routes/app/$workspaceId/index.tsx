@@ -1,4 +1,4 @@
-import { getProjectsOptions } from '@/queries/projects'
+import { getProjectsOptions, type T_Projects } from '@/queries/projects'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Badge } from '@workspace/ui/components/badge'
@@ -26,6 +26,18 @@ import {
 import { formatNumber } from '@/utils/utils'
 import { toast } from 'sonner'
 import { Skeleton } from '@workspace/ui/components/skeleton'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@workspace/ui/components/dialog'
+import React from 'react'
+import { LoadingSwap } from '@workspace/ui/components/loading-swap'
+import { useDeleteProject } from '@/mutations/projects'
 
 export const Route = createFileRoute('/app/$workspaceId/')({
   component: RouteComponent,
@@ -34,6 +46,7 @@ export const Route = createFileRoute('/app/$workspaceId/')({
 function RouteComponent() {
   const { workspaceId } = Route.useParams()
   const navigate = useNavigate()
+  const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
 
   const {
     data: projects,
@@ -45,9 +58,151 @@ function RouteComponent() {
     })
   )
 
-  type ProjectItem = NonNullable<typeof projects>['data'][number]
+  const deleteProject = useDeleteProject()
 
-  const getProjectMenuItems = (item: ProjectItem) => [
+  if (projectsError) {
+    return (
+      <div className="mx-auto max-w-4xl pt-10">
+        <p className="text-destructive text-sm">Failed to load projects.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <Dialog
+        open={!!deleteOpen}
+        onOpenChange={(v) => {
+          if (!v) {
+            setDeleteOpen(null)
+          }
+        }}
+      >
+        <div className="mx-auto max-w-4xl pt-10">
+          <div className="space-y-5">
+            <p className="text-2xl font-medium">Projects</p>
+
+            <div className="space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <InputGroup>
+                  <InputGroupButton>
+                    <SearchIcon />
+                  </InputGroupButton>
+
+                  <InputGroupInput placeholder="Search..." />
+                </InputGroup>
+
+                <Button
+                  onClick={() => {
+                    navigate({
+                      to: '/app/$workspaceId/create',
+                      params: {
+                        workspaceId,
+                      },
+                    })
+                  }}
+                >
+                  <PlusIcon />
+                  New Project
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {projectsLoading ? (
+                  <>
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        className="grid w-full grid-cols-[0.4fr_1fr] gap-4 rounded-lg border-2 border-dashed p-5 duration-150"
+                        key={i}
+                      >
+                        <Skeleton className="aspect-video w-full" />
+
+                        <div className="flex flex-1 flex-col justify-between">
+                          <div className="space-y-2">
+                            <Skeleton className="h-6 w-50" />
+                            <Skeleton className="h-6 w-32" />
+                          </div>
+
+                          <div className="flex items-center gap-8">
+                            <Skeleton className="h-6 w-20"></Skeleton>
+                            <Skeleton className="h-6 w-20"></Skeleton>
+                            <Skeleton className="h-6 w-20"></Skeleton>
+                            <Skeleton className="h-6 w-20"></Skeleton>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  projects?.data.map((item) => {
+                    return (
+                      <ProjectCard
+                        setDeleteOpen={setDeleteOpen}
+                        item={item}
+                        workspaceId={workspaceId}
+                      />
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {deleteOpen && (
+          <DialogContent showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Confirm Delete</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this workspace?
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter className="bg-transparent py-2">
+              <DialogClose render={<Button variant="ghost">Cancel</Button>}>
+                Close
+              </DialogClose>
+              <Button
+                onClick={() => {
+                  deleteProject.mutate(
+                    {
+                      project_id: deleteOpen,
+                      workspace_id: workspaceId,
+                    },
+                    {
+                      onSuccess: () => {
+                        setDeleteOpen(null)
+                      },
+                    }
+                  )
+                }}
+                variant="destructive"
+              >
+                <LoadingSwap isLoading={deleteProject.isPending}>
+                  Delete
+                </LoadingSwap>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
+    </div>
+  )
+}
+
+const ProjectCard = ({
+  item,
+  workspaceId,
+  setDeleteOpen,
+}: {
+  item: T_Projects
+  workspaceId: string
+  setDeleteOpen: React.Dispatch<React.SetStateAction<string | null>>
+}) => {
+  const navigate = useNavigate()
+
+  const isActive = item.stats.status === 'active'
+  const projectMenuItems = [
     {
       label: 'Go to Project',
       onClick: () => {
@@ -64,7 +219,7 @@ function RouteComponent() {
       label: 'Go to Domain Management',
       onClick: () => {
         navigate({
-          to: '/app/$workspaceId/$projectId/domain',
+          to: '/app/$workspaceId/$projectId/domains',
           params: {
             workspaceId,
             projectId: item.id,
@@ -146,252 +301,158 @@ function RouteComponent() {
       label: 'Delete',
       variant: 'destructive' as const,
       onClick: () => {
-        // Add delete project logic here
+        setDeleteOpen(item.id)
       },
     },
   ]
 
-  if (projectsError) {
-    return (
-      <div className="mx-auto max-w-4xl pt-10">
-        <p className="text-destructive text-sm">Failed to load projects.</p>
-      </div>
-    )
-  }
-
   return (
-    <div>
-      <div className="mx-auto max-w-4xl pt-10">
-        <div className="space-y-5">
-          <p className="text-2xl font-medium">
-            {projectsLoading
-              ? 'Loading...'
-              : `Projects (${projects?.data.length ?? 0})`}
-          </p>
+    <Link
+      key={item.id}
+      to="/app/$workspaceId/$projectId"
+      params={{
+        workspaceId,
+        projectId: item.id,
+      }}
+      className="hover:bg-card/30 grid grid-cols-[0.4fr_1fr] gap-4 rounded-lg border-2 border-dashed p-5 duration-150"
+    >
+      {/* Project Preview */}
+      <div className="aspect-video max-w-60 overflow-hidden">
+        {!item.snapshot.url ? (
+          <div className="bg-muted-foreground/10 flex aspect-video w-full items-center justify-center">
+            <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
+              <InfoIcon size={14} />
+              Preview not available.
+            </p>
+          </div>
+        ) : (
+          <img
+            src={item.snapshot.url}
+            className="bg-muted-foreground/10 aspect-video w-full object-cover"
+            alt={`${item.name} preview`}
+          />
+        )}
+      </div>
 
-          <div className="space-y-5">
-            <div className="flex items-center justify-between gap-4">
-              <InputGroup>
-                <InputGroupButton>
-                  <SearchIcon />
-                </InputGroupButton>
+      {/* Project Content */}
+      <div className="flex min-w-0 flex-col justify-between">
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className={`${
+                  isActive ? 'bg-primary' : 'bg-muted-foreground/20'
+                } h-2 w-2 shrink-0`}
+              />
 
-                <InputGroupInput placeholder="Search..." />
-              </InputGroup>
+              <p className="truncate">{item.name}</p>
 
-              <Button
-                onClick={() => {
-                  navigate({
-                    to: '/app/$workspaceId/create',
-                    params: {
-                      workspaceId,
-                    },
-                  })
+              <Badge
+                className={isActive ? 'text-primary' : 'text-muted-foreground'}
+                variant="ghost"
+              >
+                {isActive ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+
+            {/* Project Actions */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    variant="ghost"
+                    size="icon"
+                  />
+                }
+              >
+                <EllipsisIcon />
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                className="w-fit min-w-52"
+                align="end"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
                 }}
               >
-                <PlusIcon />
-                New Project
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {projectsLoading ? (
-                <>
-                  {[...Array(3)].map((_, i) => (
-                    <div
-                      className="grid w-full grid-cols-[0.4fr_1fr] gap-4 rounded-lg border-2 border-dashed p-5 duration-150"
-                      key={i}
-                    >
-                      <Skeleton className="aspect-video w-full" />
-
-                      <div className="flex flex-1 flex-col justify-between">
-                        <div className="space-y-2">
-                          <Skeleton className="h-6 w-50" />
-                          <Skeleton className="h-6 w-32" />
-                        </div>
-
-                        <div className="flex items-center gap-8">
-                          <Skeleton className="h-6 w-20"></Skeleton>
-                          <Skeleton className="h-6 w-20"></Skeleton>
-                          <Skeleton className="h-6 w-20"></Skeleton>
-                          <Skeleton className="h-6 w-20"></Skeleton>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                projects?.data.map((item) => {
-                  const isActive = item.stats.status === 'active'
-                  const projectMenuItems = getProjectMenuItems(item)
+                {projectMenuItems.map((menuItem, index) => {
+                  if (menuItem.type === 'separator') {
+                    return <DropdownMenuSeparator key={`separator-${index}`} />
+                  }
 
                   return (
-                    <Link
-                      key={item.id}
-                      to="/app/$workspaceId/$projectId"
-                      params={{
-                        workspaceId,
-                        projectId: item.id,
-                      }}
-                      className="hover:bg-card/30 grid grid-cols-[0.4fr_1fr] gap-4 rounded-lg border-2 border-dashed p-5 duration-150"
+                    <DropdownMenuItem
+                      key={menuItem.label}
+                      variant={menuItem.variant}
+                      render={
+                        <Button
+                          className="w-full justify-start"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+
+                            menuItem.onClick?.()
+                          }}
+                        />
+                      }
                     >
-                      {/* Project Preview */}
-                      <div className="aspect-video max-w-60 overflow-hidden">
-                        {!item.snapshot.url ? (
-                          <div className="bg-muted-foreground/10 flex aspect-video w-full items-center justify-center">
-                            <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
-                              <InfoIcon size={14} />
-                              Preview not available.
-                            </p>
-                          </div>
-                        ) : (
-                          <img
-                            src={item.snapshot.url}
-                            className="bg-muted-foreground/10 aspect-video w-full object-cover"
-                            alt={`${item.name} preview`}
-                          />
-                        )}
-                      </div>
-
-                      {/* Project Content */}
-                      <div className="flex min-w-0 flex-col justify-between">
-                        <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex min-w-0 items-center gap-2">
-                              <span
-                                className={`${
-                                  isActive
-                                    ? 'bg-primary'
-                                    : 'bg-muted-foreground/20'
-                                } h-2 w-2 shrink-0`}
-                              />
-
-                              <p className="truncate">{item.name}</p>
-
-                              <Badge
-                                className={
-                                  isActive
-                                    ? 'text-primary'
-                                    : 'text-muted-foreground'
-                                }
-                                variant="ghost"
-                              >
-                                {isActive ? 'Active' : 'Inactive'}
-                              </Badge>
-                            </div>
-
-                            {/* Project Actions */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger
-                                render={
-                                  <Button
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                    }}
-                                    variant="ghost"
-                                    size="icon"
-                                  />
-                                }
-                              >
-                                <EllipsisIcon />
-                              </DropdownMenuTrigger>
-
-                              <DropdownMenuContent
-                                className="w-fit min-w-52"
-                                align="end"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                }}
-                              >
-                                {projectMenuItems.map((menuItem, index) => {
-                                  if (menuItem.type === 'separator') {
-                                    return (
-                                      <DropdownMenuSeparator
-                                        key={`separator-${index}`}
-                                      />
-                                    )
-                                  }
-
-                                  return (
-                                    <DropdownMenuItem
-                                      key={menuItem.label}
-                                      variant={menuItem.variant}
-                                      render={
-                                        <Button
-                                          className="w-full justify-start"
-                                          variant="ghost"
-                                          onClick={(e) => {
-                                            e.preventDefault()
-                                            e.stopPropagation()
-
-                                            menuItem.onClick?.()
-                                          }}
-                                        />
-                                      }
-                                    >
-                                      {menuItem.label}
-                                    </DropdownMenuItem>
-                                  )
-                                })}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-
-                          {/* Domain */}
-                          <p className="text-muted-foreground mt-1 flex items-center gap-2 px-0 text-sm underline underline-offset-4 duration-200">
-                            <GlobeIcon size={14} />
-                            {item.domain}
-                          </p>
-                        </div>
-
-                        {/* Stats */}
-                        <div className="flex items-center gap-8">
-                          <div>
-                            <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                              <navigationIcons.visitors size={12} />
-                              Visitors
-                            </p>
-
-                            <p>{formatNumber(item.stats.visitors)}</p>
-                          </div>
-
-                          <div>
-                            <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                              <navigationIcons.sessions size={12} />
-                              Sessions
-                            </p>
-
-                            <p>{formatNumber(item.stats.sessions)}</p>
-                          </div>
-
-                          <div>
-                            <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                              <navigationIcons.events size={12} />
-                              Events
-                            </p>
-
-                            <p>{formatNumber(item.stats.events)}</p>
-                          </div>
-
-                          <div>
-                            <p className="text-muted-foreground text-xs">
-                              Conversions
-                            </p>
-
-                            <p>{item.stats.conversion}%</p>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
+                      {menuItem.label}
+                    </DropdownMenuItem>
                   )
-                })
-              )}
-            </div>
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Domain */}
+          <p className="text-muted-foreground mt-1 flex items-center gap-2 px-0 text-sm underline underline-offset-4 duration-200">
+            <GlobeIcon size={14} />
+            {item.domain}
+          </p>
+        </div>
+
+        {/* Stats */}
+        <div className="flex items-center gap-8">
+          <div>
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+              <navigationIcons.visitors size={12} />
+              Visitors
+            </p>
+
+            <p>{formatNumber(item.stats.visitors)}</p>
+          </div>
+
+          <div>
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+              <navigationIcons.sessions size={12} />
+              Sessions
+            </p>
+
+            <p>{formatNumber(item.stats.sessions)}</p>
+          </div>
+
+          <div>
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+              <navigationIcons.events size={12} />
+              Events
+            </p>
+
+            <p>{formatNumber(item.stats.events)}</p>
+          </div>
+
+          <div>
+            <p className="text-muted-foreground text-xs">Conversions</p>
+
+            <p>{item.stats.conversion}%</p>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }

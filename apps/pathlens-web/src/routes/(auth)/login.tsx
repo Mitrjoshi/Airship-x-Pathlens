@@ -58,7 +58,7 @@ function RouteComponent() {
           variant="ghost"
         >
           <ArrowLeft />
-          Back
+          Home
         </Button>
         <div className="w-sm space-y-2">
           <div className="mb-12">

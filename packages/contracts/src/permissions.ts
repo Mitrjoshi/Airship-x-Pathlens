@@ -232,53 +232,6 @@ export const PERMISSION_GROUPS = [
       },
     ],
   },
-  {
-    id: 'chat',
-    label: 'Chat',
-    description: 'Control access to team chat and conversations.',
-    permissions: [
-      {
-        key: 'chat.view',
-        label: 'View chat',
-        description: 'See channels, conversations, and messages.',
-      },
-      {
-        key: 'chat.send',
-        label: 'Send messages',
-        description: 'Send messages, replies, reactions, and mentions.',
-      },
-      {
-        key: 'chat.create_channels',
-        label: 'Create channels',
-        description: 'Create new public or private channels.',
-      },
-      {
-        key: 'chat.manage_channels',
-        label: 'Manage channels',
-        description: 'Rename, archive, or delete channels.',
-      },
-      {
-        key: 'chat.manage_members',
-        label: 'Manage channel members',
-        description: 'Add or remove members from channels.',
-      },
-      {
-        key: 'chat.delete_messages',
-        label: 'Delete messages',
-        description: 'Delete messages sent by other members.',
-      },
-      {
-        key: 'chat.pin_messages',
-        label: 'Pin messages',
-        description: 'Pin messages to channels.',
-      },
-      {
-        key: 'chat.share_context',
-        label: 'Share analytics context',
-        description: 'Share analytics views and insights into chat.',
-      },
-    ],
-  },
 ] as const satisfies readonly PermissionGroupDefinition[]
 
 export const DEFAULT_VIEWER_PERMISSIONS = [

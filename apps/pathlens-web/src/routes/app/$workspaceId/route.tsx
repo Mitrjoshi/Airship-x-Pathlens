@@ -260,13 +260,19 @@ const sidebarWorkspaceItems = [
         isActive: (pathname: string) => pathname.includes('team'),
       },
       {
+        label: 'Permissions',
+        icon: navigationIcons.permissions,
+        to: '/app/$workspaceId/permissions',
+        isActive: (pathname: string) => pathname.includes('permissions'),
+      },
+      {
         label: 'Usage',
         icon: navigationIcons.usage,
         to: '/app/$workspaceId/usage',
         isActive: (pathname: string) => pathname.includes('usage'),
       },
       {
-        label: 'Settings',
+        label: 'Workspace Settings',
         icon: navigationIcons.workspaceSettings,
         to: '/app/$workspaceId/settings',
         isActive: (pathname: string) => pathname.includes('settings'),
@@ -443,7 +449,7 @@ export const WorkspaceSwitcher = ({
   return (
     <>
       <DropdownMenu>
-        <div className="flex w-full items-center justify-between overflow-hidden pl-4">
+        <div className="flex w-full items-center justify-between overflow-hidden">
           <AnimatePresence mode="wait" initial={false}>
             <motion.p
               key={workspaceDataLoading ? 'loading' : workspace?.name}
@@ -451,7 +457,7 @@ export const WorkspaceSwitcher = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="truncate text-[15px]"
+              className="truncate font-medium"
             >
               {workspaceDataLoading ? 'Loading...' : workspace?.name}
             </motion.p>

@@ -14,17 +14,11 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   ArrowUpRightIcon,
   CalendarIcon,
-  GaugeIcon,
-  Laptop,
   LayoutIcon,
   LinkIcon,
-  MonitorSmartphone,
   PauseIcon,
   PlayIcon,
   RefreshCcwIcon,
-  Smartphone,
-  TimerIcon,
-  ZapIcon,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import {

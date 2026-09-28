@@ -128,10 +128,10 @@ export const useDeleteProject = () => {
       await queryClient.invalidateQueries({ queryKey: ['WORKSPACES'] })
       await queryClient.invalidateQueries({ queryKey: ['PROJECTS'] })
       navigate({
-        to: '/app/$workspace/projects',
+        to: '/app/$workspaceId',
         replace: true,
         params: {
-          workspace: variables.workspace_id,
+          workspaceId: variables.workspace_id,
         },
       })
       toast.success('Project Deleted Successfully')

@@ -56,3 +56,10 @@ export function formatMs(value: number): string {
   if (value >= 1000) return `${(value / 1000).toFixed(1)}s`
   return `${Math.round(value)}ms`
 }
+
+export function maskReference(value: string | null) {
+  if (!value) return null
+  if (value.length <= 12) return value
+
+  return `${value.slice(0, 8)}...${value.slice(-4)}`
+}
