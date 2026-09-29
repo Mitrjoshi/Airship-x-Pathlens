@@ -40,6 +40,7 @@ export interface ProjectEvent {
 
 export interface EventsData {
   events: ProjectEvent[]
+  total: number
   summary: {
     totalEvents: number
     totalSessions: number
@@ -55,9 +56,24 @@ export interface EventsData {
   }
 }
 
+export interface EventsChartData {
+  chartData: Array<{
+    date: string
+    desktop: number
+    mobile: number
+    tablet: number
+    unknown: number
+  }>
+}
+
 export interface EventsResponse {
   success: boolean
   data: EventsData
+}
+
+export interface EventsChartResponse {
+  success: boolean
+  data: EventsChartData
 }
 
 export interface EventsParams {

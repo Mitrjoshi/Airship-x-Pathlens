@@ -4,6 +4,7 @@ import { events, visitorCampaignAttribution } from "../db/schema";
 import type {
   EventsCategory,
   EventsDevice,
+  EventsChartData,
   EventsData,
   IncomingEvent,
   ProjectEvent,
@@ -29,6 +30,12 @@ export interface EventsFilters {
   search?: string;
   page: number;
   pageSize: number;
+}
+
+export interface EventsChartFilters {
+  workspaceId: string;
+  projectId: string;
+  range: EventsRange;
 }
 
 interface EventRow extends Record<string, unknown> {
@@ -64,6 +71,14 @@ interface SummaryRow extends Record<string, unknown> {
   total_sessions: number | string | null;
   total_visitors: number | string | null;
   high_signal_actions: number | string | null;
+}
+
+interface ChartRow extends Record<string, unknown> {
+  bucket: Date | string | null;
+  desktop: number | string | null;
+  mobile: number | string | null;
+  tablet: number | string | null;
+  unknown: number | string | null;
 }
 
 const RANGE_DAYS: Record<EventsRange, number> = {
@@ -614,7 +629,6 @@ export async function getEventsModel(
   const total = toNumber(countResult.rows[0]?.total_count);
   const summary = summaryResult.rows[0];
   const totalPages = Math.ceil(total / filters.pageSize);
-
   return {
     events: eventsResult.rows.map((event) => ({
       id: event.event_id,
@@ -645,6 +659,7 @@ export async function getEventsModel(
       replayAvailable: Boolean(event.replay_available),
       occurredAt: toIso(event.occurred_at),
     })),
+    total,
     summary: {
       totalEvents: toNumber(summary?.total_events),
       totalSessions: toNumber(summary?.total_sessions),
@@ -658,5 +673,70 @@ export async function getEventsModel(
       totalPages,
       hasNextPage: filters.page < totalPages,
     },
+  };
+}
+
+export async function getEventsChartModel(
+  filters: EventsChartFilters
+): Promise<EventsChartData> {
+  const rangeDays = RANGE_DAYS[filters.range];
+  const chartBucket = filters.range === "24h" ? "hour" : "day";
+  const chartStart =
+    filters.range === "24h"
+      ? sql`date_trunc('hour', NOW() - interval '23 hours')`
+      : sql`date_trunc('day', NOW() - make_interval(days => ${rangeDays - 1}))`;
+  const chartInterval =
+    filters.range === "24h" ? sql`interval '1 hour'` : sql`interval '1 day'`;
+
+  const chartResult = await db.execute<ChartRow>(sql`
+    WITH buckets AS (
+      SELECT generate_series(
+        ${chartStart},
+        date_trunc(${chartBucket}, NOW()),
+        ${chartInterval}
+      ) AS bucket
+    ), counts AS (
+      SELECT
+        date_trunc(${chartBucket}, events.occurred_at) AS bucket,
+        COUNT(*) FILTER (
+          WHERE LOWER(COALESCE(events.device, 'unknown')) = 'desktop'
+        )::int AS desktop,
+        COUNT(*) FILTER (
+          WHERE LOWER(COALESCE(events.device, 'unknown')) = 'mobile'
+        )::int AS mobile,
+        COUNT(*) FILTER (
+          WHERE LOWER(COALESCE(events.device, 'unknown')) = 'tablet'
+        )::int AS tablet,
+        COUNT(*) FILTER (
+          WHERE LOWER(COALESCE(events.device, 'unknown')) = 'unknown'
+        )::int AS unknown
+      FROM events
+      WHERE events.workspace_id = ${filters.workspaceId}
+        AND events.project_id = ${filters.projectId}
+        AND events.occurred_at >= NOW() - make_interval(days => ${rangeDays})
+      GROUP BY 1
+    )
+    SELECT
+      buckets.bucket,
+      COALESCE(counts.desktop, 0)::int AS desktop,
+      COALESCE(counts.mobile, 0)::int AS mobile,
+      COALESCE(counts.tablet, 0)::int AS tablet,
+      COALESCE(counts.unknown, 0)::int AS unknown
+    FROM buckets
+    LEFT JOIN counts ON counts.bucket = buckets.bucket
+    ORDER BY buckets.bucket;
+  `);
+
+  return {
+    chartData: chartResult.rows.map((row) => ({
+      date:
+        filters.range === "24h"
+          ? toIso(row.bucket)
+          : toIso(row.bucket).slice(0, 10),
+      desktop: toNumber(row.desktop),
+      mobile: toNumber(row.mobile),
+      tablet: toNumber(row.tablet),
+      unknown: toNumber(row.unknown),
+    })),
   };
 }

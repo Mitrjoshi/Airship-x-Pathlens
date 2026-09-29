@@ -18,6 +18,31 @@ const RANGE_DAYS: Record<DashboardRange, number> = {
   "90d": 90,
 };
 
+const COUNTRY_NAMES: Record<string, string> = {
+  CA: "Canada",
+  DE: "Germany",
+  GB: "United Kingdom",
+  IN: "India",
+  US: "United States",
+};
+
+interface RegionDisplayNames {
+  of(code: string): string | undefined;
+}
+
+interface IntlWithDisplayNames {
+  DisplayNames?: new (
+    locales: string | string[],
+    options: { type: "region" }
+  ) => RegionDisplayNames;
+}
+
+const displayNamesConstructor = (Intl as unknown as IntlWithDisplayNames)
+  .DisplayNames;
+const regionDisplayNames = displayNamesConstructor
+  ? new displayNamesConstructor(["en"], { type: "region" })
+  : null;
+
 export interface DashboardDifference {
   value: number;
   positive: boolean;
@@ -62,6 +87,11 @@ export interface DashboardResponse {
     name: string;
     value: number;
     sessions: number;
+  }[];
+  countries: {
+    name: string;
+    code: string;
+    visitors: number;
   }[];
   visitorBreakdown: {
     new: number;
@@ -134,6 +164,12 @@ interface DeviceRow extends Record<string, unknown> {
   sessions: number | string | null;
 }
 
+interface CountryRow extends Record<string, unknown> {
+  code: string | null;
+  name: string | null;
+  visitors: number | string | null;
+}
+
 interface VisitorBreakdownRow extends Record<string, unknown> {
   new_visitors: number | string | null;
   returning_visitors: number | string | null;
@@ -167,6 +203,13 @@ function formatDuration(seconds: number): string {
 
 function formatCount(value: number): string {
   return new Intl.NumberFormat("en-US").format(Math.round(value));
+}
+
+function getCountryName(code: string, fallback: string): string {
+  if (COUNTRY_NAMES[code]) return COUNTRY_NAMES[code];
+  if (!/^[A-Z]{2}$/.test(code)) return fallback;
+
+  return regionDisplayNames?.of(code) ?? fallback;
 }
 
 function formatEventName(value: string): string {
@@ -282,6 +325,7 @@ export async function getDashboardModel(
     sessionChartResult,
     sourcesResult,
     devicesResult,
+    countriesResult,
     visitorBreakdownResult,
     topEventsResult,
     liveVisitorsResult,
@@ -553,8 +597,20 @@ export async function getDashboardModel(
         WHERE ${baseFilter}
           AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
         GROUP BY COALESCE(NULLIF(LOWER(device), ''), 'unknown')
-        ORDER BY sessions DESC;
-      `),
+         ORDER BY sessions DESC;
+       `),
+    db.execute<CountryRow>(sql`
+         SELECT
+           NULLIF(country_code, '') AS code,
+           NULLIF(country, '') AS name,
+           COUNT(DISTINCT visitor_id)::int AS visitors
+         FROM events
+         WHERE ${baseFilter}
+           AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+         GROUP BY country_code, country
+         ORDER BY visitors DESC
+         LIMIT 5;
+       `),
     db.execute<VisitorBreakdownRow>(sql`
         WITH current_visitors AS (
           SELECT DISTINCT visitor_id
@@ -681,24 +737,38 @@ export async function getDashboardModel(
     (total, row) => total + toNumber(row.sessions),
     0
   );
-  const devices = devicesResult.rows.map((row) => {
-    const name = row.name ?? "unknown";
-    const label =
-      name === "desktop"
-        ? "Desktop"
-        : name === "mobile"
-          ? "Mobile"
-          : name === "tablet"
-            ? "Tablet"
-            : "Unknown";
+  const deviceSessions = new Map(
+    devicesResult.rows.map((row) => [
+      row.name?.trim().toLowerCase() || "unknown",
+      toNumber(row.sessions),
+    ])
+  );
+  const devices = [
+    ["desktop", "Desktop"],
+    ["mobile", "Mobile"],
+    ["tablet", "Tablet"],
+    ["unknown", "Unknown"],
+  ].map(([key, label]) => {
+    const sessions = deviceSessions.get(key) ?? 0;
 
     return {
       name: label,
       value:
         devicesTotal > 0
-          ? Number(((toNumber(row.sessions) / devicesTotal) * 100).toFixed(1))
+          ? Number(((sessions / devicesTotal) * 100).toFixed(1))
           : 0,
-      sessions: toNumber(row.sessions),
+      sessions,
+    };
+  });
+
+  const countries = countriesResult.rows.map((row) => {
+    const code = row.code?.trim().toUpperCase() || "--";
+    const fallbackName = row.name?.trim() || (code === "--" ? "Unknown" : code);
+
+    return {
+      code,
+      name: getCountryName(code, fallbackName),
+      visitors: toNumber(row.visitors),
     };
   });
 
@@ -744,6 +814,7 @@ export async function getDashboardModel(
     sessionChart,
     trafficSources,
     devices,
+    countries,
     visitorBreakdown: visitorBreakdownData,
     topEvents,
     insights,

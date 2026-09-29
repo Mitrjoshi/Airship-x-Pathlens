@@ -25,6 +25,10 @@ function RouteComponent() {
             </Button>
             <p className="text-2xl font-medium">Create a new project</p>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="border-2 border-dashed p-5"></div>
+          </div>
         </div>
       </div>
     </div>

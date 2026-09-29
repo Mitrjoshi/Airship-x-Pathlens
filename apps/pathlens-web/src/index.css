@@ -77,12 +77,12 @@
   --input: #e5e5e5;
   --ring: #41ce8f;
 
-  /* Charts */
-  --chart-1: #16a34a; /* Emerald green */
-  --chart-2: #2563eb; /* Blue */
-  --chart-3: #9333ea; /* Purple */
-  --chart-4: #ea580c; /* Orange */
-  --chart-5: #64748b; /* Slate */
+  /* Charts - Lighter Blue Shades */
+  --chart-1: #3b82f6;
+  --chart-2: #60a5fa;
+  --chart-3: #93c5fd;
+  --chart-4: #bfdbfe;
+  --chart-5: #dbeafe;
 
   --radius: 0.625rem;
 
@@ -134,12 +134,12 @@
   --input: #262626;
   --ring: #41ce8f;
 
-  /* Charts */
-  --chart-1: #44d59d; /* Brand green */
-  --chart-2: #60a5fa; /* Blue */
-  --chart-3: #c084fc; /* Purple */
-  --chart-4: #fb923c; /* Orange */
-  --chart-5: #94a3b8; /* Slate */
+  /* Charts - Lighter Blue Shades */
+  --chart-1: #3b82f6;
+  --chart-2: #60a5fa;
+  --chart-3: #93c5fd;
+  --chart-4: #bfdbfe;
+  --chart-5: #dbeafe;
 
   /* Sidebar */
   --sidebar: #171717;
@@ -783,5 +783,14 @@ html {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }

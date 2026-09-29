@@ -1,9 +1,14 @@
 export function formatNumber(value: number | undefined | null): string {
   const num = typeof value === 'number' ? value : Number(value) || 0
 
-  if (num < 1000) return num.toString()
+  const truncateTo2 = (value: number) => Math.trunc(value * 100) / 100
+
+  if (num < 1000) {
+    return truncateTo2(num).toString()
+  }
 
   const units = ['K', 'M', 'B', 'T']
+
   let unitIndex = -1
   let formatted = num
 
@@ -12,7 +17,7 @@ export function formatNumber(value: number | undefined | null): string {
     unitIndex++
   }
 
-  return `${Number(formatted.toFixed(formatted < 10 ? 1 : 0))}${units[unitIndex]}`
+  return `${truncateTo2(formatted)}${units[unitIndex]}`
 }
 
 export function formatDate(

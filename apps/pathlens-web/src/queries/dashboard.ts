@@ -60,6 +60,11 @@ export type T_Dashboard = {
     value: number
     sessions: number
   }[]
+  countries: {
+    name: string
+    code: string
+    visitors: number
+  }[]
   visitorBreakdown: {
     new: number
     returning: number
@@ -105,4 +110,5 @@ export const getDashboardOptions = (params: {
     queryKey: ['DASHBOARD', params],
     queryFn: () => getDashboard(params),
     enabled: !!params.workspace_id,
+    refetchOnWindowFocus: false,
   })

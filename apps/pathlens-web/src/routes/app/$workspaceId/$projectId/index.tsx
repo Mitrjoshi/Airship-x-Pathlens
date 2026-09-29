@@ -14,8 +14,10 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   ArrowUpRightIcon,
   CalendarIcon,
+  EllipsisIcon,
   LayoutIcon,
   LinkIcon,
+  LoaderIcon,
   PauseIcon,
   PlayIcon,
   RefreshCcwIcon,
@@ -31,11 +33,13 @@ import {
 import { Separator } from '@workspace/ui/components/separator'
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from '@workspace/ui/components/chart'
-import { Line, LineChart, ResponsiveContainer } from 'recharts'
+import { Line, LineChart, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import {
   Card,
   CardContent,
@@ -43,9 +47,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card'
-import { formatMs, formatNumber, formatRelativeTime } from '@/utils/utils'
+import { formatNumber, formatRelativeTime } from '@/utils/utils'
 import { Badge } from '@workspace/ui/components/badge'
-import { getPerformanceOptions } from '@/queries/performance'
+import { VisitorsGlobe } from './-components/dashboard/visitors-globe'
+import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
 
 const chartConfig = {
   visitors: {
@@ -77,7 +82,7 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
   const navigate = useNavigate()
 
-  const [range, setRange] = useState<DashboardRange>('30d')
+  const [range, setRange] = useState<DashboardRange>('90d')
   const [liveMode, setLiveMode] = useState(false)
 
   const {
@@ -101,25 +106,51 @@ function RouteComponent() {
     })
   )
 
-  const { data: perfData } = useQuery(
-    getPerformanceOptions({
-      workspace_id: workspaceId,
-      project_id: projectId,
-      range,
-      device: 'all',
-    })
-  )
-
   const dashboard = dashboardData?.data
   const projectDetails = projectData?.data[0]
-  const perf = perfData?.data
+
+  const deviceChartConfig = {
+    value: {
+      label: 'Share',
+    },
+    desktop: {
+      label: 'Desktop',
+      color: 'var(--chart-1)',
+    },
+    mobile: {
+      label: 'Mobile',
+      color: 'var(--chart-2)',
+    },
+    tablet: {
+      label: 'Tablet',
+      color: 'var(--chart-3)',
+    },
+    unknown: {
+      label: 'Unknown',
+      color: 'var(--chart-4)',
+    },
+  } satisfies ChartConfig
+
+  const deviceChartData =
+    dashboard?.devices.map((device) => {
+      const key = device.name.toLowerCase()
+
+      return {
+        ...device,
+        device: key,
+        fill: `var(--color-${key})`,
+      }
+    }) ?? []
 
   return (
     <div>
       <div className="flex items-center justify-between border-b p-4 py-2">
         <div className="flex items-center gap-4">
           <Button
-            render={<a href={projectDetails?.domain!} target="_blank" />}
+            disabled={projectLoading}
+            render={
+              <a href={projectDetails?.domain as string} target="_blank" />
+            }
             variant={'link'}
             className={'text-foreground px-0'}
           >
@@ -298,7 +329,162 @@ function RouteComponent() {
           />
         </div>
 
-        <div></div>
+        <div className="grid grid-cols-[25%_75%] gap-3">
+          <Card className="bg-card/30 rounded-none border-2 border-dashed p-0">
+            <CardHeader className="p-2">
+              <CardDescription>Requests by device type</CardDescription>
+            </CardHeader>
+            <CardContent className="p-2 pt-0">
+              {isFetching ? (
+                <div className="mx-auto flex aspect-square w-full items-center justify-center">
+                  <LoaderIcon className="animate-spin" />
+                </div>
+              ) : (
+                <ChartContainer
+                  config={deviceChartConfig}
+                  className="mx-auto aspect-square w-full"
+                >
+                  <PieChart>
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel />}
+                    />
+                    <Pie
+                      data={deviceChartData}
+                      dataKey="value"
+                      nameKey="device"
+                      innerRadius="62%"
+                      paddingAngle={3}
+                      cornerRadius={3}
+                      startAngle={270}
+                      endAngle={-90}
+                    />
+                    <ChartLegend
+                      content={<ChartLegendContent nameKey="value" />}
+                    />
+                  </PieChart>
+                </ChartContainer>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="bg-card/30 rounded-none border-2 border-dashed p-0">
+            <CardHeader className="p-2">
+              <div className="flex items-center justify-between">
+                <CardDescription>Requests by country</CardDescription>
+
+                <Button
+                  variant="link"
+                  disabled={isFetching}
+                  onClick={() => {
+                    navigate({
+                      to: '/app/$workspaceId/$projectId/visitors',
+                      params: {
+                        projectId,
+                        workspaceId,
+                      },
+                    })
+                  }}
+                  size="sm"
+                  className="text-muted-foreground px-0 underline-offset-2"
+                >
+                  View full report
+                  <ArrowUpRightIcon />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="divide-border flex h-full items-start divide-x-2 p-2">
+              <div className="aspect-square h-full">
+                <VisitorsGlobe
+                  countries={
+                    isFetching || !dashboard?.countries
+                      ? []
+                      : dashboard?.countries
+                  }
+                />
+              </div>
+              <div className="w-full space-y-4 px-4">
+                {isFetching
+                  ? Array.from({ length: 5 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                          <Skeleton className="h-4 w-1/3" />
+                        </div>
+
+                        <Skeleton className="h-2 w-full rounded-full" />
+
+                        <Skeleton className="ml-auto h-4 w-4" />
+                      </div>
+                    ))
+                  : dashboard?.countries.map((country, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Avatar>
+                            <AvatarFallback>{country.code}</AvatarFallback>
+                          </Avatar>
+                          <p className="truncate text-sm font-medium">
+                            {country.name}
+                          </p>
+                        </div>
+
+                        <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                          <div
+                            className="bg-chart-1 h-full"
+                            style={{
+                              width: `${Math.min(country.visitors, 100)}%`,
+                            }}
+                          />
+                        </div>
+
+                        <p className="text-right text-sm font-medium">
+                          {formatNumber(country.visitors)}
+                        </p>
+                      </div>
+                    ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-4 gap-3">
+          <ProgressListCard
+            title="Top paths"
+            data={dashboard?.trafficSources}
+            getLabel={(item) => item.name}
+            getValue={(item) => item.visitors}
+            loading={isFetching}
+          />
+
+          <ProgressListCard
+            title="Top hosts"
+            data={dashboard?.trafficSources}
+            getLabel={(item) => item.name}
+            getValue={(item) => item.visitors}
+            loading={isFetching}
+          />
+
+          <ProgressListCard
+            title="Top Browsers"
+            data={dashboard?.trafficSources}
+            getLabel={(item) => item.name}
+            getValue={(item) => item.visitors}
+            loading={isFetching}
+          />
+
+          <ProgressListCard
+            title="Top operating systems"
+            data={dashboard?.trafficSources}
+            getLabel={(item) => item.name}
+            getValue={(item) => item.visitors}
+            loading={isFetching}
+          />
+        </div>
       </div>
     </div>
   )
@@ -361,7 +547,7 @@ export function MetricCard<T extends Record<string, unknown>>({
             onClick={onViewDetails}
             className="text-muted-foreground px-0 underline-offset-2"
           >
-            View Details
+            View full report
             <ArrowUpRightIcon />
           </Button>
         )}
@@ -553,6 +739,86 @@ export function MetricCard<T extends Record<string, unknown>>({
             </ResponsiveContainer>
           </ChartContainer>
         )}
+      </CardContent>
+    </Card>
+  )
+}
+
+type ProgressListCardProps<T> = {
+  title: string
+  data?: T[]
+  getLabel: (item: T) => string
+  getValue: (item: T) => number
+  getKey?: (item: T, index: number) => string | number
+  maxValue?: number
+  loading?: boolean
+}
+
+export function ProgressListCard<T>({
+  title,
+  data = [],
+  getLabel,
+  getValue,
+  getKey,
+  maxValue = 100,
+  loading,
+}: ProgressListCardProps<T>) {
+  return (
+    <Card className="bg-card/30 gap-2 rounded-none border-2 border-dashed p-2">
+      <CardHeader className="p-0">
+        <div className="flex items-center justify-between">
+          <CardDescription>{title}</CardDescription>
+
+          <Button variant="ghost" size="icon">
+            <EllipsisIcon />
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent className="flex h-full items-start p-0">
+        <div className="w-full space-y-4">
+          {loading
+            ? Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                >
+                  <Skeleton className="h-4 w-3/4" />
+
+                  <Skeleton className="h-1.5 w-full rounded-full" />
+
+                  <Skeleton className="ml-auto h-4 w-4" />
+                </div>
+              ))
+            : data.map((item, index) => {
+                const value = getValue(item)
+                const progress = Math.min((value / maxValue) * 100, 100)
+
+                return (
+                  <div
+                    key={getKey?.(item, index) ?? index}
+                    className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                  >
+                    <p className="truncate text-sm font-medium">
+                      {getLabel(item)}
+                    </p>
+
+                    <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                      <div
+                        className="bg-chart-1 h-full"
+                        style={{
+                          width: `${progress}%`,
+                        }}
+                      />
+                    </div>
+
+                    <p className="text-right text-sm font-medium">
+                      {formatNumber(value)}
+                    </p>
+                  </div>
+                )
+              })}
+        </div>
       </CardContent>
     </Card>
   )

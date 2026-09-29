@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { getEvents, ingestEvents } from "../controllers/events.controller";
+import {
+  getEvents,
+  getEventsChart,
+  ingestEvents,
+} from "../controllers/events.controller";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { requireWorkspacePermission } from "../middleware/permission.middleware";
@@ -8,6 +12,13 @@ import { decryptEncryptedTrackingPayload } from "../middleware/encrypted-trackin
 const router = Router();
 
 router.post("/", decryptEncryptedTrackingPayload, ingestEvents);
+router.get(
+  "/chart",
+  ApiKeyMiddleware,
+  authMiddleware,
+  requireWorkspacePermission("analytics.events.view"),
+  getEventsChart
+);
 router.get(
   "/",
   ApiKeyMiddleware,
