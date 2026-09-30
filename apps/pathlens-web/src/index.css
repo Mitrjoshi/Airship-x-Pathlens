@@ -78,11 +78,11 @@
   --ring: #41ce8f;
 
   /* Charts - Lighter Blue Shades */
-  --chart-1: #3b82f6;
-  --chart-2: #60a5fa;
-  --chart-3: #93c5fd;
-  --chart-4: #bfdbfe;
-  --chart-5: #dbeafe;
+  --chart-1: #4b8eec; /* Hit */
+  --chart-2: #ebb839; /* Miss */
+  --chart-3: #e5659c; /* Expired */
+  --chart-4: #8d56e9; /* Dynamic */
+  --chart-5: #59c3b6; /* Bypass */
 
   --radius: 0.625rem;
 
@@ -135,11 +135,11 @@
   --ring: #41ce8f;
 
   /* Charts - Lighter Blue Shades */
-  --chart-1: #3b82f6;
-  --chart-2: #60a5fa;
-  --chart-3: #93c5fd;
-  --chart-4: #bfdbfe;
-  --chart-5: #dbeafe;
+  --chart-1: #4b8eec; /* Hit */
+  --chart-2: #ebb839; /* Miss */
+  --chart-3: #e5659c; /* Expired */
+  --chart-4: #8d56e9; /* Dynamic */
+  --chart-5: #59c3b6; /* Bypass */
 
   /* Sidebar */
   --sidebar: #171717;

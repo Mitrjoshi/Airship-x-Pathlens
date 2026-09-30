@@ -43,7 +43,7 @@ export const Header = () => {
     isError: projectsError,
   } = useQuery(
     getProjectsOptions({
-      workspace_id: workspaceId,
+      workspace_id: workspaceId!,
     })
   )
 

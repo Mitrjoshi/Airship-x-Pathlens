@@ -107,12 +107,6 @@ const sidebarProjectsItems = [
     label: 'Analytics',
     items: [
       {
-        label: 'Analytics',
-        icon: navigationIcons.analytics,
-        to: '/app/$workspaceId/$projectId/analytics',
-        isActive: (pathname: string) => pathname.includes('analytics'),
-      },
-      {
         label: 'User Journey',
         icon: navigationIcons.userJourney,
         to: '/app/$workspaceId/$projectId/user-journey',

@@ -49,11 +49,6 @@ export interface DashboardDifference {
 }
 
 export interface DashboardResponse {
-  visitors: number;
-  sessions: number;
-  events: number;
-  pageViews: number;
-  avgSessionDuration: string;
   weeklyChange: {
     visitors: DashboardDifference;
     sessions: DashboardDifference;
@@ -93,21 +88,15 @@ export interface DashboardResponse {
     code: string;
     visitors: number;
   }[];
-  visitorBreakdown: {
-    new: number;
-    returning: number;
-  };
-  topEvents: {
+  topBrowsers: {
     name: string;
-    count: number;
+    visitors: number;
   }[];
-  insights: string[];
+  topOperatingSystems: {
+    name: string;
+    visitors: number;
+  }[];
   liveVisitors: number;
-  avgSessionDurationChange: DashboardDifference;
-  bounceRate: number;
-  bounceRateChange: DashboardDifference;
-  conversionRate: number;
-  conversionRateChange: DashboardDifference;
 }
 
 interface StatsRow extends Record<string, unknown> {
@@ -170,14 +159,9 @@ interface CountryRow extends Record<string, unknown> {
   visitors: number | string | null;
 }
 
-interface VisitorBreakdownRow extends Record<string, unknown> {
-  new_visitors: number | string | null;
-  returning_visitors: number | string | null;
-}
-
-interface TopEventRow extends Record<string, unknown> {
-  event_type: string | null;
-  count: number | string | null;
+interface BrowserRow extends Record<string, unknown> {
+  name: string | null;
+  visitors: number | string | null;
 }
 
 interface LiveVisitorsRow extends Record<string, unknown> {
@@ -201,23 +185,11 @@ function formatDuration(seconds: number): string {
   return `${remaining}s`;
 }
 
-function formatCount(value: number): string {
-  return new Intl.NumberFormat("en-US").format(Math.round(value));
-}
-
 function getCountryName(code: string, fallback: string): string {
   if (COUNTRY_NAMES[code]) return COUNTRY_NAMES[code];
   if (!/^[A-Z]{2}$/.test(code)) return fallback;
 
   return regionDisplayNames?.of(code) ?? fallback;
-}
-
-function formatEventName(value: string): string {
-  return value
-    .split(/[_-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 function formatReferrerName(value: string): string {
@@ -248,62 +220,10 @@ function getChange(current: number, previous: number): DashboardDifference {
   };
 }
 
-function getDifference(current: number, previous: number): DashboardDifference {
-  const difference = Number((current - previous).toFixed(1));
-
-  return {
-    value: difference,
-    positive: difference >= 0,
-  };
-}
-
-function getRate(convertedSessions: number, sessions: number): number {
-  if (sessions === 0) return 0;
-
-  return Number(((convertedSessions / sessions) * 100).toFixed(1));
-}
-
-function buildInsights(data: {
-  bounceRate: number;
-  trafficSources: DashboardResponse["trafficSources"];
-  devices: DashboardResponse["devices"];
-  pages: DashboardResponse["pages"];
-}): string[] {
-  const insights: string[] = [];
-
-  const topSource = data.trafficSources[0];
-  if (topSource) {
-    insights.push(
-      `${topSource.name} is the top traffic source with ${formatCount(topSource.visitors)} visitors this week.`
-    );
-  }
-
-  const topPage = data.pages[0];
-  if (topPage?.page) {
-    insights.push(
-      `${topPage.page} is the most viewed page with ${formatCount(topPage.views)} views this week.`
-    );
-  }
-
-  const topDevice = data.devices[0];
-  if (topDevice) {
-    insights.push(
-      `${topDevice.name} accounts for ${topDevice.value}% of sessions this week.`
-    );
-  }
-
-  if (data.pages.length > 0 || data.trafficSources.length > 0) {
-    insights.push(`Bounce rate is ${data.bounceRate}% this week.`);
-  }
-
-  return insights.slice(0, 4);
-}
-
 export async function getDashboardModel(
   filters: DashboardFilters
 ): Promise<DashboardResponse> {
   const rangeDays = RANGE_DAYS[filters.range];
-  const previousRangeDays = rangeDays;
   const projectFilter = filters.projectId
     ? sql` AND project_id = ${filters.projectId}`
     : sql``;
@@ -326,8 +246,8 @@ export async function getDashboardModel(
     sourcesResult,
     devicesResult,
     countriesResult,
-    visitorBreakdownResult,
-    topEventsResult,
+    browsersResult,
+    operatingSystemsResult,
     liveVisitorsResult,
   ] = await Promise.all([
     db.execute<StatsRow>(sql`
@@ -611,55 +531,28 @@ export async function getDashboardModel(
          ORDER BY visitors DESC
          LIMIT 5;
        `),
-    db.execute<VisitorBreakdownRow>(sql`
-        WITH current_visitors AS (
-          SELECT DISTINCT visitor_id
-          FROM events
-          WHERE ${baseFilter}
-            AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
-        )
-        SELECT
-          COUNT(*) FILTER (
-            WHERE NOT EXISTS (
-              SELECT 1
-              FROM events previous
-              WHERE previous.workspace_id = ${filters.workspaceId}
-                AND previous.visitor_id = current_visitors.visitor_id
-                AND previous.occurred_at < NOW() - make_interval(days => ${rangeDays})
-                ${projectFilter}
-            )
-          )::int AS new_visitors,
-          COUNT(*) FILTER (
-            WHERE EXISTS (
-              SELECT 1
-              FROM events previous
-              WHERE previous.workspace_id = ${filters.workspaceId}
-                AND previous.visitor_id = current_visitors.visitor_id
-                AND previous.occurred_at < NOW() - make_interval(days => ${rangeDays})
-                ${projectFilter}
-            )
-          )::int AS returning_visitors
-        FROM current_visitors;
-      `),
-    db.execute<TopEventRow>(sql`
-        SELECT
-          type AS event_type,
-          COUNT(*)::int AS count
-        FROM events
-        WHERE ${baseFilter}
-          AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
-          AND type NOT IN (
-            'mousemove',
-            'scroll',
-            'resize',
-            'performance',
-            'session_start',
-            'session_end'
-          )
-        GROUP BY type
-        ORDER BY count DESC
-        LIMIT 5;
-      `),
+    db.execute<BrowserRow>(sql`
+         SELECT
+           COALESCE(NULLIF(browser, ''), 'Other') AS name,
+           COUNT(DISTINCT visitor_id)::int AS visitors
+         FROM events
+         WHERE ${baseFilter}
+           AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+         GROUP BY COALESCE(NULLIF(browser, ''), 'Other')
+         ORDER BY visitors DESC
+         LIMIT 5;
+       `),
+    db.execute<BrowserRow>(sql`
+         SELECT
+           COALESCE(NULLIF(os, ''), 'Other') AS name,
+           COUNT(DISTINCT visitor_id)::int AS visitors
+         FROM events
+         WHERE ${baseFilter}
+           AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+         GROUP BY COALESCE(NULLIF(os, ''), 'Other')
+         ORDER BY visitors DESC
+         LIMIT 5;
+       `),
     db.execute<LiveVisitorsRow>(sql`
         SELECT COUNT(DISTINCT visitor_id)::int AS live_visitors
         FROM events
@@ -677,21 +570,6 @@ export async function getDashboardModel(
   const pageViewsLastWeek = toNumber(stats?.page_views_last_week);
   const eventsThisWeek = toNumber(stats?.events_this_week);
   const eventsLastWeek = toNumber(stats?.events_last_week);
-  const avgSessionDurationThisWeek = toNumber(
-    stats?.avg_session_duration_this_week
-  );
-  const avgSessionDurationLastWeek = toNumber(
-    stats?.avg_session_duration_last_week
-  );
-  const conversionRate = getRate(
-    toNumber(stats?.converted_sessions_this_week),
-    sessionsThisWeek
-  );
-  const conversionRateLastWeek = getRate(
-    toNumber(stats?.converted_sessions_last_week),
-    sessionsLastWeek
-  );
-
   const pages = pagesResult.rows.map((page) => {
     const seconds = toNumber(page.avg_duration_seconds);
     const minutes = Math.floor(seconds / 60);
@@ -772,36 +650,17 @@ export async function getDashboardModel(
     };
   });
 
-  const visitorBreakdown = visitorBreakdownResult.rows[0];
-  const visitorBreakdownData = {
-    new: toNumber(visitorBreakdown?.new_visitors),
-    returning: toNumber(visitorBreakdown?.returning_visitors),
-  };
-
-  const topEvents = topEventsResult.rows.map((row) => ({
-    name: formatEventName(row.event_type ?? "unknown"),
-    count: toNumber(row.count),
+  const topBrowsers = browsersResult.rows.map((row) => ({
+    name: row.name?.trim() || "Other",
+    visitors: toNumber(row.visitors),
   }));
 
-  const bounceRate = Number(toNumber(stats?.bounce_rate_this_week).toFixed(1));
-  const bounceRateLastWeek = Number(
-    toNumber(stats?.bounce_rate_last_week).toFixed(1)
-  );
-  const insights = buildInsights({
-    bounceRate,
-    trafficSources,
-    devices,
-    pages,
-  });
+  const topOperatingSystems = operatingSystemsResult.rows.map((row) => ({
+    name: row.name?.trim() || "Other",
+    visitors: toNumber(row.visitors),
+  }));
 
   return {
-    visitors: toNumber(stats?.visitors),
-    sessions: toNumber(stats?.sessions),
-    events: toNumber(stats?.event_count),
-    pageViews: toNumber(stats?.page_views),
-    avgSessionDuration: formatDuration(
-      toNumber(stats?.avg_session_duration_seconds)
-    ),
     weeklyChange: {
       visitors: getChange(visitorsThisWeek, visitorsLastWeek),
       sessions: getChange(sessionsThisWeek, sessionsLastWeek),
@@ -815,17 +674,8 @@ export async function getDashboardModel(
     trafficSources,
     devices,
     countries,
-    visitorBreakdown: visitorBreakdownData,
-    topEvents,
-    insights,
     liveVisitors: toNumber(liveVisitorsResult.rows[0]?.live_visitors),
-    avgSessionDurationChange: getDifference(
-      avgSessionDurationThisWeek,
-      avgSessionDurationLastWeek
-    ),
-    bounceRate,
-    bounceRateChange: getDifference(bounceRate, bounceRateLastWeek),
-    conversionRate,
-    conversionRateChange: getDifference(conversionRate, conversionRateLastWeek),
+    topBrowsers,
+    topOperatingSystems,
   };
 }

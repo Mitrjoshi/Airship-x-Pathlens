@@ -51,19 +51,20 @@ import { formatNumber, formatRelativeTime } from '@/utils/utils'
 import { Badge } from '@workspace/ui/components/badge'
 import { VisitorsGlobe } from './-components/dashboard/visitors-globe'
 import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
+import ProjectLoading from './-components/common/project-loading'
 
 const chartConfig = {
   visitors: {
     label: 'Visitors',
-    color: 'var(--chart-2)',
+    color: 'var(--chart-1)',
   },
   sessions: {
     label: 'Sessions',
-    color: 'var(--chart-2)',
+    color: 'var(--chart-1)',
   },
   events: {
     label: 'Events',
-    color: 'var(--chart-2)',
+    color: 'var(--chart-1)',
   },
 } satisfies ChartConfig
 
@@ -142,9 +143,13 @@ function RouteComponent() {
       }
     }) ?? []
 
+  if (projectLoading) {
+    return <ProjectLoading />
+  }
+
   return (
     <div>
-      <div className="flex items-center justify-between border-b p-4 py-2">
+      <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
         <div className="flex items-center gap-4">
           <Button
             disabled={projectLoading}
@@ -259,7 +264,7 @@ function RouteComponent() {
         </div>
       </div>
 
-      <div className="mx-auto space-y-6 p-6">
+      <div className="mx-auto space-y-4 p-6">
         <div>
           <p className="text-xl font-medium">Dashboard</p>
           <p className="text-muted-foreground text-sm">
@@ -353,7 +358,7 @@ function RouteComponent() {
                       data={deviceChartData}
                       dataKey="value"
                       nameKey="device"
-                      innerRadius="62%"
+                      innerRadius="60%"
                       paddingAngle={3}
                       cornerRadius={3}
                       startAngle={270}
@@ -463,15 +468,15 @@ function RouteComponent() {
 
           <ProgressListCard
             title="Top hosts"
-            data={dashboard?.trafficSources}
-            getLabel={(item) => item.name}
-            getValue={(item) => item.visitors}
+            data={dashboard?.pages}
+            getLabel={(item) => item.page as string}
+            getValue={(item) => item.views}
             loading={isFetching}
           />
 
           <ProgressListCard
             title="Top Browsers"
-            data={dashboard?.trafficSources}
+            data={dashboard?.topBrowsers}
             getLabel={(item) => item.name}
             getValue={(item) => item.visitors}
             loading={isFetching}
@@ -479,7 +484,7 @@ function RouteComponent() {
 
           <ProgressListCard
             title="Top operating systems"
-            data={dashboard?.trafficSources}
+            data={dashboard?.topOperatingSystems}
             getLabel={(item) => item.name}
             getValue={(item) => item.visitors}
             loading={isFetching}
@@ -775,7 +780,7 @@ export function ProgressListCard<T>({
         </div>
       </CardHeader>
 
-      <CardContent className="flex h-full items-start p-0">
+      <CardContent className="flex h-full max-h-50 items-start overflow-auto p-0">
         <div className="w-full space-y-4">
           {loading
             ? Array.from({ length: 5 }).map((_, index) => (

@@ -65,6 +65,14 @@ export type T_Dashboard = {
     code: string
     visitors: number
   }[]
+  topBrowsers: {
+    name: string
+    visitors: number
+  }[]
+  topOperatingSystems: {
+    name: string
+    visitors: number
+  }[]
   visitorBreakdown: {
     new: number
     returning: number

@@ -36,7 +36,6 @@ import { Route as openProductsProductIdIndexRouteImport } from './routes/(open)/
 import { Route as openSolutionsSolutionIdIndexRouteImport } from './routes/(open)/solutions/$solutionId/index'
 import { Route as AppWorkspaceIdProjectIdIndexRouteImport } from './routes/app/$workspaceId/$projectId/index'
 import { Route as AppWorkspaceIdProjectIdAiInsightsRouteImport } from './routes/app/$workspaceId/$projectId/ai-insights'
-import { Route as AppWorkspaceIdProjectIdAnalyticsRouteImport } from './routes/app/$workspaceId/$projectId/analytics'
 import { Route as AppWorkspaceIdProjectIdApiKeysRouteImport } from './routes/app/$workspaceId/$projectId/api-keys'
 import { Route as AppWorkspaceIdProjectIdCampaignsRouteImport } from './routes/app/$workspaceId/$projectId/campaigns'
 import { Route as AppWorkspaceIdProjectIdDomainsRouteImport } from './routes/app/$workspaceId/$projectId/domains'
@@ -190,12 +189,6 @@ const AppWorkspaceIdProjectIdAiInsightsRoute =
     path: '/$projectId/ai-insights',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
-const AppWorkspaceIdProjectIdAnalyticsRoute =
-  AppWorkspaceIdProjectIdAnalyticsRouteImport.update({
-    id: '/$projectId/analytics',
-    path: '/$projectId/analytics',
-    getParentRoute: () => AppWorkspaceIdRouteRoute,
-  } as any)
 const AppWorkspaceIdProjectIdApiKeysRoute =
   AppWorkspaceIdProjectIdApiKeysRouteImport.update({
     id: '/$projectId/api-keys',
@@ -309,7 +302,6 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
   '/app/': typeof AppentryIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
-  '/app/$workspaceId/$projectId/analytics': typeof AppWorkspaceIdProjectIdAnalyticsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
   '/app/$workspaceId/$projectId/campaigns': typeof AppWorkspaceIdProjectIdCampaignsRoute
   '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
@@ -349,7 +341,6 @@ export interface FileRoutesByTo {
   '/solutions': typeof openSolutionsIndexRoute
   '/app/$workspaceId': typeof AppWorkspaceIdIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
-  '/app/$workspaceId/$projectId/analytics': typeof AppWorkspaceIdProjectIdAnalyticsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
   '/app/$workspaceId/$projectId/campaigns': typeof AppWorkspaceIdProjectIdCampaignsRoute
   '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
@@ -395,7 +386,6 @@ export interface FileRoutesById {
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
   '/app/(entry)/': typeof AppentryIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
-  '/app/$workspaceId/$projectId/analytics': typeof AppWorkspaceIdProjectIdAnalyticsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
   '/app/$workspaceId/$projectId/campaigns': typeof AppWorkspaceIdProjectIdCampaignsRoute
   '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
@@ -439,7 +429,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/'
     | '/app/'
     | '/app/$workspaceId/$projectId/ai-insights'
-    | '/app/$workspaceId/$projectId/analytics'
     | '/app/$workspaceId/$projectId/api-keys'
     | '/app/$workspaceId/$projectId/campaigns'
     | '/app/$workspaceId/$projectId/domains'
@@ -479,7 +468,6 @@ export interface FileRouteTypes {
     | '/solutions'
     | '/app/$workspaceId'
     | '/app/$workspaceId/$projectId/ai-insights'
-    | '/app/$workspaceId/$projectId/analytics'
     | '/app/$workspaceId/$projectId/api-keys'
     | '/app/$workspaceId/$projectId/campaigns'
     | '/app/$workspaceId/$projectId/domains'
@@ -524,7 +512,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/'
     | '/app/(entry)/'
     | '/app/$workspaceId/$projectId/ai-insights'
-    | '/app/$workspaceId/$projectId/analytics'
     | '/app/$workspaceId/$projectId/api-keys'
     | '/app/$workspaceId/$projectId/campaigns'
     | '/app/$workspaceId/$projectId/domains'
@@ -742,13 +729,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdAiInsightsRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
-    '/app/$workspaceId/$projectId/analytics': {
-      id: '/app/$workspaceId/$projectId/analytics'
-      path: '/$projectId/analytics'
-      fullPath: '/app/$workspaceId/$projectId/analytics'
-      preLoaderRoute: typeof AppWorkspaceIdProjectIdAnalyticsRouteImport
-      parentRoute: typeof AppWorkspaceIdRouteRoute
-    }
     '/app/$workspaceId/$projectId/api-keys': {
       id: '/app/$workspaceId/$projectId/api-keys'
       path: '/$projectId/api-keys'
@@ -904,7 +884,6 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdUsageRoute: typeof AppWorkspaceIdUsageRoute
   AppWorkspaceIdIndexRoute: typeof AppWorkspaceIdIndexRoute
   AppWorkspaceIdProjectIdAiInsightsRoute: typeof AppWorkspaceIdProjectIdAiInsightsRoute
-  AppWorkspaceIdProjectIdAnalyticsRoute: typeof AppWorkspaceIdProjectIdAnalyticsRoute
   AppWorkspaceIdProjectIdApiKeysRoute: typeof AppWorkspaceIdProjectIdApiKeysRoute
   AppWorkspaceIdProjectIdCampaignsRoute: typeof AppWorkspaceIdProjectIdCampaignsRoute
   AppWorkspaceIdProjectIdDomainsRoute: typeof AppWorkspaceIdProjectIdDomainsRoute
@@ -933,7 +912,6 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
   AppWorkspaceIdIndexRoute: AppWorkspaceIdIndexRoute,
   AppWorkspaceIdProjectIdAiInsightsRoute:
     AppWorkspaceIdProjectIdAiInsightsRoute,
-  AppWorkspaceIdProjectIdAnalyticsRoute: AppWorkspaceIdProjectIdAnalyticsRoute,
   AppWorkspaceIdProjectIdApiKeysRoute: AppWorkspaceIdProjectIdApiKeysRoute,
   AppWorkspaceIdProjectIdCampaignsRoute: AppWorkspaceIdProjectIdCampaignsRoute,
   AppWorkspaceIdProjectIdDomainsRoute: AppWorkspaceIdProjectIdDomainsRoute,

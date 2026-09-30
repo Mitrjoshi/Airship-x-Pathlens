@@ -4,9 +4,13 @@ import {
   getVisitorsOptions,
   type VisitorsRange,
 } from '@/queries/visitors'
-import { formatDate, formatNumber, formatRelativeTime } from '@/utils/utils'
+import {
+  formatNumber,
+  formatRelativeTime,
+  getPaginationItems,
+} from '@/utils/utils'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { ButtonGroup } from '@workspace/ui/components/button-group'
 import { Calendar } from '@workspace/ui/components/calendar'
@@ -26,19 +30,14 @@ import { Separator } from '@workspace/ui/components/separator'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   CalendarIcon,
-  LaptopIcon,
-  LayoutIcon,
   LinkIcon,
-  MapPinIcon,
-  MonitorSmartphoneIcon,
   PauseIcon,
   PlayIcon,
   RefreshCcwIcon,
   SearchIcon,
-  SmartphoneIcon,
 } from 'lucide-react'
 import { useState } from 'react'
-import { VisitorsWorldMap } from './-components/dashboard/visitors-world-map'
+import { VisitorsWorldMap } from './-components/visitors/visitors-world-map'
 import {
   Card,
   CardContent,
@@ -60,6 +59,7 @@ import {
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
 import { Badge } from '@workspace/ui/components/badge'
+import VisitorsLoading from './-components/common/visitors-loading'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/visitors')({
   component: RouteComponent,
@@ -72,11 +72,14 @@ const rangeLabels: Record<VisitorsRange, string> = {
   '90d': 'Last 90 days',
 }
 
+const PAGE_SIZE = 50
+
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const [range, setRange] = useState<VisitorsRange>('30d')
   const [liveMode, setLiveMode] = useState(false)
+  const [page, setPage] = useState(1)
 
   const {
     data: visitorsLocationData,
@@ -92,15 +95,19 @@ function RouteComponent() {
     })
   )
 
-  const { data, isPending, isError, isFetching } = useQuery(
+  const {
+    data,
+    isFetching,
+    refetch: refetchVisitors,
+  } = useQuery(
     getVisitorsOptions({
       workspace_id: workspaceId,
       project_id: projectId,
       range,
       status: 'all',
       search: undefined,
-      page: 1,
-      page_size: 50,
+      page,
+      page_size: PAGE_SIZE,
     })
   )
 
@@ -114,6 +121,17 @@ function RouteComponent() {
   const projectDetails = projectData?.data[0]
   const visitorsLocation = visitorsLocationData?.data
   const visitors = data?.data.visitors ?? []
+
+  const totalEvents = data?.data.pagination.total ?? 0
+  const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
+  const paginationItems = getPaginationItems(page, totalPages)
+
+  const from = totalEvents === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
+  const to = Math.min(page * PAGE_SIZE, totalEvents)
+
+  if (projectLoading) {
+    return <VisitorsLoading />
+  }
 
   return (
     <div>
@@ -160,6 +178,7 @@ function RouteComponent() {
             disabled={isVisitorsFetching}
             onClick={() => {
               refetch()
+              refetchVisitors()
             }}
             variant="outline"
           >
@@ -227,7 +246,7 @@ function RouteComponent() {
               <p className="px-4 pb-3 text-lg font-medium">Countries</p>
 
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pr-2">
-                {isVisitorsFetching
+                {isFetching
                   ? Array.from({ length: 5 }).map((_, index) => (
                       <div
                         key={index}
@@ -298,118 +317,187 @@ function RouteComponent() {
           </div>
 
           <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow className="w-full justify-between">
-                  <TableHead>Visitor</TableHead>
-                  <TableHead>Device</TableHead>
-                  <TableHead>Browser</TableHead>
-                  <TableHead>Sessions</TableHead>
-                  <TableHead>Page Visits</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead className="w-30">Last seen</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-hidden border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="w-full justify-between">
+                    <TableHead>Visitor</TableHead>
+                    <TableHead>Device</TableHead>
+                    <TableHead>Browser</TableHead>
+                    <TableHead>Sessions</TableHead>
+                    <TableHead>Page Visits</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead className="w-30">Last seen</TableHead>
+                  </TableRow>
+                </TableHeader>
 
-              <TableBody>
-                {isVisitorsFetching
-                  ? [...Array(5)].map((_, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <div className="flex min-w-0 items-start gap-2">
-                            <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                <TableBody>
+                  {isFetching
+                    ? [...Array(5)].map((_, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <div className="flex min-w-0 items-start gap-2">
+                              <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
 
-                            <div className="flex min-w-0 flex-1 flex-col gap-1">
-                              <Skeleton className="h-4 w-90" />
-                              <Skeleton className="h-3 w-1/8" />
+                              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                                <Skeleton className="h-4 w-90" />
+                                <Skeleton className="h-3 w-1/8" />
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
+                          </TableCell>
 
-                        <TableCell>
-                          <div className="flex justify-center">
-                            <Skeleton className="h-6 w-full" />
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex justify-center">
-                            <Skeleton className="h-6 w-full" />
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex justify-center">
-                            <Skeleton className="h-6 w-full" />
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex justify-center">
-                            <Skeleton className="h-6 w-full" />
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex justify-center">
-                            <Skeleton className="h-6 w-full" />
-                          </div>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex justify-center">
-                            <Skeleton className="h-6 w-full" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : visitors?.map((visitor) => (
-                      <TableRow key={visitor.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback>
-                                {visitor.countryCode}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="truncate">{visitor.id}</p>
-                              <p className="text-muted-foreground truncate text-xs">
-                                {visitor.location}
-                              </p>
+                          <TableCell>
+                            <div className="flex justify-center">
+                              <Skeleton className="h-6 w-full" />
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{visitor.device}</TableCell>
-                        <TableCell>{visitor.browser}</TableCell>
+                          </TableCell>
 
-                        <TableCell>{visitor.sessions}</TableCell>
-                        <TableCell>{visitor.pageViews}</TableCell>
+                          <TableCell>
+                            <div className="flex justify-center">
+                              <Skeleton className="h-6 w-full" />
+                            </div>
+                          </TableCell>
 
-                        <TableCell className="text-sm">
-                          {visitor.duration}
-                        </TableCell>
-                        <TableCell className="pr-5">
-                          <Badge
-                            variant="outline"
-                            className={
-                              visitor.status === 'online'
-                                ? 'border-primary/40 bg-primary/10 dark:text-primary text-emerald-700'
-                                : 'text-muted-foreground'
-                            }
+                          <TableCell>
+                            <div className="flex justify-center">
+                              <Skeleton className="h-6 w-full" />
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex justify-center">
+                              <Skeleton className="h-6 w-full" />
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex justify-center">
+                              <Skeleton className="h-6 w-full" />
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex justify-center">
+                              <Skeleton className="h-6 w-full" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    : visitors?.map((visitor) => (
+                        <TableRow key={visitor.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback>
+                                  {visitor.countryCode}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="truncate">{visitor.id}</p>
+                                <p className="text-muted-foreground truncate text-xs">
+                                  {visitor.location}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{visitor.device}</TableCell>
+                          <TableCell>{visitor.browser}</TableCell>
+
+                          <TableCell>{visitor.sessions}</TableCell>
+                          <TableCell>{visitor.pageViews}</TableCell>
+
+                          <TableCell className="text-sm">
+                            {visitor.duration}
+                          </TableCell>
+                          <TableCell className="pr-5">
+                            <Badge
+                              variant="outline"
+                              className={
+                                visitor.status === 'online'
+                                  ? 'border-primary/40 bg-primary/10 dark:text-primary text-emerald-700'
+                                  : 'text-muted-foreground'
+                              }
+                            >
+                              <span
+                                className={`mr-1.5 size-1.5 rounded-full ${visitor.status === 'online' ? 'bg-primary' : 'bg-muted-foreground/50'}`}
+                              />
+                              {visitor.status === 'online'
+                                ? 'Active now'
+                                : formatRelativeTime(visitor.lastSeen)}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between border-t px-4 py-3">
+                <p className="text-muted-foreground text-sm">
+                  {totalEvents > 0 ? (
+                    <>
+                      Showing {from}-{to} of {totalEvents} events
+                    </>
+                  ) : (
+                    'No events'
+                  )}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1 || isVisitorsFetching}
+                    onClick={() => {
+                      setPage((current) => Math.max(current - 1, 1))
+                    }}
+                  >
+                    Previous
+                  </Button>
+
+                  <div className="flex items-center gap-1">
+                    {paginationItems.map((item, index) => {
+                      if (item === 'ellipsis') {
+                        return (
+                          <span
+                            key={`ellipsis-${index}`}
+                            className="text-muted-foreground flex size-8 items-center justify-center text-sm"
                           >
-                            <span
-                              className={`mr-1.5 size-1.5 rounded-full ${visitor.status === 'online' ? 'bg-primary' : 'bg-muted-foreground/50'}`}
-                            />
-                            {visitor.status === 'online'
-                              ? 'Active now'
-                              : formatRelativeTime(visitor.lastSeen)}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-              </TableBody>
-            </Table>
+                            ...
+                          </span>
+                        )
+                      }
+
+                      return (
+                        <Button
+                          key={item}
+                          variant={page === item ? 'outline' : 'ghost'}
+                          size="icon"
+                          className="size-8"
+                          disabled={isVisitorsFetching}
+                          onClick={() => {
+                            setPage(item)
+                          }}
+                        >
+                          {item}
+                        </Button>
+                      )
+                    })}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages || isVisitorsFetching}
+                    onClick={() => {
+                      setPage((current) => Math.min(current + 1, totalPages))
+                    }}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { type AnalyticsRange } from '@/queries/analytics'
 import { getEventsChartOptions, getEventsOptions } from '@/queries/events'
 import { getProjectsOptions } from '@/queries/projects'
-import { formatRelativeTime } from '@/utils/utils'
+import { formatRelativeTime, getPaginationItems } from '@/utils/utils'
 
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -57,45 +57,11 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import VisitorsLoading from './-components/common/visitors-loading'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/events')({
   component: RouteComponent,
 })
-
-const getPaginationItems = (
-  currentPage: number,
-  totalPages: number
-): Array<number | 'ellipsis'> => {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1)
-  }
-
-  if (currentPage <= 4) {
-    return [1, 2, 3, 4, 5, 'ellipsis', totalPages]
-  }
-
-  if (currentPage >= totalPages - 3) {
-    return [
-      1,
-      'ellipsis',
-      totalPages - 4,
-      totalPages - 3,
-      totalPages - 2,
-      totalPages - 1,
-      totalPages,
-    ]
-  }
-
-  return [
-    1,
-    'ellipsis',
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    'ellipsis',
-    totalPages,
-  ]
-}
 
 const deviceLabels = {
   all: 'All devices',
@@ -420,6 +386,10 @@ function RouteComponent() {
 
   const from = totalEvents === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const to = Math.min(page * PAGE_SIZE, totalEvents)
+
+  if (projectLoading) {
+    return <VisitorsLoading />
+  }
 
   return (
     <div>
