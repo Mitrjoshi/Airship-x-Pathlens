@@ -1,5 +1,6 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { z, ZodError } from "zod";
+import type { AuthRequest } from "../lib/jwt";
 import { generateApiKey } from "../utils/utils";
 import {
   createProjectModel,
@@ -8,8 +9,10 @@ import {
   getProjectsModel,
   getProjectSnapshotsModel,
   getProjectStatsModel,
+  getProjectWorkspaceIdModel,
   updateProjectModel,
 } from "../models/projects.model";
+import { createAuditLog } from "../models/audit-logs.model";
 import { enqueueProjectSnapshot } from "../lib/snapshot-queue";
 import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 
@@ -35,7 +38,7 @@ const createProjectSchema = z.object({
   }),
 });
 
-export async function createProject(req: Request, res: Response) {
+export async function createProject(req: AuthRequest, res: Response) {
   try {
     const {
       description,
@@ -61,6 +64,24 @@ export async function createProject(req: Request, res: Response) {
     });
 
     const projectId = project[0].id;
+
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId: workspace_id,
+        actorUserId: req.user.id,
+        action: "project.created",
+        resourceType: "project",
+        resourceId: projectId,
+        metadata: {
+          name,
+          description,
+          domain,
+          captureReplay,
+          capturePerformance,
+          captureErrors,
+        },
+      });
+    }
 
     if (domain) await enqueueProjectSnapshot(projectId);
 
@@ -136,7 +157,7 @@ const updateProjectSchema = z.object({
   captureErrors: z.boolean(),
 });
 
-export async function getProjects(req: Request, res: Response) {
+export async function getProjects(req: AuthRequest, res: Response) {
   try {
     const { workspace_id, project_id } = getProjectSchema.parse(req.query);
 
@@ -182,10 +203,11 @@ export async function getProjects(req: Request, res: Response) {
   }
 }
 
-export async function updateProject(req: Request, res: Response) {
+export async function updateProject(req: AuthRequest, res: Response) {
   try {
     const { project_id } = updateProjectParamsSchema.parse(req.params);
     const payload = updateProjectSchema.parse(req.body ?? {});
+    const workspaceId = await getProjectWorkspaceIdModel(project_id);
     const project = await updateProjectModel({
       projectId: project_id,
       name: payload.name,
@@ -200,6 +222,24 @@ export async function updateProject(req: Request, res: Response) {
       return res.status(404).json({
         success: false,
         message: "Project not found.",
+      });
+    }
+
+    if (workspaceId && req.user?.id) {
+      await createAuditLog({
+        workspaceId,
+        actorUserId: req.user.id,
+        action: "project.updated",
+        resourceType: "project",
+        resourceId: project_id,
+        metadata: {
+          name: payload.name,
+          description: payload.description,
+          domain: payload.domain,
+          captureReplay: payload.captureReplay,
+          capturePerformance: payload.capturePerformance,
+          captureErrors: payload.captureErrors,
+        },
       });
     }
 
@@ -233,11 +273,35 @@ const deleteProjectSchema = z.object({
   }),
 });
 
-export async function deleteProject(req: Request, res: Response) {
+export async function deleteProject(req: AuthRequest, res: Response) {
   try {
     const { project_id } = deleteProjectSchema.parse(req.params);
+    const workspaceId = await getProjectWorkspaceIdModel(project_id);
+    const [project] = workspaceId
+      ? await getProjectsModel(workspaceId, project_id)
+      : [];
 
     await deleteProjectModel(project_id);
+
+    if (workspaceId && req.user?.id) {
+      await createAuditLog({
+        workspaceId,
+        actorUserId: req.user.id,
+        action: "project.deleted",
+        resourceType: "project",
+        resourceId: project_id,
+        metadata: project
+          ? {
+              name: project.name,
+              description: project.description,
+              domain: project.domain,
+              captureReplay: project.captureReplay,
+              capturePerformance: project.capturePerformance,
+              captureErrors: project.captureErrors,
+            }
+          : undefined,
+      });
+    }
 
     res.status(200).json({
       success: true,

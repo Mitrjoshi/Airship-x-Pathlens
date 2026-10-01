@@ -24,11 +24,12 @@ export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
 
   name: text("name").notNull(),
-  password: text("password").notNull(),
+  password: text("password"),
 
   email: text("email").notNull().unique(),
 
   avatar: text("avatar"),
+  githubId: text("github_id").unique(),
 
   lifetimeAccess: boolean("lifetime_access").notNull().default(false),
 
@@ -206,6 +207,48 @@ export const workspaceMembers = pgTable(
       table.workspaceId
     ),
     userIdx: index("workspace_members_user_idx").on(table.userId),
+  })
+);
+
+/* -------------------------------------------------------------------------- */
+/*                                AUDIT LOGS                                  */
+/* -------------------------------------------------------------------------- */
+
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, {
+        onDelete: "cascade",
+      }),
+
+    actorUserId: uuid("actor_user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    action: text("action").notNull(),
+    resourceType: text("resource_type").notNull(),
+    resourceId: text("resource_id"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    workspaceCreatedIdx: index("audit_logs_workspace_created_idx").on(
+      table.workspaceId,
+      table.createdAt
+    ),
+    actorIdx: index("audit_logs_actor_idx").on(table.actorUserId),
+    actionIdx: index("audit_logs_action_idx").on(table.action),
   })
 );
 

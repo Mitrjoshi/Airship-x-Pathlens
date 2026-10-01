@@ -5,7 +5,9 @@ import { users, workspaces } from "../db/schema";
 interface I_Payload {
   name: string;
   email: string;
-  password: string;
+  password?: string | null;
+  avatar?: string | null;
+  githubId?: string | null;
 }
 
 export async function createUserModel(
@@ -17,12 +19,40 @@ export async function createUserModel(
       email: data.email,
       password: data.password,
       name: data.name,
+      avatar: data.avatar,
+      githubId: data.githubId,
     })
     .returning({ id: users.id });
 }
 
 export async function getUserByEmailModel(email: string) {
   const [user] = await db.select().from(users).where(eq(users.email, email));
+
+  return user;
+}
+
+export async function getUserByGithubIdModel(githubId: string) {
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.githubId, githubId));
+
+  return user;
+}
+
+export async function linkGithubAccountModel(data: {
+  id: string;
+  githubId: string;
+  avatar?: string | null;
+}) {
+  const [user] = await db
+    .update(users)
+    .set({
+      githubId: data.githubId,
+      avatar: data.avatar,
+    })
+    .where(eq(users.id, data.id))
+    .returning({ id: users.id });
 
   return user;
 }

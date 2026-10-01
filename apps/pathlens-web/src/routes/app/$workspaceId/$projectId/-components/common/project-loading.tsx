@@ -30,9 +30,9 @@ export default function ProjectLoading() {
           <Skeleton className="h-30 w-full rounded-none" />
         </div>
 
-        <div className="grid grid-cols-[25%_75%] gap-3">
-          <Skeleton className="h-90 w-full rounded-none" />
-          <Skeleton className="h-full w-full rounded-none" />
+        <div className="flex h-100 w-full gap-3">
+          <Skeleton className="aspect-square h-full rounded-none" />
+          <Skeleton className="h-full w-full flex-1 rounded-none" />
         </div>
 
         <div className="grid grid-cols-4 gap-3">

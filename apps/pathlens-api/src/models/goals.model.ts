@@ -314,7 +314,7 @@ export async function deleteGoalModel(data: {
   id: string;
   workspaceId: string;
   projectId: string;
-}): Promise<boolean> {
+}) {
   const deleted = await db
     .delete(goals)
     .where(
@@ -324,7 +324,17 @@ export async function deleteGoalModel(data: {
         eq(goals.projectId, data.projectId)
       )
     )
-    .returning({ id: goals.id });
+    .returning({
+      id: goals.id,
+      projectId: goals.projectId,
+      name: goals.name,
+      type: goals.type,
+      target: goals.target,
+      unit: goals.unit,
+      matchTarget: goals.matchTarget,
+      matchPath: goals.matchPath,
+      deadline: goals.deadline,
+    });
 
-  return deleted.length > 0;
+  return deleted[0];
 }

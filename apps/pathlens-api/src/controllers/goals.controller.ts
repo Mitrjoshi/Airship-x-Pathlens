@@ -1,5 +1,6 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { z, ZodError } from "zod";
+import type { AuthRequest } from "../lib/jwt";
 import {
   createGoalModel,
   deleteGoalModel,
@@ -9,6 +10,7 @@ import {
   type GoalType,
 } from "../models/goals.model";
 import { WorkspaceUsageLimitError } from "../lib/usage-limits";
+import { createAuditLog } from "../models/audit-logs.model";
 
 const goalPayloadSchema = z
   .object({
@@ -58,7 +60,7 @@ function getMatchPath(
   return payload.type === "button" ? (payload.match_path ?? null) : null;
 }
 
-export async function getGoals(req: Request, res: Response) {
+export async function getGoals(req: AuthRequest, res: Response) {
   try {
     const query = goalsQuerySchema.parse(req.query);
     const goals = await getGoalsModel(
@@ -89,7 +91,7 @@ export async function getGoals(req: Request, res: Response) {
   }
 }
 
-export async function createGoal(req: Request, res: Response) {
+export async function createGoal(req: AuthRequest, res: Response) {
   try {
     const payload = goalPayloadSchema.parse(req.body);
     const id = await createGoalModel({
@@ -103,6 +105,26 @@ export async function createGoal(req: Request, res: Response) {
       matchPath: getMatchPath(payload),
       deadline: payload.deadline ?? null,
     });
+
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId: payload.workspace_id,
+        actorUserId: req.user.id,
+        action: "goal.created",
+        resourceType: "goal",
+        resourceId: id,
+        metadata: {
+          projectId: payload.project_id,
+          name: payload.name,
+          type: payload.type,
+          target: payload.target,
+          unit: payload.unit,
+          matchTarget: payload.match_target,
+          matchPath: payload.match_path,
+          deadline: payload.deadline,
+        },
+      });
+    }
 
     return res.status(201).json({
       success: true,
@@ -126,7 +148,7 @@ export async function createGoal(req: Request, res: Response) {
   }
 }
 
-export async function updateGoal(req: Request, res: Response) {
+export async function updateGoal(req: AuthRequest, res: Response) {
   try {
     const params = goalParamsSchema.parse(req.params);
     const payload = goalPayloadSchema.parse(req.body);
@@ -150,6 +172,26 @@ export async function updateGoal(req: Request, res: Response) {
       });
     }
 
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId: payload.workspace_id,
+        actorUserId: req.user.id,
+        action: "goal.updated",
+        resourceType: "goal",
+        resourceId: params.goal_id,
+        metadata: {
+          projectId: payload.project_id,
+          name: payload.name,
+          type: payload.type,
+          target: payload.target,
+          unit: payload.unit,
+          matchTarget: payload.match_target,
+          matchPath: payload.match_path,
+          deadline: payload.deadline,
+        },
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Goal updated.",
@@ -164,7 +206,7 @@ export async function updateGoal(req: Request, res: Response) {
   }
 }
 
-export async function deleteGoal(req: Request, res: Response) {
+export async function deleteGoal(req: AuthRequest, res: Response) {
   try {
     const params = goalParamsSchema.parse(req.params);
     const query = z
@@ -183,6 +225,26 @@ export async function deleteGoal(req: Request, res: Response) {
       return res.status(404).json({
         success: false,
         message: "Goal not found.",
+      });
+    }
+
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId: query.workspace_id,
+        actorUserId: req.user.id,
+        action: "goal.deleted",
+        resourceType: "goal",
+        resourceId: params.goal_id,
+        metadata: {
+          projectId: deleted.projectId,
+          name: deleted.name,
+          type: deleted.type,
+          target: deleted.target,
+          unit: deleted.unit,
+          matchTarget: deleted.matchTarget,
+          matchPath: deleted.matchPath,
+          deadline: deleted.deadline,
+        },
       });
     }
 

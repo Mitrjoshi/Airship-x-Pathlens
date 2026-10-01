@@ -7,7 +7,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
-import { ArrowLeft, EyeIcon, EyeOffIcon, LockIcon } from 'lucide-react'
+import { ArrowLeft, EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useLogin } from '@/mutations/auth'
 import { useForm } from '@tanstack/react-form'
@@ -21,6 +21,7 @@ import {
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { Marker, MarkerContent } from '@workspace/ui/components/marker'
 import { Badge } from '@workspace/ui/components/badge'
+import { startGithubLogin } from '@/lib/github-auth'
 
 export const Route = createFileRoute('/(auth)/login')({
   component: RouteComponent,
@@ -33,6 +34,10 @@ const formSchema = z.object({
 
 function RouteComponent() {
   const [showPassword, setShowPassword] = useState(false)
+
+  const lastSigninMethod = localStorage.getItem(
+    'pathlens-last-sign-in-method'
+  ) as 'github' | 'google' | null
 
   const { mutate: loginMutate, isPending: loginPending } = useLogin()
 
@@ -67,38 +72,48 @@ function RouteComponent() {
           </div>
 
           <div className="space-y-4">
-            <Button className="relative w-full" variant="outline" size="lg">
+            {/* <Button className="relative w-full" variant="outline" size="lg">
               <GoogleIcon />
               Continue with Google
+              {lastSigninMethod === 'google' && (
+                <Badge
+                  variant={'outline'}
+                  className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
+                >
+                  Last used
+                </Badge>
+              )}
+            </Button> */}
+
+            <Button
+              type="button"
+              className="relative w-full"
+              variant="outline"
+              size="lg"
+              onClick={startGithubLogin}
+            >
+              <GithubIcon />
+              Continue with Github
+              {lastSigninMethod === 'github' && (
+                <Badge
+                  variant={'outline'}
+                  className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
+                >
+                  Last used
+                </Badge>
+              )}
+            </Button>
+
+            {/* <Button className="relative w-full" variant="outline" size="lg">
+              <LockIcon />
+              Continue with SSO
               <Badge
                 variant={'outline'}
                 className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
               >
                 Last used
               </Badge>
-            </Button>
-
-            <Button className="relative w-full" variant="outline" size="lg">
-              <GithubIcon />
-              Continue with Github
-              {/* <Badge
-                variant={'outline'}
-                className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
-              >
-                Last used
-              </Badge> */}
-            </Button>
-
-            <Button className="relative w-full" variant="outline" size="lg">
-              <LockIcon />
-              Continue with SSO
-              {/* <Badge
-                variant={'outline'}
-                className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
-              >
-                Last used
-              </Badge> */}
-            </Button>
+            </Button> */}
           </div>
 
           <Marker variant={'separator'}>

@@ -10,18 +10,13 @@ import {
 } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
-import {
-  ArrowLeft,
-  ArrowUpRightIcon,
-  Eye,
-  EyeOff,
-  LockIcon,
-} from 'lucide-react'
+import { ArrowLeft, ArrowUpRightIcon, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { z } from 'zod'
-import { GithubIcon, GoogleIcon } from './login'
+import { GithubIcon } from './login'
 import { Badge } from '@workspace/ui/components/badge'
 import { Marker, MarkerContent } from '@workspace/ui/components/marker'
+import { startGithubLogin } from '@/lib/github-auth'
 
 export const Route = createFileRoute('/(auth)/sign-up')({
   component: RouteComponent,
@@ -44,6 +39,10 @@ const formSchema = z
 function RouteComponent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  const lastSigninMethod = localStorage.getItem(
+    'pathlens-last-sign-in-method'
+  ) as 'github' | 'google' | null
 
   const { mutate: signUpMutate, isPending: signUpPending } = useSignUp()
 
@@ -86,38 +85,48 @@ function RouteComponent() {
           </div>
 
           <div className="space-y-4">
-            <Button className="relative w-full" variant="outline" size="lg">
+            {/* <Button className="relative w-full" variant="outline" size="lg">
               <GoogleIcon />
               Continue with Google
+              {lastSigninMethod === 'google' && (
+                <Badge
+                  variant={'outline'}
+                  className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
+                >
+                  Last used
+                </Badge>
+              )}
+            </Button> */}
+
+            <Button
+              type="button"
+              className="relative w-full"
+              variant="outline"
+              size="lg"
+              onClick={startGithubLogin}
+            >
+              <GithubIcon />
+              Continue with Github
+              {lastSigninMethod === 'github' && (
+                <Badge
+                  variant={'outline'}
+                  className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
+                >
+                  Last used
+                </Badge>
+              )}
+            </Button>
+
+            {/* <Button className="relative w-full" variant="outline" size="lg">
+              <LockIcon />
+              Continue with SSO
               <Badge
                 variant={'outline'}
                 className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
               >
                 Last used
               </Badge>
-            </Button>
-
-            <Button className="relative w-full" variant="outline" size="lg">
-              <GithubIcon />
-              Continue with Github
-              {/* <Badge
-                variant={'outline'}
-                className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
-              >
-                Last used
-              </Badge> */}
-            </Button>
-
-            <Button className="relative w-full" variant="outline" size="lg">
-              <LockIcon />
-              Continue with SSO
-              {/* <Badge
-                variant={'outline'}
-                className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
-              >
-                Last used
-              </Badge> */}
-            </Button>
+            </Button> */}
           </div>
 
           <Marker variant={'separator'}>

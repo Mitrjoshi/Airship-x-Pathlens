@@ -3,7 +3,7 @@ import {
   type T_PermissionProfile,
 } from '@/queries/workspace'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -50,7 +50,7 @@ import { Textarea } from '@workspace/ui/components/textarea'
 import { Label } from '@workspace/ui/components/label'
 import { Separator } from '@workspace/ui/components/separator'
 
-export const Route = createFileRoute('/app/$workspaceId/permissions')({
+export const Route = createFileRoute('/app/$workspaceId/permissions/')({
   component: RouteComponent,
 })
 
@@ -325,6 +325,7 @@ const PermissionsCard = ({
   item: T_PermissionProfile
   setDeleteOpen: React.Dispatch<React.SetStateAction<string | null>>
 }) => {
+  const navigate = useNavigate()
   const permissionMenuItems = [
     {
       label: 'Edit Permission',
@@ -337,9 +338,9 @@ const PermissionsCard = ({
       action: 'delete-permission',
       variant: 'destructive' as const,
       separatorBefore: true,
-      display:
-        !item.isSystem &&
-        item.permissions.includes('workspace.permission_profiles.delete'),
+      display: item.permissions.includes(
+        'workspace.permission_profiles.delete'
+      ),
       onClick: () => {
         setDeleteOpen(item.id)
       },
@@ -350,6 +351,14 @@ const PermissionsCard = ({
     <TableRow
       key={item.id ?? item.name}
       className="hover:bg-card/40 cursor-pointer"
+      onClick={() => {
+        navigate({
+          to: '/app/$workspaceId/permissions/$permissionId',
+          params: {
+            permissionId: item.id,
+          },
+        })
+      }}
     >
       <TableCell>
         <div className="max-w-80 overflow-hidden">
@@ -389,7 +398,7 @@ const PermissionsCard = ({
             <EllipsisIcon />
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent className={'w-fit'} align="end">
             {permissionMenuItems.map(
               (menuItem) =>
                 menuItem.display && (

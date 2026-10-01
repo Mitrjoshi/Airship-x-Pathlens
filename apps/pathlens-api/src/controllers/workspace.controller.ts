@@ -26,6 +26,7 @@ import { getAccountEntitlement } from "../models/billing.model";
 import { getWorkspaceUsageModel } from "../models/usage.model";
 import { getUserByEmailModel } from "../models/users.model";
 import { AuthRequest } from "../lib/jwt";
+import { createAuditLog } from "../models/audit-logs.model";
 
 const workspaceParamsSchema = z.object({
   workspace_id: z.string().min(1, "Workspace id is required."),
@@ -168,6 +169,15 @@ export async function createWorkspace(req: AuthRequest, res: Response) {
       name,
     });
 
+    await createAuditLog({
+      workspaceId: workspace.id,
+      actorUserId: userId,
+      action: "workspace.created",
+      resourceType: "workspace",
+      resourceId: workspace.id,
+      metadata: { name: workspace.name },
+    });
+
     return res.status(201).json({ success: true, data: workspace });
   } catch (error) {
     return res.status(error instanceof ZodError ? 400 : 500).json({
@@ -211,6 +221,15 @@ export async function updateWorkspace(req: AuthRequest, res: Response) {
         message: "Workspace not found.",
       });
     }
+
+    await createAuditLog({
+      workspaceId: workspace_id,
+      actorUserId: userId,
+      action: "workspace.updated",
+      resourceType: "workspace",
+      resourceId: workspace_id,
+      metadata: { name: workspace.name },
+    });
 
     return res.status(200).json({
       success: true,
@@ -448,6 +467,19 @@ export async function updateWorkspaceMember(req: AuthRequest, res: Response) {
       permissionProfileId,
     });
 
+    await createAuditLog({
+      workspaceId: workspace_id,
+      actorUserId: userId,
+      action: "workspace.member_permissions_updated",
+      resourceType: "workspace_member",
+      resourceId: user_id,
+      metadata: {
+        userId: user_id,
+        role: member.role,
+        permissionProfileId: member.permissionProfileId,
+      },
+    });
+
     return res.status(200).json({
       success: true,
       data: member,
@@ -486,6 +518,19 @@ export async function removeWorkspaceMember(req: AuthRequest, res: Response) {
     await removeWorkspaceMemberModel({
       workspaceId: workspace_id,
       userId: user_id,
+    });
+
+    await createAuditLog({
+      workspaceId: workspace_id,
+      actorUserId: userId,
+      action: "workspace.member_removed",
+      resourceType: "workspace_member",
+      resourceId: user_id,
+      metadata: {
+        userId: manageableMember.target.userId,
+        role: manageableMember.target.role,
+        permissionProfileId: manageableMember.target.permissionProfileId,
+      },
     });
 
     return res.status(200).json({
@@ -575,6 +620,20 @@ export async function createWorkspaceInvitation(
       permissionProfileId: permissionProfile.id,
     });
 
+    await createAuditLog({
+      workspaceId: workspace_id,
+      actorUserId: userId,
+      action: "workspace.member_invited",
+      resourceType: "workspace_invitation",
+      resourceId: notification.id,
+      metadata: {
+        notificationId: notification.id,
+        recipientUserId: recipient.id,
+        recipientEmail: recipient.email,
+        permissionProfileId,
+      },
+    });
+
     return res.status(201).json({
       success: true,
       data: notification,
@@ -653,6 +712,19 @@ export async function createPermissionProfile(req: AuthRequest, res: Response) {
       permissions: payload.permissions,
     });
 
+    await createAuditLog({
+      workspaceId: workspace_id,
+      actorUserId: userId,
+      action: "workspace.permission_profile_created",
+      resourceType: "permission_profile",
+      resourceId: profile.id,
+      metadata: {
+        name: profile.name,
+        description: profile.description,
+        permissions: profile.permissions,
+      },
+    });
+
     return res.status(201).json({ success: true, data: profile });
   } catch (error) {
     return res.status(error instanceof ZodError ? 400 : 500).json({
@@ -712,6 +784,19 @@ export async function updatePermissionProfile(req: AuthRequest, res: Response) {
       name: payload.name,
       description: payload.description,
       permissions: payload.permissions,
+    });
+
+    await createAuditLog({
+      workspaceId: workspace_id,
+      actorUserId: userId,
+      action: "workspace.permission_profile_updated",
+      resourceType: "permission_profile",
+      resourceId: profile_id,
+      metadata: {
+        name: profile.name,
+        description: profile.description,
+        permissions: profile.permissions,
+      },
     });
 
     return res.status(200).json({ success: true, data: profile });
@@ -782,6 +867,19 @@ export async function deletePermissionProfile(req: AuthRequest, res: Response) {
     await deletePermissionProfileModel({
       workspaceId: workspace_id,
       profileId: profile_id,
+    });
+
+    await createAuditLog({
+      workspaceId: workspace_id,
+      actorUserId: userId,
+      action: "workspace.permission_profile_deleted",
+      resourceType: "permission_profile",
+      resourceId: profile_id,
+      metadata: {
+        name: existingProfile.name,
+        description: existingProfile.description,
+        permissions: existingProfile.permissions,
+      },
     });
 
     return res.status(200).json({

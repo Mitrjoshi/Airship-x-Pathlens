@@ -14,7 +14,6 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   ArrowUpRightIcon,
   CalendarIcon,
-  EllipsisIcon,
   LayoutIcon,
   LinkIcon,
   LoaderIcon,
@@ -334,12 +333,12 @@ function RouteComponent() {
           />
         </div>
 
-        <div className="grid grid-cols-[25%_75%] gap-3">
-          <Card className="bg-card/30 rounded-none border-2 border-dashed p-0">
+        <div className="flex h-100 w-full gap-3">
+          <Card className="bg-card/30 aspect-square rounded-none border-2 border-dashed p-0">
             <CardHeader className="p-2">
               <CardDescription>Requests by device type</CardDescription>
             </CardHeader>
-            <CardContent className="p-2 pt-0">
+            <CardContent className="p-2 pt-0 pb-4">
               {isFetching ? (
                 <div className="mx-auto flex aspect-square w-full items-center justify-center">
                   <LoaderIcon className="animate-spin" />
@@ -347,7 +346,7 @@ function RouteComponent() {
               ) : (
                 <ChartContainer
                   config={deviceChartConfig}
-                  className="mx-auto aspect-square w-full"
+                  className="mx-auto aspect-square h-[85%]"
                 >
                   <PieChart>
                     <ChartTooltip
@@ -372,7 +371,7 @@ function RouteComponent() {
               )}
             </CardContent>
           </Card>
-          <Card className="bg-card/30 rounded-none border-2 border-dashed p-0">
+          <Card className="bg-card/30 flex-1 rounded-none border-2 border-dashed p-0">
             <CardHeader className="p-2">
               <div className="flex items-center justify-between">
                 <CardDescription>Requests by country</CardDescription>
@@ -397,7 +396,7 @@ function RouteComponent() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="divide-border flex h-full items-start divide-x-2 p-2">
+            <CardContent className="divide-border flex h-full w-full items-start divide-x-2 p-2">
               <div className="aspect-square h-full">
                 <VisitorsGlobe
                   countries={
@@ -460,17 +459,17 @@ function RouteComponent() {
         <div className="grid grid-cols-4 gap-3">
           <ProgressListCard
             title="Top paths"
-            data={dashboard?.trafficSources}
-            getLabel={(item) => item.name}
-            getValue={(item) => item.visitors}
+            data={dashboard?.pages}
+            getLabel={(item) => item.page as string}
+            getValue={(item) => item.views}
             loading={isFetching}
           />
 
           <ProgressListCard
             title="Top hosts"
-            data={dashboard?.pages}
-            getLabel={(item) => item.page as string}
-            getValue={(item) => item.views}
+            data={dashboard?.trafficSources}
+            getLabel={(item) => item.name}
+            getValue={(item) => item.visitors}
             loading={isFetching}
           />
 
@@ -773,10 +772,6 @@ export function ProgressListCard<T>({
       <CardHeader className="p-0">
         <div className="flex items-center justify-between">
           <CardDescription>{title}</CardDescription>
-
-          <Button variant="ghost" size="icon">
-            <EllipsisIcon />
-          </Button>
         </div>
       </CardHeader>
 

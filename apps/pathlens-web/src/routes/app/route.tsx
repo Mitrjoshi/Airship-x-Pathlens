@@ -4,12 +4,16 @@ import {
   redirect,
   type ErrorComponentProps,
 } from '@tanstack/react-router'
-import { getUsersOptions } from '@/queries/user'
+import { getUsersOptions, type T_User } from '@/queries/user'
 import { motion } from 'motion/react'
+
+type AuthContext = {
+  user: T_User
+}
 
 export const Route = createFileRoute('/app')({
   component: RouteComponent,
-  beforeLoad: async ({ context }) => {
+  beforeLoad: async ({ context }): Promise<AuthContext> => {
     const token = localStorage.getItem('pathlens-token')
     if (!token) {
       throw redirect({ to: '/login' })

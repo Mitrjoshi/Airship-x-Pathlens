@@ -21,6 +21,7 @@ import {
   ScanSearchIcon,
   SettingsIcon,
   ShieldCheckIcon,
+  LogsIcon,
   TrashIcon,
   UsersIcon,
   WorkflowIcon,
@@ -60,4 +61,5 @@ export const navigationIcons = {
   trash: TrashIcon,
   copy: CopyIcon,
   edit: EditIcon,
+  audit: LogsIcon,
 } as const

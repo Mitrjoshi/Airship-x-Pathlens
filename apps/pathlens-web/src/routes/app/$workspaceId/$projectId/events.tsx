@@ -1,7 +1,17 @@
 import { type AnalyticsRange } from '@/queries/analytics'
-import { getEventsChartOptions, getEventsOptions } from '@/queries/events'
+import {
+  getEventsChartOptions,
+  getEventsOptions,
+  type EventsCategory,
+  type ProjectEvent,
+} from '@/queries/events'
 import { getProjectsOptions } from '@/queries/projects'
-import { formatRelativeTime, getPaginationItems } from '@/utils/utils'
+import {
+  capitalizeFirstLetter,
+  formatDate,
+  formatRelativeTime,
+  getPaginationItems,
+} from '@/utils/utils'
 
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -49,6 +59,8 @@ import {
 
 import {
   CalendarIcon,
+  CheckIcon,
+  CopyIcon,
   LinkIcon,
   PauseIcon,
   PlayIcon,
@@ -58,6 +70,15 @@ import {
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import VisitorsLoading from './-components/common/visitors-loading'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@workspace/ui/components/sheet'
+import { DotSeparator, DotSeparatorItem } from '../../-components/dot-separator'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/events')({
   component: RouteComponent,
@@ -86,11 +107,11 @@ const chartConfig = {
   },
   desktop: {
     label: 'Desktop',
-    color: 'var(--chart-2)',
+    color: 'var(--chart-1)',
   },
   mobile: {
     label: 'Mobile',
-    color: 'var(--chart-4)',
+    color: 'var(--chart-2)',
   },
   tablet: {
     label: 'Tablet',
@@ -98,7 +119,7 @@ const chartConfig = {
   },
   unknown: {
     label: 'Unknown',
-    color: 'var(--chart-5)',
+    color: 'var(--chart-4)',
   },
 } satisfies ChartConfig
 
@@ -143,6 +164,13 @@ type ChartDataItem = {
   tablet: number
   unknown: number
 }
+
+const categoryOptions: { label: string; value: EventsCategory }[] = [
+  { label: 'High signal', value: 'high_signal' },
+  { label: 'All events', value: 'all' },
+  { label: 'Actions', value: 'actions' },
+  { label: 'Forms', value: 'forms' },
+]
 
 function EventsChartPlaceholder({ animated = false }: { animated?: boolean }) {
   return (
@@ -325,10 +353,13 @@ function EventsChart({ data }: { data: ChartDataItem[] }) {
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
-  const [range, setRange] = useState<AnalyticsRange>('30d')
+  const [range, setRange] = useState<AnalyticsRange>('90d')
   const [liveMode, setLiveMode] = useState(false)
   const [device, setDevice] = useState<DeviceFilter>('all')
   const [page, setPage] = useState(1)
+  const [event, setEvent] = useState<ProjectEvent | null>(null)
+  const [category, setCategory] = useState<EventsCategory>('high_signal')
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const {
     data: eventsData,
@@ -340,7 +371,7 @@ function RouteComponent() {
       workspace_id: workspaceId,
       project_id: projectId,
       range,
-      category: 'all',
+      category,
       device,
       page,
       page_size: PAGE_SIZE,
@@ -352,14 +383,13 @@ function RouteComponent() {
     isFetching: isChartFetching,
     refetch: refetchChart,
     dataUpdatedAt: chartUpdatedAt,
-  } = useQuery({
-    ...getEventsChartOptions({
+  } = useQuery(
+    getEventsChartOptions({
       workspace_id: workspaceId,
       project_id: projectId,
       range,
-    }),
-    refetchInterval: liveMode ? 5000 : false,
-  })
+    })
+  )
 
   const { data: projectData, isLoading: projectLoading } = useQuery(
     getProjectsOptions({
@@ -394,7 +424,7 @@ function RouteComponent() {
   return (
     <div>
       {/* Top toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-2">
+      <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
         <div className="flex min-w-0 items-center gap-4">
           {projectLoading ? (
             <Skeleton className="h-5 w-50" />
@@ -511,29 +541,6 @@ function RouteComponent() {
               </SelectContent>
             </Select>
           </ButtonGroup>
-
-          <Select
-            value={device}
-            onValueChange={(value) => {
-              if (value) {
-                setDevice(value as DeviceFilter)
-              }
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Device">
-                {deviceLabels[device]}
-              </SelectValue>
-            </SelectTrigger>
-
-            <SelectContent alignItemWithTrigger={false}>
-              {Object.entries(deviceLabels).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
@@ -596,9 +603,59 @@ function RouteComponent() {
               </InputGroupButton>
               <InputGroupInput placeholder="Search..." />
             </InputGroup>
+
+            <div className="flex items-center justify-between gap-2">
+              <Select
+                value={category}
+                onValueChange={(value) => {
+                  setCategory(value as EventsCategory)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-36">
+                  <SelectValue>
+                    {
+                      categoryOptions.find(
+                        (option) => option.value === category
+                      )?.label
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {categoryOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={device}
+                onValueChange={(value) => {
+                  if (value) {
+                    setDevice(value as DeviceFilter)
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-36">
+                  <SelectValue placeholder="Device">
+                    {deviceLabels[device]}
+                  </SelectValue>
+                </SelectTrigger>
+
+                <SelectContent alignItemWithTrigger={false}>
+                  {Object.entries(deviceLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="overflow-hidden rounded-lg border">
+          <div className="">
             <div className="overflow-hidden border">
               <Table>
                 <TableHeader>
@@ -663,6 +720,10 @@ function RouteComponent() {
                       ))
                     : events?.events?.map((item) => (
                         <TableRow
+                          onClick={() => {
+                            setEvent(item)
+                            setSheetOpen(true)
+                          }}
                           key={item.id}
                           className="hover:bg-card/40 cursor-pointer"
                         >
@@ -701,7 +762,11 @@ function RouteComponent() {
 
                           <TableCell className="w-20 text-center">
                             {item.replayAvailable ? (
-                              <Button size="icon" variant="outline">
+                              <Button
+                                onClick={(e) => e.preventDefault()}
+                                size="icon"
+                                variant="outline"
+                              >
                                 <PlayIcon />
                               </Button>
                             ) : (
@@ -791,8 +856,259 @@ function RouteComponent() {
               </div>
             </div>
           </div>
+
+          <Sheet
+            open={sheetOpen}
+            onOpenChange={setSheetOpen}
+            onOpenChangeComplete={(open) => {
+              if (!open) setEvent(null)
+            }}
+          >
+            <SheetContent className="flex w-full max-w-lg! flex-col gap-0 p-0">
+              <SheetHeader className="border-b px-6 py-5">
+                <div className="space-y-2">
+                  <div>
+                    <SheetTitle className="text-lg">
+                      {event?.description}
+                    </SheetTitle>
+
+                    <SheetDescription>
+                      Event details and performance information
+                    </SheetDescription>
+                  </div>
+
+                  <DotSeparator className="text-muted-foreground text-sm">
+                    <DotSeparatorItem>
+                      <Badge variant="secondary">
+                        {capitalizeFirstLetter(event?.category)}
+                      </Badge>
+                    </DotSeparatorItem>
+
+                    <DotSeparatorItem>{event?.device}</DotSeparatorItem>
+
+                    <DotSeparatorItem>{event?.browser}</DotSeparatorItem>
+                  </DotSeparator>
+                </div>
+              </SheetHeader>
+
+              <div className="flex-1 overflow-y-auto">
+                <div className="space-y-6 p-6">
+                  <section className="space-y-3">
+                    <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                      Performance
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <MetricCard
+                        label="TTFB"
+                        value={`${event?.details?.ttfb ?? 0} ms`}
+                      />
+
+                      <MetricCard
+                        label="DOM Loaded"
+                        value={`${event?.details?.domLoaded ?? 0} ms`}
+                      />
+
+                      <MetricCard
+                        label="Load"
+                        value={`${event?.details?.load ?? 0} ms`}
+                      />
+
+                      <MetricCard
+                        label="DNS"
+                        value={`${event?.details?.dns ?? 0} ms`}
+                      />
+
+                      <MetricCard
+                        label="TCP"
+                        value={`${event?.details?.tcp ?? 0} ms`}
+                      />
+                    </div>
+                  </section>
+
+                  <Separator />
+
+                  <EventSection title="Page">
+                    <EventRow label="Title" value={event?.title} />
+
+                    <EventRow
+                      label="Path"
+                      value={
+                        <code className="bg-muted rounded px-1.5 py-0.5 text-xs">
+                          {event?.path}
+                        </code>
+                      }
+                    />
+
+                    <EventRow
+                      label="URL"
+                      value={
+                        <a
+                          href={event?.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:text-foreground truncate underline underline-offset-4"
+                        >
+                          {event?.url}
+                        </a>
+                      }
+                    />
+                  </EventSection>
+
+                  <Separator />
+
+                  <EventSection title="Visitor">
+                    <EventRow label="Device" value={event?.device} />
+
+                    <EventRow
+                      label="Operating system"
+                      value={`${event?.os} ${event?.osVersion}`}
+                    />
+
+                    <EventRow
+                      label="Browser"
+                      value={`${event?.browser} ${event?.browserVersion}`}
+                    />
+
+                    <EventRow label="Country" value={event?.countryCode} />
+                  </EventSection>
+
+                  <Separator />
+
+                  <EventSection title="Session">
+                    <EventRow
+                      label="Session ID"
+                      value={<CopyableValue value={event?.sessionId} />}
+                    />
+
+                    <EventRow
+                      label="Visitor ID"
+                      value={<CopyableValue value={event?.visitorId} />}
+                    />
+
+                    <EventRow
+                      label="Replay"
+                      value={
+                        event?.replayAvailable ? (
+                          <Badge variant="outline">Available</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Unavailable
+                          </span>
+                        )
+                      }
+                    />
+
+                    {event?.replayAvailable && (
+                      <Button className="w-full">View session replay</Button>
+                    )}
+                  </EventSection>
+
+                  <Separator />
+
+                  <EventSection title="Referrer">
+                    <EventRow
+                      label="Domain"
+                      value={event?.referrerDomain || 'Direct'}
+                    />
+
+                    <EventRow label="URL" value={event?.referrer || 'Direct'} />
+                  </EventSection>
+
+                  <Separator />
+
+                  <EventSection title="Event">
+                    <EventRow label="Event ID" value={event?.id} />
+
+                    <EventRow label="Type" value={event?.type} />
+
+                    <EventRow label="Category" value={event?.category} />
+
+                    <EventRow label="Occurred at" value={event?.occurredAt} />
+                  </EventSection>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
+    </div>
+  )
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-muted/40 border-2 border-dashed p-3">
+      <p className="text-muted-foreground text-xs">{label}</p>
+
+      <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+    </div>
+  )
+}
+
+function EventSection({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="space-y-3">
+      <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+        {title}
+      </p>
+
+      <div className="space-y-3">{children}</div>
+    </section>
+  )
+}
+
+function EventRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[130px_1fr] gap-4 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+
+      <div className="min-w-0 break-words">{value || '—'}</div>
+    </div>
+  )
+}
+
+function CopyableValue({ value }: { value?: string | null }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    if (!value) return
+
+    await navigator.clipboard.writeText(value)
+
+    setCopied(true)
+
+    setTimeout(() => {
+      setCopied(false)
+    }, 1500)
+  }
+
+  if (!value) {
+    return <span className="text-muted-foreground">—</span>
+  }
+
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="truncate font-mono text-xs">{value}</span>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-7 shrink-0"
+        onClick={handleCopy}
+      >
+        {copied ? (
+          <CheckIcon className="size-3.5" />
+        ) : (
+          <CopyIcon className="size-3.5" />
+        )}
+      </Button>
     </div>
   )
 }

@@ -7,6 +7,7 @@ import {
   markNotificationReadModel,
 } from "../models/workshop.model";
 import { AuthRequest } from "../lib/jwt";
+import { createAuditLog } from "../models/audit-logs.model";
 
 const notificationParamsSchema = z.object({
   notification_id: z.string().min(1, "Notification id is required."),
@@ -62,6 +63,18 @@ export async function acceptNotification(req: AuthRequest, res: Response) {
       userId,
     });
 
+    await createAuditLog({
+      workspaceId: result.workspaceId,
+      actorUserId: userId,
+      action: "workspace.invitation_accepted",
+      resourceType: "workspace",
+      resourceId: result.workspaceId,
+      metadata: {
+        notificationId: notification_id,
+        permissionProfileId: result.permissionProfileId,
+      },
+    });
+
     return res.status(200).json({
       success: true,
       data: result,
@@ -89,7 +102,9 @@ export async function markNotificationRead(req: AuthRequest, res: Response) {
     });
 
     if (!notification) {
-      return res.status(404).json({ success: false, message: "Notification not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Notification not found." });
     }
 
     return res.status(200).json({

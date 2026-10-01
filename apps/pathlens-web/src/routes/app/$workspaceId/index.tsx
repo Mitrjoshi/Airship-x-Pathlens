@@ -78,7 +78,7 @@ function RouteComponent() {
           }
         }}
       >
-        <div className="mx-auto max-w-4xl pt-10">
+        <div className="mx-auto max-w-4xl px-6 pt-10">
           <div className="space-y-5">
             <p className="text-2xl font-medium">Projects</p>
 

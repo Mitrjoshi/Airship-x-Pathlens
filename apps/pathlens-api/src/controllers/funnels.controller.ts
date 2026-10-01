@@ -1,5 +1,6 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { z, ZodError } from "zod";
+import type { AuthRequest } from "../lib/jwt";
 import {
   createFunnelModel,
   deleteFunnelModel,
@@ -8,6 +9,7 @@ import {
   type FunnelRange,
 } from "../models/funnels.model";
 import { WorkspaceUsageLimitError } from "../lib/usage-limits";
+import { createAuditLog } from "../models/audit-logs.model";
 
 const funnelStepSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -42,7 +44,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export async function getFunnels(req: Request, res: Response) {
+export async function getFunnels(req: AuthRequest, res: Response) {
   try {
     const query = funnelsQuerySchema.parse(req.query);
     const funnels = await getFunnelsModel(
@@ -73,7 +75,7 @@ export async function getFunnels(req: Request, res: Response) {
   }
 }
 
-export async function createFunnel(req: Request, res: Response) {
+export async function createFunnel(req: AuthRequest, res: Response) {
   try {
     const payload = funnelPayloadSchema.parse(req.body);
     const id = await createFunnelModel({
@@ -83,6 +85,22 @@ export async function createFunnel(req: Request, res: Response) {
       description: payload.description ?? null,
       steps: payload.steps,
     });
+
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId: payload.workspace_id,
+        actorUserId: req.user.id,
+        action: "funnel.created",
+        resourceType: "funnel",
+        resourceId: id,
+        metadata: {
+          projectId: payload.project_id,
+          name: payload.name,
+          description: payload.description,
+          steps: payload.steps,
+        },
+      });
+    }
 
     return res.status(201).json({
       success: true,
@@ -106,7 +124,7 @@ export async function createFunnel(req: Request, res: Response) {
   }
 }
 
-export async function updateFunnel(req: Request, res: Response) {
+export async function updateFunnel(req: AuthRequest, res: Response) {
   try {
     const params = funnelParamsSchema.parse(req.params);
     const payload = funnelPayloadSchema.parse(req.body);
@@ -126,6 +144,22 @@ export async function updateFunnel(req: Request, res: Response) {
       });
     }
 
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId: payload.workspace_id,
+        actorUserId: req.user.id,
+        action: "funnel.updated",
+        resourceType: "funnel",
+        resourceId: params.funnel_id,
+        metadata: {
+          projectId: payload.project_id,
+          name: payload.name,
+          description: payload.description,
+          steps: payload.steps,
+        },
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Funnel updated.",
@@ -140,7 +174,7 @@ export async function updateFunnel(req: Request, res: Response) {
   }
 }
 
-export async function deleteFunnel(req: Request, res: Response) {
+export async function deleteFunnel(req: AuthRequest, res: Response) {
   try {
     const params = funnelParamsSchema.parse(req.params);
     const query = z
@@ -159,6 +193,22 @@ export async function deleteFunnel(req: Request, res: Response) {
       return res.status(404).json({
         success: false,
         message: "Funnel not found.",
+      });
+    }
+
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId: query.workspace_id,
+        actorUserId: req.user.id,
+        action: "funnel.deleted",
+        resourceType: "funnel",
+        resourceId: params.funnel_id,
+        metadata: {
+          projectId: deleted.projectId,
+          name: deleted.name,
+          description: deleted.description,
+          steps: deleted.steps,
+        },
       });
     }
 

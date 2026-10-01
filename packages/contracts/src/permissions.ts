@@ -7,6 +7,7 @@ export const PERMISSIONS = [
   'workspace.members.invite',
   'workspace.members.update',
   'workspace.members.remove',
+  'workspace.audit_logs.view',
   'workspace.permission_profiles.view',
   'workspace.permission_profiles.create',
   'workspace.permission_profiles.update',
@@ -100,6 +101,11 @@ export const PERMISSION_GROUPS = [
         key: 'workspace.members.remove',
         label: 'Remove members',
         description: 'Remove a member from the workspace.',
+      },
+      {
+        key: 'workspace.audit_logs.view',
+        label: 'View audit logs',
+        description: 'See activity performed by workspace members.',
       },
       {
         key: 'workspace.permission_profiles.view',
@@ -238,6 +244,7 @@ export const DEFAULT_VIEWER_PERMISSIONS = [
   'workspace.view',
   'workspace.settings.view',
   'workspace.members.view',
+  'workspace.audit_logs.view',
   'workspace.permission_profiles.view',
   'projects.view',
   'project.settings.view',

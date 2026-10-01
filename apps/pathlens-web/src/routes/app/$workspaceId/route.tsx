@@ -208,6 +208,12 @@ const sidebarProjectsItems = [
         to: '/app/$workspaceId/$projectId/members',
         isActive: (pathname: string) => pathname.includes('members'),
       },
+      {
+        label: 'Audit Logs',
+        icon: navigationIcons.audit,
+        to: '/app/$workspaceId/audit-logs',
+        isActive: (pathname: string) => pathname.includes('audit-logs'),
+      },
     ],
   },
 
@@ -264,6 +270,12 @@ const sidebarWorkspaceItems = [
         icon: navigationIcons.usage,
         to: '/app/$workspaceId/usage',
         isActive: (pathname: string) => pathname.includes('usage'),
+      },
+      {
+        label: 'Audit Logs',
+        icon: navigationIcons.audit,
+        to: '/app/$workspaceId/audit-logs',
+        isActive: (pathname: string) => pathname.includes('audit-logs'),
       },
       {
         label: 'Workspace Settings',

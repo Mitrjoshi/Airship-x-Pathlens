@@ -317,7 +317,7 @@ export async function deleteFunnelModel(data: {
   id: string;
   workspaceId: string;
   projectId: string;
-}): Promise<boolean> {
+}) {
   const deleted = await db
     .delete(funnels)
     .where(
@@ -327,7 +327,13 @@ export async function deleteFunnelModel(data: {
         eq(funnels.projectId, data.projectId)
       )
     )
-    .returning({ id: funnels.id });
+    .returning({
+      id: funnels.id,
+      projectId: funnels.projectId,
+      name: funnels.name,
+      description: funnels.description,
+      steps: funnels.steps,
+    });
 
-  return deleted.length > 0;
+  return deleted[0];
 }

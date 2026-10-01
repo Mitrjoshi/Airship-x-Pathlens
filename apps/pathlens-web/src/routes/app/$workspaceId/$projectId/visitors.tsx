@@ -135,7 +135,7 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="flex items-center justify-between border-b p-4 py-2">
+      <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
         <div className="flex items-center gap-4">
           <Button
             disabled={projectLoading}
@@ -231,6 +231,14 @@ function RouteComponent() {
       </div>
 
       <div className="mx-auto space-y-6 p-6">
+        <div>
+          <p className="text-xl font-medium">Visitors</p>
+          <p className="text-muted-foreground text-sm">
+            Explore your project visitors, their devices, locations, browsers,
+            and recent activity.
+          </p>
+        </div>
+
         <Card className="bg-card/30 rounded-none border-2 border-dashed p-0">
           <CardHeader className="p-2">
             <CardDescription>Requests by country</CardDescription>
@@ -316,7 +324,7 @@ function RouteComponent() {
             </InputGroup>
           </div>
 
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-hidden">
             <div className="overflow-hidden border">
               <Table>
                 <TableHeader>

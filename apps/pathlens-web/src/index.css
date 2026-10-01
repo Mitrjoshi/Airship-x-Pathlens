@@ -78,11 +78,17 @@
   --ring: #41ce8f;
 
   /* Charts - Lighter Blue Shades */
-  --chart-1: #4b8eec; /* Hit */
-  --chart-2: #ebb839; /* Miss */
-  --chart-3: #e5659c; /* Expired */
-  --chart-4: #8d56e9; /* Dynamic */
-  --chart-5: #59c3b6; /* Bypass */
+  --chart-1: #4b8eec; /* Blue */
+  --chart-2: #ebb839; /* Gold */
+  --chart-3: #e5659c; /* Pink */
+  --chart-4: #8d56e9; /* Purple */
+  --chart-5: #59c3b6; /* Teal */
+
+  --chart-6: #ed7d52; /* Coral */
+  --chart-7: #68b96f; /* Green */
+  --chart-8: #5bb3dc; /* Cyan */
+  --chart-9: #c26dcc; /* Orchid */
+  --chart-10: #d99a5e; /* Amber */
 
   --radius: 0.625rem;
 
@@ -135,11 +141,17 @@
   --ring: #41ce8f;
 
   /* Charts - Lighter Blue Shades */
-  --chart-1: #4b8eec; /* Hit */
-  --chart-2: #ebb839; /* Miss */
-  --chart-3: #e5659c; /* Expired */
-  --chart-4: #8d56e9; /* Dynamic */
-  --chart-5: #59c3b6; /* Bypass */
+  --chart-1: #4b8eec; /* Blue */
+  --chart-2: #ebb839; /* Gold */
+  --chart-3: #e5659c; /* Pink */
+  --chart-4: #8d56e9; /* Purple */
+  --chart-5: #59c3b6; /* Teal */
+
+  --chart-6: #ed7d52; /* Coral */
+  --chart-7: #68b96f; /* Green */
+  --chart-8: #5bb3dc; /* Cyan */
+  --chart-9: #c26dcc; /* Orchid */
+  --chart-10: #d99a5e; /* Amber */
 
   /* Sidebar */
   --sidebar: #171717;

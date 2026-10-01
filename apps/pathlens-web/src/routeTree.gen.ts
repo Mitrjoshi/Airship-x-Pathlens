@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as openRouteRouteImport } from './routes/(open)/route'
 import { Route as AppRouteRouteImport } from './routes/app/route'
+import { Route as authGithubCallbackRouteImport } from './routes/(auth)/github-callback'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authPasswordResetRouteImport } from './routes/(auth)/password-reset'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
@@ -22,9 +23,9 @@ import { Route as AppentryRouteRouteImport } from './routes/app/(entry)/route'
 import { Route as openProductsIndexRouteImport } from './routes/(open)/products/index'
 import { Route as openSolutionsIndexRouteImport } from './routes/(open)/solutions/index'
 import { Route as AppWorkspaceIdIndexRouteImport } from './routes/app/$workspaceId/index'
+import { Route as AppWorkspaceIdAuditLogsRouteImport } from './routes/app/$workspaceId/audit-logs'
 import { Route as AppWorkspaceIdCreateRouteImport } from './routes/app/$workspaceId/create'
 import { Route as AppWorkspaceIdInviteRouteImport } from './routes/app/$workspaceId/invite'
-import { Route as AppWorkspaceIdPermissionsRouteImport } from './routes/app/$workspaceId/permissions'
 import { Route as AppWorkspaceIdSettingsRouteImport } from './routes/app/$workspaceId/settings'
 import { Route as AppWorkspaceIdTeamRouteImport } from './routes/app/$workspaceId/team'
 import { Route as AppWorkspaceIdUsageRouteImport } from './routes/app/$workspaceId/usage'
@@ -51,6 +52,8 @@ import { Route as AppWorkspaceIdProjectIdSettingsRouteImport } from './routes/ap
 import { Route as AppWorkspaceIdProjectIdUsageRouteImport } from './routes/app/$workspaceId/$projectId/usage'
 import { Route as AppWorkspaceIdProjectIdUserJourneyRouteImport } from './routes/app/$workspaceId/$projectId/user-journey'
 import { Route as AppWorkspaceIdProjectIdVisitorsRouteImport } from './routes/app/$workspaceId/$projectId/visitors'
+import { Route as AppWorkspaceIdPermissionsIndexRouteImport } from './routes/app/$workspaceId/permissions/index'
+import { Route as AppWorkspaceIdPermissionsPermissionIdRouteImport } from './routes/app/$workspaceId/permissions/$permissionId'
 
 const authRouteRoute = authRouteRouteImport.update({
   id: '/(auth)',
@@ -64,6 +67,11 @@ const AppRouteRoute = AppRouteRouteImport.update({
   id: '/app',
   path: '/app',
   getParentRoute: () => rootRouteImport,
+} as any)
+const authGithubCallbackRoute = authGithubCallbackRouteImport.update({
+  id: '/github-callback',
+  path: '/github-callback',
+  getParentRoute: () => authRouteRoute,
 } as any)
 const authLoginRoute = authLoginRouteImport.update({
   id: '/login',
@@ -114,6 +122,11 @@ const AppWorkspaceIdIndexRoute = AppWorkspaceIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppWorkspaceIdRouteRoute,
 } as any)
+const AppWorkspaceIdAuditLogsRoute = AppWorkspaceIdAuditLogsRouteImport.update({
+  id: '/audit-logs',
+  path: '/audit-logs',
+  getParentRoute: () => AppWorkspaceIdRouteRoute,
+} as any)
 const AppWorkspaceIdCreateRoute = AppWorkspaceIdCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -124,12 +137,6 @@ const AppWorkspaceIdInviteRoute = AppWorkspaceIdInviteRouteImport.update({
   path: '/invite',
   getParentRoute: () => AppWorkspaceIdRouteRoute,
 } as any)
-const AppWorkspaceIdPermissionsRoute =
-  AppWorkspaceIdPermissionsRouteImport.update({
-    id: '/permissions',
-    path: '/permissions',
-    getParentRoute: () => AppWorkspaceIdRouteRoute,
-  } as any)
 const AppWorkspaceIdSettingsRoute = AppWorkspaceIdSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -279,18 +286,31 @@ const AppWorkspaceIdProjectIdVisitorsRoute =
     path: '/$projectId/visitors',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
+const AppWorkspaceIdPermissionsIndexRoute =
+  AppWorkspaceIdPermissionsIndexRouteImport.update({
+    id: '/permissions/',
+    path: '/permissions/',
+    getParentRoute: () => AppWorkspaceIdRouteRoute,
+  } as any)
+const AppWorkspaceIdPermissionsPermissionIdRoute =
+  AppWorkspaceIdPermissionsPermissionIdRouteImport.update({
+    id: '/permissions/$permissionId',
+    path: '/permissions/$permissionId',
+    getParentRoute: () => AppWorkspaceIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/app': typeof AppentryRouteRouteWithChildren
   '/app/$workspaceId': typeof AppWorkspaceIdRouteRouteWithChildren
+  '/github-callback': typeof authGithubCallbackRoute
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/pricing': typeof openPricingRoute
   '/': typeof openIndexRoute
+  '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
   '/app/$workspaceId/invite': typeof AppWorkspaceIdInviteRoute
-  '/app/$workspaceId/permissions': typeof AppWorkspaceIdPermissionsRoute
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
@@ -317,20 +337,23 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/$projectId/usage': typeof AppWorkspaceIdProjectIdUsageRoute
   '/app/$workspaceId/$projectId/user-journey': typeof AppWorkspaceIdProjectIdUserJourneyRoute
   '/app/$workspaceId/$projectId/visitors': typeof AppWorkspaceIdProjectIdVisitorsRoute
+  '/app/$workspaceId/permissions/$permissionId': typeof AppWorkspaceIdPermissionsPermissionIdRoute
   '/products/$productId/': typeof openProductsProductIdIndexRoute
   '/solutions/$solutionId/': typeof openSolutionsSolutionIdIndexRoute
   '/app/$workspaceId/$projectId/': typeof AppWorkspaceIdProjectIdIndexRoute
+  '/app/$workspaceId/permissions/': typeof AppWorkspaceIdPermissionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/app': typeof AppentryIndexRoute
+  '/github-callback': typeof authGithubCallbackRoute
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/pricing': typeof openPricingRoute
   '/': typeof openIndexRoute
+  '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
   '/app/$workspaceId/invite': typeof AppWorkspaceIdInviteRoute
-  '/app/$workspaceId/permissions': typeof AppWorkspaceIdPermissionsRoute
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
@@ -356,9 +379,11 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/$projectId/usage': typeof AppWorkspaceIdProjectIdUsageRoute
   '/app/$workspaceId/$projectId/user-journey': typeof AppWorkspaceIdProjectIdUserJourneyRoute
   '/app/$workspaceId/$projectId/visitors': typeof AppWorkspaceIdProjectIdVisitorsRoute
+  '/app/$workspaceId/permissions/$permissionId': typeof AppWorkspaceIdPermissionsPermissionIdRoute
   '/products/$productId': typeof openProductsProductIdIndexRoute
   '/solutions/$solutionId': typeof openSolutionsSolutionIdIndexRoute
   '/app/$workspaceId/$projectId': typeof AppWorkspaceIdProjectIdIndexRoute
+  '/app/$workspaceId/permissions': typeof AppWorkspaceIdPermissionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -367,14 +392,15 @@ export interface FileRoutesById {
   '/app': typeof AppRouteRouteWithChildren
   '/app/$workspaceId': typeof AppWorkspaceIdRouteRouteWithChildren
   '/app/(entry)': typeof AppentryRouteRouteWithChildren
+  '/(auth)/github-callback': typeof authGithubCallbackRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/password-reset': typeof authPasswordResetRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(open)/pricing': typeof openPricingRoute
   '/(open)/': typeof openIndexRoute
+  '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
   '/app/$workspaceId/invite': typeof AppWorkspaceIdInviteRoute
-  '/app/$workspaceId/permissions': typeof AppWorkspaceIdPermissionsRoute
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
@@ -401,23 +427,26 @@ export interface FileRoutesById {
   '/app/$workspaceId/$projectId/usage': typeof AppWorkspaceIdProjectIdUsageRoute
   '/app/$workspaceId/$projectId/user-journey': typeof AppWorkspaceIdProjectIdUserJourneyRoute
   '/app/$workspaceId/$projectId/visitors': typeof AppWorkspaceIdProjectIdVisitorsRoute
+  '/app/$workspaceId/permissions/$permissionId': typeof AppWorkspaceIdPermissionsPermissionIdRoute
   '/(open)/products/$productId/': typeof openProductsProductIdIndexRoute
   '/(open)/solutions/$solutionId/': typeof openSolutionsSolutionIdIndexRoute
   '/app/$workspaceId/$projectId/': typeof AppWorkspaceIdProjectIdIndexRoute
+  '/app/$workspaceId/permissions/': typeof AppWorkspaceIdPermissionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/app'
     | '/app/$workspaceId'
+    | '/github-callback'
     | '/login'
     | '/password-reset'
     | '/sign-up'
     | '/pricing'
     | '/'
+    | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
     | '/app/$workspaceId/invite'
-    | '/app/$workspaceId/permissions'
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
@@ -444,20 +473,23 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/usage'
     | '/app/$workspaceId/$projectId/user-journey'
     | '/app/$workspaceId/$projectId/visitors'
+    | '/app/$workspaceId/permissions/$permissionId'
     | '/products/$productId/'
     | '/solutions/$solutionId/'
     | '/app/$workspaceId/$projectId/'
+    | '/app/$workspaceId/permissions/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/app'
+    | '/github-callback'
     | '/login'
     | '/password-reset'
     | '/sign-up'
     | '/pricing'
     | '/'
+    | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
     | '/app/$workspaceId/invite'
-    | '/app/$workspaceId/permissions'
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
@@ -483,9 +515,11 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/usage'
     | '/app/$workspaceId/$projectId/user-journey'
     | '/app/$workspaceId/$projectId/visitors'
+    | '/app/$workspaceId/permissions/$permissionId'
     | '/products/$productId'
     | '/solutions/$solutionId'
     | '/app/$workspaceId/$projectId'
+    | '/app/$workspaceId/permissions'
   id:
     | '__root__'
     | '/(auth)'
@@ -493,14 +527,15 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/$workspaceId'
     | '/app/(entry)'
+    | '/(auth)/github-callback'
     | '/(auth)/login'
     | '/(auth)/password-reset'
     | '/(auth)/sign-up'
     | '/(open)/pricing'
     | '/(open)/'
+    | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
     | '/app/$workspaceId/invite'
-    | '/app/$workspaceId/permissions'
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
@@ -527,9 +562,11 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/usage'
     | '/app/$workspaceId/$projectId/user-journey'
     | '/app/$workspaceId/$projectId/visitors'
+    | '/app/$workspaceId/permissions/$permissionId'
     | '/(open)/products/$productId/'
     | '/(open)/solutions/$solutionId/'
     | '/app/$workspaceId/$projectId/'
+    | '/app/$workspaceId/permissions/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -560,6 +597,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/github-callback': {
+      id: '/(auth)/github-callback'
+      path: '/github-callback'
+      fullPath: '/github-callback'
+      preLoaderRoute: typeof authGithubCallbackRouteImport
+      parentRoute: typeof authRouteRoute
     }
     '/(auth)/login': {
       id: '/(auth)/login'
@@ -631,6 +675,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdIndexRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
+    '/app/$workspaceId/audit-logs': {
+      id: '/app/$workspaceId/audit-logs'
+      path: '/audit-logs'
+      fullPath: '/app/$workspaceId/audit-logs'
+      preLoaderRoute: typeof AppWorkspaceIdAuditLogsRouteImport
+      parentRoute: typeof AppWorkspaceIdRouteRoute
+    }
     '/app/$workspaceId/create': {
       id: '/app/$workspaceId/create'
       path: '/create'
@@ -643,13 +694,6 @@ declare module '@tanstack/react-router' {
       path: '/invite'
       fullPath: '/app/$workspaceId/invite'
       preLoaderRoute: typeof AppWorkspaceIdInviteRouteImport
-      parentRoute: typeof AppWorkspaceIdRouteRoute
-    }
-    '/app/$workspaceId/permissions': {
-      id: '/app/$workspaceId/permissions'
-      path: '/permissions'
-      fullPath: '/app/$workspaceId/permissions'
-      preLoaderRoute: typeof AppWorkspaceIdPermissionsRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
     '/app/$workspaceId/settings': {
@@ -834,16 +878,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdVisitorsRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
+    '/app/$workspaceId/permissions/': {
+      id: '/app/$workspaceId/permissions/'
+      path: '/permissions'
+      fullPath: '/app/$workspaceId/permissions/'
+      preLoaderRoute: typeof AppWorkspaceIdPermissionsIndexRouteImport
+      parentRoute: typeof AppWorkspaceIdRouteRoute
+    }
+    '/app/$workspaceId/permissions/$permissionId': {
+      id: '/app/$workspaceId/permissions/$permissionId'
+      path: '/permissions/$permissionId'
+      fullPath: '/app/$workspaceId/permissions/$permissionId'
+      preLoaderRoute: typeof AppWorkspaceIdPermissionsPermissionIdRouteImport
+      parentRoute: typeof AppWorkspaceIdRouteRoute
+    }
   }
 }
 
 interface authRouteRouteChildren {
+  authGithubCallbackRoute: typeof authGithubCallbackRoute
   authLoginRoute: typeof authLoginRoute
   authPasswordResetRoute: typeof authPasswordResetRoute
   authSignUpRoute: typeof authSignUpRoute
 }
 
 const authRouteRouteChildren: authRouteRouteChildren = {
+  authGithubCallbackRoute: authGithubCallbackRoute,
   authLoginRoute: authLoginRoute,
   authPasswordResetRoute: authPasswordResetRoute,
   authSignUpRoute: authSignUpRoute,
@@ -876,9 +936,9 @@ const openRouteRouteWithChildren = openRouteRoute._addFileChildren(
 )
 
 interface AppWorkspaceIdRouteRouteChildren {
+  AppWorkspaceIdAuditLogsRoute: typeof AppWorkspaceIdAuditLogsRoute
   AppWorkspaceIdCreateRoute: typeof AppWorkspaceIdCreateRoute
   AppWorkspaceIdInviteRoute: typeof AppWorkspaceIdInviteRoute
-  AppWorkspaceIdPermissionsRoute: typeof AppWorkspaceIdPermissionsRoute
   AppWorkspaceIdSettingsRoute: typeof AppWorkspaceIdSettingsRoute
   AppWorkspaceIdTeamRoute: typeof AppWorkspaceIdTeamRoute
   AppWorkspaceIdUsageRoute: typeof AppWorkspaceIdUsageRoute
@@ -899,13 +959,15 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdProjectIdUsageRoute: typeof AppWorkspaceIdProjectIdUsageRoute
   AppWorkspaceIdProjectIdUserJourneyRoute: typeof AppWorkspaceIdProjectIdUserJourneyRoute
   AppWorkspaceIdProjectIdVisitorsRoute: typeof AppWorkspaceIdProjectIdVisitorsRoute
+  AppWorkspaceIdPermissionsPermissionIdRoute: typeof AppWorkspaceIdPermissionsPermissionIdRoute
   AppWorkspaceIdProjectIdIndexRoute: typeof AppWorkspaceIdProjectIdIndexRoute
+  AppWorkspaceIdPermissionsIndexRoute: typeof AppWorkspaceIdPermissionsIndexRoute
 }
 
 const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
+  AppWorkspaceIdAuditLogsRoute: AppWorkspaceIdAuditLogsRoute,
   AppWorkspaceIdCreateRoute: AppWorkspaceIdCreateRoute,
   AppWorkspaceIdInviteRoute: AppWorkspaceIdInviteRoute,
-  AppWorkspaceIdPermissionsRoute: AppWorkspaceIdPermissionsRoute,
   AppWorkspaceIdSettingsRoute: AppWorkspaceIdSettingsRoute,
   AppWorkspaceIdTeamRoute: AppWorkspaceIdTeamRoute,
   AppWorkspaceIdUsageRoute: AppWorkspaceIdUsageRoute,
@@ -930,7 +992,10 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
   AppWorkspaceIdProjectIdUserJourneyRoute:
     AppWorkspaceIdProjectIdUserJourneyRoute,
   AppWorkspaceIdProjectIdVisitorsRoute: AppWorkspaceIdProjectIdVisitorsRoute,
+  AppWorkspaceIdPermissionsPermissionIdRoute:
+    AppWorkspaceIdPermissionsPermissionIdRoute,
   AppWorkspaceIdProjectIdIndexRoute: AppWorkspaceIdProjectIdIndexRoute,
+  AppWorkspaceIdPermissionsIndexRoute: AppWorkspaceIdPermissionsIndexRoute,
 }
 
 const AppWorkspaceIdRouteRouteWithChildren =

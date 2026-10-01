@@ -285,6 +285,7 @@ export async function getWorkspaceMemberModel(
       workspaceId: workspaceMembers.workspaceId,
       userId: workspaceMembers.userId,
       role: workspaceMembers.role,
+      permissionProfileId: workspaceMembers.permissionProfileId,
     })
     .from(workspaceMembers)
     .where(

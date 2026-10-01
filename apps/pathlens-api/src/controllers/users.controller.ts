@@ -40,7 +40,7 @@ export async function loginUser(req: Request, res: Response) {
     }
 
     // Replace this with bcrypt.compare() if passwords are hashed
-    if (user.password !== password) {
+    if (!user.password || user.password !== password) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password.",
@@ -320,7 +320,7 @@ export async function changePassword(req: AuthRequest, res: Response) {
       });
     }
 
-    if (userData.password !== currentPassword) {
+    if (userData.password && userData.password !== currentPassword) {
       return res.status(400).json({
         success: false,
         message: "Current password is incorrect.",
@@ -367,7 +367,7 @@ export async function deleteUser(req: AuthRequest, res: Response) {
       });
     }
 
-    if (userData.password !== password) {
+    if (!userData.password || userData.password !== password) {
       return res.status(400).json({
         success: false,
         message: "Password is incorrect.",
