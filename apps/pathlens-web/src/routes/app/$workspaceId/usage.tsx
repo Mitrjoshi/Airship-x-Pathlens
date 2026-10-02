@@ -41,7 +41,7 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="mx-auto max-w-4xl p-5 pt-10">
+      <div className="mx-auto w-full max-w-4xl pt-10">
         <div className="space-y-5">
           <p className="text-2xl font-medium">Usage</p>
 

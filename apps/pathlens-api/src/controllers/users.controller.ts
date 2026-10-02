@@ -105,6 +105,23 @@ const updateUserSchema = z.object({
     .min(2, "Name must be at least 2 characters.")
     .max(120, "Name must be 120 characters or less."),
   email: z.email({ message: "Please enter a valid email address." }),
+  avatar: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (value) =>
+        value === null ||
+        value === undefined ||
+        /^https?:\/\//.test(value) ||
+        /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value),
+      "Avatar must be a valid JPEG, PNG, or WebP image."
+    )
+    .refine(
+      (value) =>
+        value === null || value === undefined || value.length <= 2800000,
+      "Avatar must be 2 MB or smaller."
+    ),
 });
 
 const changePasswordSchema = z
@@ -247,7 +264,7 @@ export async function updateUser(req: AuthRequest, res: Response) {
   }
 
   try {
-    const { name, email } = updateUserSchema.parse(req.body);
+    const { name, email, avatar } = updateUserSchema.parse(req.body);
     const existingUser = await getUserByEmailModel(email);
 
     if (existingUser && existingUser.id !== userId) {
@@ -261,6 +278,7 @@ export async function updateUser(req: AuthRequest, res: Response) {
       id: userId,
       name,
       email,
+      avatar,
     });
 
     if (!updatedUser) {

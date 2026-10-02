@@ -30,7 +30,7 @@ const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
 
 const countries = feature(
   worldTopology as unknown as Topology,
-  worldTopology.objects.land as unknown as GeometryCollection
+  worldTopology.objects.countries as unknown as GeometryCollection
 ) as FeatureCollection<Geometry>
 
 const graticule = geoGraticule().step([15, 15]).precision(4)()

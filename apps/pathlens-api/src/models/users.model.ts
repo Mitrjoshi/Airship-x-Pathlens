@@ -82,12 +82,14 @@ export async function updateUserModel(data: {
   id: string;
   name: string;
   email: string;
+  avatar?: string | null;
 }) {
   const [user] = await db
     .update(users)
     .set({
       name: data.name,
       email: data.email,
+      ...(data.avatar !== undefined ? { avatar: data.avatar } : {}),
     })
     .where(eq(users.id, data.id))
     .returning({
