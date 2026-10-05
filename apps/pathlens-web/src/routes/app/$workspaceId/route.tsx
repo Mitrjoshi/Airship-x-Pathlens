@@ -46,11 +46,11 @@ import { getWorkspacesOptions, type T_Workspace } from '@/queries/workspace'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { Header } from '../-components/header'
 import { SearchOverAppDialog } from '@/components/common/search-over-app-dialog'
-import { Separator } from '@workspace/ui/components/separator'
 import { navigationIcons } from '@/config/navigation-icons'
 
 export const Route = createFileRoute('/app/$workspaceId')({
   component: RouteComponent,
+  context: () => {},
 })
 
 function RouteComponent() {
@@ -211,7 +211,7 @@ const sidebarProjectsItems = [
       {
         label: 'Audit Logs',
         icon: navigationIcons.audit,
-        to: '/app/$workspaceId/audit-logs',
+        to: '/app/$workspaceId/$projectId/audit-logs',
         isActive: (pathname: string) => pathname.includes('audit-logs'),
       },
     ],

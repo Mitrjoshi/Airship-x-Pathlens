@@ -29,16 +29,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
-import React, { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@workspace/ui/components/dialog'
 import {
   PERMISSION_GROUPS,
@@ -52,18 +50,15 @@ import { Label } from '@workspace/ui/components/label'
 import {
   useCreateWorkspacePermissionProfile,
   useDeleteWorkspacePermissionProfile,
+  useUpdateWorkspacePermissionProfile,
 } from '@/mutations/workspace'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
+import { z } from 'zod'
 
 export const Route = createFileRoute('/app/$workspaceId/permissions/')({
   component: RouteComponent,
+  validateSearch: z.object({ create: z.boolean().default(false) }),
 })
-
-const emptyDraft: PermissionProfileDraft = {
-  name: '',
-  description: '',
-  permissions: [],
-}
 
 type PermissionProfileDraft = {
   name: string
@@ -71,475 +66,575 @@ type PermissionProfileDraft = {
   permissions: Permission[]
 }
 
+type ProfileDialogState =
+  | {
+      mode: 'create'
+    }
+  | {
+      mode: 'edit'
+      profile: T_PermissionProfile
+    }
+  | null
+
+const createEmptyDraft = (): PermissionProfileDraft => ({
+  name: '',
+  description: '',
+  permissions: [],
+})
+
 function RouteComponent() {
   const { workspaceId } = Route.useParams()
-  const [open, setOpen] = React.useState(false)
-  const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
-  const [editOpen, setEditOpen] = React.useState<string | null>(null)
-  const [draft, setDraft] = useState<PermissionProfileDraft>(emptyDraft)
+  const { create } = Route.useSearch()
+  const navigate = useNavigate()
+
+  const [search, setSearch] = useState('')
+  const [profileDialog, setProfileDialog] = useState<ProfileDialogState>(() =>
+    create
+      ? {
+          mode: 'create',
+        }
+      : null
+  )
+  const [deleteOpen, setDeleteOpen] = useState<string | null>(null)
 
   const {
     data: profilesData,
     isPending: profilesPending,
     isError: profilesError,
   } = useQuery(getWorkspacePermissionProfilesOptions(workspaceId))
+
   const { data: workspaceData } = useQuery(getWorkspaceByIdOptions(workspaceId))
+
   const {
     mutate: createPermissionProfile,
     isPending: createPermissionProfilePending,
   } = useCreateWorkspacePermissionProfile(workspaceId)
+
+  const {
+    mutate: updatePermissionProfile,
+    isPending: updatePermissionProfilePending,
+  } = useUpdateWorkspacePermissionProfile(workspaceId)
+
   const {
     mutate: deletePermissionProfile,
     isPending: deletePermissionProfilePending,
   } = useDeleteWorkspacePermissionProfile(workspaceId)
 
-  const togglePermission = (permission: Permission, checked: boolean) => {
-    setDraft((current) => {
-      const permissions = new Set(current.permissions)
+  const permissions = workspaceData?.data?.permissions ?? []
 
-      if (checked) permissions.add(permission)
-      else permissions.delete(permission)
+  const profiles = profilesData?.data ?? []
 
-      return {
-        ...current,
-        permissions: [...permissions],
-      }
+  const filteredProfiles = useMemo(() => {
+    const query = search.trim().toLowerCase()
+
+    if (!query) return profiles
+
+    return profiles.filter((profile) => {
+      return (
+        profile.name.toLowerCase().includes(query) ||
+        profile.description?.toLowerCase().includes(query)
+      )
     })
+  }, [profiles, search])
+
+  const closeProfileDialog = () => {
+    setProfileDialog(null)
+    navigate({
+      to: '/app/$workspaceId/permissions',
+      params: { workspaceId },
+      search: {
+        create: false,
+      },
+      replace: true,
+    })
+  }
+
+  const handleProfileSubmit = (draft: PermissionProfileDraft) => {
+    if (profileDialog?.mode === 'edit') {
+      /*
+       * Keeping the same mutation payload shape as your existing page.
+       *
+       * If your update mutation requires profileId in the payload,
+       * add profileDialog.profile.id here.
+       */
+      updatePermissionProfile(
+        {
+          payload: draft,
+          profileId: profileDialog.profile.id,
+        },
+        {
+          onSuccess: closeProfileDialog,
+        }
+      )
+
+      return
+    }
+
+    createPermissionProfile(draft, {
+      onSuccess: closeProfileDialog,
+    })
+  }
+
+  return (
+    <div>
+      <div className="mx-auto max-w-4xl pt-10">
+        <div className="space-y-5">
+          <p className="text-2xl font-medium">Permission Profiles</p>
+
+          {profilesError ? (
+            <div className="flex items-center gap-1">
+              <InfoIcon size={18} className="text-destructive" />
+
+              <p className="text-destructive">Failed to load profiles</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-4">
+                <InputGroup>
+                  <InputGroupButton>
+                    <SearchIcon />
+                  </InputGroupButton>
+
+                  <InputGroupInput
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search..."
+                  />
+                </InputGroup>
+
+                <Button
+                  onClick={() => {
+                    setProfileDialog({
+                      mode: 'create',
+                    })
+                  }}
+                >
+                  <PlusIcon />
+                  New Permission
+                </Button>
+              </div>
+
+              <div className="overflow-hidden rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+
+                      <TableHead className="w-32 text-center">
+                        Permissions
+                      </TableHead>
+
+                      <TableHead className="w-24 text-center">
+                        Members
+                      </TableHead>
+
+                      <TableHead className="w-20 text-center">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {profilesPending ? (
+                      <PermissionTableSkeleton />
+                    ) : (
+                      filteredProfiles.map((item) => (
+                        <PermissionsCard
+                          key={item.id}
+                          item={item}
+                          permissions={permissions}
+                          onEdit={(profile) => {
+                            setProfileDialog({
+                              mode: 'edit',
+                              profile,
+                            })
+                          }}
+                          onDelete={(profileId) => {
+                            setDeleteOpen(profileId)
+                          }}
+                        />
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {profileDialog && (
+        <PermissionProfileDialog
+          mode={profileDialog.mode}
+          profile={profileDialog.mode === 'edit' ? profileDialog.profile : null}
+          isPending={
+            profileDialog.mode === 'edit'
+              ? updatePermissionProfilePending
+              : createPermissionProfilePending
+          }
+          onClose={closeProfileDialog}
+          onSubmit={handleProfileSubmit}
+        />
+      )}
+      <DeletePermissionProfileDialog
+        open={deleteOpen !== null}
+        isPending={deletePermissionProfilePending}
+        onOpenChange={(open) => {
+          if (!open) setDeleteOpen(null)
+        }}
+        onConfirm={() => {
+          if (!deleteOpen) return
+
+          deletePermissionProfile(deleteOpen, {
+            onSuccess: () => {
+              setDeleteOpen(null)
+            },
+          })
+        }}
+      />
+    </div>
+  )
+}
+
+type PermissionProfileDialogProps = {
+  mode: 'create' | 'edit'
+  profile?: T_PermissionProfile | null
+  isPending: boolean
+  onClose: () => void
+  onSubmit: (draft: PermissionProfileDraft) => void
+}
+
+function PermissionProfileDialog({
+  mode,
+  profile,
+  isPending,
+  onClose,
+  onSubmit,
+}: PermissionProfileDialogProps) {
+  const isEdit = mode === 'edit'
+
+  const [draft, setDraft] = useState<PermissionProfileDraft>(() => {
+    if (isEdit && profile) {
+      return {
+        name: profile.name,
+        description: profile.description ?? '',
+        permissions: [...profile.permissions],
+      }
+    }
+
+    return createEmptyDraft()
+  })
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose()
+        }
+      }}
+    >
+      <DialogContent className="max-w-xl! overflow-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? 'Edit Permission Profile' : 'New Permission Profile'}
+          </DialogTitle>
+
+          <DialogDescription>
+            {isEdit
+              ? 'Edit the details of this permission profile.'
+              : 'Define a reusable set of permissions for your workspace.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="no-scrollbar -mx-4 max-h-[70vh] space-y-4 overflow-y-auto px-4">
+          <ProfileDetailsFields draft={draft} setDraft={setDraft} />
+
+          <PermissionGroupsEditor
+            permissions={draft.permissions}
+            onChange={(permissions) => {
+              setDraft((current) => ({
+                ...current,
+                permissions,
+              }))
+            }}
+          />
+        </div>
+
+        <DialogFooter className="bg-transparent">
+          <Button variant="ghost" disabled={isPending} onClick={onClose}>
+            Cancel
+          </Button>
+
+          <Button
+            disabled={isPending || !draft.name.trim()}
+            onClick={() => onSubmit(draft)}
+          >
+            <LoadingSwap isLoading={isPending}>
+              {isEdit ? 'Save changes' : 'Create'}
+            </LoadingSwap>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+type ProfileDetailsFieldsProps = {
+  draft: PermissionProfileDraft
+  setDraft: React.Dispatch<React.SetStateAction<PermissionProfileDraft>>
+}
+
+function ProfileDetailsFields({ draft, setDraft }: ProfileDetailsFieldsProps) {
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="profile-name">Profile name</Label>
+
+        <Input
+          id="profile-name"
+          value={draft.name}
+          onChange={(event) => {
+            setDraft((current) => ({
+              ...current,
+              name: event.target.value,
+            }))
+          }}
+          placeholder="Product analyst"
+          autoFocus
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="profile-description">Description</Label>
+
+        <Textarea
+          id="profile-description"
+          value={draft.description}
+          onChange={(event) => {
+            setDraft((current) => ({
+              ...current,
+              description: event.target.value,
+            }))
+          }}
+          placeholder="What this profile can access"
+          rows={3}
+        />
+      </div>
+    </>
+  )
+}
+
+type PermissionGroupsEditorProps = {
+  permissions: Permission[]
+  onChange: (permissions: Permission[]) => void
+}
+
+function PermissionGroupsEditor({
+  permissions,
+  onChange,
+}: PermissionGroupsEditorProps) {
+  const togglePermission = (permission: Permission, checked: boolean) => {
+    const nextPermissions = new Set(permissions)
+
+    if (checked) {
+      nextPermissions.add(permission)
+    } else {
+      nextPermissions.delete(permission)
+    }
+
+    onChange([...nextPermissions])
   }
 
   const toggleGroup = (
     groupPermissions: readonly PermissionDefinition[],
     checked: boolean
   ) => {
-    setDraft((current) => {
-      const permissions = new Set(current.permissions)
+    const nextPermissions = new Set(permissions)
 
-      for (const permission of groupPermissions) {
-        if (checked) permissions.add(permission.key)
-        else permissions.delete(permission.key)
-      }
-
-      return {
-        ...current,
-        permissions: [...permissions],
+    groupPermissions.forEach((permission) => {
+      if (checked) {
+        nextPermissions.add(permission.key)
+      } else {
+        nextPermissions.delete(permission.key)
       }
     })
+
+    onChange([...nextPermissions])
   }
 
-  const editProfileData = profilesData?.data.filter(
-    (item) => item.id === editOpen
-  )[0]
-  console.log({ editProfileData })
-  const [editDraft, setEditDraft] = useState<PermissionProfileDraft>({
-    name: editProfileData?.name ?? '',
-    description: editProfileData?.description ?? '',
-    permissions: editProfileData?.permissions ?? [],
-  })
-
   return (
-    <div>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <div className="mx-auto max-w-4xl pt-10">
-          <div className="space-y-5">
-            <p className="text-2xl font-medium">Permission Profiles</p>
+    <div className="space-y-4">
+      {PERMISSION_GROUPS.map((group) => {
+        const allSelected = group.permissions.every((permission) =>
+          permissions.includes(permission.key)
+        )
 
-            {profilesError ? (
-              <>
-                <div className="flex items-center gap-1">
-                  <InfoIcon size={18} className="text-destructive" />
-                  <p className="text-destructive">Failed to load profiles</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <div className="flex items-center justify-between gap-4">
-                    <InputGroup>
-                      <InputGroupButton>
-                        <SearchIcon />
-                      </InputGroupButton>
-                      <InputGroupInput placeholder="Search..." />
-                    </InputGroup>
+        return (
+          <div key={group.id} className="border-2 border-dashed">
+            <div className="flex flex-col gap-3 p-4 pb-0 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h4 className="font-medium">{group.label}</h4>
 
-                    <DialogTrigger render={<Button />}>
-                      <PlusIcon />
-                      New Permission
-                    </DialogTrigger>
-                  </div>
-                </div>
+                <p className="text-muted-foreground mt-1 text-xs leading-5">
+                  {group.description}
+                </p>
+              </div>
 
-                <div className="overflow-hidden rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="w-32 text-center">
-                          Permissions
-                        </TableHead>
-                        <TableHead className="w-24 text-center">
-                          Members
-                        </TableHead>
-                        <TableHead className="w-20 text-center">
-                          Action
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
+              <div className="flex items-center gap-2">
+                <Label className="text-muted-foreground text-xs">
+                  Select all
+                </Label>
 
-                    <TableBody>
-                      {profilesPending
-                        ? [...Array(5)].map((_, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <Skeleton className="h-6 w-50" />
-                              </TableCell>
-
-                              <TableCell>
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-6 w-20" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell>
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-6 w-12" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell>
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-8 w-8" />
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        : profilesData?.data?.map((item) => (
-                            <PermissionsCard
-                              setDeleteOpen={setDeleteOpen}
-                              setEditOpen={setEditOpen}
-                              item={item}
-                              permissions={
-                                workspaceData?.data?.permissions || []
-                              }
-                            />
-                          ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <DialogContent className={'max-w-xl! overflow-auto'}>
-          <DialogHeader>
-            <DialogTitle>New Permission Profile</DialogTitle>
-            <DialogDescription>
-              Define a reusable set of permissions for your workspace.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="no-scrollbar -mx-4 max-h-[70vh] space-y-4 overflow-y-auto px-4">
-            <div className="space-y-2">
-              <Label htmlFor="profile-name">Profile name</Label>
-              <Input
-                id="profile-name"
-                value={draft.name}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    name: event.target.value,
-                  }))
-                }
-                placeholder="Product analyst"
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="profile-description">Description</Label>
-              <Textarea
-                id="profile-description"
-                value={draft.description}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-                placeholder="What this profile can access"
-                rows={3}
-              />
+                <Switch
+                  checked={allSelected}
+                  onCheckedChange={(checked) => {
+                    toggleGroup(group.permissions, checked)
+                  }}
+                  aria-label={`Select all ${group.label} permissions`}
+                />
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {PERMISSION_GROUPS.map((group) => {
-                const allSelected = group.permissions.every((permission) =>
-                  draft.permissions.includes(permission.key)
-                )
+            <div className="p-4">
+              <div className="divide-y-2 divide-dashed border-2 border-dashed">
+                {group.permissions.map((permission) => {
+                  const id = `permission-${permission.key.replaceAll('.', '-')}`
 
-                return (
-                  <div key={group.id} className="border-2 border-dashed">
-                    <div className="flex flex-col gap-3 p-4 pb-0 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <h4 className="font-medium">{group.label}</h4>
-                        <p className="text-muted-foreground mt-1 text-xs leading-5">
-                          {group.description}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-muted-foreground text-xs">
-                          Select all
-                        </Label>
-                        <Switch
-                          checked={allSelected}
-                          onCheckedChange={(checked) =>
-                            toggleGroup(group.permissions, checked)
-                          }
-                          aria-label={`Select all ${group.label} permissions`}
-                        />
-                      </div>
-                    </div>
+                  return (
+                    <div
+                      key={permission.key}
+                      className="flex items-start justify-between gap-4 p-3"
+                    >
+                      <Label
+                        className="flex cursor-pointer flex-col items-start"
+                        htmlFor={id}
+                      >
+                        <span className="block text-sm font-medium">
+                          {permission.label}
+                        </span>
 
-                    <div className="p-4">
-                      <div className="divide-y-2 divide-dashed border-2 border-dashed">
-                        {group.permissions.map((permission, index) => (
-                          <div className="flex items-start justify-between gap-4 p-3">
-                            <Label
-                              key={index}
-                              className="flex cursor-pointer flex-col items-start"
-                              htmlFor={`permission-${permission.key.replaceAll('.', '-')}`}
-                            >
-                              <span className="block text-sm font-medium">
-                                {permission.label}
-                              </span>
-                              <span className="text-muted-foreground block text-xs leading-5">
-                                {permission.description}
-                              </span>
-                            </Label>
-                            <Switch
-                              id={`permission-${permission.key.replaceAll('.', '-')}`}
-                              checked={draft.permissions.includes(
-                                permission.key
-                              )}
-                              onCheckedChange={(checked) =>
-                                togglePermission(permission.key, checked)
-                              }
-                              aria-label={permission.label}
-                            />
-                          </div>
-                        ))}
-                      </div>
+                        <span className="text-muted-foreground block text-xs leading-5">
+                          {permission.description}
+                        </span>
+                      </Label>
+
+                      <Switch
+                        id={id}
+                        checked={permissions.includes(permission.key)}
+                        onCheckedChange={(checked) => {
+                          togglePermission(permission.key, checked)
+                        }}
+                        aria-label={permission.label}
+                      />
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </div>
-
-          <DialogFooter className="bg-transparent">
-            <DialogClose render={<Button variant="ghost">Cancel</Button>}>
-              Close
-            </DialogClose>
-            <Button
-              onClick={() => {
-                createPermissionProfile(draft, {
-                  onSuccess: () => setOpen(false),
-                })
-              }}
-              type="submit"
-            >
-              <LoadingSwap isLoading={createPermissionProfilePending}>
-                Create
-              </LoadingSwap>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={!!deleteOpen}
-        onOpenChange={(open) => setDeleteOpen(open ? deleteOpen : null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Permission Profile</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this permission profile?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="py-2">
-            <DialogClose render={<Button variant={'secondary'} />}>
-              Cancel
-            </DialogClose>
-            <Button
-              onClick={() => {
-                deletePermissionProfile(deleteOpen!, {
-                  onSuccess: () => {
-                    setDeleteOpen(null)
-                  },
-                })
-              }}
-              variant={'destructive'}
-            >
-              <LoadingSwap isLoading={deletePermissionProfilePending}>
-                Confirm
-              </LoadingSwap>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={!!editOpen}
-        onOpenChange={(open) => setEditOpen(open ? editOpen : null)}
-      >
-        <DialogContent className={'max-w-xl! overflow-auto'}>
-          <DialogHeader>
-            <DialogTitle>Edit Permission Profile</DialogTitle>
-            <DialogDescription>
-              Edit the details of this permission profile
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="no-scrollbar -mx-4 max-h-[70vh] space-y-4 overflow-y-auto px-4">
-            <div className="space-y-2">
-              <Label htmlFor="profile-name">Profile name</Label>
-              <Input
-                id="profile-name"
-                value={editDraft.name}
-                onChange={(event) =>
-                  setEditDraft((current) => ({
-                    ...current,
-                    name: event.target.value,
-                  }))
-                }
-                placeholder="Product analyst"
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="profile-description">Description</Label>
-              <Textarea
-                id="profile-description"
-                value={editDraft.description}
-                onChange={(event) =>
-                  setEditDraft((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-                placeholder="What this profile can access"
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-4">
-              {PERMISSION_GROUPS.map((group) => {
-                const allSelected = group.permissions.every((permission) =>
-                  editDraft.permissions.includes(permission.key)
-                )
-
-                return (
-                  <div key={group.id} className="border-2 border-dashed">
-                    <div className="flex flex-col gap-3 p-4 pb-0 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <h4 className="font-medium">{group.label}</h4>
-                        <p className="text-muted-foreground mt-1 text-xs leading-5">
-                          {group.description}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-muted-foreground text-xs">
-                          Select all
-                        </Label>
-                        <Switch
-                          checked={allSelected}
-                          onCheckedChange={(checked) =>
-                            toggleGroup(group.permissions, checked)
-                          }
-                          aria-label={`Select all ${group.label} permissions`}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="p-4">
-                      <div className="divide-y-2 divide-dashed border-2 border-dashed">
-                        {group.permissions.map((permission, index) => (
-                          <div className="flex items-start justify-between gap-4 p-3">
-                            <Label
-                              key={index}
-                              className="flex cursor-pointer flex-col items-start"
-                              htmlFor={`permission-${permission.key.replaceAll('.', '-')}`}
-                            >
-                              <span className="block text-sm font-medium">
-                                {permission.label}
-                              </span>
-                              <span className="text-muted-foreground block text-xs leading-5">
-                                {permission.description}
-                              </span>
-                            </Label>
-                            <Switch
-                              id={`permission-${permission.key.replaceAll('.', '-')}`}
-                              checked={editDraft.permissions.includes(
-                                permission.key
-                              )}
-                              onCheckedChange={(checked) =>
-                                togglePermission(permission.key, checked)
-                              }
-                              aria-label={permission.label}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <DialogFooter className="bg-transparent">
-            <DialogClose render={<Button variant="ghost">Cancel</Button>}>
-              Close
-            </DialogClose>
-            <Button
-              onClick={() => {
-                createPermissionProfile(draft, {
-                  onSuccess: () => setOpen(false),
-                })
-              }}
-              type="submit"
-            >
-              <LoadingSwap isLoading={createPermissionProfilePending}>
-                Create
-              </LoadingSwap>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )
+      })}
     </div>
   )
 }
 
-const PermissionsCard = ({
-  item,
-  setDeleteOpen,
-  setEditOpen,
-  permissions,
-}: {
+type DeletePermissionProfileDialogProps = {
+  open: boolean
+  isPending: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: () => void
+}
+
+function DeletePermissionProfileDialog({
+  open,
+  isPending,
+  onOpenChange,
+  onConfirm,
+}: DeletePermissionProfileDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Permission Profile</DialogTitle>
+
+          <DialogDescription>
+            Are you sure you want to delete this permission profile?
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter className="py-2">
+          <Button
+            variant="secondary"
+            disabled={isPending}
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            variant="destructive"
+            disabled={isPending}
+            onClick={onConfirm}
+          >
+            <LoadingSwap isLoading={isPending}>Confirm</LoadingSwap>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function PermissionTableSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, index) => (
+        <TableRow key={index}>
+          <TableCell>
+            <Skeleton className="h-6 w-50" />
+          </TableCell>
+
+          <TableCell>
+            <div className="flex justify-center">
+              <Skeleton className="h-6 w-20" />
+            </div>
+          </TableCell>
+
+          <TableCell>
+            <div className="flex justify-center">
+              <Skeleton className="h-6 w-12" />
+            </div>
+          </TableCell>
+
+          <TableCell>
+            <div className="flex justify-center">
+              <Skeleton className="h-8 w-8" />
+            </div>
+          </TableCell>
+        </TableRow>
+      ))}
+    </>
+  )
+}
+
+type PermissionsCardProps = {
   item: T_PermissionProfile
-  setDeleteOpen: React.Dispatch<React.SetStateAction<string | null>>
-  setEditOpen: React.Dispatch<React.SetStateAction<string | null>>
   permissions: Permission[]
-}) => {
+  onEdit: (profile: T_PermissionProfile) => void
+  onDelete: (profileId: string) => void
+}
+
+function PermissionsCard({
+  item,
+  permissions,
+  onEdit,
+  onDelete,
+}: PermissionsCardProps) {
   const navigate = useNavigate()
 
   const permissionMenuItems = [
     {
       label: 'Edit Permission',
       action: 'edit-permission',
-      onClick: () => {
-        setEditOpen(item.id)
-      },
+      onClick: () => onEdit(item),
       disabled:
         !permissions.includes('workspace.permission_profiles.update') ||
         item.isSystem,
@@ -552,26 +647,22 @@ const PermissionsCard = ({
       disabled:
         !permissions.includes('workspace.permission_profiles.delete') ||
         item.isSystem,
-      onClick: () => {
-        setDeleteOpen(item.id)
-      },
+      onClick: () => onDelete(item.id),
     },
   ]
 
+  const openProfile = () => {
+    navigate({
+      to: '/app/$workspaceId/permissions/$permissionId',
+      params: {
+        permissionId: item.id,
+        workspaceId: item.workspaceId,
+      },
+    })
+  }
+
   return (
-    <TableRow
-      key={item.id ?? item.name}
-      className="hover:bg-card/40 cursor-pointer"
-      onClick={() => {
-        navigate({
-          to: '/app/$workspaceId/permissions/$permissionId',
-          params: {
-            permissionId: item.id,
-            workspaceId: item.workspaceId,
-          },
-        })
-      }}
-    >
+    <TableRow className="hover:bg-card/40 cursor-pointer" onClick={openProfile}>
       <TableCell>
         <div className="max-w-80 overflow-hidden">
           <div className="flex items-center gap-2 overflow-hidden">
@@ -601,8 +692,8 @@ const PermissionsCard = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
-                  e.stopPropagation()
+                onClick={(event) => {
+                  event.stopPropagation()
                 }}
               />
             }
@@ -610,28 +701,25 @@ const PermissionsCard = ({
             <EllipsisIcon />
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent className={'w-fit'} align="end">
+          <DropdownMenuContent className="w-fit" align="end">
             {permissionMenuItems.map((menuItem) => (
-              <React.Fragment key={menuItem.action}>
+              <div key={menuItem.action}>
                 {menuItem.separatorBefore && <DropdownMenuSeparator />}
 
                 <DropdownMenuItem
                   disabled={menuItem.disabled}
                   variant={menuItem.variant}
-                  render={
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        menuItem.onClick()
-                      }}
-                    />
-                  }
+                  onClick={(event) => {
+                    event.stopPropagation()
+
+                    if (menuItem.disabled) return
+
+                    menuItem.onClick()
+                  }}
                 >
                   {menuItem.label}
                 </DropdownMenuItem>
-              </React.Fragment>
+              </div>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>

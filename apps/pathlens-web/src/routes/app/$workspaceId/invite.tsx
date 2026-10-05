@@ -103,7 +103,7 @@ function RouteComponent() {
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="space-y-4 p-4">
+              <CardContent className="space-y-4">
                 <form
                   id="invite-form"
                   autoComplete="off"
@@ -131,11 +131,13 @@ function RouteComponent() {
                               </div>
 
                               <Button
-                                variant="outline"
                                 render={
                                   <Link
                                     params={{
                                       workspaceId,
+                                    }}
+                                    search={{
+                                      create: true,
                                     }}
                                     to="/app/$workspaceId/permissions"
                                   />

@@ -38,6 +38,7 @@ import { Route as openSolutionsSolutionIdIndexRouteImport } from './routes/(open
 import { Route as AppWorkspaceIdProjectIdIndexRouteImport } from './routes/app/$workspaceId/$projectId/index'
 import { Route as AppWorkspaceIdProjectIdAiInsightsRouteImport } from './routes/app/$workspaceId/$projectId/ai-insights'
 import { Route as AppWorkspaceIdProjectIdApiKeysRouteImport } from './routes/app/$workspaceId/$projectId/api-keys'
+import { Route as AppWorkspaceIdProjectIdAuditLogsRouteImport } from './routes/app/$workspaceId/$projectId/audit-logs'
 import { Route as AppWorkspaceIdProjectIdCampaignsRouteImport } from './routes/app/$workspaceId/$projectId/campaigns'
 import { Route as AppWorkspaceIdProjectIdDomainsRouteImport } from './routes/app/$workspaceId/$projectId/domains'
 import { Route as AppWorkspaceIdProjectIdErrorsRouteImport } from './routes/app/$workspaceId/$projectId/errors'
@@ -202,6 +203,12 @@ const AppWorkspaceIdProjectIdApiKeysRoute =
     path: '/$projectId/api-keys',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
+const AppWorkspaceIdProjectIdAuditLogsRoute =
+  AppWorkspaceIdProjectIdAuditLogsRouteImport.update({
+    id: '/$projectId/audit-logs',
+    path: '/$projectId/audit-logs',
+    getParentRoute: () => AppWorkspaceIdRouteRoute,
+  } as any)
 const AppWorkspaceIdProjectIdCampaignsRoute =
   AppWorkspaceIdProjectIdCampaignsRouteImport.update({
     id: '/$projectId/campaigns',
@@ -323,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppentryIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
+  '/app/$workspaceId/$projectId/audit-logs': typeof AppWorkspaceIdProjectIdAuditLogsRoute
   '/app/$workspaceId/$projectId/campaigns': typeof AppWorkspaceIdProjectIdCampaignsRoute
   '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
   '/app/$workspaceId/$projectId/errors': typeof AppWorkspaceIdProjectIdErrorsRoute
@@ -365,6 +373,7 @@ export interface FileRoutesByTo {
   '/app/$workspaceId': typeof AppWorkspaceIdIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
+  '/app/$workspaceId/$projectId/audit-logs': typeof AppWorkspaceIdProjectIdAuditLogsRoute
   '/app/$workspaceId/$projectId/campaigns': typeof AppWorkspaceIdProjectIdCampaignsRoute
   '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
   '/app/$workspaceId/$projectId/errors': typeof AppWorkspaceIdProjectIdErrorsRoute
@@ -413,6 +422,7 @@ export interface FileRoutesById {
   '/app/(entry)/': typeof AppentryIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
+  '/app/$workspaceId/$projectId/audit-logs': typeof AppWorkspaceIdProjectIdAuditLogsRoute
   '/app/$workspaceId/$projectId/campaigns': typeof AppWorkspaceIdProjectIdCampaignsRoute
   '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
   '/app/$workspaceId/$projectId/errors': typeof AppWorkspaceIdProjectIdErrorsRoute
@@ -459,6 +469,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/$workspaceId/$projectId/ai-insights'
     | '/app/$workspaceId/$projectId/api-keys'
+    | '/app/$workspaceId/$projectId/audit-logs'
     | '/app/$workspaceId/$projectId/campaigns'
     | '/app/$workspaceId/$projectId/domains'
     | '/app/$workspaceId/$projectId/errors'
@@ -501,6 +512,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId'
     | '/app/$workspaceId/$projectId/ai-insights'
     | '/app/$workspaceId/$projectId/api-keys'
+    | '/app/$workspaceId/$projectId/audit-logs'
     | '/app/$workspaceId/$projectId/campaigns'
     | '/app/$workspaceId/$projectId/domains'
     | '/app/$workspaceId/$projectId/errors'
@@ -548,6 +560,7 @@ export interface FileRouteTypes {
     | '/app/(entry)/'
     | '/app/$workspaceId/$projectId/ai-insights'
     | '/app/$workspaceId/$projectId/api-keys'
+    | '/app/$workspaceId/$projectId/audit-logs'
     | '/app/$workspaceId/$projectId/campaigns'
     | '/app/$workspaceId/$projectId/domains'
     | '/app/$workspaceId/$projectId/errors'
@@ -780,6 +793,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdApiKeysRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
+    '/app/$workspaceId/$projectId/audit-logs': {
+      id: '/app/$workspaceId/$projectId/audit-logs'
+      path: '/$projectId/audit-logs'
+      fullPath: '/app/$workspaceId/$projectId/audit-logs'
+      preLoaderRoute: typeof AppWorkspaceIdProjectIdAuditLogsRouteImport
+      parentRoute: typeof AppWorkspaceIdRouteRoute
+    }
     '/app/$workspaceId/$projectId/campaigns': {
       id: '/app/$workspaceId/$projectId/campaigns'
       path: '/$projectId/campaigns'
@@ -945,6 +965,7 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdIndexRoute: typeof AppWorkspaceIdIndexRoute
   AppWorkspaceIdProjectIdAiInsightsRoute: typeof AppWorkspaceIdProjectIdAiInsightsRoute
   AppWorkspaceIdProjectIdApiKeysRoute: typeof AppWorkspaceIdProjectIdApiKeysRoute
+  AppWorkspaceIdProjectIdAuditLogsRoute: typeof AppWorkspaceIdProjectIdAuditLogsRoute
   AppWorkspaceIdProjectIdCampaignsRoute: typeof AppWorkspaceIdProjectIdCampaignsRoute
   AppWorkspaceIdProjectIdDomainsRoute: typeof AppWorkspaceIdProjectIdDomainsRoute
   AppWorkspaceIdProjectIdErrorsRoute: typeof AppWorkspaceIdProjectIdErrorsRoute
@@ -975,6 +996,7 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
   AppWorkspaceIdProjectIdAiInsightsRoute:
     AppWorkspaceIdProjectIdAiInsightsRoute,
   AppWorkspaceIdProjectIdApiKeysRoute: AppWorkspaceIdProjectIdApiKeysRoute,
+  AppWorkspaceIdProjectIdAuditLogsRoute: AppWorkspaceIdProjectIdAuditLogsRoute,
   AppWorkspaceIdProjectIdCampaignsRoute: AppWorkspaceIdProjectIdCampaignsRoute,
   AppWorkspaceIdProjectIdDomainsRoute: AppWorkspaceIdProjectIdDomainsRoute,
   AppWorkspaceIdProjectIdErrorsRoute: AppWorkspaceIdProjectIdErrorsRoute,

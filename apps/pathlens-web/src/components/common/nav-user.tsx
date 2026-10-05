@@ -76,16 +76,18 @@ export function NavUser({ user }: { user: NavUserData }) {
               <Button
                 className={'flex w-full cursor-pointer justify-between'}
                 variant="ghost"
+                render={<Link to="/app/settings" />}
               />
             }
           >
-            Profile
+            Account
           </DropdownMenuItem>
           <DropdownMenuItem
             render={
               <Button
                 className={'flex w-full cursor-pointer justify-between'}
                 variant="ghost"
+                render={<Link to="/app/billing" />}
               />
             }
           >

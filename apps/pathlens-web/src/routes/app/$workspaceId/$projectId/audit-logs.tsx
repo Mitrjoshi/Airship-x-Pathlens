@@ -23,16 +23,18 @@ import {
 } from '@workspace/ui/components/table'
 import { SearchIcon } from 'lucide-react'
 import { useState } from 'react'
-import { DotSeparator, DotSeparatorItem } from '../-components/dot-separator'
+import { DotSeparator, DotSeparatorItem } from '../../-components/dot-separator'
 
-export const Route = createFileRoute('/app/$workspaceId/audit-logs')({
-  component: RouteComponent,
-})
+export const Route = createFileRoute('/app/$workspaceId/$projectId/audit-logs')(
+  {
+    component: RouteComponent,
+  }
+)
 
 const PAGE_SIZE = 50
 
 function RouteComponent() {
-  const { workspaceId } = Route.useParams()
+  const { workspaceId, projectId } = Route.useParams()
 
   const [page, setPage] = useState(1)
 
@@ -41,6 +43,7 @@ function RouteComponent() {
       workspace_id: workspaceId,
       page,
       page_size: PAGE_SIZE,
+      project_id: projectId,
     })
   )
 
@@ -53,7 +56,7 @@ function RouteComponent() {
 
   const to = Math.min(page * PAGE_SIZE, totalLogs)
   return (
-    <div className="mx-auto w-full max-w-4xl pt-10">
+    <div className="p-6">
       <div className="space-y-5">
         <div>
           <p className="text-xl font-medium">Audit logs</p>
