@@ -62,10 +62,14 @@ const formSchema = z.object({
 
 export const Route = createFileRoute('/app/(entry)/')({
   component: RouteComponent,
+  validateSearch: z.object({ create: z.boolean().default(false) }),
 })
 
 function RouteComponent() {
-  const [open, setOpen] = React.useState(false)
+  const { create } = Route.useSearch()
+  const navigate = useNavigate()
+
+  const [open, setOpen] = React.useState(create)
   const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
 
   const { data: workspaceData, isLoading: workspaceDataLoading } = useQuery(
@@ -87,6 +91,13 @@ function RouteComponent() {
         {
           onSuccess: () => {
             setOpen(false)
+            navigate({
+              to: '/app',
+              search: {
+                create: false,
+              },
+              replace: true,
+            })
           },
         }
       )
@@ -95,7 +106,19 @@ function RouteComponent() {
 
   return (
     <div>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(open) => {
+          setOpen(open)
+          navigate({
+            to: '/app',
+            search: {
+              create: false,
+            },
+            replace: true,
+          })
+        }}
+      >
         <div className="mx-auto max-w-4xl pt-10">
           <div className="space-y-5">
             <p className="text-2xl font-semibold">Your Workspaces</p>

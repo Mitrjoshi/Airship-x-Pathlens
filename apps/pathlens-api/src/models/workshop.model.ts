@@ -276,6 +276,56 @@ export async function getWorkspaces(user_id: string) {
   }));
 }
 
+export async function getWorkspaceByIdModel(
+  workspaceId: string,
+  userId: string
+) {
+  await ensureWorkspacePermissionProfilesModel(workspaceId);
+
+  const [workspace] = await db
+    .select({
+      id: workspaces.id,
+      userId: workspaces.userId,
+      name: workspaces.name,
+      isDefault: workspaces.isDefault,
+      createdAt: workspaces.createdAt,
+      role: workspaceMembers.role,
+      permissionProfileId: workspaceMembers.permissionProfileId,
+      permissionProfileName: permissionProfiles.name,
+      permissions: permissionProfiles.permissions,
+      projectCount: db.$count(
+        projects,
+        eq(projects.workspaceId, workspaces.id)
+      ),
+      memberCount: db.$count(
+        workspaceMembers,
+        eq(workspaceMembers.workspaceId, workspaces.id)
+      ),
+    })
+    .from(workspaceMembers)
+    .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
+    .leftJoin(
+      permissionProfiles,
+      eq(permissionProfiles.id, workspaceMembers.permissionProfileId)
+    )
+    .where(
+      and(
+        eq(workspaceMembers.workspaceId, workspaceId),
+        eq(workspaceMembers.userId, userId)
+      )
+    );
+
+  if (!workspace) return null;
+
+  return {
+    ...workspace,
+    permissions:
+      workspace.role === "owner"
+        ? [...DEFAULT_FULL_ACCESS_PERMISSIONS]
+        : normalizePermissions(workspace.permissions),
+  };
+}
+
 export async function getWorkspaceMemberModel(
   workspaceId: string,
   userId: string
@@ -533,6 +583,28 @@ export async function getWorkspacePendingInvitationsModel(workspaceId: string) {
       )
     )
     .orderBy(desc(notifications.createdAt));
+}
+
+export async function revokeWorkspaceInvitationModel(data: {
+  workspaceId: string;
+  invitationId: string;
+}) {
+  const [invitation] = await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.id, data.invitationId),
+        eq(notifications.workspaceId, data.workspaceId),
+        eq(notifications.type, "workspace_invite"),
+        isNull(notifications.acceptedAt)
+      )
+    )
+    .returning({
+      id: notifications.id,
+      workspaceId: notifications.workspaceId,
+    });
+
+  return invitation ?? null;
 }
 
 export async function updateWorkspaceMemberModel(data: {

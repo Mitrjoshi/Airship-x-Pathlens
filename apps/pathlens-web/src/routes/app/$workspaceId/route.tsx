@@ -315,7 +315,10 @@ export const AppSidebar = ({
         </SidebarHeader>
         <SidebarContent className="bg-background">
           <SidebarGroup>
-            <SearchOverAppDialog />
+            <SearchOverAppDialog
+              projectId={projectId}
+              workspaceId={activeWorkspace}
+            />
           </SidebarGroup>
 
           <SidebarGroup>
@@ -514,7 +517,7 @@ export const WorkspaceSwitcher = ({
                   />
                 }
               >
-                <p>{item.name}</p>
+                <p className="truncate">{item.name}</p>
                 {activeWorkspace === item.id && <CheckIcon />}
               </DropdownMenuItem>
             ))}
@@ -524,7 +527,11 @@ export const WorkspaceSwitcher = ({
 
           <DropdownMenuItem
             render={
-              <Button variant="ghost" className={'w-full justify-start'} />
+              <Button
+                render={<Link to="/app" search={{ create: true }} />}
+                variant="ghost"
+                className={'w-full justify-start'}
+              />
             }
           >
             <PlusIcon />

@@ -12,11 +12,13 @@ import {
   getPermissionProfileUsageModel,
   getPermissionProfilesModel,
   getWorkspaceAccessModel,
+  getWorkspaceByIdModel,
   getWorkspaceMemberModel,
   getWorkspaceMembersModel,
   getWorkspacePendingInvitationsModel,
   getWorkspaces,
   removeWorkspaceMemberModel,
+  revokeWorkspaceInvitationModel,
   hasWorkspacePermission,
   updatePermissionProfileModel,
   updateWorkspaceModel,
@@ -139,6 +141,39 @@ export async function getUserWorkspacesController(
     });
   } catch (error) {
     return res.status(500).json({
+      success: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+export async function getWorkspaceByIdController(
+  req: AuthRequest,
+  res: Response
+) {
+  const userId = getAuthenticatedUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { workspace_id } = workspaceParamsSchema.parse(req.params);
+    const workspace = await getWorkspaceByIdModel(workspace_id, userId);
+
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        message: "Workspace not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: workspace,
+    });
+  } catch (error) {
+    return res.status(error instanceof ZodError ? 400 : 500).json({
       success: false,
       message: getErrorMessage(error),
     });
@@ -637,6 +672,69 @@ export async function createWorkspaceInvitation(
     return res.status(201).json({
       success: true,
       data: notification,
+    });
+  } catch (error) {
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+export async function revokeWorkspaceInvitation(
+  req: AuthRequest,
+  res: Response
+) {
+  const userId = getAuthenticatedUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { workspace_id, invitation_id } = z
+      .object({
+        workspace_id: z.string().min(1, "Workspace id is required."),
+        invitation_id: z.string().min(1, "Invitation id is required."),
+      })
+      .parse(req.params);
+    const member = await requireWorkspacePermission(
+      workspace_id,
+      userId,
+      "workspace.members.invite"
+    );
+
+    if (!member) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to revoke invitations.",
+      });
+    }
+
+    const invitation = await revokeWorkspaceInvitationModel({
+      workspaceId: workspace_id,
+      invitationId: invitation_id,
+    });
+
+    if (!invitation) {
+      return res.status(404).json({
+        success: false,
+        message: "Pending invitation not found.",
+      });
+    }
+
+    await createAuditLog({
+      workspaceId: workspace_id,
+      actorUserId: userId,
+      action: "workspace.invitation_revoked",
+      resourceType: "workspace_invitation",
+      resourceId: invitation.id,
+      metadata: { invitationId: invitation.id },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Invitation revoked.",
     });
   } catch (error) {
     return res.status(error instanceof ZodError ? 400 : 500).json({

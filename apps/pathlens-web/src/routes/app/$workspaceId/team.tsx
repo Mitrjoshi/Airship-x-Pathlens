@@ -189,6 +189,22 @@ function RouteComponent() {
                               <EllipsisIcon />
                             </DropdownMenuTrigger>
                           </TableCell>
+
+                          <DropdownMenuContent align="end" className={'w-fit'}>
+                            <DropdownMenuItem disabled={item.role === 'owner'}>
+                              Edit Access
+                            </DropdownMenuItem>
+                            <DropdownMenuItem disabled={item.role === 'owner'}>
+                              Edit Role
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              disabled={item.role === 'owner'}
+                              variant="destructive"
+                            >
+                              Remove Member
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
                         </TableRow>
                       ))}
                 </TableBody>
@@ -196,15 +212,6 @@ function RouteComponent() {
             </div>
           </div>
         </div>
-
-        <DropdownMenuContent align="end" className={'w-fit'}>
-          <DropdownMenuItem>Edit Access</DropdownMenuItem>
-          <DropdownMenuItem>Edit Role</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive">
-            Remove Member
-          </DropdownMenuItem>
-        </DropdownMenuContent>
       </DropdownMenu>
     </div>
   )

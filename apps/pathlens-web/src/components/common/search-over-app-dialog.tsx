@@ -26,10 +26,12 @@ import {
 } from 'react'
 
 type WorkspacePagePath =
-  | '/app/$workspace'
-  | '/app/$workspace/members'
-  | '/app/$workspace/permission-profiles'
-  | '/app/$workspace/workspace-settings'
+  | '/app/$workspaceId'
+  | '/app/$workspaceId/team'
+  | '/app/$workspaceId/permissions'
+  | '/app/$workspaceId/usage'
+  | '/app/$workspaceId/audit-logs'
+  | '/app/$workspaceId/settings'
 
 type ProjectPagePath =
   | '/app/$workspace/projects/$project/dashboard'
@@ -89,41 +91,49 @@ const workspacePageDefinitions: PageDefinition<WorkspacePagePath>[] = [
     id: 'workspace-projects',
     title: 'Projects',
     description: 'Browse projects in this workspace',
-    keywords: 'workspace sites properties',
+    keywords: 'workspace projects sites properties',
     icon: navigationIcons.projects,
-    to: '/app/$workspace',
+    to: '/app/$workspaceId',
   },
   {
-    id: 'workspace-members',
-    title: 'Members',
-    description: 'Manage workspace members and invitations',
-    keywords: 'team users people invite',
-    icon: navigationIcons.members,
-    to: '/app/$workspace/members',
-    permissions: ['workspace.members.view'],
+    id: 'workspace-team',
+    title: 'Team',
+    description: 'Manage workspace team members',
+    keywords: 'team members users people invite workspace',
+    icon: navigationIcons.team,
+    to: '/app/$workspaceId/team',
   },
   {
     id: 'workspace-permissions',
-    title: 'Permission profiles',
-    description: 'Manage workspace roles and permissions',
-    keywords: 'access roles security profiles',
+    title: 'Permissions',
+    description: 'Manage workspace permissions and access',
+    keywords: 'permissions access roles security workspace',
     icon: navigationIcons.permissions,
-    to: '/app/$workspace/permission-profiles',
-    permissions: [
-      'workspace.permission_profiles.view',
-      'workspace.permission_profiles.create',
-      'workspace.permission_profiles.update',
-      'workspace.permission_profiles.delete',
-    ],
+    to: '/app/$workspaceId/permissions',
+  },
+  {
+    id: 'workspace-usage',
+    title: 'Usage',
+    description: 'Review workspace usage',
+    keywords: 'usage limits consumption workspace',
+    icon: navigationIcons.usage,
+    to: '/app/$workspaceId/usage',
+  },
+  {
+    id: 'workspace-audit-logs',
+    title: 'Audit Logs',
+    description: 'Review workspace activity and audit logs',
+    keywords: 'audit logs activity history workspace',
+    icon: navigationIcons.audit,
+    to: '/app/$workspaceId/audit-logs',
   },
   {
     id: 'workspace-settings',
-    title: 'Workspace settings',
+    title: 'Workspace Settings',
     description: 'Manage workspace details and configuration',
     keywords: 'workspace configuration general settings',
     icon: navigationIcons.workspaceSettings,
-    to: '/app/$workspace/workspace-settings',
-    permissions: ['workspace.settings.view'],
+    to: '/app/$workspaceId/settings',
   },
 ]
 
@@ -301,32 +311,41 @@ export const SearchOverAppDialog = ({
   workspaceId,
   projectId,
 }: {
-  workspaceId: string
-  projectId: string
+  workspaceId?: string
+  projectId?: string
 }) => {
   const navigate = useNavigate()
+
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+
   const inputRef = useRef<HTMLInputElement>(null)
   const resultRefs = useRef<Array<HTMLButtonElement | null>>([])
+
   const deferredSearch = useDeferredValue(search)
 
   const workspacesQuery = useQuery({
     ...getWorkspacesOptions(),
     enabled: open,
   })
+
   const workspaces = workspacesQuery.data?.data ?? []
+
   const projectQueries = useQueries({
     queries: workspaces.map((workspace) => ({
-      ...getProjectsOptions({ workspace_id: workspace.id }),
+      ...getProjectsOptions({
+        workspace_id: workspace.id,
+      }),
       enabled: open,
     })),
   })
+
   const projects = projectQueries.flatMap((query) => query.data?.data ?? [])
-  const activeWorkspace = workspaces.find(
-    (workspace) => workspace.id === workspaceId
-  )
+
+  const activeWorkspace = workspaceId
+    ? workspaces.find((workspace) => workspace.id === workspaceId)
+    : undefined
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -338,7 +357,9 @@ export const SearchOverAppDialog = ({
 
     document.addEventListener('keydown', handleShortcut)
 
-    return () => document.removeEventListener('keydown', handleShortcut)
+    return () => {
+      document.removeEventListener('keydown', handleShortcut)
+    }
   }, [])
 
   useEffect(() => {
@@ -360,59 +381,89 @@ export const SearchOverAppDialog = ({
   const navigateToAppPage = (page: PageDefinition<AppPagePath>) => {
     closeDialog()
 
-    navigate({ to: page.to })
+    navigate({
+      to: page.to,
+    })
   }
 
   const navigateToWorkspacePage = (page: PageDefinition<WorkspacePagePath>) => {
+    if (!workspaceId) return
+
     closeDialog()
+
     navigate({
       to: page.to,
-      params: { workspace: workspaceId },
+      params: {
+        workspace: workspaceId,
+      },
     })
   }
 
   const navigateToProjectPage = (page: PageDefinition<ProjectPagePath>) => {
+    if (!workspaceId || !projectId) return
+
     closeDialog()
+
     navigate({
       to: page.to,
-      params: { workspace: workspaceId, project: projectId },
+      params: {
+        workspace: workspaceId,
+        project: projectId,
+      },
     })
   }
 
+  const appPageResults: SearchResult[] = appPageDefinitions.map((page) => ({
+    ...page,
+    category: 'Pages' as const,
+    onSelect: () => navigateToAppPage(page),
+  }))
+
+  const workspacePageResults: SearchResult[] = workspaceId
+    ? workspacePageDefinitions
+        .filter((page) => hasPermission(activeWorkspace, page.permissions))
+        .map((page) => ({
+          ...page,
+          category: 'Pages' as const,
+          onSelect: () => navigateToWorkspacePage(page),
+        }))
+    : []
+
+  const projectPageResults: SearchResult[] =
+    workspaceId && projectId
+      ? projectPageDefinitions
+          .filter((page) => hasPermission(activeWorkspace, page.permissions))
+          .map((page) => ({
+            ...page,
+            category: 'Pages' as const,
+            onSelect: () => navigateToProjectPage(page),
+          }))
+      : []
+
   const pageResults: SearchResult[] = [
-    ...appPageDefinitions.map((page) => ({
-      ...page,
-      category: 'Pages' as const,
-      onSelect: () => navigateToAppPage(page),
-    })),
-    ...workspacePageDefinitions
-      .filter((page) => hasPermission(activeWorkspace, page.permissions))
-      .map((page) => ({
-        ...page,
-        category: 'Pages' as const,
-        onSelect: () => navigateToWorkspacePage(page),
-      })),
-    ...projectPageDefinitions
-      .filter((page) => hasPermission(activeWorkspace, page.permissions))
-      .map((page) => ({
-        ...page,
-        category: 'Pages' as const,
-        onSelect: () => navigateToProjectPage(page),
-      })),
+    ...appPageResults,
+    ...workspacePageResults,
+    ...projectPageResults,
   ]
 
   const workspaceResults: SearchResult[] = workspaces.map((workspace) => ({
     id: `workspace-${workspace.id}`,
     title: workspace.name,
-    description: `${workspace.projectCount} ${workspace.projectCount === 1 ? 'project' : 'projects'}`,
+    description: `${workspace.projectCount} ${
+      workspace.projectCount === 1 ? 'project' : 'projects'
+    }`,
     keywords: `${workspace.name} workspace ${workspace.role ?? ''}`,
     category: 'Workspaces',
     icon: navigationIcons.projects,
+
     onSelect: () => {
       closeDialog()
+
       navigate({
         to: '/app/$workspace',
-        params: { workspace: workspace.id },
+        params: {
+          workspace: workspace.id,
+        },
       })
     },
   }))
@@ -426,15 +477,24 @@ export const SearchOverAppDialog = ({
       {
         id: `project-${project.id}`,
         title: project.name,
-        description: `${workspace.name}${project.domain ? ` · ${project.domain}` : ''}`,
-        keywords: `${project.name} ${project.description ?? ''} ${project.domain ?? ''}`,
+        description: `${workspace.name}${
+          project.domain ? ` · ${project.domain}` : ''
+        }`,
+        keywords: `${project.name} ${
+          project.description ?? ''
+        } ${project.domain ?? ''}`,
         category: 'Projects' as const,
         icon: navigationIcons.projects,
+
         onSelect: () => {
           closeDialog()
+
           navigate({
             to: '/app/$workspace/projects/$project/dashboard',
-            params: { workspace: project.workspaceId, project: project.id },
+            params: {
+              workspace: project.workspaceId,
+              project: project.id,
+            },
           })
         },
       },
@@ -442,20 +502,27 @@ export const SearchOverAppDialog = ({
   })
 
   const normalizedSearch = deferredSearch.trim().toLowerCase()
+
   const filteredResults = [
     ...pageResults,
     ...workspaceResults,
     ...projectResults,
   ].filter((result) => matchesSearch(result, normalizedSearch))
+
   const resultSections = (['Pages', 'Workspaces', 'Projects'] as const)
     .map((category) => ({
       category,
       results: filteredResults
-        .map((result, index) => ({ result, index }))
+        .map((result, index) => ({
+          result,
+          index,
+        }))
         .filter(({ result }) => result.category === category),
     }))
     .filter((section) => section.results.length > 0)
+
   const activeResult = filteredResults[activeIndex]
+
   const isEntityLoading =
     open &&
     (workspacesQuery.isPending ||
@@ -466,11 +533,13 @@ export const SearchOverAppDialog = ({
 
     if (event.key === 'ArrowDown') {
       event.preventDefault()
+
       setActiveIndex((index) => (index + 1) % filteredResults.length)
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault()
+
       setActiveIndex(
         (index) => (index - 1 + filteredResults.length) % filteredResults.length
       )
@@ -483,7 +552,16 @@ export const SearchOverAppDialog = ({
   }
 
   useEffect(() => {
-    resultRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' })
+    // Reset the active item if the available results change.
+    if (activeIndex >= filteredResults.length) {
+      setActiveIndex(0)
+    }
+  }, [activeIndex, filteredResults.length])
+
+  useEffect(() => {
+    resultRefs.current[activeIndex]?.scrollIntoView({
+      block: 'nearest',
+    })
   }, [activeIndex])
 
   return (
@@ -502,16 +580,19 @@ export const SearchOverAppDialog = ({
               <SearchIcon />
               <span>Quick Search...</span>
             </span>
+
             <kbd className="text-xs font-normal">Ctrl+K</kbd>
           </Button>
         }
       />
+
       <DialogContent
         showCloseButton={false}
         className="flex max-h-[calc(100vh-12rem)] max-w-xl! flex-col gap-0 overflow-hidden p-0"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>Search Pathlens</DialogTitle>
+
           <DialogDescription>
             Search pages, workspaces, and projects.
           </DialogDescription>
@@ -520,6 +601,7 @@ export const SearchOverAppDialog = ({
         <div className="border-b p-3">
           <div className="relative">
             <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+
             <Input
               ref={inputRef}
               value={search}
@@ -552,6 +634,7 @@ export const SearchOverAppDialog = ({
               <p className="text-muted-foreground px-2 py-1 text-xs font-medium">
                 {section.category}
               </p>
+
               {section.results.map(({ result, index }) => {
                 const Icon = result.icon
 
@@ -575,10 +658,12 @@ export const SearchOverAppDialog = ({
                     <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
                       <Icon className="size-4" />
                     </span>
+
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">
                         {result.title}
                       </span>
+
                       <span className="text-muted-foreground block truncate text-xs">
                         {result.description}
                       </span>
@@ -589,10 +674,12 @@ export const SearchOverAppDialog = ({
             </section>
           ))}
 
-          {!filteredResults.length && (
+          {!filteredResults.length && !isEntityLoading && (
             <div className="text-muted-foreground flex flex-col items-center justify-center px-5 py-12 text-center">
               <SearchIcon className="mb-3 size-5" />
+
               <p className="text-sm font-medium">No results found</p>
+
               <p className="mt-1 text-xs">Try a different search term.</p>
             </div>
           )}

@@ -1,4 +1,5 @@
 import {
+  getWorkspaceByIdOptions,
   getWorkspacePermissionProfilesOptions,
   type T_PermissionProfile,
 } from '@/queries/workspace'
@@ -48,7 +49,11 @@ import { Switch } from '@workspace/ui/components/switch'
 import { Input } from '@workspace/ui/components/input'
 import { Textarea } from '@workspace/ui/components/textarea'
 import { Label } from '@workspace/ui/components/label'
-import { Separator } from '@workspace/ui/components/separator'
+import {
+  useCreateWorkspacePermissionProfile,
+  useDeleteWorkspacePermissionProfile,
+} from '@/mutations/workspace'
+import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 
 export const Route = createFileRoute('/app/$workspaceId/permissions/')({
   component: RouteComponent,
@@ -70,6 +75,7 @@ function RouteComponent() {
   const { workspaceId } = Route.useParams()
   const [open, setOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
+  const [editOpen, setEditOpen] = React.useState<string | null>(null)
   const [draft, setDraft] = useState<PermissionProfileDraft>(emptyDraft)
 
   const {
@@ -77,6 +83,15 @@ function RouteComponent() {
     isPending: profilesPending,
     isError: profilesError,
   } = useQuery(getWorkspacePermissionProfilesOptions(workspaceId))
+  const { data: workspaceData } = useQuery(getWorkspaceByIdOptions(workspaceId))
+  const {
+    mutate: createPermissionProfile,
+    isPending: createPermissionProfilePending,
+  } = useCreateWorkspacePermissionProfile(workspaceId)
+  const {
+    mutate: deletePermissionProfile,
+    isPending: deletePermissionProfilePending,
+  } = useDeleteWorkspacePermissionProfile(workspaceId)
 
   const togglePermission = (permission: Permission, checked: boolean) => {
     setDraft((current) => {
@@ -110,6 +125,16 @@ function RouteComponent() {
       }
     })
   }
+
+  const editProfileData = profilesData?.data.filter(
+    (item) => item.id === editOpen
+  )[0]
+  console.log({ editProfileData })
+  const [editDraft, setEditDraft] = useState<PermissionProfileDraft>({
+    name: editProfileData?.name ?? '',
+    description: editProfileData?.description ?? '',
+    permissions: editProfileData?.permissions ?? [],
+  })
 
   return (
     <div>
@@ -190,7 +215,11 @@ function RouteComponent() {
                         : profilesData?.data?.map((item) => (
                             <PermissionsCard
                               setDeleteOpen={setDeleteOpen}
+                              setEditOpen={setEditOpen}
                               item={item}
+                              permissions={
+                                workspaceData?.data?.permissions || []
+                              }
                             />
                           ))}
                     </TableBody>
@@ -310,7 +339,180 @@ function RouteComponent() {
             <DialogClose render={<Button variant="ghost">Cancel</Button>}>
               Close
             </DialogClose>
-            <Button type="submit">Create</Button>
+            <Button
+              onClick={() => {
+                createPermissionProfile(draft, {
+                  onSuccess: () => setOpen(false),
+                })
+              }}
+              type="submit"
+            >
+              <LoadingSwap isLoading={createPermissionProfilePending}>
+                Create
+              </LoadingSwap>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!deleteOpen}
+        onOpenChange={(open) => setDeleteOpen(open ? deleteOpen : null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Permission Profile</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this permission profile?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="py-2">
+            <DialogClose render={<Button variant={'secondary'} />}>
+              Cancel
+            </DialogClose>
+            <Button
+              onClick={() => {
+                deletePermissionProfile(deleteOpen!, {
+                  onSuccess: () => {
+                    setDeleteOpen(null)
+                  },
+                })
+              }}
+              variant={'destructive'}
+            >
+              <LoadingSwap isLoading={deletePermissionProfilePending}>
+                Confirm
+              </LoadingSwap>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!editOpen}
+        onOpenChange={(open) => setEditOpen(open ? editOpen : null)}
+      >
+        <DialogContent className={'max-w-xl! overflow-auto'}>
+          <DialogHeader>
+            <DialogTitle>Edit Permission Profile</DialogTitle>
+            <DialogDescription>
+              Edit the details of this permission profile
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="no-scrollbar -mx-4 max-h-[70vh] space-y-4 overflow-y-auto px-4">
+            <div className="space-y-2">
+              <Label htmlFor="profile-name">Profile name</Label>
+              <Input
+                id="profile-name"
+                value={editDraft.name}
+                onChange={(event) =>
+                  setEditDraft((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+                placeholder="Product analyst"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-description">Description</Label>
+              <Textarea
+                id="profile-description"
+                value={editDraft.description}
+                onChange={(event) =>
+                  setEditDraft((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+                placeholder="What this profile can access"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-4">
+              {PERMISSION_GROUPS.map((group) => {
+                const allSelected = group.permissions.every((permission) =>
+                  editDraft.permissions.includes(permission.key)
+                )
+
+                return (
+                  <div key={group.id} className="border-2 border-dashed">
+                    <div className="flex flex-col gap-3 p-4 pb-0 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h4 className="font-medium">{group.label}</h4>
+                        <p className="text-muted-foreground mt-1 text-xs leading-5">
+                          {group.description}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-muted-foreground text-xs">
+                          Select all
+                        </Label>
+                        <Switch
+                          checked={allSelected}
+                          onCheckedChange={(checked) =>
+                            toggleGroup(group.permissions, checked)
+                          }
+                          aria-label={`Select all ${group.label} permissions`}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-4">
+                      <div className="divide-y-2 divide-dashed border-2 border-dashed">
+                        {group.permissions.map((permission, index) => (
+                          <div className="flex items-start justify-between gap-4 p-3">
+                            <Label
+                              key={index}
+                              className="flex cursor-pointer flex-col items-start"
+                              htmlFor={`permission-${permission.key.replaceAll('.', '-')}`}
+                            >
+                              <span className="block text-sm font-medium">
+                                {permission.label}
+                              </span>
+                              <span className="text-muted-foreground block text-xs leading-5">
+                                {permission.description}
+                              </span>
+                            </Label>
+                            <Switch
+                              id={`permission-${permission.key.replaceAll('.', '-')}`}
+                              checked={editDraft.permissions.includes(
+                                permission.key
+                              )}
+                              onCheckedChange={(checked) =>
+                                togglePermission(permission.key, checked)
+                              }
+                              aria-label={permission.label}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <DialogFooter className="bg-transparent">
+            <DialogClose render={<Button variant="ghost">Cancel</Button>}>
+              Close
+            </DialogClose>
+            <Button
+              onClick={() => {
+                createPermissionProfile(draft, {
+                  onSuccess: () => setOpen(false),
+                })
+              }}
+              type="submit"
+            >
+              <LoadingSwap isLoading={createPermissionProfilePending}>
+                Create
+              </LoadingSwap>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -321,26 +523,35 @@ function RouteComponent() {
 const PermissionsCard = ({
   item,
   setDeleteOpen,
+  setEditOpen,
+  permissions,
 }: {
   item: T_PermissionProfile
   setDeleteOpen: React.Dispatch<React.SetStateAction<string | null>>
+  setEditOpen: React.Dispatch<React.SetStateAction<string | null>>
+  permissions: Permission[]
 }) => {
   const navigate = useNavigate()
+
   const permissionMenuItems = [
     {
       label: 'Edit Permission',
       action: 'edit-permission',
-      onClick: () => {},
-      display: true,
+      onClick: () => {
+        setEditOpen(item.id)
+      },
+      disabled:
+        !permissions.includes('workspace.permission_profiles.update') ||
+        item.isSystem,
     },
     {
       label: 'Delete Permission',
       action: 'delete-permission',
       variant: 'destructive' as const,
       separatorBefore: true,
-      display: item.permissions.includes(
-        'workspace.permission_profiles.delete'
-      ),
+      disabled:
+        !permissions.includes('workspace.permission_profiles.delete') ||
+        item.isSystem,
       onClick: () => {
         setDeleteOpen(item.id)
       },
@@ -356,6 +567,7 @@ const PermissionsCard = ({
           to: '/app/$workspaceId/permissions/$permissionId',
           params: {
             permissionId: item.id,
+            workspaceId: item.workspaceId,
           },
         })
       }}
@@ -399,30 +611,28 @@ const PermissionsCard = ({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent className={'w-fit'} align="end">
-            {permissionMenuItems.map(
-              (menuItem) =>
-                menuItem.display && (
-                  <React.Fragment key={menuItem.action}>
-                    {menuItem.separatorBefore && <DropdownMenuSeparator />}
+            {permissionMenuItems.map((menuItem) => (
+              <React.Fragment key={menuItem.action}>
+                {menuItem.separatorBefore && <DropdownMenuSeparator />}
 
-                    <DropdownMenuItem
-                      variant={menuItem.variant}
-                      render={
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            menuItem.onClick()
-                          }}
-                        />
-                      }
-                    >
-                      {menuItem.label}
-                    </DropdownMenuItem>
-                  </React.Fragment>
-                )
-            )}
+                <DropdownMenuItem
+                  disabled={menuItem.disabled}
+                  variant={menuItem.variant}
+                  render={
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        menuItem.onClick()
+                      }}
+                    />
+                  }
+                >
+                  {menuItem.label}
+                </DropdownMenuItem>
+              </React.Fragment>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

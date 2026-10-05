@@ -9,9 +9,11 @@ import {
   getPermissionProfiles,
   getUserWorkspacesController,
   getWorkspaceMembers,
+  getWorkspaceByIdController,
   getWorkspacePendingInvitations,
   getWorkspaceUsage,
   removeWorkspaceMember,
+  revokeWorkspaceInvitation,
   updatePermissionProfile,
   updateWorkspace,
   updateWorkspaceMember,
@@ -26,6 +28,7 @@ router.use(authMiddleware);
 
 router.get("/", getUserWorkspacesController);
 router.post("/", createWorkspace);
+router.get("/:workspace_id", getWorkspaceByIdController);
 router.patch("/:workspace_id", updateWorkspace);
 router.delete("/:workspace_id", deleteWorkspace);
 router.get("/:workspace_id/members", getWorkspaceMembers);
@@ -49,5 +52,9 @@ router.delete(
 router.patch("/:workspace_id/members/:user_id", updateWorkspaceMember);
 router.delete("/:workspace_id/members/:user_id", removeWorkspaceMember);
 router.post("/:workspace_id/invitations", createWorkspaceInvitation);
+router.delete(
+  "/:workspace_id/invitations/:invitation_id",
+  revokeWorkspaceInvitation
+);
 
 export default router;

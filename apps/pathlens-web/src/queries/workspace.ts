@@ -33,6 +33,22 @@ export const getWorkspacesOptions = () =>
     queryFn: getWorkspaces,
   })
 
+interface WorkspaceResponse {
+  success: boolean
+  data: T_Workspace
+}
+
+export const getWorkspaceByIdOptions = (workspaceId: string) =>
+  queryOptions({
+    queryKey: ['WORKSPACE', workspaceId],
+    queryFn: async (): Promise<WorkspaceResponse> => {
+      const response = await apiClient.get(`/workspaces/${workspaceId}`)
+
+      return response.data
+    },
+    enabled: Boolean(workspaceId),
+  })
+
 export type T_WorkspaceMember = {
   id: string
   name: string

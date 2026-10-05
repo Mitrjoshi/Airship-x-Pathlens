@@ -73,6 +73,9 @@ export const useUpdateWorkspace = (workspaceId: string) => {
       }
 
       await queryClient.invalidateQueries({ queryKey: ['WORKSPACES'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['WORKSPACE', workspaceId],
+      })
       toast.success('Workspace updated.')
     },
     onError: (error) => toast.error(error.message),
@@ -151,6 +154,38 @@ export const useCreateWorkspaceInvitation = (workspaceId: string) => {
         queryKey: ['WORKSPACE_INVITATIONS', workspaceId],
       })
       toast.success('Invitation sent.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+type RevokeInvitationResponse = {
+  success: boolean
+  message?: string
+}
+
+export const useRevokeWorkspaceInvitation = (workspaceId: string) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (
+      invitationId: string
+    ): Promise<RevokeInvitationResponse> => {
+      const response = await apiClient.delete(
+        `/workspaces/${workspaceId}/invitations/${invitationId}`
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to revoke invitation.')
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['WORKSPACE_INVITATIONS', workspaceId],
+      })
+      toast.success('Invitation revoked.')
     },
     onError: (error) => toast.error(error.message),
   })
