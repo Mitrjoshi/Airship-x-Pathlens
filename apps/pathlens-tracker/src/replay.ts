@@ -1,10 +1,9 @@
-import type { ReplayChunk, ReplayEvent } from "@workspace/contracts";
+import type { ReplayEvent, TrackerReplayChunk } from "@workspace/contracts";
 import { record } from "rrweb";
 import type { PathLensConfig } from "@workspace/contracts/tracker";
 import { postEncryptedPayload } from "./crypto";
 
 const REPLAY_CHECKOUT_INTERVAL = 60_000;
-const BASE_API_URL = process.env.BASE_API_URL;
 
 interface ReplayRecorderOptions {
   config: PathLensConfig;
@@ -114,8 +113,7 @@ export class ReplayRecorder {
 
     while (this.pendingEvents.length > 0) {
       const events = this.pendingEvents.splice(0, batchSize);
-      const chunk: ReplayChunk = {
-        projectId: this.config.projectId,
+      const chunk: TrackerReplayChunk = {
         sessionId: this.sessionId,
         visitorId: this.visitorId,
         sequence: this.sequence,
@@ -141,15 +139,15 @@ export class ReplayRecorder {
   }
 
   private async sendChunk(
-    chunk: ReplayChunk,
+    chunk: TrackerReplayChunk,
     isFinal: boolean
   ): Promise<boolean> {
-    const apiUrl = this.config.replayApiUrl ?? `${BASE_API_URL}/replay/chunks`;
+    const apiUrl = this.config.replayApiUrl;
 
     try {
       const response = await postEncryptedPayload(
         apiUrl,
-        this.config.projectId,
+        this.config.apiKey,
         chunk,
         isFinal
       );

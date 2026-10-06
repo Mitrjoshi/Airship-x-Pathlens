@@ -341,21 +341,44 @@ export const projects = pgTable(
 
     description: text("description"),
 
-    captureReplay: boolean("capture_replay").notNull().default(true),
-
-    capturePerformance: boolean("capture_performance").notNull().default(true),
-
-    captureErrors: boolean("capture_errors").notNull().default(false),
-
-    apiKey: text("api_key").notNull().unique(),
-
     createdAt: timestamp("created_at", {
       withTimezone: true,
     }).defaultNow(),
   },
   (table) => ({
     workspaceIdx: index("projects_workspace_idx").on(table.workspaceId),
-    apiKeyIdx: uniqueIndex("projects_api_key_idx").on(table.apiKey),
+  })
+);
+
+export const projectApiKeys = pgTable(
+  "project_api_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+
+    name: text("name").notNull(),
+    keyPrefix: text("key_prefix").notNull(),
+    secretHash: text("secret_hash").notNull().unique(),
+    secretEncrypted: text("secret_encrypted"),
+    scopes: jsonb("scopes")
+      .$type<readonly string[]>()
+      .notNull()
+      .default(["events", "replay", "errors", "performance"]),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_api_keys_project_idx").on(table.projectId),
+    secretHashIdx: uniqueIndex("project_api_keys_secret_hash_idx").on(
+      table.secretHash
+    ),
   })
 );
 

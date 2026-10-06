@@ -50,6 +50,7 @@ import { Route as AppWorkspaceIdProjectIdPerformanceRouteImport } from './routes
 import { Route as AppWorkspaceIdProjectIdReportsRouteImport } from './routes/app/$workspaceId/$projectId/reports'
 import { Route as AppWorkspaceIdProjectIdSessionReplayRouteImport } from './routes/app/$workspaceId/$projectId/session-replay'
 import { Route as AppWorkspaceIdProjectIdSettingsRouteImport } from './routes/app/$workspaceId/$projectId/settings'
+import { Route as AppWorkspaceIdProjectIdSetupRouteImport } from './routes/app/$workspaceId/$projectId/setup'
 import { Route as AppWorkspaceIdProjectIdUsageRouteImport } from './routes/app/$workspaceId/$projectId/usage'
 import { Route as AppWorkspaceIdProjectIdUserJourneyRouteImport } from './routes/app/$workspaceId/$projectId/user-journey'
 import { Route as AppWorkspaceIdProjectIdVisitorsRouteImport } from './routes/app/$workspaceId/$projectId/visitors'
@@ -275,6 +276,12 @@ const AppWorkspaceIdProjectIdSettingsRoute =
     path: '/$projectId/settings',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
+const AppWorkspaceIdProjectIdSetupRoute =
+  AppWorkspaceIdProjectIdSetupRouteImport.update({
+    id: '/$projectId/setup',
+    path: '/$projectId/setup',
+    getParentRoute: () => AppWorkspaceIdRouteRoute,
+  } as any)
 const AppWorkspaceIdProjectIdUsageRoute =
   AppWorkspaceIdProjectIdUsageRouteImport.update({
     id: '/$projectId/usage',
@@ -342,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
+  '/app/$workspaceId/$projectId/setup': typeof AppWorkspaceIdProjectIdSetupRoute
   '/app/$workspaceId/$projectId/usage': typeof AppWorkspaceIdProjectIdUsageRoute
   '/app/$workspaceId/$projectId/user-journey': typeof AppWorkspaceIdProjectIdUserJourneyRoute
   '/app/$workspaceId/$projectId/visitors': typeof AppWorkspaceIdProjectIdVisitorsRoute
@@ -385,6 +393,7 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
+  '/app/$workspaceId/$projectId/setup': typeof AppWorkspaceIdProjectIdSetupRoute
   '/app/$workspaceId/$projectId/usage': typeof AppWorkspaceIdProjectIdUsageRoute
   '/app/$workspaceId/$projectId/user-journey': typeof AppWorkspaceIdProjectIdUserJourneyRoute
   '/app/$workspaceId/$projectId/visitors': typeof AppWorkspaceIdProjectIdVisitorsRoute
@@ -434,6 +443,7 @@ export interface FileRoutesById {
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
+  '/app/$workspaceId/$projectId/setup': typeof AppWorkspaceIdProjectIdSetupRoute
   '/app/$workspaceId/$projectId/usage': typeof AppWorkspaceIdProjectIdUsageRoute
   '/app/$workspaceId/$projectId/user-journey': typeof AppWorkspaceIdProjectIdUserJourneyRoute
   '/app/$workspaceId/$projectId/visitors': typeof AppWorkspaceIdProjectIdVisitorsRoute
@@ -481,6 +491,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/reports'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
+    | '/app/$workspaceId/$projectId/setup'
     | '/app/$workspaceId/$projectId/usage'
     | '/app/$workspaceId/$projectId/user-journey'
     | '/app/$workspaceId/$projectId/visitors'
@@ -524,6 +535,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/reports'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
+    | '/app/$workspaceId/$projectId/setup'
     | '/app/$workspaceId/$projectId/usage'
     | '/app/$workspaceId/$projectId/user-journey'
     | '/app/$workspaceId/$projectId/visitors'
@@ -572,6 +584,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/reports'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
+    | '/app/$workspaceId/$projectId/setup'
     | '/app/$workspaceId/$projectId/usage'
     | '/app/$workspaceId/$projectId/user-journey'
     | '/app/$workspaceId/$projectId/visitors'
@@ -877,6 +890,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdSettingsRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
+    '/app/$workspaceId/$projectId/setup': {
+      id: '/app/$workspaceId/$projectId/setup'
+      path: '/$projectId/setup'
+      fullPath: '/app/$workspaceId/$projectId/setup'
+      preLoaderRoute: typeof AppWorkspaceIdProjectIdSetupRouteImport
+      parentRoute: typeof AppWorkspaceIdRouteRoute
+    }
     '/app/$workspaceId/$projectId/usage': {
       id: '/app/$workspaceId/$projectId/usage'
       path: '/$projectId/usage'
@@ -977,6 +997,7 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdProjectIdReportsRoute: typeof AppWorkspaceIdProjectIdReportsRoute
   AppWorkspaceIdProjectIdSessionReplayRoute: typeof AppWorkspaceIdProjectIdSessionReplayRoute
   AppWorkspaceIdProjectIdSettingsRoute: typeof AppWorkspaceIdProjectIdSettingsRoute
+  AppWorkspaceIdProjectIdSetupRoute: typeof AppWorkspaceIdProjectIdSetupRoute
   AppWorkspaceIdProjectIdUsageRoute: typeof AppWorkspaceIdProjectIdUsageRoute
   AppWorkspaceIdProjectIdUserJourneyRoute: typeof AppWorkspaceIdProjectIdUserJourneyRoute
   AppWorkspaceIdProjectIdVisitorsRoute: typeof AppWorkspaceIdProjectIdVisitorsRoute
@@ -1010,6 +1031,7 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
   AppWorkspaceIdProjectIdSessionReplayRoute:
     AppWorkspaceIdProjectIdSessionReplayRoute,
   AppWorkspaceIdProjectIdSettingsRoute: AppWorkspaceIdProjectIdSettingsRoute,
+  AppWorkspaceIdProjectIdSetupRoute: AppWorkspaceIdProjectIdSetupRoute,
   AppWorkspaceIdProjectIdUsageRoute: AppWorkspaceIdProjectIdUsageRoute,
   AppWorkspaceIdProjectIdUserJourneyRoute:
     AppWorkspaceIdProjectIdUserJourneyRoute,

@@ -11,7 +11,11 @@ import { decryptEncryptedTrackingPayload } from "../middleware/encrypted-trackin
 
 const router = Router();
 
-router.post("/", decryptEncryptedTrackingPayload, ingestEvents);
+router.post(
+  "/",
+  (req, res, next) => decryptEncryptedTrackingPayload(req, res, next, "events"),
+  ingestEvents
+);
 router.get(
   "/chart",
   ApiKeyMiddleware,

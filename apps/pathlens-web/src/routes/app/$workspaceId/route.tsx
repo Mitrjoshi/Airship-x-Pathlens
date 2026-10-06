@@ -67,7 +67,7 @@ function RouteComponent() {
         <AppSidebar
           workspaceDataLoading={workspaceDataLoading}
           workspaceData={workspaceData?.data as T_Workspace[]}
-          activeWorkspace={workspaceId}
+          activeWorkspace={workspaceId!}
           projectId={projectId}
         />
         <SidebarInset>
@@ -251,13 +251,14 @@ const sidebarWorkspaceItems = [
         icon: navigationIcons.projects,
         to: '/app/$workspaceId',
         isActive: (pathname: string, activeWorkspace: string) =>
-          pathname === `/app/${activeWorkspace}`,
+          pathname === `/app/${activeWorkspace}` || pathname.includes('create'),
       },
       {
         label: 'Team',
         icon: navigationIcons.team,
         to: '/app/$workspaceId/team',
-        isActive: (pathname: string) => pathname.includes('team'),
+        isActive: (pathname: string) =>
+          pathname.includes('team') || pathname.includes('invite'),
       },
       {
         label: 'Permissions',
@@ -333,104 +334,104 @@ export const AppSidebar = ({
                   ease: 'easeOut',
                 }}
               >
-                {workspaceDataLoading ? (
-                  <div>
-                    {[...Array(4)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                          duration: 0.2,
-                          delay: i * 0.04,
-                        }}
-                      >
-                        <Skeleton className="h-8 w-full" />
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <motion.div
-                    className="space-y-2"
-                    key={`${activeWorkspace}-${projectId}`}
-                  >
-                    {(projectId
-                      ? sidebarProjectsItems
-                      : sidebarWorkspaceItems
-                    ).map((label, index) => {
-                      return (
-                        <div className="pb-2">
-                          <SidebarGroupLabel key={index}>
-                            {label.label}
-                          </SidebarGroupLabel>
+                <motion.div
+                  className="space-y-2"
+                  key={`${activeWorkspace}-${projectId}`}
+                >
+                  {(projectId
+                    ? sidebarProjectsItems
+                    : sidebarWorkspaceItems
+                  ).map((label, index) => {
+                    return (
+                      <div className="pb-2">
+                        <SidebarGroupLabel key={index}>
+                          {label.label}
+                        </SidebarGroupLabel>
 
-                          {label.items.map((item, index) => {
-                            const Icon = item.icon
+                        {label.items.map((item, index) => {
+                          const Icon = item.icon
 
-                            const active = projectId
-                              ? item.isActive(
-                                  pathname,
-                                  activeWorkspace,
-                                  projectId
-                                )
-                              : item.isActive(pathname, activeWorkspace)
+                          const active = projectId
+                            ? item.isActive(
+                                pathname,
+                                activeWorkspace,
+                                projectId
+                              )
+                            : item.isActive(pathname, activeWorkspace)
 
-                            return (
-                              <div key={item.label}>
-                                <div className="relative h-8 overflow-hidden rounded-md">
-                                  {/* Temporary loading background */}
+                          return workspaceDataLoading ? (
+                            <>
+                              <div className="pb-1">
+                                {[...Array(label.items)].map((_, i) => (
                                   <motion.div
-                                    className="bg-muted/20 absolute inset-0 mb-1 rounded-md"
-                                    initial={{ opacity: 1 }}
-                                    animate={{ opacity: 0 }}
+                                    key={i}
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
                                     transition={{
                                       duration: 0.2,
-                                      delay: index * 0.01,
-                                    }}
-                                  />
-
-                                  {/* Actual sidebar item */}
-                                  <motion.div
-                                    initial={{
-                                      opacity: 0,
-                                      y: 3,
-                                    }}
-                                    animate={{
-                                      opacity: 1,
-                                      y: 0,
-                                    }}
-                                    transition={{
-                                      duration: 0.18,
-                                      delay: index * 0.01,
-                                      ease: 'easeOut',
+                                      delay: i * 0.04,
                                     }}
                                   >
-                                    <SidebarMenuItem>
-                                      <SidebarMenuButton
-                                        render={
-                                          <Button
-                                            className="justify-start"
-                                            variant={
-                                              active ? 'secondary' : 'ghost'
-                                            }
-                                            render={<Link to={item.to} />}
-                                          />
-                                        }
-                                      >
-                                        <Icon />
-                                        {item.label}
-                                      </SidebarMenuButton>
-                                    </SidebarMenuItem>
+                                    <Skeleton className="h-8 w-full" />
                                   </motion.div>
-                                </div>
+                                ))}
                               </div>
-                            )
-                          })}
-                        </div>
-                      )
-                    })}
-                  </motion.div>
-                )}
+                            </>
+                          ) : (
+                            <div key={item.label}>
+                              <div className="relative h-8 overflow-hidden rounded-md">
+                                {/* Temporary loading background */}
+                                <motion.div
+                                  className="bg-muted/20 absolute inset-0 mb-1 rounded-md"
+                                  initial={{ opacity: 1 }}
+                                  animate={{ opacity: 0 }}
+                                  transition={{
+                                    duration: 0.2,
+                                    delay: index * 0.01,
+                                  }}
+                                />
+
+                                {/* Actual sidebar item */}
+                                <motion.div
+                                  initial={{
+                                    opacity: 0,
+                                    y: 3,
+                                  }}
+                                  animate={{
+                                    opacity: 1,
+                                    y: 0,
+                                  }}
+                                  transition={{
+                                    duration: 0.18,
+                                    delay: index * 0.01,
+                                    ease: 'easeOut',
+                                  }}
+                                >
+                                  <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                      render={
+                                        <Button
+                                          className="justify-start"
+                                          variant={
+                                            active ? 'secondary' : 'ghost'
+                                          }
+                                          render={<Link to={item.to} />}
+                                        />
+                                      }
+                                    >
+                                      <Icon />
+                                      {item.label}
+                                    </SidebarMenuButton>
+                                  </SidebarMenuItem>
+                                </motion.div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </motion.div>
               </motion.div>
             </AnimatePresence>
           </SidebarGroup>

@@ -49,7 +49,7 @@ const TARGET_FPS = 30
 const FRAME_INTERVAL = 1000 / TARGET_FPS
 
 const ROTATION_SPEED = 0.02
-const EMPTY_ROTATION_SPEED = 0.09
+const EMPTY_ROTATION_SPEED = 0.02
 /* ---------------------------------
  * World data
  * --------------------------------- */

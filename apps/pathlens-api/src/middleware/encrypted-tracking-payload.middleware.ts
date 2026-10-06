@@ -1,33 +1,51 @@
 import type { NextFunction, Request, Response } from "express";
 import { decryptTrackingPayload } from "../lib/encrypted-payload";
+import {
+  getScopeForEventType,
+  resolveProjectApiKey,
+  type ProjectApiKeyContext,
+  type TrackingScope,
+} from "../lib/project-api-keys";
+import { isProjectOriginAllowed } from "../lib/project-domain";
 
-function getProjectIds(payload: unknown): string[] | null {
+export type TrackingRequest = Request & {
+  projectApiKey?: ProjectApiKeyContext;
+};
+
+function getRecords(payload: unknown): Record<string, unknown>[] | null {
   const records = Array.isArray(payload) ? payload : [payload];
-  const projectIds: string[] = [];
 
   for (const record of records) {
-    if (!record || typeof record !== "object") return null;
-
-    const projectId = (record as { projectId?: unknown }).projectId;
-
-    if (typeof projectId !== "string" || projectId.length === 0) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
       return null;
     }
-
-    projectIds.push(projectId);
   }
 
-  return projectIds;
+  return records as Record<string, unknown>[];
+}
+
+function injectProjectId(payload: unknown, projectId: string): unknown {
+  const records = getRecords(payload);
+
+  if (!records) return null;
+
+  const projectRecords = records.map((record) => ({
+    ...record,
+    projectId,
+  }));
+
+  return Array.isArray(payload) ? projectRecords : projectRecords[0];
 }
 
 export function decryptEncryptedTrackingPayload(
-  req: Request,
+  req: TrackingRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
+  requiredScope: TrackingScope = "events"
 ): void {
-  const projectKey = req.header("x-project-key");
+  const apiKey = req.header("x-project-key");
 
-  if (!projectKey) {
+  if (!apiKey) {
     res.status(401).json({
       success: false,
       message: "X-Project-Key is required.",
@@ -35,32 +53,79 @@ export function decryptEncryptedTrackingPayload(
     return;
   }
 
-  try {
-    const payload = decryptTrackingPayload(req.body, projectKey);
-    const projectIds = getProjectIds(payload);
+  void resolveProjectApiKey(apiKey)
+    .then((projectApiKey) => {
+      if (!projectApiKey) {
+        res.status(401).json({
+          success: false,
+          message: "Invalid or expired project API key.",
+        });
+        return;
+      }
 
-    if (!projectIds) {
-      res.status(400).json({
+      if (
+        !isProjectOriginAllowed(
+          projectApiKey.domain,
+          req.header("origin"),
+          req.header("referer")
+        )
+      ) {
+        res.status(403).json({
+          success: false,
+          message: "This API key is not authorized for this domain.",
+        });
+        return;
+      }
+
+      req.projectApiKey = projectApiKey;
+
+      try {
+        const payload = decryptTrackingPayload(req.body, apiKey);
+        const records = getRecords(payload);
+
+        if (!records) {
+          res.status(400).json({
+            success: false,
+            message: "Invalid encrypted tracking payload.",
+          });
+          return;
+        }
+
+        const scopes = records.map((record) => {
+          if (
+            requiredScope === "replay" ||
+            !record ||
+            typeof record !== "object"
+          ) {
+            return requiredScope;
+          }
+
+          return getScopeForEventType(
+            String((record as { type?: unknown }).type ?? "")
+          );
+        });
+
+        if (scopes.some((scope) => !projectApiKey.scopes.includes(scope))) {
+          res.status(403).json({
+            success: false,
+            message: "This API key is not allowed to track this data.",
+          });
+          return;
+        }
+
+        req.body = injectProjectId(payload, projectApiKey.projectId);
+        next();
+      } catch {
+        res.status(400).json({
+          success: false,
+          message: "Invalid encrypted tracking payload.",
+        });
+      }
+    })
+    .catch(() => {
+      res.status(500).json({
         success: false,
-        message: "Invalid encrypted tracking payload.",
+        message: "Unable to validate project API key.",
       });
-      return;
-    }
-
-    if (projectIds.some((projectId) => projectId !== projectKey)) {
-      res.status(401).json({
-        success: false,
-        message: "Invalid project API key.",
-      });
-      return;
-    }
-
-    req.body = payload;
-    next();
-  } catch {
-    res.status(400).json({
-      success: false,
-      message: "Invalid encrypted tracking payload.",
     });
-  }
 }

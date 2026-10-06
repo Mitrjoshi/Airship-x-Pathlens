@@ -37,7 +37,7 @@ async function deriveEncryptionKey(projectKey: string): Promise<CryptoKey> {
 
 export async function encryptPayload(
   payload: unknown,
-  projectKey: string
+  apiKey: string
 ): Promise<EncryptedPayload> {
   const plaintext = JSON.stringify(payload);
 
@@ -46,7 +46,7 @@ export async function encryptPayload(
   }
 
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  const key = await deriveEncryptionKey(projectKey);
+  const key = await deriveEncryptionKey(apiKey);
   const ciphertext = await crypto.subtle.encrypt(
     {
       name: AES_KEY_ALGORITHM,
@@ -65,17 +65,17 @@ export async function encryptPayload(
 
 export async function postEncryptedPayload(
   url: string,
-  projectKey: string,
+  apiKey: string,
   payload: unknown,
   keepalive = false
 ): Promise<Response> {
-  const encryptedPayload = await encryptPayload(payload, projectKey);
+  const encryptedPayload = await encryptPayload(payload, apiKey);
 
   return fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Project-Key": projectKey,
+      "X-Project-Key": apiKey,
     },
     body: JSON.stringify(encryptedPayload),
     keepalive,

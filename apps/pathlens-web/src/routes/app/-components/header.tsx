@@ -55,6 +55,7 @@ export const Header = () => {
             activeProject={projectId}
             projectData={projects?.data as T_Projects[]}
             projectDataLoading={projectsLoading}
+            workspaceId={workspaceId}
           />
         )}
       </div>
@@ -76,12 +77,14 @@ interface I_ProjectSwitcherProps {
   projectData: T_Projects[]
   projectDataLoading: boolean
   activeProject: string
+  workspaceId: string
 }
 
 export const ProjectSwitcher = ({
   projectData,
   projectDataLoading,
   activeProject,
+  workspaceId,
 }: I_ProjectSwitcherProps) => {
   const project = projectData?.find((p) => p.id === activeProject)
 
@@ -155,7 +158,18 @@ export const ProjectSwitcher = ({
 
           <DropdownMenuItem
             render={
-              <Button variant="ghost" className={'w-full justify-start'} />
+              <Button
+                render={
+                  <Link
+                    to={'/app/$workspaceId/create'}
+                    params={{
+                      workspaceId,
+                    }}
+                  />
+                }
+                variant="ghost"
+                className={'w-full justify-start'}
+              />
             }
           >
             <PlusIcon />

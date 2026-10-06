@@ -3,22 +3,22 @@
 ## Workspace
 
 - This is a pnpm 11 (`pnpm@11.22.0`) Turborepo. Run commands from the root; use `pnpm --filter <package> <script>` for focused work.
-- Product apps are under `apps/`; shared UI is `packages/ui`, browser-safe contracts are `packages/contracts`, and server-only shared types are `packages/backend-types`.
+- Product apps are under `apps/`; shared UI is `packages/ui`, browser-safe contracts are `packages/contracts`, and server-only types are `packages/backend-types`.
 - Read `apps/airship-web/AGENTS.md` before changing Airship web code. Add shared shadcn primitives with `pnpm --filter @workspace/ui exec shadcn add <component>` and import them from `@workspace/ui/components/*`.
 
 ## Commands
 
-- Install with `pnpm install`. `pnpm verify` runs the repository lint, typecheck, and build tasks; use `pnpm format:check` to check formatting.
-- Run all dev processes with `pnpm dev`, or focus on `@pathlens/web`, `@airship/web`, `@pathlens/api`, or `@airship/api` with their `dev` scripts.
+- `pnpm install` installs the workspace. `pnpm verify` runs lint, typecheck, and build; `pnpm format:check` checks formatting.
+- Run all dev processes with `pnpm dev`, or focus on a package such as `@pathlens/web`, `@airship/web`, `@pathlens/api`, or `@airship/api` with its `dev` script.
 - The only configured test script is `pnpm --filter @pathlens/api test:geoip`.
-- Build the browser tracker with `pnpm --filter @pathlens/tracker build`; its output is `apps/pathlens-tracker/dist/tracker.global.js`.
-- For Pathlens schema changes, run `pnpm --filter @pathlens/api generate` then `pnpm --filter @pathlens/api migrate`. Never hand-edit `apps/pathlens-api/drizzle/meta/**`; use `push` only for deliberate direct synchronization.
-- Snapshot local runs require copying the relevant `.env.example` to `.env`, a private S3 bucket, LocalStack on port `4566`, the queue from `aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name pathlens-snapshot-worker-queue`, and one-time `pnpm --filter @pathlens/snapshot-worker install-browser`; then run `pnpm --filter @pathlens/snapshot-worker local`.
+- Build the browser tracker with `pnpm --filter @pathlens/tracker build`; its bundle is `apps/pathlens-tracker/dist/tracker.global.js`.
+- For Pathlens schema changes, run `pnpm --filter @pathlens/api generate` then `pnpm --filter @pathlens/api migrate`. Never hand-edit `apps/pathlens-api/drizzle/meta/**`; use `push` only for deliberate direct database synchronization.
+- Snapshot local runs require `apps/pathlens-snapshot-worker/.env`, a private S3 bucket, LocalStack on port `4566`, the queue created with `aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name pathlens-snapshot-worker-queue`, and one-time `pnpm --filter @pathlens/snapshot-worker install-browser`; then run `pnpm --filter @pathlens/snapshot-worker local`.
 
 ## Boundaries
 
 - TanStack Router generates `src/routeTree.gen.ts` in both web apps; never edit it. Edit routes under `src/routes` (Pathlens also has legacy `src/-routes`).
-- Pathlens API starts at `apps/pathlens-api/src/server.ts`, serves under `/api`, and its package scripts load `apps/pathlens-api/.env`; Airship API starts at `apps/airship-api/src/index.ts` and exposes `/health`.
+- Pathlens API starts at `apps/pathlens-api/src/server.ts` and serves under `/api`; its dev/start scripts load `apps/pathlens-api/.env`. Airship API starts at `apps/airship-api/src/index.ts` and exposes `/health`.
 
 ## Runtime Contracts
 

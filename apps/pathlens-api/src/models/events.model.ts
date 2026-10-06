@@ -12,7 +12,7 @@ import type {
   ProjectEventDetailValue,
 } from "@workspace/contracts";
 import type { GeoLocation } from "../lib/geoip";
-import { getProjectIDByApiKeyModel } from "./projects.model";
+import { getProjectByIdModel } from "./projects.model";
 import {
   assertWorkspaceHeatmapPages,
   assertWorkspaceUsageLimit,
@@ -367,7 +367,7 @@ export async function createEvents(
   ip?: string | null,
   geo?: GeoLocation | null
 ) {
-  // Cache API key -> project/workspace
+  // Cache project ID -> project/workspace
   const projectCache = new Map<
     string,
     {
@@ -391,10 +391,10 @@ export async function createEvents(
     let project = projectCache.get(event.projectId);
 
     if (!project) {
-      const [dbProject] = await getProjectIDByApiKeyModel(event.projectId);
+      const [dbProject] = await getProjectByIdModel(event.projectId);
 
       if (!dbProject) {
-        throw new Error(`Invalid API key: ${event.projectId}`);
+        throw new Error(`Invalid project ID: ${event.projectId}`);
       }
 
       project = {

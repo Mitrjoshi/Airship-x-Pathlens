@@ -16,10 +16,7 @@ function decodeBase64Url(value: string): Buffer {
   return Buffer.from(value.replace(/-/g, "+").replace(/_/g, "/"), "base64");
 }
 
-export function decryptTrackingPayload(
-  body: unknown,
-  projectKey: string
-): unknown {
+export function decryptTrackingPayload(body: unknown, apiKey: string): unknown {
   try {
     const envelope = encryptedPayloadSchema.parse(body);
     const iv = decodeBase64Url(envelope.iv);
@@ -29,7 +26,7 @@ export function decryptTrackingPayload(
       throw new InvalidEncryptedPayloadError();
     }
 
-    const key = crypto.createHash("sha256").update(projectKey).digest();
+    const key = crypto.createHash("sha256").update(apiKey).digest();
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     const authTag = encrypted.subarray(-AUTH_TAG_LENGTH);
 

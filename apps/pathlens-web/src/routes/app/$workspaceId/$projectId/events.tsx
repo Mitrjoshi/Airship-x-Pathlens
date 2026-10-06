@@ -403,7 +403,13 @@ function RouteComponent() {
 
   const chartData = (chartResponse?.data.chartData ?? []) as ChartDataItem[]
 
-  const hasChartData = chartData.length > 0
+  const hasChartData = chartData.every(
+    (item) =>
+      item.desktop !== 0 &&
+      item.mobile !== 0 &&
+      item.tablet !== 0 &&
+      item.unknown !== 0
+  )
 
   const isInitialChartLoading = isChartFetching
   const isFetching = isEventsFetching || isChartFetching

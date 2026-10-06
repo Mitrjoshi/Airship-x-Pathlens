@@ -2,6 +2,7 @@ import { Response } from "express";
 import { z, ZodError } from "zod";
 import type { AuthRequest } from "../lib/jwt";
 import { generateApiKey } from "../utils/utils";
+import type { TrackingScope } from "../lib/project-api-keys";
 import {
   createProjectModel,
   deleteProjectModel,
@@ -50,16 +51,19 @@ export async function createProject(req: AuthRequest, res: Response) {
       workspace_id,
     } = createProjectSchema.parse(req.body);
 
-    const api_key = generateApiKey();
+    const api_key = generateApiKey("plk");
+    const scopes: TrackingScope[] = ["events"];
+
+    if (captureReplay) scopes.push("replay");
+    if (capturePerformance) scopes.push("performance");
+    if (captureErrors) scopes.push("errors");
 
     const project = await createProjectModel({
       name,
       description,
       api_key,
+      scopes,
       domain,
-      capture_replay: captureReplay,
-      capture_performance: capturePerformance,
-      capture_errors: captureErrors,
       workspace_id,
     });
 
@@ -81,6 +85,21 @@ export async function createProject(req: AuthRequest, res: Response) {
           captureErrors,
         },
       });
+
+      await createAuditLog({
+        workspaceId: workspace_id,
+        actorUserId: req.user.id,
+        action: "project_api_key.created",
+        resourceType: "project_api_key",
+        resourceId: project[0].apiKeyId,
+        metadata: {
+          projectId,
+          name: "Default tracker key",
+          keyPrefix: api_key.slice(0, 12),
+          scopes,
+          expiresAt: null,
+        },
+      });
     }
 
     if (domain) await enqueueProjectSnapshot(projectId);
@@ -89,6 +108,13 @@ export async function createProject(req: AuthRequest, res: Response) {
       success: true,
       data: {
         id: projectId,
+        apiKey: {
+          id: project[0].apiKeyId,
+          name: "Default tracker key",
+          secret: api_key,
+          scopes,
+          expiresAt: null,
+        },
       },
     });
   } catch (error) {
@@ -152,9 +178,6 @@ const updateProjectSchema = z.object({
     .trim()
     .max(2048, "Project domain must be 2048 characters or less.")
     .nullable(),
-  captureReplay: z.boolean(),
-  capturePerformance: z.boolean(),
-  captureErrors: z.boolean(),
 });
 
 export async function getProjects(req: AuthRequest, res: Response) {
@@ -213,9 +236,6 @@ export async function updateProject(req: AuthRequest, res: Response) {
       name: payload.name,
       description: payload.description,
       domain: payload.domain,
-      captureReplay: payload.captureReplay,
-      capturePerformance: payload.capturePerformance,
-      captureErrors: payload.captureErrors,
     });
 
     if (!project) {
@@ -236,9 +256,6 @@ export async function updateProject(req: AuthRequest, res: Response) {
           name: payload.name,
           description: payload.description,
           domain: payload.domain,
-          captureReplay: payload.captureReplay,
-          capturePerformance: payload.capturePerformance,
-          captureErrors: payload.captureErrors,
         },
       });
     }
@@ -295,9 +312,6 @@ export async function deleteProject(req: AuthRequest, res: Response) {
               name: project.name,
               description: project.description,
               domain: project.domain,
-              captureReplay: project.captureReplay,
-              capturePerformance: project.capturePerformance,
-              captureErrors: project.captureErrors,
             }
           : undefined,
       });

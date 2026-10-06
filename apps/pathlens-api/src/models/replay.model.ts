@@ -2,7 +2,7 @@ import { and, asc, eq, gt, sql } from "drizzle-orm";
 import type { ReplayChunk, ReplayEvent } from "@workspace/contracts";
 import { db } from "../db/client";
 import { replayChunks, replaySessions } from "../db/schema";
-import { getProjectIDByApiKeyModel } from "./projects.model";
+import { getProjectByIdModel } from "./projects.model";
 import { publishReplayChunk } from "../lib/replay-live";
 import { assertWorkspaceUsageLimit } from "./usage.model";
 
@@ -10,7 +10,7 @@ const REPLAY_CHUNK_LIMIT = 250;
 
 export class InvalidReplayProjectKeyError extends Error {
   constructor() {
-    super("Invalid project API key.");
+    super("Invalid tracking project.");
     this.name = "InvalidReplayProjectKeyError";
   }
 }
@@ -73,7 +73,7 @@ function isSessionLive(lastSeenAt: Date, endedAt: Date | null): boolean {
 export async function ingestReplayChunkModel(
   chunk: ReplayChunk
 ): Promise<void> {
-  const [project] = await getProjectIDByApiKeyModel(chunk.projectId);
+  const [project] = await getProjectByIdModel(chunk.projectId);
 
   if (!project) throw new InvalidReplayProjectKeyError();
 

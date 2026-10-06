@@ -25,9 +25,13 @@ export default defineConfig({
   dts: false,
 
   define: {
-    "process.env.BASE_API_URL": JSON.stringify(
-      process.env.BASE_API_URL ??
-        "https://t1xg2ok5i0.execute-api.ap-south-1.amazonaws.com/dev"
+    "process.env.API_URL": JSON.stringify(
+      process.env.API_URL ??
+        `${process.env.BASE_API_URL ?? "https://t1xg2ok5i0.execute-api.ap-south-1.amazonaws.com/dev"}/api/events`
+    ),
+    "process.env.REPLAY_API_URL": JSON.stringify(
+      process.env.REPLAY_API_URL ??
+        `${process.env.BASE_API_URL ?? "https://t1xg2ok5i0.execute-api.ap-south-1.amazonaws.com/dev"}/api/replay/chunks`
     ),
   },
 });

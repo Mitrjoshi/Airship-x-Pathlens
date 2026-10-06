@@ -254,61 +254,69 @@ function RouteComponent() {
               <p className="px-4 pb-3 text-lg font-medium">Countries</p>
 
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pr-2">
-                {isFetching
-                  ? Array.from({ length: 5 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
-                      >
-                        <div className="flex min-w-0 items-start gap-2">
-                          <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                {isFetching ? (
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                    >
+                      <div className="flex min-w-0 items-start gap-2">
+                        <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
 
-                          <div className="flex min-w-0 flex-1 flex-col gap-1">
-                            <Skeleton className="h-4 w-1/3" />
-                            <Skeleton className="h-3 w-1/8" />
-                          </div>
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <Skeleton className="h-4 w-1/3" />
+                          <Skeleton className="h-3 w-1/8" />
                         </div>
-
-                        <Skeleton className="h-2 w-full rounded-full" />
-
-                        <Skeleton className="ml-auto h-4 w-4" />
                       </div>
-                    ))
-                  : visitorsLocation?.locations.map((item, index) => (
-                      <div
-                        key={`${item.code}-${item.city}-${index}`}
-                        className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
-                      >
-                        <div className="flex min-w-0 items-center gap-2">
-                          <Avatar className="shrink-0">
-                            <AvatarFallback>{item.code}</AvatarFallback>
-                          </Avatar>
 
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">
-                              {item.city}
-                            </p>
+                      <Skeleton className="h-2 w-full rounded-full" />
 
-                            <p className="text-muted-foreground truncate text-xs font-medium">
-                              {item.country}
-                            </p>
-                          </div>
+                      <Skeleton className="ml-auto h-4 w-4" />
+                    </div>
+                  ))
+                ) : !visitorsLocation?.locations.length ? (
+                  <div className="mx-auto flex w-full items-center justify-center">
+                    <p className="text-muted-foreground text-sm">
+                      No Data Available
+                    </p>
+                  </div>
+                ) : (
+                  visitorsLocation?.locations.map((item, index) => (
+                    <div
+                      key={`${item.code}-${item.city}-${index}`}
+                      className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Avatar className="shrink-0">
+                          <AvatarFallback>{item.code}</AvatarFallback>
+                        </Avatar>
+
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {item.city}
+                          </p>
+
+                          <p className="text-muted-foreground truncate text-xs font-medium">
+                            {item.country}
+                          </p>
                         </div>
-
-                        <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-                          <div
-                            className="bg-chart-1 h-full"
-                            style={{
-                              width: `${Math.min(item.visitors, 100)}%`,
-                            }}
-                          />
-                        </div>
-
-                        <p className="text-right text-sm font-medium">
-                          {formatNumber(item.visitors)}
-                        </p>
                       </div>
-                    ))}
+
+                      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                        <div
+                          className="bg-chart-1 h-full"
+                          style={{
+                            width: `${Math.min(item.visitors, 100)}%`,
+                          }}
+                        />
+                      </div>
+
+                      <p className="text-right text-sm font-medium">
+                        {formatNumber(item.visitors)}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </CardContent>
@@ -339,108 +347,118 @@ function RouteComponent() {
                   </TableRow>
                 </TableHeader>
 
-                <TableBody>
-                  {isFetching
-                    ? [...Array(5)].map((_, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <div className="flex min-w-0 items-start gap-2">
-                              <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                {!visitors.length ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center">
+                      <p className="text-muted-foreground text-sm">
+                        No visitors found.
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <TableBody>
+                    {isFetching
+                      ? [...Array(5)].map((_, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <div className="flex min-w-0 items-start gap-2">
+                                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
 
-                              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                                <Skeleton className="h-4 w-90" />
-                                <Skeleton className="h-3 w-1/8" />
+                                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                                  <Skeleton className="h-4 w-90" />
+                                  <Skeleton className="h-3 w-1/8" />
+                                </div>
                               </div>
-                            </div>
-                          </TableCell>
+                            </TableCell>
 
-                          <TableCell>
-                            <div className="flex justify-center">
-                              <Skeleton className="h-6 w-full" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <div className="flex justify-center">
-                              <Skeleton className="h-6 w-full" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <div className="flex justify-center">
-                              <Skeleton className="h-6 w-full" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <div className="flex justify-center">
-                              <Skeleton className="h-6 w-full" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <div className="flex justify-center">
-                              <Skeleton className="h-6 w-full" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <div className="flex justify-center">
-                              <Skeleton className="h-6 w-full" />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : visitors?.map((visitor) => (
-                        <TableRow key={visitor.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarFallback>
-                                  {visitor.countryCode}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="truncate">{visitor.id}</p>
-                                <p className="text-muted-foreground truncate text-xs">
-                                  {visitor.location}
-                                </p>
+                            <TableCell>
+                              <div className="flex justify-center">
+                                <Skeleton className="h-6 w-full" />
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{visitor.device}</TableCell>
-                          <TableCell>{visitor.browser}</TableCell>
+                            </TableCell>
 
-                          <TableCell>{visitor.sessions}</TableCell>
-                          <TableCell>{visitor.pageViews}</TableCell>
+                            <TableCell>
+                              <div className="flex justify-center">
+                                <Skeleton className="h-6 w-full" />
+                              </div>
+                            </TableCell>
 
-                          <TableCell className="text-sm">
-                            {visitor.duration}
-                          </TableCell>
-                          <TableCell className="pr-5">
-                            <Badge
-                              variant="outline"
-                              className={
-                                visitor.status === 'online'
-                                  ? 'border-primary/40 bg-primary/10 dark:text-primary text-emerald-700'
-                                  : 'text-muted-foreground'
-                              }
-                            >
-                              <span
-                                className={`mr-1.5 size-1.5 rounded-full ${visitor.status === 'online' ? 'bg-primary' : 'bg-muted-foreground/50'}`}
-                              />
-                              {visitor.status === 'online'
-                                ? 'Active now'
-                                : formatRelativeTime(visitor.lastSeen)}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                </TableBody>
+                            <TableCell>
+                              <div className="flex justify-center">
+                                <Skeleton className="h-6 w-full" />
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="flex justify-center">
+                                <Skeleton className="h-6 w-full" />
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="flex justify-center">
+                                <Skeleton className="h-6 w-full" />
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="flex justify-center">
+                                <Skeleton className="h-6 w-full" />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      : visitors?.map((visitor) => (
+                          <TableRow key={visitor.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar>
+                                  <AvatarFallback>
+                                    {visitor.countryCode}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="truncate">{visitor.id}</p>
+                                  <p className="text-muted-foreground truncate text-xs">
+                                    {visitor.location}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{visitor.device}</TableCell>
+                            <TableCell>{visitor.browser}</TableCell>
+
+                            <TableCell>{visitor.sessions}</TableCell>
+                            <TableCell>{visitor.pageViews}</TableCell>
+
+                            <TableCell className="text-sm">
+                              {visitor.duration}
+                            </TableCell>
+                            <TableCell className="pr-5">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  visitor.status === 'online'
+                                    ? 'border-primary/40 bg-primary/10 dark:text-primary text-emerald-700'
+                                    : 'text-muted-foreground'
+                                }
+                              >
+                                <span
+                                  className={`mr-1.5 size-1.5 rounded-full ${visitor.status === 'online' ? 'bg-primary' : 'bg-muted-foreground/50'}`}
+                                />
+                                {visitor.status === 'online'
+                                  ? 'Active now'
+                                  : formatRelativeTime(visitor.lastSeen)}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                  </TableBody>
+                )}
               </Table>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between border-t px-4 py-3">
+              <div className="flex items-center justify-between px-4 py-3">
                 <p className="text-muted-foreground text-sm">
                   {totalEvents > 0 ? (
                     <>

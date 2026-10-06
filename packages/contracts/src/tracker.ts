@@ -1,8 +1,12 @@
 // src/types.ts
 
+export type TrackingScope = 'events' | 'replay' | 'errors' | 'performance'
+
 export interface PathLensConfig {
-  projectId: string
+  apiKey: string
   apiUrl: string
+
+  trackingScopes: readonly TrackingScope[]
 
   debug?: boolean
 
@@ -19,7 +23,7 @@ export interface PathLensConfig {
   flushInterval?: number
   batchSize?: number
 
-  replayApiUrl?: string
+  replayApiUrl: string
   captureReplay?: boolean
   replayFlushInterval?: number
   replayBatchSize?: number
@@ -67,8 +71,6 @@ export interface BaseEvent {
   type: EventType
 
   timestamp: string
-
-  projectId: string
 
   sessionId: string
 

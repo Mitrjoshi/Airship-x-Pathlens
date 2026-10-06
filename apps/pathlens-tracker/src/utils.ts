@@ -5,6 +5,7 @@ import type {
   ClientAnalyticsInfo,
   DeviceType,
   PathLensConfig,
+  TrackingScope,
   TrackedEvent,
 } from "@workspace/contracts/tracker";
 import { postEncryptedPayload } from "./crypto";
@@ -15,8 +16,12 @@ const SESSION_LAST_ACTIVE_KEY = "pathlens_session_last_active";
 const CAMPAIGN_KEY_PREFIX = "pathlens_campaign:";
 const CAMPAIGN_VALUE_LIMIT = 512;
 const SESSION_TIMEOUT = 30 * 60 * 1000;
-const DEFAULT_API_URL = `${process.env.BASE_API_URL}/api/events`;
-const DEFAULT_REPLAY_API_URL = `${process.env.BASE_API_URL}/api/replay/chunks`;
+const DEFAULT_API_URL =
+  process.env.API_URL ??
+  "https://t1xg2ok5i0.execute-api.ap-south-1.amazonaws.com/dev/api/events";
+const DEFAULT_REPLAY_API_URL =
+  process.env.REPLAY_API_URL ??
+  "https://t1xg2ok5i0.execute-api.ap-south-1.amazonaws.com/dev/api/replay/chunks";
 
 export function createVisitorId(): string {
   let id = localStorage.getItem(VISITOR_KEY);
@@ -338,7 +343,7 @@ export function flushQueue(
 
   debug(config, `Flushing ${events.length} events`);
 
-  void postEncryptedPayload(config.apiUrl, config.projectId, events, true)
+  void postEncryptedPayload(config.apiUrl, config.apiKey, events, true)
     .then((response) => {
       if (!response.ok) {
         throw new Error(
@@ -360,14 +365,15 @@ export function readConfig(): PathLensConfig {
 
   const dataset = script.dataset;
 
-  if (!dataset.projectId) {
-    throw new Error("Pathlens: data-project-id is required.");
+  if (!dataset.apiKey) {
+    throw new Error("Pathlens: data-api-key is required.");
   }
 
   return {
-    projectId: dataset.projectId,
-    apiUrl: dataset.apiUrl ?? DEFAULT_API_URL,
-    replayApiUrl: dataset.replayApiUrl ?? DEFAULT_REPLAY_API_URL,
+    apiKey: dataset.apiKey,
+    apiUrl: DEFAULT_API_URL,
+    trackingScopes: [],
+    replayApiUrl: DEFAULT_REPLAY_API_URL,
     captureReplay: dataset.captureReplay !== "false",
     replayFlushInterval: Number(dataset.replayFlushInterval ?? 1500),
     replayBatchSize: Number(dataset.replayBatchSize ?? 100),
@@ -387,4 +393,52 @@ export function readConfig(): PathLensConfig {
     flushInterval: Number(dataset.flushInterval ?? 5000),
     batchSize: Number(dataset.batchSize ?? 25),
   };
+}
+
+export async function fetchTrackingScopes(
+  config: PathLensConfig
+): Promise<TrackingScope[]> {
+  const configUrl = new URL(config.apiUrl, window.location.href);
+
+  if (configUrl.pathname.endsWith("/events")) {
+    configUrl.pathname = configUrl.pathname.slice(0, -"/events".length);
+  }
+
+  configUrl.pathname = `${configUrl.pathname.replace(/\/$/, "")}/tracking/config`;
+
+  const response = await fetch(configUrl, {
+    headers: {
+      "X-Project-Key": config.apiKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Tracking configuration failed with status ${response.status}`
+    );
+  }
+
+  const result = (await response.json()) as {
+    success?: boolean;
+    data?: { scopes?: unknown };
+  };
+  const scopes = result.data?.scopes;
+
+  if (!result.success || !Array.isArray(scopes) || scopes.length === 0) {
+    throw new Error("Tracking configuration is invalid.");
+  }
+
+  const validScopes = scopes.filter(
+    (scope): scope is TrackingScope =>
+      scope === "events" ||
+      scope === "replay" ||
+      scope === "errors" ||
+      scope === "performance"
+  );
+
+  if (validScopes.length === 0) {
+    throw new Error("Tracking configuration has no valid scopes.");
+  }
+
+  return validScopes;
 }

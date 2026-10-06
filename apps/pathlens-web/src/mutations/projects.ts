@@ -40,11 +40,11 @@ export const useCreateProject = () => {
       await queryClient.invalidateQueries({ queryKey: ['WORKSPACES'] })
       await queryClient.invalidateQueries({ queryKey: ['PROJECTS'] })
       navigate({
-        to: '/app/$workspace/projects/$project/setup',
+        to: '/app/$workspaceId/$projectId/setup',
         replace: true,
         params: {
-          project: data.data.id,
-          workspace: variables.workspace_id,
+          projectId: data.data.id,
+          workspaceId: variables.workspace_id,
         },
       })
     },

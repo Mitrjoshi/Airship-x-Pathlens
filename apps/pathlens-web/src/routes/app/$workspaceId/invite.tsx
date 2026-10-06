@@ -8,6 +8,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card'
@@ -232,13 +233,14 @@ function RouteComponent() {
                     />
                   </FieldGroup>
                 </form>
-
+              </CardContent>
+              <CardFooter className="border-t-2 border-dashed bg-transparent">
                 <Button type="submit" form="invite-form" variant="secondary">
                   <LoadingSwap isLoading={createInvitation.isPending}>
                     Send Invitation
                   </LoadingSwap>
                 </Button>
-              </CardContent>
+              </CardFooter>
             </Card>
           </div>
         </div>

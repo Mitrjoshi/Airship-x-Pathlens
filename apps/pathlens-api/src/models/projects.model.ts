@@ -1,18 +1,23 @@
 import { and, count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { events, projectSnapshots, projects } from "../db/schema";
+import {
+  events,
+  projectApiKeys,
+  projectSnapshots,
+  projects,
+} from "../db/schema";
 import { createSnapshotSignedUrl } from "../lib/s3";
 import { assertWorkspaceUsageLimit } from "./usage.model";
+import { hashApiKey } from "../utils/utils";
+import { encryptApiKey } from "../lib/api-key-encryption";
 
 interface I_CreateProjectPayload {
   name: string;
   description: string | null;
   api_key: string;
+  scopes: readonly string[];
   workspace_id: string;
   domain: string | null;
-  capture_replay: boolean;
-  capture_performance: boolean;
-  capture_errors: boolean;
 }
 
 export interface ProjectPerformanceMetric {
@@ -146,38 +151,48 @@ function formatActivityMeta(event: ActivityRow): string {
 
 export const createProjectModel = async (
   data: I_CreateProjectPayload
-): Promise<{ id: string }[]> => {
+): Promise<{ id: string; apiKeyId: string }[]> => {
   await assertWorkspaceUsageLimit(data.workspace_id, "projects", 1, false);
   return await db.transaction(async (transaction) => {
     const createdProjects = await transaction
       .insert(projects)
       .values({
-        apiKey: data.api_key,
         name: data.name,
         description: data.description,
         workspaceId: data.workspace_id,
         domain: data.domain,
-        captureReplay: data.capture_replay,
-        capturePerformance: data.capture_performance,
-        captureErrors: data.capture_errors,
       })
       .returning({ id: projects.id });
     const project = createdProjects[0];
 
-    if (project) {
-      const now = new Date();
+    if (!project) return [];
 
-      await transaction.insert(projectSnapshots).values({
+    const [apiKey] = await transaction
+      .insert(projectApiKeys)
+      .values({
         projectId: project.id,
-        workspaceId: data.workspace_id,
-        sourceDomain: data.domain,
-        status: data.domain ? "pending" : "stale",
-        requestedAt: data.domain ? now : null,
-        nextAttemptAt: data.domain ? now : null,
-      });
-    }
+        name: "Default tracker key",
+        keyPrefix: data.api_key.slice(0, 12),
+        secretHash: hashApiKey(data.api_key),
+        secretEncrypted: encryptApiKey(data.api_key),
+        scopes: data.scopes,
+      })
+      .returning({ id: projectApiKeys.id });
 
-    return createdProjects;
+    if (!apiKey) throw new Error("Unable to create project API key.");
+
+    const now = new Date();
+
+    await transaction.insert(projectSnapshots).values({
+      projectId: project.id,
+      workspaceId: data.workspace_id,
+      sourceDomain: data.domain,
+      status: data.domain ? "pending" : "stale",
+      requestedAt: data.domain ? now : null,
+      nextAttemptAt: data.domain ? now : null,
+    });
+
+    return [{ id: project.id, apiKeyId: apiKey.id }];
   });
 };
 
@@ -186,9 +201,6 @@ export const updateProjectModel = async (data: {
   name: string;
   description: string | null;
   domain: string | null;
-  captureReplay: boolean;
-  capturePerformance: boolean;
-  captureErrors: boolean;
 }) => {
   const [project] = await db
     .update(projects)
@@ -196,9 +208,6 @@ export const updateProjectModel = async (data: {
       name: data.name,
       description: data.description,
       domain: data.domain,
-      captureReplay: data.captureReplay,
-      capturePerformance: data.capturePerformance,
-      captureErrors: data.captureErrors,
     })
     .where(eq(projects.id, data.projectId))
     .returning({
@@ -206,9 +215,6 @@ export const updateProjectModel = async (data: {
       name: projects.name,
       description: projects.description,
       domain: projects.domain,
-      captureReplay: projects.captureReplay,
-      capturePerformance: projects.capturePerformance,
-      captureErrors: projects.captureErrors,
     });
 
   return project;
@@ -413,12 +419,11 @@ export const getProjectStatsModel = async (
   return projectStats;
 };
 
-export const getProjectIDByApiKeyModel = async (apiKey: string) => {
+export const getProjectByIdModel = async (projectId: string) => {
   return await db
     .select({ id: projects.id, workspace_id: projects.workspaceId })
     .from(projects)
-    .where(eq(projects.apiKey, apiKey))
-    .orderBy(desc(projects.createdAt));
+    .where(eq(projects.id, projectId));
 };
 
 export const getProjectWorkspaceIdModel = async (projectId: string) => {

@@ -10,9 +10,12 @@ import {
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
 import {
+  AlertCircleIcon,
   EllipsisIcon,
+  ExternalLinkIcon,
   GlobeIcon,
   InfoIcon,
+  LoaderIcon,
   PlusIcon,
   SearchIcon,
 } from 'lucide-react'
@@ -78,7 +81,7 @@ function RouteComponent() {
           }
         }}
       >
-        <div className="mx-auto max-w-4xl pt-10">
+        <div className="mx-auto max-w-4xl py-10">
           <div className="space-y-5">
             <p className="text-2xl font-medium">Projects</p>
 
@@ -112,10 +115,10 @@ function RouteComponent() {
                   <>
                     {[...Array(3)].map((_, i) => (
                       <div
-                        className="grid w-full grid-cols-[0.4fr_1fr] gap-4 rounded-lg border-2 border-dashed p-5 duration-150"
+                        className="grid w-full grid-cols-[0.4fr_1fr] gap-4 border-2 border-dashed p-3 duration-150"
                         key={i}
                       >
-                        <Skeleton className="aspect-video w-full" />
+                        <Skeleton className="aspect-video w-full rounded-none" />
 
                         <div className="flex flex-1 flex-col justify-between">
                           <div className="space-y-2">
@@ -314,17 +317,40 @@ const ProjectCard = ({
         workspaceId,
         projectId: item.id,
       }}
-      className="hover:bg-card/30 grid grid-cols-[0.4fr_1fr] gap-4 rounded-lg border-2 border-dashed p-5 duration-150"
+      className="hover:bg-card/50 bg-card/30 grid grid-cols-[0.4fr_1fr] gap-4 border-2 border-dashed p-3 duration-150"
     >
       {/* Project Preview */}
       <div className="aspect-video max-w-60 overflow-hidden">
         {!item.snapshot.url ? (
-          <div className="bg-muted-foreground/10 flex aspect-video w-full items-center justify-center">
-            <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
-              <InfoIcon size={14} />
-              Preview not available.
-            </p>
-          </div>
+          <>
+            {item.snapshot.status === 'failed' ? (
+              <div className="bg-destructive/10 flex aspect-video w-full items-center justify-center">
+                <p className="text-destructive flex items-center gap-2 text-xs font-medium">
+                  <AlertCircleIcon size={14} />
+                  Failed to generate preview
+                </p>
+              </div>
+            ) : (
+              <div className="bg-muted-foreground/10 flex aspect-video w-full items-center justify-center">
+                {item.snapshot.status === 'processing' ||
+                item.snapshot.status === 'pending' ? (
+                  <>
+                    <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
+                      <LoaderIcon className="animate-spin" size={14} />
+                      Generating preview...
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
+                      <InfoIcon size={14} />
+                      Preview not available.
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+          </>
         ) : (
           <img
             src={item.snapshot.url}
@@ -335,24 +361,52 @@ const ProjectCard = ({
       </div>
 
       {/* Project Content */}
-      <div className="flex min-w-0 flex-col justify-between">
-        <div>
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                className={`${
-                  isActive ? 'bg-primary' : 'bg-muted-foreground/20'
-                } h-2 w-2 shrink-0`}
-              />
+      <div className="flex min-w-0 flex-col justify-between gap-4 py-0.5">
+        {/* Top Content */}
+        <div className="space-y-2">
+          <div className="flex items-start justify-between gap-4">
+            {/* Project Identity */}
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className={`h-2 w-2 shrink-0 ${
+                    isActive ? 'bg-primary' : 'bg-muted-foreground/30'
+                  }`}
+                />
 
-              <p className="truncate">{item.name}</p>
+                <p className="truncate font-medium">{item.name}</p>
 
-              <Badge
-                className={isActive ? 'text-primary' : 'text-muted-foreground'}
-                variant="ghost"
+                <Badge
+                  variant="ghost"
+                  className={`h-5 shrink-0 px-1.5 text-[10px] uppercase ${
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  {isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+
+              {/* Domain */}
+              <Button
+                render={
+                  <a
+                    href={item.domain!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                    }}
+                  />
+                }
+                variant="link"
+                className="text-muted-foreground hover:text-foreground mt-1 h-auto max-w-full justify-start gap-1 p-0 font-normal"
               >
-                {isActive ? 'Active' : 'Inactive'}
-              </Badge>
+                <span className="truncate underline underline-offset-4">
+                  {item.domain}
+                </span>
+
+                <ExternalLinkIcon size={12} className="shrink-0" />
+              </Button>
             </div>
 
             {/* Project Actions */}
@@ -366,10 +420,11 @@ const ProjectCard = ({
                     }}
                     variant="ghost"
                     size="icon"
+                    className="text-muted-foreground hover:text-foreground -mt-1 -mr-1 shrink-0"
                   />
                 }
               >
-                <EllipsisIcon />
+                <EllipsisIcon size={18} />
               </DropdownMenuTrigger>
 
               <DropdownMenuContent
@@ -410,46 +465,52 @@ const ProjectCard = ({
             </DropdownMenu>
           </div>
 
-          {/* Domain */}
-          <p className="text-muted-foreground mt-1 flex items-center gap-2 px-0 text-sm underline underline-offset-4 duration-200">
-            <GlobeIcon size={14} />
-            {item.domain}
-          </p>
+          {item.description && (
+            <p className="text-muted-foreground line-clamp-2 text-xs">
+              {item.description}
+            </p>
+          )}
         </div>
 
         {/* Stats */}
-        <div className="flex items-center gap-8">
-          <div>
-            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+        <div className="grid grid-cols-4 divide-x divide-dashed">
+          <div className="min-w-0 pr-3">
+            <div className="text-muted-foreground mb-1 flex items-center gap-1.5 text-sm">
               <navigationIcons.visitors size={12} />
-              Visitors
-            </p>
+              <span>Visitors</span>
+            </div>
 
-            <p>{formatNumber(item.stats.visitors)}</p>
+            <p className="font-medium tabular-nums">
+              {formatNumber(item.stats.visitors)}
+            </p>
           </div>
 
-          <div>
-            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+          <div className="min-w-0 px-3">
+            <div className="text-muted-foreground mb-1 flex items-center gap-1.5 text-sm">
               <navigationIcons.sessions size={12} />
-              Sessions
-            </p>
+              <span>Sessions</span>
+            </div>
 
-            <p>{formatNumber(item.stats.sessions)}</p>
+            <p className="font-medium tabular-nums">
+              {formatNumber(item.stats.sessions)}
+            </p>
           </div>
 
-          <div>
-            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+          <div className="min-w-0 px-3">
+            <div className="text-muted-foreground mb-1 flex items-center gap-1.5 text-sm">
               <navigationIcons.events size={12} />
-              Events
-            </p>
+              <span>Events</span>
+            </div>
 
-            <p>{formatNumber(item.stats.events)}</p>
+            <p className="font-medium tabular-nums">
+              {formatNumber(item.stats.events)}
+            </p>
           </div>
 
-          <div>
-            <p className="text-muted-foreground text-xs">Conversions</p>
+          <div className="min-w-0 pl-3">
+            <p className="text-muted-foreground mb-1 text-sm">Conversion</p>
 
-            <p>{item.stats.conversion}%</p>
+            <p className="font-medium tabular-nums">{item.stats.conversion}%</p>
           </div>
         </div>
       </div>

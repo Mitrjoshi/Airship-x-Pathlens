@@ -19,6 +19,7 @@ import replayRouter from "./replay.route";
 import userJourneyRouter from "./user-journey.route";
 import billingRouter from "./billing.route";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
+import { getTrackingConfig } from "../controllers/tracking.controller";
 import {
   githubCallback,
   githubLogin,
@@ -28,6 +29,7 @@ const router = Router();
 
 router.use("/events", eventsRouter);
 router.use("/replay", replayRouter);
+router.get("/tracking/config", getTrackingConfig);
 router.use("/billing", billingRouter);
 router.get("/auth/github", githubLogin);
 router.get("/auth/github/callback", githubCallback);

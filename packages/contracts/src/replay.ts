@@ -28,3 +28,5 @@ export const replayChunkSchema = z.object({
 })
 
 export type ReplayChunk = z.infer<typeof replayChunkSchema>
+
+export type TrackerReplayChunk = Omit<ReplayChunk, 'projectId'>

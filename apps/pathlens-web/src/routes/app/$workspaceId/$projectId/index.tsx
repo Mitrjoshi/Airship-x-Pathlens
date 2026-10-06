@@ -343,6 +343,12 @@ function RouteComponent() {
                 <div className="mx-auto flex aspect-square w-full items-center justify-center">
                   <LoaderIcon className="animate-spin" />
                 </div>
+              ) : deviceChartData.every((item) => item.value === 0) ? (
+                <div className="mx-auto flex aspect-square w-full items-center justify-center">
+                  <p className="text-muted-foreground text-sm">
+                    No Data Available
+                  </p>
+                </div>
               ) : (
                 <ChartContainer
                   config={deviceChartConfig}
@@ -407,50 +413,58 @@ function RouteComponent() {
                 />
               </div>
               <div className="w-full space-y-4 px-4">
-                {isFetching
-                  ? Array.from({ length: 5 }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="h-8 w-8 rounded-full" />
-                          <Skeleton className="h-4 w-1/3" />
-                        </div>
-
-                        <Skeleton className="h-2 w-full rounded-full" />
-
-                        <Skeleton className="ml-auto h-4 w-4" />
+                {isFetching ? (
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-4 w-1/3" />
                       </div>
-                    ))
-                  : dashboard?.countries.map((country, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Avatar>
-                            <AvatarFallback>{country.code}</AvatarFallback>
-                          </Avatar>
-                          <p className="truncate text-sm font-medium">
-                            {country.name}
-                          </p>
-                        </div>
 
-                        <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-                          <div
-                            className="bg-chart-1 h-full"
-                            style={{
-                              width: `${Math.min(country.visitors, 100)}%`,
-                            }}
-                          />
-                        </div>
+                      <Skeleton className="h-2 w-full rounded-full" />
 
-                        <p className="text-right text-sm font-medium">
-                          {formatNumber(country.visitors)}
+                      <Skeleton className="ml-auto h-4 w-4" />
+                    </div>
+                  ))
+                ) : dashboard?.countries.length === 0 ? (
+                  <div className="flex w-full items-center justify-center">
+                    <p className="text-muted-foreground text-sm">
+                      No Data Available
+                    </p>
+                  </div>
+                ) : (
+                  dashboard?.countries.map((country, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Avatar>
+                          <AvatarFallback>{country.code}</AvatarFallback>
+                        </Avatar>
+                        <p className="truncate text-sm font-medium">
+                          {country.name}
                         </p>
                       </div>
-                    ))}
+
+                      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                        <div
+                          className="bg-chart-1 h-full"
+                          style={{
+                            width: `${Math.min(country.visitors, 100)}%`,
+                          }}
+                        />
+                      </div>
+
+                      <p className="text-right text-sm font-medium">
+                        {formatNumber(country.visitors)}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -646,7 +660,7 @@ export function MetricCard<T extends Record<string, unknown>>({
               vectorEffect="non-scaling-stroke"
             />
           </svg>
-        ) : !chartData.length ? (
+        ) : !chartData.every((item) => item.value === 0) ? (
           <div className="relative">
             <svg
               viewBox="0 0 300 48"
@@ -777,47 +791,53 @@ export function ProgressListCard<T>({
 
       <CardContent className="flex h-full max-h-50 items-start overflow-auto p-0">
         <div className="w-full space-y-4">
-          {loading
-            ? Array.from({ length: 5 }).map((_, index) => (
+          {loading ? (
+            Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+              >
+                <Skeleton className="h-4 w-3/4" />
+
+                <Skeleton className="h-1.5 w-full rounded-full" />
+
+                <Skeleton className="ml-auto h-4 w-4" />
+              </div>
+            ))
+          ) : data.length === 0 ? (
+            <div className="flex h-20 w-full items-center justify-center">
+              <p className="text-muted-foreground text-sm">No Data Available</p>
+            </div>
+          ) : (
+            data.map((item, index) => {
+              const value = getValue(item)
+              const progress = Math.min((value / maxValue) * 100, 100)
+
+              return (
                 <div
-                  key={index}
+                  key={getKey?.(item, index) ?? index}
                   className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
                 >
-                  <Skeleton className="h-4 w-3/4" />
+                  <p className="truncate text-sm font-medium">
+                    {getLabel(item)}
+                  </p>
 
-                  <Skeleton className="h-1.5 w-full rounded-full" />
-
-                  <Skeleton className="ml-auto h-4 w-4" />
-                </div>
-              ))
-            : data.map((item, index) => {
-                const value = getValue(item)
-                const progress = Math.min((value / maxValue) * 100, 100)
-
-                return (
-                  <div
-                    key={getKey?.(item, index) ?? index}
-                    className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
-                  >
-                    <p className="truncate text-sm font-medium">
-                      {getLabel(item)}
-                    </p>
-
-                    <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-                      <div
-                        className="bg-chart-1 h-full"
-                        style={{
-                          width: `${progress}%`,
-                        }}
-                      />
-                    </div>
-
-                    <p className="text-right text-sm font-medium">
-                      {formatNumber(value)}
-                    </p>
+                  <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                    <div
+                      className="bg-chart-1 h-full"
+                      style={{
+                        width: `${progress}%`,
+                      }}
+                    />
                   </div>
-                )
-              })}
+
+                  <p className="text-right text-sm font-medium">
+                    {formatNumber(value)}
+                  </p>
+                </div>
+              )
+            })
+          )}
         </div>
       </CardContent>
     </Card>

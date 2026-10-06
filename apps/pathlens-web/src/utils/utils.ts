@@ -109,3 +109,22 @@ export function capitalizeFirstLetter(
   if (!value) return ''
   return value.charAt(0).toUpperCase() + value.slice(1)
 }
+
+export const mask = (
+  str: string,
+  maskChar: string = '*',
+  unmaskedLength: number = 4,
+  maskFromStart: boolean = false
+) => {
+  const maskStart = maskFromStart ? 0 : Math.max(0, unmaskedLength)
+  const maskEnd = maskFromStart
+    ? Math.max(0, str.length - unmaskedLength)
+    : str.length
+
+  return str
+    .split('')
+    .map((char, index) =>
+      index >= maskStart && index < maskEnd ? maskChar : char
+    )
+    .join('')
+}

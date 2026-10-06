@@ -7,6 +7,7 @@ import type {
   EventPayload,
   EventType,
   PathLensConfig,
+  TrackingScope,
   TrackedEvent,
 } from "@workspace/contracts/tracker";
 import {
@@ -51,9 +52,9 @@ export class PathLensTracker {
     this.sessionStart = Date.now();
 
     this.analyticsInfo = getAnalyticsInfo();
-    this.campaignAttribution = getCampaignAttribution(config.projectId);
+    this.campaignAttribution = getCampaignAttribution(config.apiKey);
 
-    if (config.captureReplay) {
+    if (config.captureReplay && this.canTrackScope("replay")) {
       this.replayRecorder = new ReplayRecorder({
         config,
         sessionId: this.sessionId,
@@ -90,10 +91,12 @@ export class PathLensTracker {
   }
 
   track(type: EventType, payload: EventPayload = {}): void {
+    if (!this.canTrackScope(this.getScopeForEventType(type))) return;
+
     touchSession();
 
     if (Object.keys(this.campaignAttribution).length === 0) {
-      this.campaignAttribution = getCampaignAttribution(this.config.projectId);
+      this.campaignAttribution = getCampaignAttribution(this.config.apiKey);
     }
 
     const event: TrackedEvent = {
@@ -103,7 +106,6 @@ export class PathLensTracker {
       ...this.campaignAttribution,
       type,
       timestamp: now(),
-      projectId: this.config.projectId,
       sessionId: this.sessionId,
       visitorId: this.visitorId,
     };
@@ -134,5 +136,19 @@ export class PathLensTracker {
     this.flushTimer = window.setInterval(() => {
       this.flush();
     }, this.config.flushInterval ?? 5000);
+  }
+
+  private canTrackScope(scope: TrackingScope): boolean {
+    return this.config.trackingScopes.includes(scope);
+  }
+
+  private getScopeForEventType(type: EventType): TrackingScope {
+    if (type === "javascript_error" || type === "promise_rejection") {
+      return "errors";
+    }
+
+    if (type === "performance") return "performance";
+
+    return "events";
   }
 }

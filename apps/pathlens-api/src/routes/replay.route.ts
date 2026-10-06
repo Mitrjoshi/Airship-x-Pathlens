@@ -4,6 +4,10 @@ import { decryptEncryptedTrackingPayload } from "../middleware/encrypted-trackin
 
 const router = Router();
 
-router.post("/chunks", decryptEncryptedTrackingPayload, ingestReplayChunk);
+router.post(
+  "/chunks",
+  (req, res, next) => decryptEncryptedTrackingPayload(req, res, next, "replay"),
+  ingestReplayChunk
+);
 
 export default router;

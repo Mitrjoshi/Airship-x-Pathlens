@@ -6,7 +6,7 @@ import { useTheme } from '@/components/common/theme-provider'
 
 const TRACKER_SCRIPT_URL = import.meta.env.VITE_TRACKER_SCRIPT_URL
 
-const integrations = [
+export const integrations = [
   {
     id: 'html',
     label: 'HTML',
@@ -14,7 +14,7 @@ const integrations = [
     language: 'html',
     code: `<script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="pk_********
+  data-api-key="plk_********"
   defer
 ></script>`,
   },
@@ -29,7 +29,7 @@ useEffect(() => {
   const script = document.createElement('script')
 
   script.src = '${TRACKER_SCRIPT_URL}'
-  script.dataset.projectId = 'pk_********
+  script.dataset.projectId = "plk_********"
   script.defer = true
 
   document.head.appendChild(script)
@@ -48,7 +48,7 @@ useEffect(() => {
 
 <Script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="pk_********
+  data-api-key="plk_********"
   strategy="afterInteractive"
 />`,
   },
@@ -64,7 +64,7 @@ onMounted(() => {
   const script = document.createElement('script')
 
   script.src = '${TRACKER_SCRIPT_URL}'
-  script.dataset.projectId = 'pk_********
+  script.dataset.projectId = "plk_********"
   script.defer = true
 
   document.head.appendChild(script)
@@ -82,7 +82,7 @@ onMounted(() => {
       script: [
         {
           src: '${TRACKER_SCRIPT_URL}',
-          'data-project-id': 'pk_********
+          'data-project-id': "plk_********"
           defer: true,
         },
       ],
@@ -97,7 +97,7 @@ onMounted(() => {
     language: 'html',
     code: `<script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="pk_********
+  data-api-key="plk_********"
   defer
 ></script>`,
   },
@@ -108,7 +108,7 @@ onMounted(() => {
     language: 'html',
     code: `<script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="pk_********
+  data-api-key="plk_********"
   defer
 ></script>`,
   },
@@ -119,12 +119,18 @@ onMounted(() => {
     language: 'astro',
     code: `<script
   src="${TRACKER_SCRIPT_URL}"
-  data-project-id="pk_********
+  data-api-key="plk_********"
 ></script>`,
   },
 ]
 
-const CodeBlock = ({ code, language }: { code: string; language: string }) => {
+export const CodeBlock = ({
+  code,
+  language,
+}: {
+  code: string
+  language: string
+}) => {
   const [html, setHtml] = useState('')
   const { resolvedTheme } = useTheme()
 
