@@ -501,7 +501,7 @@ function PageContent() {
           })}
         </div>
 
-        <Card className="bg-muted/30">
+        <Card className="bg-card/30
           <CardContent className="flex items-start gap-3 p-5">
             <FileBarChart2 className="text-muted-foreground mt-0.5 size-4 shrink-0" />
             <p className="text-muted-foreground text-sm leading-6">

@@ -65,7 +65,7 @@ export function decryptEncryptedTrackingPayload(
 
       if (
         !isProjectOriginAllowed(
-          projectApiKey.domain,
+          projectApiKey.domains,
           req.header("origin"),
           req.header("referer")
         )

@@ -202,12 +202,12 @@ const sidebarProjectsItems = [
         to: '/app/$workspaceId/$projectId/usage',
         isActive: (pathname: string) => pathname.includes('usage'),
       },
-      {
-        label: 'Members',
-        icon: navigationIcons.team,
-        to: '/app/$workspaceId/$projectId/members',
-        isActive: (pathname: string) => pathname.includes('members'),
-      },
+      // {
+      //   label: 'Members',
+      //   icon: navigationIcons.team,
+      //   to: '/app/$workspaceId/$projectId/members',
+      //   isActive: (pathname: string) => pathname.includes('members'),
+      // },
       {
         label: 'Audit Logs',
         icon: navigationIcons.audit,

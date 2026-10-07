@@ -4,6 +4,7 @@ import {
   changePassword,
   deleteUser,
   getUser,
+  getUserById,
   getUserWorkspaces,
   loginUser,
   updateUser,
@@ -24,6 +25,7 @@ router.post("/password-reset/confirm", confirmPasswordReset);
 router.use(authMiddleware);
 
 router.get("/me", getUser);
+router.get("/users/:user_id", getUserById);
 router.patch("/me", updateUser);
 router.patch("/me/password", changePassword);
 router.delete("/me", deleteUser);

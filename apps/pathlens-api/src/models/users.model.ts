@@ -1,6 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/client";
-import { users, workspaces } from "../db/schema";
+import {
+  permissionProfiles,
+  users,
+  workspaceMembers,
+  workspaces,
+} from "../db/schema";
 
 interface I_Payload {
   name: string;
@@ -76,6 +81,38 @@ export async function getUserByIDModel(id: string) {
     ...result.user,
     defaultWorkspace: result.defaultWorkspace,
   };
+}
+
+export async function getPublicUserByIDInWorkspaceModel(
+  userId: string,
+  workspaceId: string
+) {
+  const [user] = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      avatar: users.avatar,
+      createdAt: users.createdAt,
+      role: workspaceMembers.role,
+      permissionProfileId: workspaceMembers.permissionProfileId,
+      permissionProfileName: permissionProfiles.name,
+    })
+    .from(users)
+    .innerJoin(
+      workspaceMembers,
+      and(
+        eq(workspaceMembers.userId, users.id),
+        eq(workspaceMembers.workspaceId, workspaceId)
+      )
+    )
+    .leftJoin(
+      permissionProfiles,
+      eq(permissionProfiles.id, workspaceMembers.permissionProfileId)
+    )
+    .where(eq(users.id, userId));
+
+  return user;
 }
 
 export async function updateUserModel(data: {

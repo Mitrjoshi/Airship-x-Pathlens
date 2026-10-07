@@ -14,6 +14,12 @@ import {
   updateProjectApiKey,
 } from "../controllers/project-api-keys.controller";
 import { requireWorkspacePermission } from "../middleware/permission.middleware";
+import {
+  createProjectDomain,
+  deleteProjectDomain,
+  getProjectDomains,
+  updateProjectDomain,
+} from "../controllers/project-domains.controller";
 
 const router = Router();
 
@@ -33,6 +39,26 @@ router.post(
   "/:project_id/api-keys",
   requireWorkspacePermission("project.api_keys.create"),
   createProjectApiKey
+);
+router.get(
+  "/:project_id/domains",
+  requireWorkspacePermission("project.settings.view"),
+  getProjectDomains
+);
+router.post(
+  "/:project_id/domains",
+  requireWorkspacePermission("project.settings.update"),
+  createProjectDomain
+);
+router.patch(
+  "/:project_id/domains/:domain_id",
+  requireWorkspacePermission("project.settings.update"),
+  updateProjectDomain
+);
+router.delete(
+  "/:project_id/domains/:domain_id",
+  requireWorkspacePermission("project.settings.update"),
+  deleteProjectDomain
 );
 router.patch(
   "/:project_id/api-keys/:key_id",

@@ -17,7 +17,7 @@ export type T_Performance = {
     totalSamples: number
   }
   trend: {
-    day: string
+    date: string
     ttfb: number
     domLoaded: number
     load: number

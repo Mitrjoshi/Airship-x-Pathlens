@@ -113,10 +113,13 @@ export const getDashboardOptions = (params: {
   project_id?: string
   range: DashboardRange
   device: DashboardDevice
+  refetchInterval?: number
 }) =>
   queryOptions({
     queryKey: ['DASHBOARD', params],
     queryFn: () => getDashboard(params),
     enabled: !!params.workspace_id,
     refetchOnWindowFocus: false,
+    refetchInterval: params.refetchInterval,
+    refetchIntervalInBackground: true,
   })

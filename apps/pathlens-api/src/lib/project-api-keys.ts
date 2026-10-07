@@ -1,6 +1,6 @@
 import { and, eq, gt, isNull, or } from "drizzle-orm";
 import { db } from "../db/client";
-import { projectApiKeys, projects } from "../db/schema";
+import { projectApiKeys, projectDomains, projects } from "../db/schema";
 import { hashApiKey } from "../utils/utils";
 
 export const TRACKING_SCOPES = [
@@ -15,7 +15,7 @@ export type TrackingScope = (typeof TRACKING_SCOPES)[number];
 export interface ProjectApiKeyContext {
   projectId: string;
   workspaceId: string;
-  domain: string | null;
+  domains: string[];
   keyId: string | null;
   scopes: readonly TrackingScope[];
 }
@@ -37,7 +37,6 @@ export async function resolveProjectApiKey(
       id: projectApiKeys.id,
       projectId: projectApiKeys.projectId,
       workspaceId: projects.workspaceId,
-      domain: projects.domain,
       scopes: projectApiKeys.scopes,
     })
     .from(projectApiKeys)
@@ -51,6 +50,11 @@ export async function resolveProjectApiKey(
     );
 
   if (key) {
+    const domainRows = await db
+      .select({ domain: projectDomains.domain })
+      .from(projectDomains)
+      .where(eq(projectDomains.projectId, key.projectId));
+
     await db
       .update(projectApiKeys)
       .set({ lastUsedAt: now })
@@ -59,7 +63,7 @@ export async function resolveProjectApiKey(
     return {
       projectId: key.projectId,
       workspaceId: key.workspaceId,
-      domain: key.domain,
+      domains: domainRows.map((row) => row.domain),
       keyId: key.id,
       scopes: normalizeScopes(key.scopes),
     };

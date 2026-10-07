@@ -560,7 +560,7 @@ function RouteComponent() {
                                 <div
                                   className={`rounded-2xl border p-4 transition-colors sm:p-5 ${
                                     isEnabled
-                                      ? 'border-foreground/25 bg-muted/30'
+                                      ? 'border-foreground/25 bg-card/30'
                                       : 'border-border/70'
                                   }`}
                                 >

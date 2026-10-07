@@ -5,6 +5,7 @@ import {
   deleteUserModel,
   getUserByEmailModel,
   getUserByIDModel,
+  getPublicUserByIDInWorkspaceModel,
   updateUserModel,
   updateUserPasswordModel,
 } from "../models/users.model";
@@ -252,6 +253,66 @@ export async function getUser(req: AuthRequest, res: Response) {
     return res.status(400).json({
       success: false,
       message: errorMessage,
+    });
+  }
+}
+
+export async function getUserById(req: AuthRequest, res: Response) {
+  const requesterId = req.user?.id;
+
+  if (!requesterId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  const parsedRequest = z
+    .object({
+      user_id: z.uuid(),
+      workspace_id: z.uuid(),
+    })
+    .safeParse({ ...req.params, ...req.query });
+
+  if (!parsedRequest.success) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid user id.",
+    });
+  }
+
+  try {
+    const requesterMembership = await getPublicUserByIDInWorkspaceModel(
+      requesterId,
+      parsedRequest.data.workspace_id
+    );
+
+    if (!requesterMembership) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have access to this workspace.",
+      });
+    }
+
+    const userData = await getPublicUserByIDInWorkspaceModel(
+      parsedRequest.data.user_id,
+      parsedRequest.data.workspace_id
+    );
+
+    if (!userData) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: userData,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load user.",
     });
   }
 }

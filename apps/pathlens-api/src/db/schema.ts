@@ -13,6 +13,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { Permission } from "@workspace/contracts";
 import type { ReplayEvent } from "@workspace/contracts";
 
@@ -231,6 +232,10 @@ export const auditLogs = pgTable(
         onDelete: "cascade",
       }),
 
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+
     action: text("action").notNull(),
     resourceType: text("resource_type").notNull(),
     resourceId: text("resource_id"),
@@ -247,6 +252,9 @@ export const auditLogs = pgTable(
       table.workspaceId,
       table.createdAt
     ),
+    workspaceProjectCreatedIdx: index(
+      "audit_logs_workspace_project_created_idx"
+    ).on(table.workspaceId, table.projectId, table.createdAt),
     actorIdx: index("audit_logs_actor_idx").on(table.actorUserId),
     actionIdx: index("audit_logs_action_idx").on(table.action),
   })
@@ -337,8 +345,6 @@ export const projects = pgTable(
 
     name: text("name").notNull(),
 
-    domain: text("domain"),
-
     description: text("description"),
 
     createdAt: timestamp("created_at", {
@@ -347,6 +353,42 @@ export const projects = pgTable(
   },
   (table) => ({
     workspaceIdx: index("projects_workspace_idx").on(table.workspaceId),
+  })
+);
+
+export const projectDomains = pgTable(
+  "project_domains",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    domain: text("domain").notNull(),
+
+    isDefault: boolean("is_default").notNull().default(false),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    projectIdx: index("project_domains_project_idx").on(table.projectId),
+    userIdx: index("project_domains_user_idx").on(table.userId),
+    projectDomainIdx: uniqueIndex("project_domains_project_domain_idx").on(
+      table.projectId,
+      table.domain
+    ),
+    projectDefaultIdx: uniqueIndex("project_domains_project_default_idx")
+      .on(table.projectId)
+      .where(sql`${table.isDefault} = true`),
   })
 );
 

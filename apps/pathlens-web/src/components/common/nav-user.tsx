@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { BadgeCheckIcon, CheckIcon, DollarSign, LogOutIcon } from 'lucide-react'
+import { CheckIcon } from 'lucide-react'
 import { useTheme } from '@/components/common/theme-provider'
 
 export interface NavUserData {

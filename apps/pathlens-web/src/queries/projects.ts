@@ -6,6 +6,7 @@ export type T_Projects = {
   workspaceId: string
   name: string
   domain: string | null
+  domains: string[]
   description: string | null
   captureReplay: boolean
   capturePerformance: boolean

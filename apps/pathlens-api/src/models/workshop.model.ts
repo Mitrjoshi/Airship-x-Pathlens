@@ -63,19 +63,25 @@ async function seedDefaultProfiles(
 export async function ensureWorkspacePermissionProfilesModel(
   workspaceId: string
 ) {
-  const existingProfiles = await db
-    .select({ id: permissionProfiles.id, name: permissionProfiles.name })
-    .from(permissionProfiles)
-    .where(eq(permissionProfiles.workspaceId, workspaceId));
-
-  if (existingProfiles.length > 0) return existingProfiles;
-
   return await db.transaction(async (tx) => {
-    const profiles = await seedDefaultProfiles(tx, workspaceId);
+    await tx
+      .insert(permissionProfiles)
+      .values(getDefaultProfiles(workspaceId))
+      .onConflictDoNothing();
+
+    const profiles = await tx
+      .select({ id: permissionProfiles.id, name: permissionProfiles.name })
+      .from(permissionProfiles)
+      .where(eq(permissionProfiles.workspaceId, workspaceId));
+
     const fullAccessProfile = profiles.find(
       (profile) => profile.name === "Full access"
     );
     const viewerProfile = profiles.find((profile) => profile.name === "Viewer");
+
+    if (!fullAccessProfile || !viewerProfile) {
+      throw new Error("Default workspace permission profiles are unavailable.");
+    }
 
     const members = await tx
       .select({
@@ -93,7 +99,7 @@ export async function ensureWorkspacePermissionProfilesModel(
         .update(workspaceMembers)
         .set({
           permissionProfileId:
-            member.role === "admin" ? fullAccessProfile?.id : viewerProfile?.id,
+            member.role === "admin" ? fullAccessProfile.id : viewerProfile.id,
         })
         .where(
           and(
@@ -123,8 +129,8 @@ export async function ensureWorkspacePermissionProfilesModel(
         .set({
           permissionProfileId:
             invitation.role === "admin"
-              ? fullAccessProfile?.id
-              : viewerProfile?.id,
+              ? fullAccessProfile.id
+              : viewerProfile.id,
         })
         .where(eq(notifications.id, invitation.id));
     }
@@ -352,6 +358,23 @@ export async function getWorkspaceAccessModel(
   workspaceId: string,
   userId: string
 ): Promise<WorkspaceAccess | null> {
+  const [membership] = await db
+    .select({
+      workspaceId: workspaceMembers.workspaceId,
+      userId: workspaceMembers.userId,
+      role: workspaceMembers.role,
+      permissionProfileId: workspaceMembers.permissionProfileId,
+    })
+    .from(workspaceMembers)
+    .where(
+      and(
+        eq(workspaceMembers.workspaceId, workspaceId),
+        eq(workspaceMembers.userId, userId)
+      )
+    );
+
+  if (!membership) return null;
+
   await ensureWorkspacePermissionProfilesModel(workspaceId);
 
   const [member] = await db

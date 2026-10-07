@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 interface CreateProjectPayload {
   name: string
   description: string | null
-  domain: string | null
+  domain: string
   workspace_id: string
   captureReplay: boolean
   capturePerformance: boolean
@@ -58,6 +58,7 @@ interface UpdateProjectPayload {
   name: string
   description: string | null
   domain: string | null
+  domains?: string[]
   captureReplay: boolean
   capturePerformance: boolean
   captureErrors: boolean
@@ -71,6 +72,7 @@ interface UpdateProjectResponse {
     name: string
     description: string | null
     domain: string | null
+    domains: string[]
     captureReplay: boolean
     capturePerformance: boolean
     captureErrors: boolean

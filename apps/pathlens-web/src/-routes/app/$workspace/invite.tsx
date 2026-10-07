@@ -226,7 +226,7 @@ function RouteComponent() {
             </CardContent>
           </ProjectPanel>
 
-          <ProjectPanel className="bg-muted/30 h-fit">
+          <ProjectPanel className="bg-card/30 h-fit">
             <CardHeader className="border-b px-5 py-5">
               <CardTitle>How it works</CardTitle>
               <CardDescription>

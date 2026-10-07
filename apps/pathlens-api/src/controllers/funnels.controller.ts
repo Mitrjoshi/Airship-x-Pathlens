@@ -90,6 +90,7 @@ export async function createFunnel(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId: payload.workspace_id,
         actorUserId: req.user.id,
+        projectId: payload.project_id,
         action: "funnel.created",
         resourceType: "funnel",
         resourceId: id,
@@ -148,6 +149,7 @@ export async function updateFunnel(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId: payload.workspace_id,
         actorUserId: req.user.id,
+        projectId: payload.project_id,
         action: "funnel.updated",
         resourceType: "funnel",
         resourceId: params.funnel_id,
@@ -200,6 +202,7 @@ export async function deleteFunnel(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId: query.workspace_id,
         actorUserId: req.user.id,
+        projectId: deleted.projectId,
         action: "funnel.deleted",
         resourceType: "funnel",
         resourceId: params.funnel_id,

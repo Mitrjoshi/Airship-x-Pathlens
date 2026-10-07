@@ -146,7 +146,7 @@ function RouteComponent() {
             </CardContent>
           </Card>
 
-          <Card className="bg-muted/30 rounded-2xl shadow-none">
+          <Card className="bg-card/30 rounded-2xl shadow-none">
             <CardHeader className="px-5 py-5 sm:px-6">
               <div className="flex items-start gap-3">
                 <span className="bg-background text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-xl border">

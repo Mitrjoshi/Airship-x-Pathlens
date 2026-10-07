@@ -632,7 +632,7 @@ function PermissionsCard({
 
   const permissionMenuItems = [
     {
-      label: 'Edit Permission',
+      label: 'Edit',
       action: 'edit-permission',
       onClick: () => onEdit(item),
       disabled:
@@ -640,7 +640,7 @@ function PermissionsCard({
         item.isSystem,
     },
     {
-      label: 'Delete Permission',
+      label: 'Delete',
       action: 'delete-permission',
       variant: 'destructive' as const,
       separatorBefore: true,

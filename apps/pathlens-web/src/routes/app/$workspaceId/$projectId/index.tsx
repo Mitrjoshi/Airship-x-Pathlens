@@ -51,6 +51,7 @@ import { Badge } from '@workspace/ui/components/badge'
 import { VisitorsGlobe } from './-components/dashboard/visitors-globe'
 import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
 import ProjectLoading from './-components/common/project-loading'
+import { useRelativeTime } from '@/hooks/use-relative-time'
 
 const chartConfig = {
   visitors: {
@@ -87,17 +88,21 @@ function RouteComponent() {
 
   const {
     data: dashboardData,
-    isFetching,
+    isLoading,
     refetch,
     dataUpdatedAt,
+    isRefetching,
   } = useQuery(
     getDashboardOptions({
       workspace_id: workspaceId,
       project_id: projectId,
       range,
       device: 'all',
+      refetchInterval: liveMode ? 5000 : undefined,
     })
   )
+
+  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
 
   const { data: projectData, isLoading: projectLoading } = useQuery(
     getProjectsOptions({
@@ -185,11 +190,11 @@ function RouteComponent() {
           <Separator orientation="vertical" />
 
           <div className="flex items-center justify-between gap-3">
-            <p className="text-muted-foreground text-sm">
-              Last updated{' '}
-              {dataUpdatedAt &&
-                formatRelativeTime(new Date(dataUpdatedAt).toString())}
-            </p>
+            {dataUpdatedAt && (
+              <p className="text-muted-foreground text-sm">
+                Last updated {lastUpdated}
+              </p>
+            )}
           </div>
         </div>
 
@@ -204,13 +209,15 @@ function RouteComponent() {
             Live Refresh
           </Button>
           <Button
-            disabled={isFetching}
+            disabled={isRefetching}
             onClick={() => {
               refetch()
             }}
             variant="outline"
           >
-            <RefreshCcwIcon className={`${isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCcwIcon
+              className={`${isRefetching ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
 
@@ -280,7 +287,7 @@ function RouteComponent() {
             chartData={dashboard?.visitorsChart}
             dataKey="visitors"
             chartConfig={chartConfig}
-            loading={isFetching}
+            loading={isLoading}
             onViewDetails={() => {
               navigate({
                 to: '/app/$workspaceId/$projectId/visitors',
@@ -300,7 +307,7 @@ function RouteComponent() {
             chartData={dashboard?.sessionChart}
             dataKey="sessions"
             chartConfig={chartConfig}
-            loading={isFetching}
+            loading={isLoading}
             onViewDetails={() => {
               navigate({
                 to: '/app/$workspaceId/$projectId/session-replay',
@@ -320,7 +327,7 @@ function RouteComponent() {
             chartData={dashboard?.eventsChart}
             dataKey="events"
             chartConfig={chartConfig}
-            loading={isFetching}
+            loading={isLoading}
             onViewDetails={() => {
               navigate({
                 to: '/app/$workspaceId/$projectId/events',
@@ -339,7 +346,7 @@ function RouteComponent() {
               <CardDescription>Requests by device type</CardDescription>
             </CardHeader>
             <CardContent className="p-2 pt-0 pb-4">
-              {isFetching ? (
+              {isLoading ? (
                 <div className="mx-auto flex aspect-square w-full items-center justify-center">
                   <LoaderIcon className="animate-spin" />
                 </div>
@@ -384,7 +391,7 @@ function RouteComponent() {
 
                 <Button
                   variant="link"
-                  disabled={isFetching}
+                  disabled={isLoading}
                   onClick={() => {
                     navigate({
                       to: '/app/$workspaceId/$projectId/visitors',
@@ -406,14 +413,14 @@ function RouteComponent() {
               <div className="aspect-square h-full">
                 <VisitorsGlobe
                   countries={
-                    isFetching || !dashboard?.countries
+                    isLoading || !dashboard?.countries
                       ? []
                       : dashboard?.countries
                   }
                 />
               </div>
               <div className="w-full space-y-4 px-4">
-                {isFetching ? (
+                {isLoading ? (
                   Array.from({ length: 5 }).map((_, index) => (
                     <div
                       key={index}
@@ -476,7 +483,7 @@ function RouteComponent() {
             data={dashboard?.pages}
             getLabel={(item) => item.page as string}
             getValue={(item) => item.views}
-            loading={isFetching}
+            loading={isLoading}
           />
 
           <ProgressListCard
@@ -484,7 +491,7 @@ function RouteComponent() {
             data={dashboard?.trafficSources}
             getLabel={(item) => item.name}
             getValue={(item) => item.visitors}
-            loading={isFetching}
+            loading={isLoading}
           />
 
           <ProgressListCard
@@ -492,7 +499,7 @@ function RouteComponent() {
             data={dashboard?.topBrowsers}
             getLabel={(item) => item.name}
             getValue={(item) => item.visitors}
-            loading={isFetching}
+            loading={isLoading}
           />
 
           <ProgressListCard
@@ -500,7 +507,7 @@ function RouteComponent() {
             data={dashboard?.topOperatingSystems}
             getLabel={(item) => item.name}
             getValue={(item) => item.visitors}
-            loading={isFetching}
+            loading={isLoading}
           />
         </div>
       </div>

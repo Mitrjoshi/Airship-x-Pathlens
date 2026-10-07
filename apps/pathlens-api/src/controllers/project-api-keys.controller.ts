@@ -4,6 +4,7 @@ import type { AuthRequest } from "../lib/jwt";
 import { TRACKING_SCOPES } from "../lib/project-api-keys";
 import {
   createProjectApiKeyModel,
+  ProjectApiKeyDeletionError,
   listProjectApiKeysModel,
   revokeProjectApiKeyModel,
   updateProjectApiKeyModel,
@@ -77,6 +78,7 @@ async function auditProjectApiKey(
   await createAuditLog({
     workspaceId,
     actorUserId: req.user.id,
+    projectId,
     action,
     resourceType: "project_api_key",
     resourceId: key.id,
@@ -181,13 +183,17 @@ async function handleRevokeProjectApiKey(
   } catch (error) {
     if (sendValidationError(error, res)) return;
     console.error(error);
-    return res.status(500).json({
-      success: false,
-      message:
-        action === "project_api_key.deleted"
-          ? "Unable to delete project API key."
-          : "Unable to revoke project API key.",
-    });
+    return res
+      .status(error instanceof ProjectApiKeyDeletionError ? 409 : 500)
+      .json({
+        success: false,
+        message:
+          error instanceof ProjectApiKeyDeletionError
+            ? error.message
+            : action === "project_api_key.deleted"
+              ? "Unable to delete project API key."
+              : "Unable to revoke project API key.",
+      });
   }
 }
 

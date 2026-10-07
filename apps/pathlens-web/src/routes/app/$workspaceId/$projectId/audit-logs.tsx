@@ -24,6 +24,15 @@ import {
 import { SearchIcon } from 'lucide-react'
 import { useState } from 'react'
 import { DotSeparator, DotSeparatorItem } from '../../-components/dot-separator'
+import { UserDetailsSheet } from '../$projectId/-components/user/user-details-sheet'
+import { getWorkspaceMembersOptions } from '@/queries/workspace'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@workspace/ui/components/select'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/audit-logs')(
   {
@@ -37,6 +46,7 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const [page, setPage] = useState(1)
+  const [memberId, setMemberId] = useState('all')
 
   const { data: auditLogsData, isFetching: isAuditLogsFetching } = useQuery(
     getAuditLogsOptions({
@@ -44,10 +54,15 @@ function RouteComponent() {
       page,
       page_size: PAGE_SIZE,
       project_id: projectId,
+      actor_user_id: memberId === 'all' ? undefined : memberId,
     })
+  )
+  const { data: membersData, isFetching: isMembersDataLoading } = useQuery(
+    getWorkspaceMembersOptions(workspaceId)
   )
 
   const auditLogs = auditLogsData?.data
+  const members = membersData?.data
   const totalLogs = auditLogsData?.pagination?.total ?? 0
   const totalPages = auditLogsData?.pagination?.totalPages ?? 0
   const from = totalLogs === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
@@ -55,6 +70,18 @@ function RouteComponent() {
   const paginationItems = getPaginationItems(page, totalPages)
 
   const to = Math.min(page * PAGE_SIZE, totalLogs)
+
+  const memberItems = [
+    {
+      label: 'All Members',
+      value: 'all',
+    },
+    ...(members?.map((item) => ({
+      label: item.name,
+      value: String(item.id),
+    })) ?? []),
+  ]
+
   return (
     <div className="p-6">
       <div className="space-y-5">
@@ -74,7 +101,27 @@ function RouteComponent() {
             <InputGroupInput placeholder="Search..." />
           </InputGroup>
 
-          <div className="flex items-center justify-between gap-2"></div>
+          <div className="flex items-center justify-between gap-2">
+            <Select
+              items={memberItems}
+              value={memberId}
+              onValueChange={(value) => {
+                setMemberId(value ?? 'all')
+              }}
+            >
+              <SelectTrigger disabled={isMembersDataLoading}>
+                <SelectValue placeholder="All Members" />
+              </SelectTrigger>
+
+              <SelectContent alignItemWithTrigger={false}>
+                {memberItems?.map((item, index) => (
+                  <SelectItem key={index} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="">
@@ -117,7 +164,11 @@ function RouteComponent() {
                       >
                         <TableCell>{formatDate(item.createdAt)}</TableCell>
                         <TableCell>
-                          <p>{capitalizeFirstLetter(item.resourceType)}</p>
+                          <p>
+                            {capitalizeFirstLetter(
+                              item.resourceType.replaceAll('_', ' ')
+                            )}
+                          </p>
 
                           {item.metadata && (
                             <DotSeparator>
@@ -136,7 +187,12 @@ function RouteComponent() {
                               .replaceAll('.', ' ')
                           )}
                         </TableCell>
-                        <TableCell>{item.actor.email}</TableCell>
+                        <TableCell>
+                          <UserDetailsSheet
+                            userId={item.actor.id}
+                            workspaceId={workspaceId}
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
 

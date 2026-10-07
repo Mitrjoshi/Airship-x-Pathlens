@@ -3,9 +3,11 @@ import { db } from "../db/client";
 import {
   events,
   projectApiKeys,
+  projectDomains,
   projectSnapshots,
   projects,
 } from "../db/schema";
+import { normalizeProjectDomains } from "../lib/project-domain";
 import { createSnapshotSignedUrl } from "../lib/s3";
 import { assertWorkspaceUsageLimit } from "./usage.model";
 import { hashApiKey } from "../utils/utils";
@@ -17,7 +19,8 @@ interface I_CreateProjectPayload {
   api_key: string;
   scopes: readonly string[];
   workspace_id: string;
-  domain: string | null;
+  domain: string;
+  userId: string;
 }
 
 export interface ProjectPerformanceMetric {
@@ -153,6 +156,10 @@ export const createProjectModel = async (
   data: I_CreateProjectPayload
 ): Promise<{ id: string; apiKeyId: string }[]> => {
   await assertWorkspaceUsageLimit(data.workspace_id, "projects", 1, false);
+  const [domain] = normalizeProjectDomains([data.domain]);
+
+  if (!domain) throw new Error("A valid project domain is required.");
+
   return await db.transaction(async (transaction) => {
     const createdProjects = await transaction
       .insert(projects)
@@ -160,12 +167,18 @@ export const createProjectModel = async (
         name: data.name,
         description: data.description,
         workspaceId: data.workspace_id,
-        domain: data.domain,
       })
       .returning({ id: projects.id });
     const project = createdProjects[0];
 
     if (!project) return [];
+
+    await transaction.insert(projectDomains).values({
+      projectId: project.id,
+      userId: data.userId,
+      domain,
+      isDefault: true,
+    });
 
     const [apiKey] = await transaction
       .insert(projectApiKeys)
@@ -186,10 +199,10 @@ export const createProjectModel = async (
     await transaction.insert(projectSnapshots).values({
       projectId: project.id,
       workspaceId: data.workspace_id,
-      sourceDomain: data.domain,
-      status: data.domain ? "pending" : "stale",
-      requestedAt: data.domain ? now : null,
-      nextAttemptAt: data.domain ? now : null,
+      sourceDomain: domain,
+      status: "pending",
+      requestedAt: now,
+      nextAttemptAt: now,
     });
 
     return [{ id: project.id, apiKeyId: apiKey.id }];
@@ -200,21 +213,18 @@ export const updateProjectModel = async (data: {
   projectId: string;
   name: string;
   description: string | null;
-  domain: string | null;
 }) => {
   const [project] = await db
     .update(projects)
     .set({
       name: data.name,
       description: data.description,
-      domain: data.domain,
     })
     .where(eq(projects.id, data.projectId))
     .returning({
       id: projects.id,
       name: projects.name,
       description: projects.description,
-      domain: projects.domain,
     });
 
   return project;
@@ -284,7 +294,7 @@ export const getProjectsModel = async (
   workspace_id: string,
   project_id?: string
 ) => {
-  return await db
+  const projectRows = await db
     .select()
     .from(projects)
     .where(
@@ -296,6 +306,43 @@ export const getProjectsModel = async (
         : eq(projects.workspaceId, workspace_id)
     )
     .orderBy(desc(projects.createdAt));
+
+  if (projectRows.length === 0) return [];
+
+  const domainRows = await db
+    .select({
+      projectId: projectDomains.projectId,
+      domain: projectDomains.domain,
+      isDefault: projectDomains.isDefault,
+    })
+    .from(projectDomains)
+    .where(
+      inArray(
+        projectDomains.projectId,
+        projectRows.map((project) => project.id)
+      )
+    );
+
+  const domainsByProject = new Map<
+    string,
+    { domain: string; isDefault: boolean }[]
+  >();
+
+  for (const row of domainRows) {
+    const domains = domainsByProject.get(row.projectId) ?? [];
+    domains.push({ domain: row.domain, isDefault: row.isDefault });
+    domainsByProject.set(row.projectId, domains);
+  }
+
+  return projectRows.map((project) => ({
+    ...project,
+    domain:
+      domainsByProject.get(project.id)?.find((domain) => domain.isDefault)
+        ?.domain ?? null,
+    domains: (domainsByProject.get(project.id) ?? []).map(
+      (domain) => domain.domain
+    ),
+  }));
 };
 
 export const getProjectStatsModel = async (

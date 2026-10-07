@@ -58,8 +58,8 @@ export async function createLifetimeCheckoutSession(
         user_id: user.id,
         price_id: priceId,
       },
-      success_url: `${frontendUrl}/checkout?checkout=success`,
-      cancel_url: `${frontendUrl}/checkout?checkout=cancelled`,
+      success_url: `${frontendUrl}/app/checkout?checkout=success`,
+      cancel_url: `${frontendUrl}/app/checkout?checkout=cancelled`,
     });
 
     return res.status(201).json({

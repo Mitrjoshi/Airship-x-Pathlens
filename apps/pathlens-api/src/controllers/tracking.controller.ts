@@ -17,7 +17,7 @@ export async function getTrackingConfig(req: Request, res: Response) {
   if (
     !projectApiKey ||
     !isProjectOriginAllowed(
-      projectApiKey.domain,
+      projectApiKey.domains,
       req.header("origin"),
       req.header("referer")
     )

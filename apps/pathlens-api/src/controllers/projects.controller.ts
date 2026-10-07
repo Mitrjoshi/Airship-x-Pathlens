@@ -30,7 +30,9 @@ const createProjectSchema = z.object({
     .string({
       error: "Please enter a project domain.",
     })
-    .nullable(),
+    .trim()
+    .min(1, "Project domain is required.")
+    .max(2048, "Project domain is too long."),
   captureReplay: z.boolean().default(true),
   capturePerformance: z.boolean().default(true),
   captureErrors: z.boolean().default(false),
@@ -40,6 +42,12 @@ const createProjectSchema = z.object({
 });
 
 export async function createProject(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
   try {
     const {
       description,
@@ -64,6 +72,7 @@ export async function createProject(req: AuthRequest, res: Response) {
       api_key,
       scopes,
       domain,
+      userId,
       workspace_id,
     });
 
@@ -73,6 +82,7 @@ export async function createProject(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId: workspace_id,
         actorUserId: req.user.id,
+        projectId,
         action: "project.created",
         resourceType: "project",
         resourceId: projectId,
@@ -89,6 +99,7 @@ export async function createProject(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId: workspace_id,
         actorUserId: req.user.id,
+        projectId,
         action: "project_api_key.created",
         resourceType: "project_api_key",
         resourceId: project[0].apiKeyId,
@@ -102,7 +113,7 @@ export async function createProject(req: AuthRequest, res: Response) {
       });
     }
 
-    if (domain) await enqueueProjectSnapshot(projectId);
+    await enqueueProjectSnapshot(projectId);
 
     res.status(200).send({
       success: true,
@@ -171,13 +182,6 @@ const updateProjectSchema = z.object({
     .trim()
     .max(100, "Project description must be 100 characters or less.")
     .nullable(),
-  domain: z
-    .string({
-      error: "Please enter a project domain.",
-    })
-    .trim()
-    .max(2048, "Project domain must be 2048 characters or less.")
-    .nullable(),
 });
 
 export async function getProjects(req: AuthRequest, res: Response) {
@@ -235,7 +239,6 @@ export async function updateProject(req: AuthRequest, res: Response) {
       projectId: project_id,
       name: payload.name,
       description: payload.description,
-      domain: payload.domain,
     });
 
     if (!project) {
@@ -249,18 +252,16 @@ export async function updateProject(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId,
         actorUserId: req.user.id,
+        projectId: project_id,
         action: "project.updated",
         resourceType: "project",
         resourceId: project_id,
         metadata: {
           name: payload.name,
           description: payload.description,
-          domain: payload.domain,
         },
       });
     }
-
-    if (payload.domain) await enqueueProjectSnapshot(project.id);
 
     return res.status(200).json({
       success: true,
@@ -304,6 +305,7 @@ export async function deleteProject(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId,
         actorUserId: req.user.id,
+        projectId: project_id,
         action: "project.deleted",
         resourceType: "project",
         resourceId: project_id,

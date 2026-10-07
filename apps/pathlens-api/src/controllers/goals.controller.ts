@@ -110,6 +110,7 @@ export async function createGoal(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId: payload.workspace_id,
         actorUserId: req.user.id,
+        projectId: payload.project_id,
         action: "goal.created",
         resourceType: "goal",
         resourceId: id,
@@ -176,6 +177,7 @@ export async function updateGoal(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId: payload.workspace_id,
         actorUserId: req.user.id,
+        projectId: payload.project_id,
         action: "goal.updated",
         resourceType: "goal",
         resourceId: params.goal_id,
@@ -232,6 +234,7 @@ export async function deleteGoal(req: AuthRequest, res: Response) {
       await createAuditLog({
         workspaceId: query.workspace_id,
         actorUserId: req.user.id,
+        projectId: deleted.projectId,
         action: "goal.deleted",
         resourceType: "goal",
         resourceId: params.goal_id,

@@ -24,6 +24,16 @@ import {
 import { SearchIcon } from 'lucide-react'
 import { useState } from 'react'
 import { DotSeparator, DotSeparatorItem } from '../-components/dot-separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@workspace/ui/components/select'
+import { getProjectsOptions } from '@/queries/projects'
+import { getWorkspaceMembersOptions } from '@/queries/workspace'
+import { UserDetailsSheet } from './$projectId/-components/user/user-details-sheet'
 
 export const Route = createFileRoute('/app/$workspaceId/audit-logs')({
   component: RouteComponent,
@@ -35,16 +45,30 @@ function RouteComponent() {
   const { workspaceId } = Route.useParams()
 
   const [page, setPage] = useState(1)
+  const [projectId, setProjectId] = useState('all')
+  const [memberId, setMemberId] = useState('all')
 
   const { data: auditLogsData, isFetching: isAuditLogsFetching } = useQuery(
     getAuditLogsOptions({
       workspace_id: workspaceId,
       page,
       page_size: PAGE_SIZE,
+      project_id: projectId === 'all' ? undefined : projectId,
+      actor_user_id: memberId === 'all' ? undefined : memberId,
     })
+  )
+  const { data: projectsData, isFetching: isProjectsDataLoading } = useQuery(
+    getProjectsOptions({
+      workspace_id: workspaceId,
+    })
+  )
+  const { data: membersData, isFetching: isMembersDataLoading } = useQuery(
+    getWorkspaceMembersOptions(workspaceId)
   )
 
   const auditLogs = auditLogsData?.data
+  const projects = projectsData?.data
+  const members = membersData?.data
   const totalLogs = auditLogsData?.pagination?.total ?? 0
   const totalPages = auditLogsData?.pagination?.totalPages ?? 0
   const from = totalLogs === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
@@ -52,8 +76,31 @@ function RouteComponent() {
   const paginationItems = getPaginationItems(page, totalPages)
 
   const to = Math.min(page * PAGE_SIZE, totalLogs)
+
+  const projectItems = [
+    {
+      label: 'All Projects',
+      value: 'all',
+    },
+    ...(projects?.map((item) => ({
+      label: item.name,
+      value: String(item.id),
+    })) ?? []),
+  ]
+
+  const memberItems = [
+    {
+      label: 'All Members',
+      value: 'all',
+    },
+    ...(members?.map((item) => ({
+      label: item.name,
+      value: String(item.id),
+    })) ?? []),
+  ]
+
   return (
-    <div className="mx-auto w-full max-w-4xl pt-10">
+    <div className="mx-auto w-full max-w-4xl py-10">
       <div className="space-y-5">
         <div>
           <p className="text-xl font-medium">Audit logs</p>
@@ -64,14 +111,54 @@ function RouteComponent() {
         </div>
 
         <div className="flex items-center justify-between gap-4">
-          <InputGroup className="w-120">
+          <InputGroup className="w-90">
             <InputGroupButton>
               <SearchIcon />
             </InputGroupButton>
             <InputGroupInput placeholder="Search..." />
           </InputGroup>
 
-          <div className="flex items-center justify-between gap-2"></div>
+          <div className="flex items-center justify-between gap-2">
+            <Select
+              items={projectItems}
+              value={projectId}
+              onValueChange={(value) => {
+                setProjectId(value ?? 'all')
+              }}
+            >
+              <SelectTrigger disabled={isProjectsDataLoading}>
+                <SelectValue placeholder="All Projects" />
+              </SelectTrigger>
+
+              <SelectContent alignItemWithTrigger={false}>
+                {projectItems?.map((item, index) => (
+                  <SelectItem key={index} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              items={memberItems}
+              value={memberId}
+              onValueChange={(value) => {
+                setMemberId(value ?? 'all')
+              }}
+            >
+              <SelectTrigger disabled={isMembersDataLoading}>
+                <SelectValue placeholder="All Members" />
+              </SelectTrigger>
+
+              <SelectContent alignItemWithTrigger={false}>
+                {memberItems?.map((item, index) => (
+                  <SelectItem key={index} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="">
@@ -114,7 +201,11 @@ function RouteComponent() {
                       >
                         <TableCell>{formatDate(item.createdAt)}</TableCell>
                         <TableCell>
-                          <p>{capitalizeFirstLetter(item.resourceType)}</p>
+                          <p>
+                            {capitalizeFirstLetter(
+                              item.resourceType.replaceAll('_', ' ')
+                            )}
+                          </p>
 
                           {item.metadata && (
                             <DotSeparator>
@@ -133,7 +224,12 @@ function RouteComponent() {
                               .replaceAll('.', ' ')
                           )}
                         </TableCell>
-                        <TableCell>{item.actor.email}</TableCell>
+                        <TableCell className={'text-right'}>
+                          <UserDetailsSheet
+                            userId={item.actor.id}
+                            workspaceId={workspaceId}
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
 

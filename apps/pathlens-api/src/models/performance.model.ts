@@ -24,7 +24,7 @@ export interface PerformanceResponse {
     totalSamples: number;
   };
   trend: {
-    day: string;
+    date: string;
     ttfb: number;
     domLoaded: number;
     load: number;
@@ -63,7 +63,7 @@ interface SummaryRow extends Record<string, unknown> {
 }
 
 interface TrendRow extends Record<string, unknown> {
-  day: string;
+  date: string;
   ttfb: number | string | null;
   dom_loaded: number | string | null;
   load: number | string | null;
@@ -165,7 +165,7 @@ export async function getPerformanceModel(
           )::date AS day
         )
         SELECT
-          TO_CHAR(days.day, 'Dy') AS day,
+          TO_CHAR(days.day, 'YYYY-MM-DD') AS date,
           AVG((e.payload->>'ttfb')::float)::float AS ttfb,
           AVG((e.payload->>'domLoaded')::float)::float AS dom_loaded,
           AVG((e.payload->>'load')::float)::float AS load
@@ -233,7 +233,7 @@ export async function getPerformanceModel(
       totalSamples: toNumber(summary?.total_samples),
     },
     trend: trendResult.rows.map((row) => ({
-      day: row.day,
+      date: row.date,
       ttfb: Number(toNumber(row.ttfb).toFixed(0)),
       domLoaded: Number(toNumber(row.dom_loaded).toFixed(0)),
       load: Number(toNumber(row.load).toFixed(0)),

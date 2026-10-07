@@ -347,7 +347,7 @@ function RouteComponent() {
               {!loginPending && <ArrowUpRightIcon />}
             </Button>
 
-            <div className="border-border bg-muted/30 mt-8 rounded-xl border p-4 lg:mt-5 lg:p-3">
+            <div className="border-border bg-card/30 mt-8 rounded-xl border p-4 lg:mt-5 lg:p-3">
               <div className="flex items-start gap-3">
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
                   <ShieldCheckIcon className="size-4" />

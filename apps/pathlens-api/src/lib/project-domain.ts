@@ -11,27 +11,58 @@ function normalizeHostname(value: string): string | null {
   return url?.hostname.toLowerCase().replace(/\.$/, "") ?? null;
 }
 
-function getAllowedHostnames(domain: string): Set<string> {
-  const hostname = normalizeHostname(domain);
-  if (!hostname) return new Set();
+export function normalizeProjectDomain(value: string): string | null {
+  const url = toUrl(value.trim());
 
-  const withoutWww = hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+  if (!url || !url.hostname) return null;
 
-  return new Set([withoutWww, `www.${withoutWww}`]);
+  url.pathname = "/";
+  url.search = "";
+  url.hash = "";
+
+  return url.origin;
+}
+
+export function normalizeProjectDomains(values: readonly string[]): string[] {
+  return [
+    ...new Set(
+      values
+        .map((value) => normalizeProjectDomain(value))
+        .filter((value): value is string => Boolean(value))
+    ),
+  ];
+}
+
+function getAllowedHostnames(domains: readonly string[]): Set<string> {
+  const hostnames = domains
+    .map((domain) => normalizeHostname(domain))
+    .filter((domain): domain is string => Boolean(domain));
+
+  return new Set(
+    hostnames.flatMap((hostname) => {
+      const withoutWww = hostname.startsWith("www.")
+        ? hostname.slice(4)
+        : hostname;
+
+      return [withoutWww, `www.${withoutWww}`];
+    })
+  );
 }
 
 export function isProjectOriginAllowed(
-  projectDomain: string | null,
+  projectDomains: readonly string[] | string | null,
   origin: string | undefined,
   referer: string | undefined
 ): boolean {
-  if (!projectDomain) return false;
+  if (!projectDomains) return false;
 
+  const domains =
+    typeof projectDomains === "string" ? [projectDomains] : projectDomains;
   const requestSource = origin && origin !== "null" ? origin : referer;
   if (!requestSource) return false;
 
   const requestHostname = normalizeHostname(requestSource);
   if (!requestHostname) return false;
 
-  return getAllowedHostnames(projectDomain).has(requestHostname);
+  return getAllowedHostnames(domains).has(requestHostname);
 }

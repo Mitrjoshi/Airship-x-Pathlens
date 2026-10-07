@@ -120,11 +120,18 @@ async function syncProjectSnapshots(client: PoolClient): Promise<void> {
     SELECT
       p.id,
       p.workspace_id,
-      p.domain,
-      CASE WHEN p.domain IS NULL THEN 'stale' ELSE 'pending' END,
-      CASE WHEN p.domain IS NULL THEN NULL ELSE NOW() END,
-      CASE WHEN p.domain IS NULL THEN NULL ELSE NOW() END
+      d.domain,
+      CASE WHEN d.domain IS NULL THEN 'stale' ELSE 'pending' END,
+      CASE WHEN d.domain IS NULL THEN NULL ELSE NOW() END,
+      CASE WHEN d.domain IS NULL THEN NULL ELSE NOW() END
     FROM projects AS p
+    LEFT JOIN LATERAL (
+      SELECT domain
+      FROM project_domains
+      WHERE project_id = p.id
+        AND is_default = true
+      LIMIT 1
+    ) AS d ON true
     ON CONFLICT (project_id) DO NOTHING
   `)
 
@@ -132,18 +139,25 @@ async function syncProjectSnapshots(client: PoolClient): Promise<void> {
     UPDATE project_snapshots AS s
     SET
       workspace_id = p.workspace_id,
-      source_domain = p.domain,
-      status = CASE WHEN p.domain IS NULL THEN 'stale' ELSE 'pending' END,
-      requested_at = CASE WHEN p.domain IS NULL THEN NULL ELSE NOW() END,
+      source_domain = d.domain,
+      status = CASE WHEN d.domain IS NULL THEN 'stale' ELSE 'pending' END,
+      requested_at = CASE WHEN d.domain IS NULL THEN NULL ELSE NOW() END,
       last_attempt_at = NULL,
-      next_attempt_at = CASE WHEN p.domain IS NULL THEN NULL ELSE NOW() END,
+      next_attempt_at = CASE WHEN d.domain IS NULL THEN NULL ELSE NOW() END,
       last_error = NULL,
       failure_count = 0
     FROM projects AS p
+    LEFT JOIN LATERAL (
+      SELECT domain
+      FROM project_domains
+      WHERE project_id = p.id
+        AND is_default = true
+      LIMIT 1
+    ) AS d ON true
     WHERE s.project_id = p.id
       AND (
         s.workspace_id IS DISTINCT FROM p.workspace_id
-        OR s.source_domain IS DISTINCT FROM p.domain
+        OR s.source_domain IS DISTINCT FROM d.domain
       )
   `)
 }
@@ -159,9 +173,8 @@ export async function claimNextSnapshot(): Promise<SnapshotJob | null> {
       SELECT ${qualifiedSnapshotColumns}
       FROM project_snapshots AS s
       INNER JOIN projects AS p ON p.id = s.project_id
-      WHERE p.domain IS NOT NULL
+      WHERE s.source_domain IS NOT NULL
         AND s.workspace_id IS NOT DISTINCT FROM p.workspace_id
-        AND s.source_domain IS NOT DISTINCT FROM p.domain
         AND (
           s.status = 'pending'
           OR (
@@ -243,9 +256,8 @@ export async function claimSnapshot(
         FROM project_snapshots AS s
         INNER JOIN projects AS p ON p.id = s.project_id
         WHERE s.project_id = $1
-          AND p.domain IS NOT NULL
+          AND s.source_domain IS NOT NULL
           AND s.workspace_id IS NOT DISTINCT FROM p.workspace_id
-          AND s.source_domain IS NOT DISTINCT FROM p.domain
           AND (
             s.status = 'pending'
             OR (
@@ -317,9 +329,8 @@ export async function queueDueSnapshotProjectIds(
           SELECT s.project_id
           FROM project_snapshots AS s
           INNER JOIN projects AS p ON p.id = s.project_id
-          WHERE p.domain IS NOT NULL
+            WHERE s.source_domain IS NOT NULL
             AND s.workspace_id IS NOT DISTINCT FROM p.workspace_id
-            AND s.source_domain IS NOT DISTINCT FROM p.domain
             AND (
               s.status = 'pending'
               OR (

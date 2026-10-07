@@ -8,6 +8,7 @@ export type AuditLogMetadata = Record<string, unknown>;
 export async function createAuditLog(data: {
   workspaceId: string;
   actorUserId: string;
+  projectId?: string | null;
   action: string;
   resourceType: string;
   resourceId?: string | null;
@@ -17,6 +18,7 @@ export async function createAuditLog(data: {
     await db.insert(auditLogs).values({
       workspaceId: data.workspaceId,
       actorUserId: data.actorUserId,
+      projectId: data.projectId ?? null,
       action: data.action,
       resourceType: data.resourceType,
       resourceId: data.resourceId ?? null,
@@ -48,7 +50,7 @@ function getAuditLogFilters(data: AuditLogFilters) {
     filters.push(eq(auditLogs.actorUserId, data.actorUserId));
   }
   if (data.projectId) {
-    filters.push(eq(auditLogs.resourceId, data.projectId));
+    filters.push(eq(auditLogs.projectId, data.projectId));
   }
   if (data.search) {
     const pattern = `%${data.search}%`;
@@ -79,6 +81,7 @@ export async function getAuditLogs(
       .select({
         id: auditLogs.id,
         workspaceId: auditLogs.workspaceId,
+        projectId: auditLogs.projectId,
         actor: {
           id: users.id,
           name: users.name,

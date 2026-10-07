@@ -1,6 +1,13 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, or } from "drizzle-orm";
 import { db } from "../db/client";
 import { projectApiKeys } from "../db/schema";
+
+export class ProjectApiKeyDeletionError extends Error {
+  constructor() {
+    super("A project must have at least one active API key.");
+    this.name = "ProjectApiKeyDeletionError";
+  }
+}
 
 export const listProjectApiKeysModel = async (projectId: string) => {
   return db
@@ -45,26 +52,50 @@ export const revokeProjectApiKeyModel = async (data: {
   projectId: string;
   keyId: string;
 }) => {
-  const [key] = await db
-    .update(projectApiKeys)
-    .set({ revokedAt: new Date() })
-    .where(
-      and(
-        eq(projectApiKeys.id, data.keyId),
-        eq(projectApiKeys.projectId, data.projectId),
-        isNull(projectApiKeys.revokedAt)
+  return db.transaction(async (transaction) => {
+    const now = new Date();
+    const activeKeys = await transaction
+      .select({ id: projectApiKeys.id })
+      .from(projectApiKeys)
+      .where(
+        and(
+          eq(projectApiKeys.projectId, data.projectId),
+          isNull(projectApiKeys.revokedAt),
+          or(
+            isNull(projectApiKeys.expiresAt),
+            gt(projectApiKeys.expiresAt, now)
+          )
+        )
       )
-    )
-    .returning({
-      id: projectApiKeys.id,
-      name: projectApiKeys.name,
-      keyPrefix: projectApiKeys.keyPrefix,
-      scopes: projectApiKeys.scopes,
-      expiresAt: projectApiKeys.expiresAt,
-      revokedAt: projectApiKeys.revokedAt,
-    });
+      .for("update");
 
-  return key;
+    if (!activeKeys.some((key) => key.id === data.keyId)) return undefined;
+
+    if (activeKeys.length <= 1) {
+      throw new ProjectApiKeyDeletionError();
+    }
+
+    const [key] = await transaction
+      .update(projectApiKeys)
+      .set({ revokedAt: now })
+      .where(
+        and(
+          eq(projectApiKeys.id, data.keyId),
+          eq(projectApiKeys.projectId, data.projectId),
+          isNull(projectApiKeys.revokedAt)
+        )
+      )
+      .returning({
+        id: projectApiKeys.id,
+        name: projectApiKeys.name,
+        keyPrefix: projectApiKeys.keyPrefix,
+        scopes: projectApiKeys.scopes,
+        expiresAt: projectApiKeys.expiresAt,
+        revokedAt: projectApiKeys.revokedAt,
+      });
+
+    return key;
+  });
 };
 
 export const updateProjectApiKeyModel = async (data: {
