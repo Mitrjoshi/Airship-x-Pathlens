@@ -1,5 +1,4 @@
 import { getDashboardOptions, type DashboardRange } from '@/queries/dashboard'
-import { getProjectsOptions } from '@/queries/projects'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
@@ -15,13 +14,12 @@ import {
   ArrowUpRightIcon,
   CalendarIcon,
   LayoutIcon,
-  LinkIcon,
   LoaderIcon,
   PauseIcon,
   PlayIcon,
   RefreshCcwIcon,
 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   Select,
   SelectContent,
@@ -38,7 +36,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@workspace/ui/components/chart'
-import { Line, LineChart, Pie, PieChart, ResponsiveContainer } from 'recharts'
+import { AreaChart, Pie, PieChart, ResponsiveContainer, Area } from 'recharts'
 import {
   Card,
   CardContent,
@@ -46,23 +44,30 @@ import {
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card'
-import { formatNumber, formatRelativeTime } from '@/utils/utils'
+import { capitalizeFirstLetter, formatNumber } from '@/utils/utils'
 import { Badge } from '@workspace/ui/components/badge'
 import { VisitorsGlobe } from './-components/dashboard/visitors-globe'
 import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
-import ProjectLoading from './-components/common/project-loading'
 import { useRelativeTime } from '@/hooks/use-relative-time'
+import { getProjectDomainsOptions } from '@/queries/domains'
+import { DomainSwitcher } from './-components/common/domain-switcher'
 
-const chartConfig = {
-  visitors: {
+const visitorsChartConfig = {
+  value: {
     label: 'Visitors',
     color: 'var(--chart-1)',
   },
-  sessions: {
+} satisfies ChartConfig
+
+const sessionsChartConfig = {
+  value: {
     label: 'Sessions',
     color: 'var(--chart-1)',
   },
-  events: {
+} satisfies ChartConfig
+
+const eventsChartConfig = {
+  value: {
     label: 'Events',
     color: 'var(--chart-1)',
   },
@@ -83,8 +88,9 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
   const navigate = useNavigate()
 
-  const [range, setRange] = useState<DashboardRange>('90d')
+  const [range, setRange] = useState<DashboardRange>('7d')
   const [liveMode, setLiveMode] = useState(false)
+  const [domain, setDomain] = useState('')
 
   const {
     data: dashboardData,
@@ -99,20 +105,18 @@ function RouteComponent() {
       range,
       device: 'all',
       refetchInterval: liveMode ? 5000 : undefined,
+      domain,
     })
   )
 
-  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
-
-  const { data: projectData, isLoading: projectLoading } = useQuery(
-    getProjectsOptions({
-      workspace_id: workspaceId,
-      project_id: projectId,
-    })
+  const { data: domainsData, isLoading: domainsLoading } = useQuery(
+    getProjectDomainsOptions(projectId)
   )
 
   const dashboard = dashboardData?.data
-  const projectDetails = projectData?.data[0]
+  const domains = domainsData?.data
+
+  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
 
   const deviceChartConfig = {
     value: {
@@ -147,29 +151,23 @@ function RouteComponent() {
       }
     }) ?? []
 
-  if (projectLoading) {
-    return <ProjectLoading />
-  }
+  useEffect(() => {
+    if (domains) {
+      setDomain(domains[0].domain)
+    }
+  }, [domains])
 
   return (
     <div>
       <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
         <div className="flex items-center gap-4">
-          <Button
-            disabled={projectLoading}
-            render={
-              <a href={projectDetails?.domain as string} target="_blank" />
-            }
-            variant={'link'}
-            className={'text-foreground px-0'}
-          >
-            <LinkIcon className="mr-1" />
-            {projectLoading ? (
-              <Skeleton className="h-5 w-50" />
-            ) : (
-              projectDetails?.domain
-            )}
-          </Button>
+          <DomainSwitcher
+            loading={domainsLoading}
+            domain={domain}
+            setDomain={setDomain}
+            domains={domains!}
+            refetch={refetch}
+          />
 
           <Separator orientation="vertical" />
 
@@ -179,7 +177,7 @@ function RouteComponent() {
             />
 
             <p className="text-sm">
-              {projectLoading ? (
+              {isLoading ? (
                 <Skeleton className="h-6 w-25" />
               ) : (
                 `${formatNumber(dashboard?.liveVisitors ?? 0)} Online`
@@ -202,7 +200,7 @@ function RouteComponent() {
           <Button
             data-live={liveMode}
             onClick={() => setLiveMode(!liveMode)}
-            className="data-[live=true]:bg-primary-foreground/50! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
+            className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
             variant="outline"
           >
             {liveMode ? <PauseIcon /> : <PlayIcon />}
@@ -281,12 +279,12 @@ function RouteComponent() {
         <div className="grid grid-cols-3 gap-3">
           <MetricCard
             label="Visitors"
-            value={formatNumber(dashboard?.visitors)}
+            value={formatNumber(dashboard?.weeklyChange.visitors.total)}
             change={dashboard?.weeklyChange.visitors.value ?? 0}
             positive={dashboard?.weeklyChange.visitors.positive ?? false}
             chartData={dashboard?.visitorsChart}
-            dataKey="visitors"
-            chartConfig={chartConfig}
+            dataKey="value"
+            chartConfig={visitorsChartConfig}
             loading={isLoading}
             onViewDetails={() => {
               navigate({
@@ -301,12 +299,12 @@ function RouteComponent() {
 
           <MetricCard
             label="Sessions"
-            value={formatNumber(dashboard?.sessions)}
+            value={formatNumber(dashboard?.weeklyChange.sessions.total)}
             change={dashboard?.weeklyChange.sessions.value ?? 0}
             positive={dashboard?.weeklyChange.sessions.positive ?? false}
             chartData={dashboard?.sessionChart}
-            dataKey="sessions"
-            chartConfig={chartConfig}
+            dataKey="value"
+            chartConfig={sessionsChartConfig}
             loading={isLoading}
             onViewDetails={() => {
               navigate({
@@ -321,12 +319,12 @@ function RouteComponent() {
 
           <MetricCard
             label="Events"
-            value={formatNumber(dashboard?.events)}
+            value={formatNumber(dashboard?.weeklyChange.events.total)}
             change={dashboard?.weeklyChange.events.value ?? 0}
             positive={dashboard?.weeklyChange.events.positive ?? false}
             chartData={dashboard?.eventsChart}
-            dataKey="events"
-            chartConfig={chartConfig}
+            dataKey="value"
+            chartConfig={eventsChartConfig}
             loading={isLoading}
             onViewDetails={() => {
               navigate({
@@ -427,8 +425,11 @@ function RouteComponent() {
                       className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
                     >
                       <div className="flex items-center gap-2">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                        <div className="w-full space-y-1">
+                          <Skeleton className="h-3 w-1/3" />
+                          <Skeleton className="h-3 w-1/6" />
+                        </div>
                       </div>
 
                       <Skeleton className="h-2 w-full rounded-full" />
@@ -452,9 +453,14 @@ function RouteComponent() {
                         <Avatar>
                           <AvatarFallback>{country.code}</AvatarFallback>
                         </Avatar>
-                        <p className="truncate text-sm font-medium">
-                          {country.name}
-                        </p>
+                        <div>
+                          <p className="truncate text-sm font-medium">
+                            {country.city}
+                          </p>
+                          <p className="text-muted-foreground truncate text-xs">
+                            {country.name}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
@@ -484,6 +490,7 @@ function RouteComponent() {
             getLabel={(item) => item.page as string}
             getValue={(item) => item.views}
             loading={isLoading}
+            getDuration={(item) => item.duration}
           />
 
           <ProgressListCard
@@ -521,7 +528,7 @@ type MetricCardProps<T extends Record<string, unknown>> = {
   change: number
   positive: boolean
   chartData?: T[]
-  dataKey: keyof T & string
+  dataKey: string
   chartConfig: Record<string, { label?: ReactNode; color?: string }>
   onViewDetails?: () => void
   loading: boolean
@@ -667,7 +674,7 @@ export function MetricCard<T extends Record<string, unknown>>({
               vectorEffect="non-scaling-stroke"
             />
           </svg>
-        ) : !chartData.every((item) => item.value === 0) ? (
+        ) : chartData.every((item) => item.value === 0) ? (
           <div className="relative">
             <svg
               viewBox="0 0 300 48"
@@ -749,19 +756,39 @@ export function MetricCard<T extends Record<string, unknown>>({
             config={chartConfig}
             className="h-12 w-full flex-1 p-0"
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <ChartTooltip content={<ChartTooltipContent />} />
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient
+                  id={`${dataKey}-gradient`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="5%"
+                    stopColor={`var(--color-${dataKey})`}
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor={`var(--color-${dataKey})`}
+                    stopOpacity={0.1}
+                  />
+                </linearGradient>
+              </defs>
 
-                <Line
-                  dot={false}
-                  dataKey={dataKey}
-                  fill="transparent"
-                  stroke={`var(--color-${dataKey})`}
-                  strokeWidth={0.8}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+              <ChartTooltip content={<ChartTooltipContent />} />
+
+              <Area
+                type="monotone"
+                dataKey={dataKey}
+                dot={false}
+                fill={`url(#${dataKey}-gradient)`}
+                stroke={`var(--color-${dataKey})`}
+                strokeWidth={0.8}
+              />
+            </AreaChart>
           </ChartContainer>
         )}
       </CardContent>
@@ -777,6 +804,7 @@ type ProgressListCardProps<T> = {
   getKey?: (item: T, index: number) => string | number
   maxValue?: number
   loading?: boolean
+  getDuration?: (item: T) => string
 }
 
 export function ProgressListCard<T>({
@@ -787,6 +815,7 @@ export function ProgressListCard<T>({
   getKey,
   maxValue = 100,
   loading,
+  getDuration,
 }: ProgressListCardProps<T>) {
   return (
     <Card className="bg-card/30 gap-2 rounded-none border-2 border-dashed p-2">
@@ -825,9 +854,14 @@ export function ProgressListCard<T>({
                   key={getKey?.(item, index) ?? index}
                   className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
                 >
-                  <p className="truncate text-sm font-medium">
-                    {getLabel(item)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium">
+                      {getLabel(item)}
+                    </p>
+                    {getDuration && (
+                      <Badge variant={'outline'}>{getDuration(item)}</Badge>
+                    )}
+                  </div>
 
                   <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
                     <div

@@ -8,7 +8,6 @@ import {
 import { getProjectsOptions } from '@/queries/projects'
 import {
   capitalizeFirstLetter,
-  formatDate,
   formatRelativeTime,
   getPaginationItems,
 } from '@/utils/utils'
@@ -67,7 +66,7 @@ import {
   RefreshCcwIcon,
   SearchIcon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import VisitorsLoading from './-components/common/visitors-loading'
 import {
@@ -76,9 +75,10 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@workspace/ui/components/sheet'
 import { DotSeparator, DotSeparatorItem } from '../../-components/dot-separator'
+import { DomainSwitcher } from './-components/common/domain-switcher'
+import { getProjectDomainsOptions } from '@/queries/domains'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/events')({
   component: RouteComponent,
@@ -353,13 +353,14 @@ function EventsChart({ data }: { data: ChartDataItem[] }) {
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
-  const [range, setRange] = useState<AnalyticsRange>('90d')
+  const [range, setRange] = useState<AnalyticsRange>('7d')
   const [liveMode, setLiveMode] = useState(false)
   const [device, setDevice] = useState<DeviceFilter>('all')
   const [page, setPage] = useState(1)
   const [event, setEvent] = useState<ProjectEvent | null>(null)
   const [category, setCategory] = useState<EventsCategory>('high_signal')
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [domain, setDomain] = useState('')
 
   const {
     data: eventsData,
@@ -375,6 +376,7 @@ function RouteComponent() {
       device,
       page,
       page_size: PAGE_SIZE,
+      domain,
     })
   )
 
@@ -388,27 +390,22 @@ function RouteComponent() {
       workspace_id: workspaceId,
       project_id: projectId,
       range,
+      domain,
     })
   )
 
-  const { data: projectData, isLoading: projectLoading } = useQuery(
-    getProjectsOptions({
-      workspace_id: workspaceId,
-      project_id: projectId,
-    })
+  const { data: domainsData, isLoading: domainsLoading } = useQuery(
+    getProjectDomainsOptions(projectId)
   )
 
   const events = eventsData?.data
-  const projectDetails = projectData?.data[0]
+  const domains = domainsData?.data
 
   const chartData = (chartResponse?.data.chartData ?? []) as ChartDataItem[]
 
-  const hasChartData = chartData.every(
+  const hasChartData = chartData.some(
     (item) =>
-      item.desktop !== 0 &&
-      item.mobile !== 0 &&
-      item.tablet !== 0 &&
-      item.unknown !== 0
+      item.desktop > 0 || item.mobile > 0 || item.tablet > 0 || item.unknown > 0
   )
 
   const isInitialChartLoading = isChartFetching
@@ -423,34 +420,24 @@ function RouteComponent() {
   const from = totalEvents === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const to = Math.min(page * PAGE_SIZE, totalEvents)
 
-  if (projectLoading) {
-    return <VisitorsLoading />
-  }
+  useEffect(() => {
+    if (domains) {
+      setDomain(domains[0].domain)
+    }
+  }, [domains])
 
   return (
     <div>
       {/* Top toolbar */}
       <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
         <div className="flex min-w-0 items-center gap-4">
-          {projectLoading ? (
-            <Skeleton className="h-5 w-50" />
-          ) : projectDetails?.domain ? (
-            <Button
-              render={
-                <a
-                  href={projectDetails.domain}
-                  target="_blank"
-                  rel="noreferrer"
-                />
-              }
-              variant="link"
-              className="text-foreground min-w-0 px-0"
-            >
-              <LinkIcon className="mr-1 size-4 shrink-0" />
-
-              <span className="truncate">{projectDetails.domain}</span>
-            </Button>
-          ) : null}
+          <DomainSwitcher
+            loading={domainsLoading}
+            domain={domain}
+            setDomain={setDomain}
+            domains={domains!}
+            refetch={refetch}
+          />
 
           <Separator orientation="vertical" className="hidden sm:block" />
 
@@ -565,19 +552,8 @@ function RouteComponent() {
         <Card className="bg-card/30 overflow-hidden rounded-none border-2 border-dashed p-0">
           <CardContent className="p-0">
             {isInitialChartLoading ? (
-              /**
-               * Initial loading state.
-               *
-               * Gradient stays static.
-               * Only bar height moves very slightly.
-               */
               <EventsChartPlaceholder animated />
             ) : !hasChartData ? (
-              /**
-               * Empty state.
-               *
-               * Completely static — no animation.
-               */
               <div className="relative h-90 w-full">
                 <EventsChartPlaceholder />
 
@@ -589,13 +565,6 @@ function RouteComponent() {
                 </Badge>
               </div>
             ) : (
-              /**
-               * Real data.
-               *
-               * During manual/live background refresh,
-               * this chart stays visible rather than
-               * being replaced by the loader.
-               */
               <EventsChart data={chartData} />
             )}
           </CardContent>

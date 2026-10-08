@@ -65,6 +65,7 @@ export interface ErrorsResponse {
 export interface ErrorsParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: ErrorsRange
   device: ErrorsDevice
   browser?: string

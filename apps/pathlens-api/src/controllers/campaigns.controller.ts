@@ -5,6 +5,7 @@ import {
   type CampaignDevice,
   type CampaignRange,
 } from "../models/campaigns.model";
+import { normalizeProjectHostname } from "../lib/project-domain";
 
 const campaignsQuerySchema = z.object({
   workspace_id: z.string().min(1),
@@ -16,6 +17,7 @@ const campaignsQuerySchema = z.object({
   goal_id: z.string().min(1).optional(),
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(50),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 export async function getCampaigns(req: Request, res: Response) {
@@ -29,6 +31,9 @@ export async function getCampaigns(req: Request, res: Response) {
       goalId: query.goal_id,
       page: query.page,
       pageSize: query.page_size,
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
     });
 
     return res.status(200).json({

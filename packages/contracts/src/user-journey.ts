@@ -48,6 +48,7 @@ export interface UserJourneyResponse {
 export interface UserJourneyParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: UserJourneyRange
   device: UserJourneyDevice
 }

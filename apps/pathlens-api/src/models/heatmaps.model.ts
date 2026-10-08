@@ -54,6 +54,7 @@ export interface HeatmapsFilters {
   range: HeatmapsRange;
   device: HeatmapDevice;
   pagePath?: string;
+  domain?: string;
 }
 
 interface PageRow extends Record<string, unknown> {
@@ -461,7 +462,8 @@ async function getRepresentativeReplaySession(
       AND page_event.type = 'page_view'
       AND COALESCE(NULLIF(page_event.path, ''), '/') = ${pagePath}
       AND page_event.occurred_at >= NOW() - make_interval(days => ${rangeDays})
-      ${deviceFilter}
+      ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(page_event.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
+         ${deviceFilter}
       AND replay.event_count >= 2
       AND EXISTS (
         SELECT 1
@@ -474,8 +476,9 @@ async function getRepresentativeReplaySession(
         SELECT 1
         FROM events first_page
         WHERE first_page.session_id = page_event.session_id
-          AND first_page.type = 'page_view'
-          AND first_page.occurred_at < page_event.occurred_at
+           AND first_page.type = 'page_view'
+           AND first_page.occurred_at < page_event.occurred_at
+           ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(first_page.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
       )
       ) DESC, page_event.occurred_at DESC
   LIMIT 1;
@@ -494,6 +497,9 @@ export async function getHeatmapsModel(
     filters.device !== "all"
       ? sql`AND replay_page.device = ${filters.device}`
       : sql``;
+  const domainFilter = filters.domain
+    ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
+    : sql``;
   const pageResult = await db.execute<PageRow>(sql`
     WITH page_metrics AS (
       SELECT
@@ -532,8 +538,9 @@ export async function getHeatmapsModel(
             FROM events replay_page
             WHERE replay_page.session_id = replay.id
               AND replay_page.type = 'page_view'
-              AND COALESCE(NULLIF(replay_page.path, ''), '/') = page_metrics.path
-              ${replayPageDeviceFilter}
+               AND COALESCE(NULLIF(replay_page.path, ''), '/') = page_metrics.path
+               ${replayPageDeviceFilter}
+               ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(replay_page.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
           )
       ) AS replay_available
     FROM page_metrics
@@ -557,7 +564,8 @@ export async function getHeatmapsModel(
         AND project_id = ${filters.projectId}
         AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
         AND type = 'scroll'
-        ${deviceFilter}
+         ${deviceFilter}
+         ${domainFilter}
       GROUP BY COALESCE(NULLIF(path, ''), '/'), session_id
     )
     SELECT
@@ -613,6 +621,7 @@ export async function getHeatmapsModel(
       AND COALESCE(NULLIF(path, ''), '/') = ${selectedPage.path}
       AND type = 'click'
       ${deviceFilter}
+      ${domainFilter}
     ORDER BY occurred_at ASC
     LIMIT ${MAX_HEATMAP_EVENTS};
   `);
@@ -632,6 +641,7 @@ export async function getHeatmapsModel(
       AND COALESCE(NULLIF(path, ''), '/') = ${selectedPage.path}
       AND type = 'scroll'
       ${deviceFilter}
+      ${domainFilter}
     GROUP BY session_id;
   `);
   const replaySession = await getRepresentativeReplaySession(

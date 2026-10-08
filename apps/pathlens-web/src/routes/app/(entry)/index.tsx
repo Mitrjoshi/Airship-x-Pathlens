@@ -98,6 +98,7 @@ function RouteComponent() {
               },
               replace: true,
             })
+            form.reset()
           },
         }
       )
@@ -110,6 +111,7 @@ function RouteComponent() {
         open={open}
         onOpenChange={(open) => {
           setOpen(open)
+          setDeleteOpen(null)
           navigate({
             to: '/app',
             search: {
@@ -221,7 +223,6 @@ function RouteComponent() {
                 onClick={() => {
                   deleteWorkspace.mutate(deleteOpen, {
                     onSuccess: () => {
-                      setDeleteOpen(null)
                       setOpen(false)
                     },
                   })
@@ -278,11 +279,10 @@ function RouteComponent() {
             </form>
 
             <DialogFooter className="bg-transparent py-2">
-              <Button
-                type="submit"
-                form="new-workspace-form"
-                variant="secondary"
-              >
+              <DialogClose render={<Button variant={'outline'} />}>
+                Cancel
+              </DialogClose>
+              <Button type="submit" form="new-workspace-form">
                 <LoadingSwap isLoading={createWorkspace.isPending}>
                   Create
                 </LoadingSwap>
@@ -370,10 +370,16 @@ const WorkspaceCard = ({
             {item.name}
           </Link>
 
-          {item.isDefault && (
+          {item.external ? (
             <Badge variant="outline" className="text-muted-foreground">
-              Default
+              External
             </Badge>
+          ) : (
+            item.isDefault && (
+              <Badge variant="outline" className="text-muted-foreground">
+                Default
+              </Badge>
+            )
           )}
         </div>
       </TableCell>

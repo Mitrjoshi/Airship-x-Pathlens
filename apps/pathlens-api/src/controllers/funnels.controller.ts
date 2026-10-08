@@ -10,6 +10,7 @@ import {
 } from "../models/funnels.model";
 import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 import { createAuditLog } from "../models/audit-logs.model";
+import { normalizeProjectHostname } from "../lib/project-domain";
 
 const funnelStepSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -28,6 +29,7 @@ const funnelsQuerySchema = z.object({
   workspace_id: z.string().min(1),
   project_id: z.string().min(1),
   range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 const funnelParamsSchema = z.object({
@@ -50,7 +52,8 @@ export async function getFunnels(req: AuthRequest, res: Response) {
     const funnels = await getFunnelsModel(
       query.workspace_id,
       query.project_id,
-      query.range as FunnelRange
+      query.range as FunnelRange,
+      query.domain ? (normalizeProjectHostname(query.domain) ?? "") : undefined
     );
 
     return res.status(200).json({

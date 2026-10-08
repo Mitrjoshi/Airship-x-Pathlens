@@ -13,9 +13,7 @@ import {
   EyeIcon,
   PlusIcon,
 } from 'lucide-react'
-
 import type { TrackingScope } from '@workspace/contracts'
-
 import { Button } from '@workspace/ui/components/button'
 import { Badge } from '@workspace/ui/components/badge'
 import { Calendar } from '@workspace/ui/components/calendar'
@@ -60,7 +58,6 @@ import {
   TableHeader,
   TableRow,
 } from '@workspace/ui/components/table'
-
 import {
   getProjectApiKeysOptions,
   type T_ProjectApiKey,
@@ -71,9 +68,7 @@ import {
   useCreateProjectApiKey,
   useRevokeProjectApiKey,
 } from '@/mutations/api-keys'
-
 import { capitalizeFirstLetter, formatRelativeTime, mask } from '@/utils/utils'
-
 import {
   CodeBlock,
   integrations,
@@ -338,21 +333,9 @@ function ApiKeysTableSkeleton() {
 function EmptyApiKeys({ onCreate }: { onCreate: () => void }) {
   return (
     <TableRow>
-      <TableCell colSpan={API_KEY_TABLE_COLUMNS} className="h-44 text-center">
+      <TableCell colSpan={API_KEY_TABLE_COLUMNS} className="h-20 text-center">
         <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
-          <div>
-            <p className="font-medium">No API keys yet</p>
-
-            <p className="text-muted-foreground mt-1 text-sm">
-              Create an API key to start connecting this project to your
-              application.
-            </p>
-          </div>
-
-          <Button size="sm" variant="outline" onClick={onCreate}>
-            <PlusIcon />
-            Create API Key
-          </Button>
+          <p className="font-medium">No API keys yet</p>
         </div>
       </TableCell>
     </TableRow>
@@ -1068,7 +1051,10 @@ type IntegrationSelectorProps = {
   onChange: (value: string) => void
 }
 
-function IntegrationSelector({ value, onChange }: IntegrationSelectorProps) {
+export function IntegrationSelector({
+  value,
+  onChange,
+}: IntegrationSelectorProps) {
   return (
     <div className="mx-auto flex w-fit items-center rounded-full border p-1">
       {integrations.map((item) => {

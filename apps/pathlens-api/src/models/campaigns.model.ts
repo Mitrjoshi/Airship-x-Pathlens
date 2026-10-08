@@ -24,6 +24,7 @@ export interface CampaignFilters {
   goalId?: string;
   page: number;
   pageSize: number;
+  domain?: string;
 }
 
 interface CampaignGoalDefinition extends GoalMatchDefinition {
@@ -238,6 +239,7 @@ function getBaseFilters(filters: CampaignFilters) {
     AND events.occurred_at >= NOW() - make_interval(days => ${rangeDays})
     AND events.occurred_at <= NOW()
     ${deviceFilter}
+    ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(events.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
   `;
 }
 

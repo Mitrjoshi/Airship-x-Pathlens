@@ -82,6 +82,8 @@ export interface BaseEvent {
 
   title: string
 
+  faviconUrl?: string
+
   device: DeviceType
 
   browser: string

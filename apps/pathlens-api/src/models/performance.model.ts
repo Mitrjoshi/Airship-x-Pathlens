@@ -9,6 +9,7 @@ export interface PerformanceFilters {
   projectId?: string;
   range: PerformanceRange;
   device: PerformanceDevice;
+  domain?: string;
 }
 
 export interface PerformanceResponse {
@@ -25,6 +26,8 @@ export interface PerformanceResponse {
   };
   trend: {
     date: string;
+    dns: number;
+    tcp: number;
     ttfb: number;
     domLoaded: number;
     load: number;
@@ -64,6 +67,8 @@ interface SummaryRow extends Record<string, unknown> {
 
 interface TrendRow extends Record<string, unknown> {
   date: string;
+  dns: number | string | null;
+  tcp: number | string | null;
   ttfb: number | string | null;
   dom_loaded: number | string | null;
   load: number | string | null;
@@ -120,6 +125,9 @@ export async function getPerformanceModel(
     filters.device !== "all"
       ? sql` AND LOWER(device) = ${filters.device}`
       : sql``;
+  const domainFilter = filters.domain
+    ? sql` AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
+    : sql``;
 
   const baseWhere = sql`
     workspace_id = ${filters.workspaceId}
@@ -127,6 +135,7 @@ export async function getPerformanceModel(
     AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
     ${projectFilter}
     ${deviceFilter}
+    ${domainFilter}
   `;
 
   const [
@@ -166,6 +175,8 @@ export async function getPerformanceModel(
         )
         SELECT
           TO_CHAR(days.day, 'YYYY-MM-DD') AS date,
+          AVG((e.payload->>'dns')::float)::float AS dns,
+          AVG((e.payload->>'tcp')::float)::float AS tcp,
           AVG((e.payload->>'ttfb')::float)::float AS ttfb,
           AVG((e.payload->>'domLoaded')::float)::float AS dom_loaded,
           AVG((e.payload->>'load')::float)::float AS load
@@ -177,6 +188,7 @@ export async function getPerformanceModel(
           AND e.type = 'performance'
           ${projectFilter}
           ${deviceFilter}
+          ${domainFilter}
         GROUP BY days.day
         ORDER BY days.day;
       `),
@@ -234,6 +246,8 @@ export async function getPerformanceModel(
     },
     trend: trendResult.rows.map((row) => ({
       date: row.date,
+      dns: Number(toNumber(row.dns).toFixed(0)),
+      tcp: Number(toNumber(row.tcp).toFixed(0)),
       ttfb: Number(toNumber(row.ttfb).toFixed(0)),
       domLoaded: Number(toNumber(row.dom_loaded).toFixed(0)),
       load: Number(toNumber(row.load).toFixed(0)),

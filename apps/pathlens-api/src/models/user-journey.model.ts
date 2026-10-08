@@ -9,13 +9,17 @@ import type {
 } from "@workspace/contracts/user-journey";
 import { db } from "../db/client";
 
-export type { UserJourneyDevice, UserJourneyRange } from "@workspace/contracts/user-journey";
+export type {
+  UserJourneyDevice,
+  UserJourneyRange,
+} from "@workspace/contracts/user-journey";
 
 export interface UserJourneyFilters {
   workspaceId: string;
   projectId: string;
   range: UserJourneyRange;
   device: UserJourneyDevice;
+  domain?: string;
 }
 
 interface JourneyEventRow extends Record<string, unknown> {
@@ -78,7 +82,8 @@ const MAX_NODES = 16;
 const MAX_EDGES = 32;
 
 function toTimestamp(value: unknown): number | null {
-  const timestamp = value instanceof Date ? value.getTime() : new Date(String(value)).getTime();
+  const timestamp =
+    value instanceof Date ? value.getTime() : new Date(String(value)).getTime();
 
   return Number.isNaN(timestamp) ? null : timestamp;
 }
@@ -145,7 +150,10 @@ function isConversionLabel(value: string): boolean {
   );
 }
 
-function getEventStep(event: JourneyEventRow, timestamp: number): JourneyStep | null {
+function getEventStep(
+  event: JourneyEventRow,
+  timestamp: number
+): JourneyStep | null {
   const type = event.type.toLowerCase();
 
   if (type === "page_view") {
@@ -162,7 +170,11 @@ function getEventStep(event: JourneyEventRow, timestamp: number): JourneyStep | 
     };
   }
 
-  if (type === "form_submit" || type === "form_success" || type === "form_error") {
+  if (
+    type === "form_submit" ||
+    type === "form_success" ||
+    type === "form_error"
+  ) {
     const formId = getPayloadString(event.payload, ["id", "name"]);
     const successful = type === "form_success" || type === "form_submit";
     const title = formId
@@ -419,6 +431,7 @@ async function getJourneyEvents(
         'custom'
       )
       ${deviceFilter}
+      ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
     ORDER BY session_id, occurred_at ASC, id ASC;
   `);
 
@@ -429,7 +442,10 @@ export async function getUserJourneyModel(
   filters: UserJourneyFilters
 ): Promise<UserJourneyData> {
   const rows = await getJourneyEvents(filters);
-  const sessionEvents = new Map<string, { row: JourneyEventRow; timestamp: number }[]>();
+  const sessionEvents = new Map<
+    string,
+    { row: JourneyEventRow; timestamp: number }[]
+  >();
 
   for (const row of rows) {
     const timestamp = toTimestamp(row.occurred_at);
@@ -495,7 +511,9 @@ export async function getUserJourneyModel(
     const firstTimestamp = firstStep.timestamp;
     const conversionIndex = path.steps.findIndex((step) => step.isConversion);
     const converted = conversionIndex >= 0;
-    const steps = converted ? path.steps.slice(0, conversionIndex + 1) : path.steps;
+    const steps = converted
+      ? path.steps.slice(0, conversionIndex + 1)
+      : path.steps;
 
     if (converted) {
       const conversionStep = path.steps[conversionIndex];
@@ -515,7 +533,12 @@ export async function getUserJourneyModel(
 
     for (const step of steps) {
       if (!seenNodes.has(step.key)) {
-        addNodeVisit(nodes, step, path.visitorId, step.timestamp - firstTimestamp);
+        addNodeVisit(
+          nodes,
+          step,
+          path.visitorId,
+          step.timestamp - firstTimestamp
+        );
         seenNodes.add(step.key);
       }
 
@@ -542,7 +565,13 @@ export async function getUserJourneyModel(
         path.visitorId,
         steps[steps.length - 1]?.timestamp - firstTimestamp || 0
       );
-      addEdgeVisit(edges, previousKey, DROPOFF_NODE_ID, "dropoff", path.visitorId);
+      addEdgeVisit(
+        edges,
+        previousKey,
+        DROPOFF_NODE_ID,
+        "dropoff",
+        path.visitorId
+      );
     }
   }
 
@@ -576,9 +605,7 @@ export async function getUserJourneyModel(
   );
 
   const selectedCandidates = nodeCandidates.slice(0, MAX_NODES - 1);
-  const dropoffNode = nodeCandidates.find(
-    (node) => node.type === "dropoff"
-  );
+  const dropoffNode = nodeCandidates.find((node) => node.type === "dropoff");
 
   if (
     dropoffNode &&
@@ -587,14 +614,16 @@ export async function getUserJourneyModel(
     const replacementIndex = selectedCandidates.findIndex(
       (node) => node.type !== "conversion"
     );
-    const index = replacementIndex >= 0 ? replacementIndex : selectedCandidates.length - 1;
+    const index =
+      replacementIndex >= 0 ? replacementIndex : selectedCandidates.length - 1;
 
     selectedCandidates[index] = dropoffNode;
   }
 
-  const selectedNodes = [nodes.get(ENTRY_NODE_ID), ...selectedCandidates].filter(
-    (node): node is NodeAggregate => Boolean(node)
-  );
+  const selectedNodes = [
+    nodes.get(ENTRY_NODE_ID),
+    ...selectedCandidates,
+  ].filter((node): node is NodeAggregate => Boolean(node));
   const selectedNodeIds = new Set(selectedNodes.map((node) => node.key));
   const candidateEdges = Array.from(edges.values()).filter(
     (edge) => selectedNodeIds.has(edge.from) && selectedNodeIds.has(edge.to)
@@ -608,13 +637,17 @@ export async function getUserJourneyModel(
     )
     .sort(
       (left, right) =>
-        right.visitors.size - left.visitors.size || left.id.localeCompare(right.id)
+        right.visitors.size - left.visitors.size ||
+        left.id.localeCompare(right.id)
     )
     .slice(0, MAX_EDGES);
   const depths = getNodeDepths(selectedNodes, selectedEdges);
   const selectedNodeData = selectedNodes
     .map((node) => buildNode(node, visitors.size, depths.get(node.key) ?? 1))
-    .sort((left, right) => left.depth - right.depth || right.visitors - left.visitors);
+    .sort(
+      (left, right) =>
+        left.depth - right.depth || right.visitors - left.visitors
+    );
   const nodeVisitorCounts = new Map(
     selectedNodes.map((node) => [node.key, node.visitors.size])
   );

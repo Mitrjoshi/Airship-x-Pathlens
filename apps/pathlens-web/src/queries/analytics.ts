@@ -53,6 +53,7 @@ export interface AnalyticsResponse {
 export interface AnalyticsParams {
   workspace_id: string
   project_id?: string
+  domain?: string
   range: AnalyticsRange
   device: AnalyticsDevice
 }

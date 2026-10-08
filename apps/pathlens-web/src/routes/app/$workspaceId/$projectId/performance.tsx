@@ -1,10 +1,10 @@
 import { useRelativeTime } from '@/hooks/use-relative-time'
+import { getProjectDomainsOptions } from '@/queries/domains'
 import {
   getPerformanceOptions,
   type PerformanceDevice,
   type PerformanceRange,
 } from '@/queries/performance'
-import { getProjectsOptions } from '@/queries/projects'
 import { formatDate, formatNumber } from '@/utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -16,7 +16,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card'
@@ -42,14 +41,10 @@ import {
 } from '@workspace/ui/components/select'
 import { Separator } from '@workspace/ui/components/separator'
 import { Skeleton } from '@workspace/ui/components/skeleton'
-import {
-  CalendarIcon,
-  LinkIcon,
-  RefreshCcwIcon,
-  TrendingUp,
-} from 'lucide-react'
-import { useState } from 'react'
+import { CalendarIcon, RefreshCcwIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { CartesianGrid, Line, LineChart, XAxis } from 'recharts'
+import { DomainSwitcher } from './-components/common/domain-switcher'
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/performance'
@@ -60,41 +55,98 @@ export const Route = createFileRoute(
 const summaryItems = [
   {
     key: 'avgTtfb',
-    label: 'Avg. TTFB',
+    label: 'Average TTFB',
+    description: 'Time until the first byte arrives from your server.',
+    target: 800,
+    advice:
+      'Improve server response time with caching, database tuning, or a CDN.',
   },
   {
     key: 'avgDomLoaded',
-    label: 'Avg. DOM Loaded',
+    label: 'Average DOM Ready',
+    description: 'Time until the initial document is parsed and ready.',
+    target: 1000,
+    advice:
+      'Defer non-critical JavaScript and reduce render-blocking resources.',
   },
   {
     key: 'avgLoad',
-    label: 'Avg. Load',
+    label: 'Average Page Load',
+    description:
+      'Time until the page and its dependent resources finish loading.',
+    target: 2500,
+    advice:
+      'Compress images, remove unused JavaScript, and lazy-load below-the-fold content.',
   },
   {
     key: 'avgDns',
-    label: 'Avg. DNS',
+    label: 'Average DNS',
+    description: 'Time spent resolving your domain name.',
+    target: 100,
+    advice:
+      'Use a fast DNS provider and reduce unnecessary third-party lookups.',
   },
   {
     key: 'avgTcp',
-    label: 'Avg. TCP',
+    label: 'Average TCP Connect',
+    description: 'Time required to establish a connection with your server.',
+    target: 100,
+    advice:
+      'Serve users from a nearby region and enable connection reuse with HTTP/2 or HTTP/3.',
   },
   {
     key: 'p75Ttfb',
     label: 'P75 TTFB',
+    description: 'TTFB experienced by 75% of your visitors.',
+    target: 800,
+    advice:
+      'Prioritize slow regions and backend routes with caching and edge delivery.',
   },
   {
     key: 'p75DomLoaded',
-    label: 'P75 DOM Loaded',
+    label: 'P75 DOM Ready',
+    description: 'DOM ready time experienced by 75% of your visitors.',
+    target: 1000,
+    advice:
+      'Reduce main-thread work and defer scripts that are not needed for the first view.',
   },
   {
     key: 'p75Load',
-    label: 'P75 Load',
+    label: 'P75 Page Load',
+    description: 'Page load time experienced by 75% of your visitors.',
+    target: 2500,
+    advice:
+      'Optimize the largest resources and prioritize content visible in the first viewport.',
   },
   {
     key: 'totalSamples',
     label: 'Total Samples',
+    description: 'Number of real page loads included in these measurements.',
+    target: null,
+    advice:
+      'Install the tracker on every page and allow more visits to build a representative sample.',
   },
 ] as const
+
+const getMetricStatus = (
+  value: number,
+  target: number | null,
+  totalSamples: number
+) => {
+  if (totalSamples === 0) {
+    return { label: 'No data', className: 'text-muted-foreground' }
+  }
+
+  if (target === null) {
+    return { label: 'Collecting data', className: 'text-primary' }
+  }
+
+  if (value <= target) {
+    return { label: 'Good', className: 'text-primary' }
+  }
+
+  return { label: 'Needs attention', className: 'text-destructive' }
+}
 
 const deviceLabels = {
   all: 'All devices',
@@ -112,6 +164,14 @@ const rangeLabels: Record<PerformanceRange, string> = {
 }
 
 const chartConfig = {
+  dns: {
+    label: 'DNS',
+    color: 'var(--chart-4)',
+  },
+  tcp: {
+    label: 'TCP',
+    color: 'var(--chart-5)',
+  },
   ttfb: {
     label: 'TTFB',
     color: 'var(--chart-1)',
@@ -129,8 +189,9 @@ const chartConfig = {
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
-  const [range, setRange] = useState<PerformanceRange>('90d')
+  const [range, setRange] = useState<PerformanceRange>('7d')
   const [device, setDevice] = useState<PerformanceDevice>('all')
+  const [domain, setDomain] = useState('')
 
   const {
     data: performanceData,
@@ -144,39 +205,36 @@ function RouteComponent() {
       project_id: projectId,
       range,
       device,
+      domain,
     })
   )
-  const { data: projectData, isLoading: projectLoading } = useQuery(
-    getProjectsOptions({
-      workspace_id: workspaceId,
-      project_id: projectId,
-    })
+
+  const { data: domainsData, isLoading: domainsLoading } = useQuery(
+    getProjectDomainsOptions(projectId)
   )
 
   const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
 
-  const projectDetails = projectData?.data[0]
   const performance = performanceData?.data
+  const domains = domainsData?.data
+
+  useEffect(() => {
+    if (domains) {
+      setDomain(domains[0].domain)
+    }
+  }, [domains])
 
   return (
     <div>
       <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
         <div className="flex items-center gap-4">
-          <Button
-            disabled={projectLoading}
-            render={
-              <a href={projectDetails?.domain as string} target="_blank" />
-            }
-            variant={'link'}
-            className={'text-foreground px-0'}
-          >
-            <LinkIcon className="mr-1" />
-            {projectLoading ? (
-              <Skeleton className="h-5 w-50" />
-            ) : (
-              projectDetails?.domain
-            )}
-          </Button>
+          <DomainSwitcher
+            loading={domainsLoading}
+            domain={domain}
+            setDomain={setDomain}
+            domains={domains!}
+            refetch={refetch}
+          />
 
           <Separator orientation="vertical" />
 
@@ -491,15 +549,30 @@ function RouteComponent() {
                     />
                     <Line
                       dot={false}
+                      type="monotone"
+                      dataKey="dns"
+                      stroke="var(--color-dns)"
+                    />
+                    <Line
+                      dot={false}
+                      type="monotone"
+                      dataKey="tcp"
+                      stroke="var(--color-tcp)"
+                    />
+                    <Line
+                      dot={false}
+                      type="monotone"
                       dataKey="ttfb"
                       stroke="var(--color-ttfb)"
                     />
                     <Line
+                      type="monotone"
                       dot={false}
                       dataKey="domLoaded"
                       stroke="var(--color-domLoaded)"
                     />
                     <Line
+                      type="monotone"
                       dot={false}
                       dataKey="load"
                       stroke="var(--color-load)"
@@ -513,26 +586,58 @@ function RouteComponent() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-5 gap-2">
-          {summaryItems.map((item) => (
-            <Card
-              className="bg-card/30 gap-2 rounded-none border-2 border-dashed p-4"
-              key={item.key}
-            >
-              <CardHeader className="p-0">
-                <CardDescription>{item.label}</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                {performanceLoading ? (
-                  <Skeleton className="h-5 w-20" />
-                ) : (
-                  <CardTitle>
-                    {formatNumber(performance?.summary?.[item.key] ?? 0)}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {summaryItems.map((item) => {
+            const value = performance?.summary?.[item.key] ?? 0
+            const totalSamples = performance?.summary?.totalSamples ?? 0
+            const status = getMetricStatus(value, item.target, totalSamples)
+
+            return (
+              <Card
+                className="bg-card/30 gap-4 rounded-none border-2 border-dashed p-4"
+                key={item.key}
+              >
+                <CardHeader className="gap-2 p-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardDescription>{item.label}</CardDescription>
+                    <Badge
+                      variant="outline"
+                      className={`shrink-0 ${status.className}`}
+                    >
+                      {status.label}
+                    </Badge>
+                  </div>
+                  <CardTitle className="text-2xl">
+                    {formatNumber(value)}
+                    {item.key !== 'totalSamples' && (
+                      <span className="text-muted-foreground ml-1 text-sm font-normal">
+                        ms
+                      </span>
+                    )}
                   </CardTitle>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardHeader>
+
+                <CardContent className="space-y-3 p-0">
+                  {performanceLoading ? (
+                    <Skeleton className="h-12 w-full" />
+                  ) : (
+                    <>
+                      <p className="text-muted-foreground text-sm">
+                        {item.description}
+                      </p>
+                      <p
+                        className={`text-sm ${status.label === 'Good' ? 'text-primary' : 'text-muted-foreground'}`}
+                      >
+                        {status.label === 'Good'
+                          ? 'Good. This metric is within the recommended range.'
+                          : item.advice}
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { events, visitorCampaignAttribution } from "../db/schema";
+import { events, projects, visitorCampaignAttribution } from "../db/schema";
 import type {
   EventsCategory,
   EventsDevice,
@@ -28,6 +28,7 @@ export interface EventsFilters {
   device: EventsDevice;
   path?: string;
   search?: string;
+  domain?: string;
   page: number;
   pageSize: number;
 }
@@ -36,6 +37,7 @@ export interface EventsChartFilters {
   workspaceId: string;
   projectId: string;
   range: EventsRange;
+  domain?: string;
 }
 
 interface EventRow extends Record<string, unknown> {
@@ -98,6 +100,18 @@ function toNumber(value: unknown): number {
   }
 
   return 0;
+}
+
+function normalizeFaviconUrl(value: unknown): string | null {
+  if (typeof value !== "string" || value.length === 0) return null;
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString().slice(0, 2048);
+  } catch {
+    return null;
+  }
 }
 
 function toIso(value: unknown): string {
@@ -381,6 +395,7 @@ export async function createEvents(
     string,
     typeof visitorCampaignAttribution.$inferInsert
   >();
+  const faviconUpdates = new Map<string, string>();
 
   const workspaceIncrements = new Map<
     string,
@@ -403,6 +418,11 @@ export async function createEvents(
       };
 
       projectCache.set(event.projectId, project);
+    }
+
+    const faviconUrl = normalizeFaviconUrl(event.faviconUrl);
+    if (faviconUrl && !faviconUpdates.has(project.projectId)) {
+      faviconUpdates.set(project.projectId, faviconUrl);
     }
 
     const occurredAt = new Date(event.timestamp);
@@ -502,6 +522,15 @@ export async function createEvents(
   await db.transaction(async (transaction) => {
     await transaction.insert(events).values(rows);
 
+    for (const [projectId, faviconUrl] of faviconUpdates) {
+      await transaction
+        .update(projects)
+        .set({ faviconUrl })
+        .where(
+          sql`${projects.id} = ${projectId} AND ${projects.faviconUrl} IS NULL`
+        );
+    }
+
     if (attributionRows.size > 0) {
       await transaction
         .insert(visitorCampaignAttribution)
@@ -554,6 +583,9 @@ export async function getEventsModel(
   const pathFilter = filters.path
     ? sql` AND COALESCE(NULLIF(events.path, ''), '/') = ${filters.path.trim()}`
     : sql``;
+  const domainFilter = filters.domain
+    ? sql` AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(events.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
+    : sql``;
   const eventWhere = sql`
     events.workspace_id = ${filters.workspaceId}
     AND events.project_id = ${filters.projectId}
@@ -561,6 +593,7 @@ export async function getEventsModel(
     ${categoryFilter}
     ${deviceFilter}
     ${pathFilter}
+    ${domainFilter}
     ${searchFilter}
   `;
   const offset = (filters.page - 1) * filters.pageSize;
@@ -687,6 +720,9 @@ export async function getEventsChartModel(
       : sql`date_trunc('day', NOW() - make_interval(days => ${rangeDays - 1}))`;
   const chartInterval =
     filters.range === "24h" ? sql`interval '1 hour'` : sql`interval '1 day'`;
+  const domainFilter = filters.domain
+    ? sql` AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(events.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
+    : sql``;
 
   const chartResult = await db.execute<ChartRow>(sql`
     WITH buckets AS (
@@ -713,7 +749,8 @@ export async function getEventsChartModel(
       FROM events
       WHERE events.workspace_id = ${filters.workspaceId}
         AND events.project_id = ${filters.projectId}
-        AND events.occurred_at >= NOW() - make_interval(days => ${rangeDays})
+         AND events.occurred_at >= NOW() - make_interval(days => ${rangeDays})
+         ${domainFilter}
       GROUP BY 1
     )
     SELECT

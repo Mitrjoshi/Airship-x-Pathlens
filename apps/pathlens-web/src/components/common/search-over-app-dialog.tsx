@@ -16,7 +16,6 @@ import { Input } from '@workspace/ui/components/input'
 import { cn } from '@workspace/ui/lib/utils'
 import { SearchIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { navigationIcons } from '@/config/navigation-icons'
 import {
   useDeferredValue,
   useEffect,
@@ -24,6 +23,14 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
+
+import { navigationIcons } from '@/config/navigation-icons'
+
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
+
+type AppPagePath = '/app/account'
 
 type WorkspacePagePath =
   | '/app/$workspaceId'
@@ -34,24 +41,24 @@ type WorkspacePagePath =
   | '/app/$workspaceId/settings'
 
 type ProjectPagePath =
-  | '/app/$workspace/projects/$project/dashboard'
-  | '/app/$workspace/projects/$project/analytics'
-  | '/app/$workspace/projects/$project/heatmaps'
-  | '/app/$workspace/projects/$project/visitors'
-  | '/app/$workspace/projects/$project/performance'
-  | '/app/$workspace/projects/$project/user-journey'
-  | '/app/$workspace/projects/$project/session-replay'
-  | '/app/$workspace/projects/$project/events'
-  | '/app/$workspace/projects/$project/errors'
-  | '/app/$workspace/projects/$project/campaigns'
-  | '/app/$workspace/projects/$project/funnels'
-  | '/app/$workspace/projects/$project/goals'
-  | '/app/$workspace/projects/$project/ai-insights'
-  | '/app/$workspace/projects/$project/reports'
-  | '/app/$workspace/projects/$project/keys'
-  | '/app/$workspace/projects/$project/settings'
-
-type AppPagePath = '/app/account'
+  | '/app/$workspaceId/$projectId'
+  | '/app/$workspaceId/$projectId/user-journey'
+  | '/app/$workspaceId/$projectId/goals'
+  | '/app/$workspaceId/$projectId/events'
+  | '/app/$workspaceId/$projectId/campaigns'
+  | '/app/$workspaceId/$projectId/session-replay'
+  | '/app/$workspaceId/$projectId/heatmaps'
+  | '/app/$workspaceId/$projectId/visitors'
+  | '/app/$workspaceId/$projectId/errors'
+  | '/app/$workspaceId/$projectId/performance'
+  | '/app/$workspaceId/$projectId/seo'
+  | '/app/$workspaceId/$projectId/reports'
+  | '/app/$workspaceId/$projectId/ai-insights'
+  | '/app/$workspaceId/$projectId/usage'
+  | '/app/$workspaceId/$projectId/audit-logs'
+  | '/app/$workspaceId/$projectId/domains'
+  | '/app/$workspaceId/$projectId/api-keys'
+  | '/app/$workspaceId/$projectId/settings'
 
 interface PageDefinition<TPath extends string> {
   id: string
@@ -75,16 +82,24 @@ interface SearchResult {
   onSelect: () => void
 }
 
+/* -------------------------------------------------------------------------- */
+/* App pages                                                                  */
+/* -------------------------------------------------------------------------- */
+
 const appPageDefinitions: PageDefinition<AppPagePath>[] = [
   {
     id: 'account',
     title: 'Account',
     description: 'Manage your profile and account preferences',
-    keywords: 'profile preferences security password',
+    keywords: 'account profile preferences security password',
     icon: navigationIcons.settings,
     to: '/app/account',
   },
 ]
+
+/* -------------------------------------------------------------------------- */
+/* Workspace pages                                                            */
+/* -------------------------------------------------------------------------- */
 
 const workspacePageDefinitions: PageDefinition<WorkspacePagePath>[] = [
   {
@@ -114,7 +129,7 @@ const workspacePageDefinitions: PageDefinition<WorkspacePagePath>[] = [
   {
     id: 'workspace-usage',
     title: 'Usage',
-    description: 'Review workspace usage',
+    description: 'Review workspace usage and limits',
     keywords: 'usage limits consumption workspace',
     icon: navigationIcons.usage,
     to: '/app/$workspaceId/usage',
@@ -123,7 +138,7 @@ const workspacePageDefinitions: PageDefinition<WorkspacePagePath>[] = [
     id: 'workspace-audit-logs',
     title: 'Audit Logs',
     description: 'Review workspace activity and audit logs',
-    keywords: 'audit logs activity history workspace',
+    keywords: 'audit logs activity history workspace security',
     icon: navigationIcons.audit,
     to: '/app/$workspaceId/audit-logs',
   },
@@ -137,23 +152,81 @@ const workspacePageDefinitions: PageDefinition<WorkspacePagePath>[] = [
   },
 ]
 
+/* -------------------------------------------------------------------------- */
+/* Project pages                                                              */
+/* -------------------------------------------------------------------------- */
+
 const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
+  /* ------------------------------ Overview ------------------------------ */
+
   {
     id: 'project-dashboard',
     title: 'Dashboard',
     description: 'See the most important project signals',
-    keywords: 'overview metrics traffic visitors',
+    keywords: 'overview dashboard metrics traffic visitors analytics',
     icon: navigationIcons.dashboard,
-    to: '/app/$workspace/projects/$project/dashboard',
+    to: '/app/$workspaceId/$projectId',
     permissions: ['analytics.dashboard.view'],
   },
+
+  /* ------------------------------ Analytics ----------------------------- */
+
   {
-    id: 'project-analytics',
-    title: 'Analytics',
-    description: 'Explore project traffic and trends',
-    keywords: 'charts traffic trends visitors sessions',
-    icon: navigationIcons.analytics,
-    to: '/app/$workspace/projects/$project/analytics',
+    id: 'project-user-journey',
+    title: 'User Journey',
+    description: 'Explore the paths visitors take through your site',
+    keywords: 'path analysis journey flow paths navigation behavior visitors',
+    icon: navigationIcons.userJourney,
+    to: '/app/$workspaceId/$projectId/user-journey',
+    permissions: ['analytics.analytics.view'],
+  },
+  {
+    id: 'project-goals',
+    title: 'Goals',
+    description: 'Track important conversion goals',
+    keywords: 'conversion targets goals objectives conversions',
+    icon: navigationIcons.goals,
+    to: '/app/$workspaceId/$projectId/goals',
+    permissions: ['analytics.goals.view'],
+  },
+  {
+    id: 'project-events',
+    title: 'Events',
+    description: 'Monitor important visitor actions',
+    keywords: 'activity clicks forms actions events tracking',
+    icon: navigationIcons.events,
+    to: '/app/$workspaceId/$projectId/events',
+    permissions: ['analytics.events.view'],
+  },
+  {
+    id: 'project-campaigns',
+    title: 'Campaigns',
+    description: 'Track campaign traffic and attribution',
+    keywords:
+      'utm source medium campaign attribution visitors conversion marketing',
+    icon: navigationIcons.campaigns,
+    to: '/app/$workspaceId/$projectId/campaigns',
+    permissions: ['analytics.goals.view'],
+  },
+
+  /* ------------------------------ Behavior ------------------------------ */
+
+  {
+    id: 'project-session-replay',
+    title: 'Session Replay',
+    description: 'Watch recordings of visitor sessions',
+    keywords: 'recordings behavior playback sessions replay',
+    icon: navigationIcons.sessionReplay,
+    to: '/app/$workspaceId/$projectId/session-replay',
+    permissions: ['analytics.session_replay.view'],
+  },
+  {
+    id: 'project-heatmaps',
+    title: 'Heatmaps',
+    description: 'See where visitors click and how far they scroll',
+    keywords: 'clicks scroll behavior page maps attention heatmap',
+    icon: navigationIcons.heatmaps,
+    to: '/app/$workspaceId/$projectId/heatmaps',
     permissions: ['analytics.analytics.view'],
   },
   {
@@ -162,53 +235,8 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     description: 'Inspect visitors and their activity',
     keywords: 'users people audience live visitors',
     icon: navigationIcons.visitors,
-    to: '/app/$workspace/projects/$project/visitors',
+    to: '/app/$workspaceId/$projectId/visitors',
     permissions: ['analytics.visitors.view'],
-  },
-  {
-    id: 'project-heatmaps',
-    title: 'Heatmaps',
-    description: 'See where visitors click and how far they scroll',
-    keywords: 'clicks scroll behavior page maps attention',
-    icon: navigationIcons.heatmaps,
-    to: '/app/$workspace/projects/$project/heatmaps',
-    permissions: ['analytics.analytics.view'],
-  },
-  {
-    id: 'project-performance',
-    title: 'Performance',
-    description: 'Review page and loading performance',
-    keywords: 'speed timing web vitals load',
-    icon: navigationIcons.performance,
-    to: '/app/$workspace/projects/$project/performance',
-    permissions: ['analytics.performance.view'],
-  },
-  {
-    id: 'project-user-journey',
-    title: 'User Journey',
-    description: 'Explore the paths visitors take through your site',
-    keywords: 'path analysis journey flow paths navigation behavior',
-    icon: navigationIcons.userJourney,
-    to: '/app/$workspace/projects/$project/user-journey',
-    permissions: ['analytics.analytics.view'],
-  },
-  {
-    id: 'project-session-replay',
-    title: 'Session Replay',
-    description: 'Watch recordings of visitor sessions',
-    keywords: 'recordings behavior playback sessions',
-    icon: navigationIcons.sessionReplay,
-    to: '/app/$workspace/projects/$project/session-replay',
-    permissions: ['analytics.session_replay.view'],
-  },
-  {
-    id: 'project-events',
-    title: 'Events',
-    description: 'Monitor important visitor actions',
-    keywords: 'activity clicks forms actions events',
-    icon: navigationIcons.events,
-    to: '/app/$workspace/projects/$project/events',
-    permissions: ['analytics.events.view'],
   },
   {
     id: 'project-errors',
@@ -216,74 +244,109 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     description: 'Monitor JavaScript errors and rejected promises',
     keywords: 'errors exceptions bugs stack traces crashes monitoring',
     icon: navigationIcons.errors,
-    to: '/app/$workspace/projects/$project/errors',
+    to: '/app/$workspaceId/$projectId/errors',
     permissions: ['analytics.analytics.view'],
   },
+
+  /* ---------------------------- Performance ----------------------------- */
+
   {
-    id: 'project-campaigns',
-    title: 'Campaigns',
-    description: 'Track UTM campaigns from visitors to revenue',
+    id: 'project-performance',
+    title: 'Performance',
+    description: 'Review page speed and loading performance',
+    keywords: 'speed timing web vitals load performance lcp cls inp ttfb',
+    icon: navigationIcons.performance,
+    to: '/app/$workspaceId/$projectId/performance',
+    permissions: ['analytics.performance.view'],
+  },
+  {
+    id: 'project-seo',
+    title: 'SEO',
+    description: 'Review your website search engine optimization',
     keywords:
-      'utm source medium campaign attribution visitors conversion revenue',
-    icon: navigationIcons.campaigns,
-    to: '/app/$workspace/projects/$project/campaigns',
-    permissions: ['analytics.goals.view'],
+      'seo search engine optimization google rankings metadata sitemap indexing pages',
+    icon: navigationIcons.seo,
+    to: '/app/$workspaceId/$projectId/seo',
+    permissions: ['analytics.seo.view'],
   },
+
+  /* ------------------------------- Insights ----------------------------- */
+
   {
-    id: 'project-funnels',
-    title: 'Funnels',
-    description: 'Analyze conversion journeys',
-    keywords: 'conversion journeys steps funnels',
-    icon: navigationIcons.funnels,
-    to: '/app/$workspace/projects/$project/funnels',
-    permissions: ['analytics.funnels.view'],
-  },
-  {
-    id: 'project-goals',
-    title: 'Goals',
-    description: 'Track important conversion goals',
-    keywords: 'conversion targets goals',
-    icon: navigationIcons.goals,
-    to: '/app/$workspace/projects/$project/goals',
-    permissions: ['analytics.goals.view'],
+    id: 'project-reports',
+    title: 'Reports',
+    description: 'Review generated project reports',
+    keywords: 'analytics exports reporting reports data insights',
+    icon: navigationIcons.reports,
+    to: '/app/$workspaceId/$projectId/reports',
+    permissions: ['analytics.reports.view'],
   },
   {
     id: 'project-ai-insights',
     title: 'AI Insights',
     description: 'Review generated observations and opportunities',
-    keywords: 'artificial intelligence recommendations insights',
+    keywords:
+      'artificial intelligence recommendations insights ai analysis opportunities',
     icon: navigationIcons.aiInsights,
-    to: '/app/$workspace/projects/$project/ai-insights',
+    to: '/app/$workspaceId/$projectId/ai-insights',
     permissions: ['analytics.ai_insights.view'],
   },
+
+  /* ------------------------------ Workspace ----------------------------- */
+
   {
-    id: 'project-reports',
-    title: 'Reports',
-    description: 'Review generated project reports',
-    keywords: 'analytics exports reporting reports',
-    icon: navigationIcons.reports,
-    to: '/app/$workspace/projects/$project/reports',
-    permissions: ['analytics.reports.view'],
+    id: 'project-usage',
+    title: 'Usage',
+    description: 'Review project usage and resource consumption',
+    keywords: 'usage limits consumption resources tracking events',
+    icon: navigationIcons.usage,
+    to: '/app/$workspaceId/$projectId/usage',
+    permissions: ['project.usage.view'],
+  },
+  {
+    id: 'project-audit-logs',
+    title: 'Audit Logs',
+    description: 'Review project activity and audit logs',
+    keywords: 'audit logs activity history security events',
+    icon: navigationIcons.audit,
+    to: '/app/$workspaceId/$projectId/audit-logs',
+    permissions: ['project.audit_logs.view'],
+  },
+
+  /* ---------------------------- Configuration --------------------------- */
+
+  {
+    id: 'project-domains',
+    title: 'Domains',
+    description: 'Manage domains connected to your project',
+    keywords: 'domains website hostname urls allowed domains configuration',
+    icon: navigationIcons.domain,
+    to: '/app/$workspaceId/$projectId/domains',
+    permissions: ['project.domains.view'],
   },
   {
     id: 'project-api-keys',
     title: 'API Keys',
-    description: 'Manage project tracking keys',
-    keywords: 'tracker integration credentials keys',
+    description: 'Manage project API and tracking keys',
+    keywords: 'api keys tracker integration credentials tokens',
     icon: navigationIcons.apiKeys,
-    to: '/app/$workspace/projects/$project/keys',
+    to: '/app/$workspaceId/$projectId/api-keys',
     permissions: ['project.api_keys.view'],
   },
   {
     id: 'project-settings',
-    title: 'Project settings',
+    title: 'Settings',
     description: 'Manage project details and configuration',
-    keywords: 'project configuration domain settings',
+    keywords: 'project configuration general settings',
     icon: navigationIcons.settings,
-    to: '/app/$workspace/projects/$project/settings',
+    to: '/app/$workspaceId/$projectId/settings',
     permissions: ['project.settings.view'],
   },
 ]
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
 
 function hasPermission(
   workspace: T_Workspace | undefined,
@@ -307,6 +370,10 @@ function matchesSearch(result: SearchResult, query: string): boolean {
     .includes(query)
 }
 
+/* -------------------------------------------------------------------------- */
+/* Component                                                                  */
+/* -------------------------------------------------------------------------- */
+
 export const SearchOverAppDialog = ({
   workspaceId,
   projectId,
@@ -324,6 +391,10 @@ export const SearchOverAppDialog = ({
   const resultRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   const deferredSearch = useDeferredValue(search)
+
+  /* ------------------------------------------------------------------------ */
+  /* Queries                                                                  */
+  /* ------------------------------------------------------------------------ */
 
   const workspacesQuery = useQuery({
     ...getWorkspacesOptions(),
@@ -347,6 +418,10 @@ export const SearchOverAppDialog = ({
     ? workspaces.find((workspace) => workspace.id === workspaceId)
     : undefined
 
+  /* ------------------------------------------------------------------------ */
+  /* Keyboard shortcut                                                        */
+  /* ------------------------------------------------------------------------ */
+
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -362,6 +437,10 @@ export const SearchOverAppDialog = ({
     }
   }, [])
 
+  /* ------------------------------------------------------------------------ */
+  /* Focus                                                                    */
+  /* ------------------------------------------------------------------------ */
+
   useEffect(() => {
     if (!open) return
 
@@ -372,11 +451,19 @@ export const SearchOverAppDialog = ({
     return () => window.cancelAnimationFrame(frame)
   }, [open])
 
+  /* ------------------------------------------------------------------------ */
+  /* Dialog                                                                   */
+  /* ------------------------------------------------------------------------ */
+
   const closeDialog = () => {
     setOpen(false)
     setSearch('')
     setActiveIndex(0)
   }
+
+  /* ------------------------------------------------------------------------ */
+  /* Navigation                                                                */
+  /* ------------------------------------------------------------------------ */
 
   const navigateToAppPage = (page: PageDefinition<AppPagePath>) => {
     closeDialog()
@@ -394,7 +481,7 @@ export const SearchOverAppDialog = ({
     navigate({
       to: page.to,
       params: {
-        workspace: workspaceId,
+        workspaceId,
       },
     })
   }
@@ -407,11 +494,15 @@ export const SearchOverAppDialog = ({
     navigate({
       to: page.to,
       params: {
-        workspace: workspaceId,
-        project: projectId,
+        workspaceId,
+        projectId,
       },
     })
   }
+
+  /* ------------------------------------------------------------------------ */
+  /* Page results                                                              */
+  /* ------------------------------------------------------------------------ */
 
   const appPageResults: SearchResult[] = appPageDefinitions.map((page) => ({
     ...page,
@@ -446,6 +537,10 @@ export const SearchOverAppDialog = ({
     ...projectPageResults,
   ]
 
+  /* ------------------------------------------------------------------------ */
+  /* Workspace results                                                         */
+  /* ------------------------------------------------------------------------ */
+
   const workspaceResults: SearchResult[] = workspaces.map((workspace) => ({
     id: `workspace-${workspace.id}`,
     title: workspace.name,
@@ -460,13 +555,17 @@ export const SearchOverAppDialog = ({
       closeDialog()
 
       navigate({
-        to: '/app/$workspace',
+        to: '/app/$workspaceId',
         params: {
-          workspace: workspace.id,
+          workspaceId: workspace.id,
         },
       })
     },
   }))
+
+  /* ------------------------------------------------------------------------ */
+  /* Project results                                                           */
+  /* ------------------------------------------------------------------------ */
 
   const projectResults: SearchResult[] = projects.flatMap((project) => {
     const workspace = workspaces.find((item) => item.id === project.workspaceId)
@@ -490,16 +589,20 @@ export const SearchOverAppDialog = ({
           closeDialog()
 
           navigate({
-            to: '/app/$workspace/projects/$project/dashboard',
+            to: '/app/$workspaceId/$projectId',
             params: {
-              workspace: project.workspaceId,
-              project: project.id,
+              workspaceId: project.workspaceId,
+              projectId: project.id,
             },
           })
         },
       },
     ]
   })
+
+  /* ------------------------------------------------------------------------ */
+  /* Filtering                                                                 */
+  /* ------------------------------------------------------------------------ */
 
   const normalizedSearch = deferredSearch.trim().toLowerCase()
 
@@ -523,10 +626,18 @@ export const SearchOverAppDialog = ({
 
   const activeResult = filteredResults[activeIndex]
 
+  /* ------------------------------------------------------------------------ */
+  /* Loading                                                                   */
+  /* ------------------------------------------------------------------------ */
+
   const isEntityLoading =
     open &&
     (workspacesQuery.isPending ||
       projectQueries.some((query) => query.isPending))
+
+  /* ------------------------------------------------------------------------ */
+  /* Keyboard navigation                                                      */
+  /* ------------------------------------------------------------------------ */
 
   const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (!filteredResults.length) return
@@ -551,8 +662,11 @@ export const SearchOverAppDialog = ({
     }
   }
 
+  /* ------------------------------------------------------------------------ */
+  /* Result synchronization                                                    */
+  /* ------------------------------------------------------------------------ */
+
   useEffect(() => {
-    // Reset the active item if the available results change.
     if (activeIndex >= filteredResults.length) {
       setActiveIndex(0)
     }
@@ -563,6 +677,10 @@ export const SearchOverAppDialog = ({
       block: 'nearest',
     })
   }, [activeIndex])
+
+  /* ------------------------------------------------------------------------ */
+  /* Render                                                                    */
+  /* ------------------------------------------------------------------------ */
 
   return (
     <Dialog
@@ -591,13 +709,14 @@ export const SearchOverAppDialog = ({
         className="flex max-h-[calc(100vh-12rem)] max-w-xl! flex-col gap-0 overflow-hidden p-0"
       >
         <DialogHeader className="sr-only">
-          <DialogTitle>Search Pathlens</DialogTitle>
+          <DialogTitle>Search PathLens</DialogTitle>
 
           <DialogDescription>
             Search pages, workspaces, and projects.
           </DialogDescription>
         </DialogHeader>
 
+        {/* Search input */}
         <div className="border-b p-3">
           <div className="relative">
             <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -623,6 +742,7 @@ export const SearchOverAppDialog = ({
           </div>
         </div>
 
+        {/* Results */}
         <div
           id="search-over-app-results"
           role="listbox"
@@ -691,6 +811,7 @@ export const SearchOverAppDialog = ({
           )}
         </div>
 
+        {/* Footer */}
         <div className="text-muted-foreground flex items-center justify-between border-t px-3 py-2 text-xs">
           <span>Use arrow keys to navigate</span>
           <span>Enter to open · Esc to close</span>

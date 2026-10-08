@@ -13,6 +13,7 @@ export interface SessionReplayFilters {
   search?: string;
   page: number;
   pageSize: number;
+  domain?: string;
 }
 
 export interface SessionReplayStats {
@@ -54,6 +55,7 @@ export interface SessionReplayDetailFilters {
   workspaceId: string;
   projectId: string;
   sessionId: string;
+  domain?: string;
 }
 
 export interface SessionReplayEvent {
@@ -294,11 +296,15 @@ export async function getSessionReplayModel(
     filters.device !== "all"
       ? sql` AND LOWER(device) = ${filters.device}`
       : sql``;
+  const domainFilter = filters.domain
+    ? sql` AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
+    : sql``;
   const eventWhere = sql`
     workspace_id = ${filters.workspaceId}
     AND project_id = ${filters.projectId}
     AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
     ${deviceFilter}
+    ${domainFilter}
   `;
   const sessionCtes = sql`
     WITH filtered_events AS (
@@ -522,6 +528,7 @@ export async function getSessionReplayDetailModel(
       WHERE workspace_id = ${filters.workspaceId}
         AND project_id = ${filters.projectId}
         AND session_id = ${filters.sessionId}
+        ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
       GROUP BY session_id, visitor_id
       LIMIT 1;
     `),
@@ -550,6 +557,7 @@ export async function getSessionReplayDetailModel(
       WHERE workspace_id = ${filters.workspaceId}
         AND project_id = ${filters.projectId}
         AND session_id = ${filters.sessionId}
+        ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
     )
     SELECT
       event_id,

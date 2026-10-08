@@ -22,6 +22,7 @@ export interface ErrorsFilters {
   search?: string;
   page: number;
   pageSize: number;
+  domain?: string;
 }
 
 interface ErrorRow extends Record<string, unknown> {
@@ -250,6 +251,9 @@ export async function getErrorsModel(
   const urlFilter = urlValue
     ? sql` AND LOWER(COALESCE(events.url, events.path, '')) LIKE ${`%${urlValue}%`}`
     : sql``;
+  const domainFilter = filters.domain
+    ? sql` AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(events.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
+    : sql``;
   const baseFilter = sql`
     events.workspace_id = ${filters.workspaceId}
     AND events.project_id = ${filters.projectId}
@@ -258,6 +262,7 @@ export async function getErrorsModel(
     ${deviceFilter}
     ${browserFilter}
     ${urlFilter}
+    ${domainFilter}
   `;
   const searchValue = filters.search?.trim().toLowerCase();
   const searchFilter = searchValue

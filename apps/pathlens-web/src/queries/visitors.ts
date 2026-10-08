@@ -8,6 +8,7 @@ export interface Visitor {
   id: string
   location: string
   countryCode: string
+  city: string
   device: 'Desktop' | 'Mobile' | 'Tablet' | 'Unknown'
   browser: string
   sessions: number
@@ -41,6 +42,7 @@ export interface VisitorsResponse {
 export interface VisitorsParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: VisitorsRange
   status: VisitorStatus
   search?: string
@@ -70,6 +72,7 @@ export interface VisitorLocationsResponse {
 export interface VisitorLocationsParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: VisitorsRange
   status: VisitorStatus
 }

@@ -20,6 +20,7 @@ import { Route as openIndexRouteImport } from './routes/(open)/index'
 import { Route as openPricingRouteImport } from './routes/(open)/pricing'
 import { Route as AppWorkspaceIdRouteRouteImport } from './routes/app/$workspaceId/route'
 import { Route as AppentryRouteRouteImport } from './routes/app/(entry)/route'
+import { Route as AppCheckoutRouteImport } from './routes/app/checkout'
 import { Route as openProductsIndexRouteImport } from './routes/(open)/products/index'
 import { Route as openSolutionsIndexRouteImport } from './routes/(open)/solutions/index'
 import { Route as AppWorkspaceIdIndexRouteImport } from './routes/app/$workspaceId/index'
@@ -31,7 +32,6 @@ import { Route as AppWorkspaceIdTeamRouteImport } from './routes/app/$workspaceI
 import { Route as AppWorkspaceIdUsageRouteImport } from './routes/app/$workspaceId/usage'
 import { Route as AppentryIndexRouteImport } from './routes/app/(entry)/index'
 import { Route as AppentryBillingRouteImport } from './routes/app/(entry)/billing'
-import { Route as AppentryCheckoutRouteImport } from './routes/app/(entry)/checkout'
 import { Route as AppentryProfileRouteImport } from './routes/app/(entry)/profile'
 import { Route as AppentrySettingsRouteImport } from './routes/app/(entry)/settings'
 import { Route as openProductsProductIdIndexRouteImport } from './routes/(open)/products/$productId/index'
@@ -47,6 +47,7 @@ import { Route as AppWorkspaceIdProjectIdEventsRouteImport } from './routes/app/
 import { Route as AppWorkspaceIdProjectIdHeatmapsRouteImport } from './routes/app/$workspaceId/$projectId/heatmaps'
 import { Route as AppWorkspaceIdProjectIdPerformanceRouteImport } from './routes/app/$workspaceId/$projectId/performance'
 import { Route as AppWorkspaceIdProjectIdReportsRouteImport } from './routes/app/$workspaceId/$projectId/reports'
+import { Route as AppWorkspaceIdProjectIdSeoRouteImport } from './routes/app/$workspaceId/$projectId/seo'
 import { Route as AppWorkspaceIdProjectIdSessionReplayRouteImport } from './routes/app/$workspaceId/$projectId/session-replay'
 import { Route as AppWorkspaceIdProjectIdSettingsRouteImport } from './routes/app/$workspaceId/$projectId/settings'
 import { Route as AppWorkspaceIdProjectIdSetupRouteImport } from './routes/app/$workspaceId/$projectId/setup'
@@ -110,6 +111,11 @@ const AppentryRouteRoute = AppentryRouteRouteImport.update({
   id: '/(entry)',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppCheckoutRoute = AppCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const openProductsIndexRoute = openProductsIndexRouteImport.update({
   id: '/products/',
   path: '/products/',
@@ -163,11 +169,6 @@ const AppentryIndexRoute = AppentryIndexRouteImport.update({
 const AppentryBillingRoute = AppentryBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
-  getParentRoute: () => AppentryRouteRoute,
-} as any)
-const AppentryCheckoutRoute = AppentryCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
   getParentRoute: () => AppentryRouteRoute,
 } as any)
 const AppentryProfileRoute = AppentryProfileRouteImport.update({
@@ -258,6 +259,12 @@ const AppWorkspaceIdProjectIdReportsRoute =
     path: '/$projectId/reports',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
+const AppWorkspaceIdProjectIdSeoRoute =
+  AppWorkspaceIdProjectIdSeoRouteImport.update({
+    id: '/$projectId/seo',
+    path: '/$projectId/seo',
+    getParentRoute: () => AppWorkspaceIdRouteRoute,
+  } as any)
 const AppWorkspaceIdProjectIdSessionReplayRoute =
   AppWorkspaceIdProjectIdSessionReplayRouteImport.update({
     id: '/$projectId/session-replay',
@@ -327,6 +334,7 @@ export interface FileRoutesByFullPath {
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/pricing': typeof openPricingRoute
+  '/app/checkout': typeof AppCheckoutRoute
   '/': typeof openIndexRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
@@ -335,7 +343,6 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
   '/app/billing': typeof AppentryBillingRoute
-  '/app/checkout': typeof AppentryCheckoutRoute
   '/app/profile': typeof AppentryProfileRoute
   '/app/settings': typeof AppentrySettingsRoute
   '/products/': typeof openProductsIndexRoute
@@ -352,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
+  '/app/$workspaceId/$projectId/seo': typeof AppWorkspaceIdProjectIdSeoRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
   '/app/$workspaceId/$projectId/setup': typeof AppWorkspaceIdProjectIdSetupRoute
@@ -373,6 +381,7 @@ export interface FileRoutesByTo {
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/pricing': typeof openPricingRoute
+  '/app/checkout': typeof AppCheckoutRoute
   '/': typeof openIndexRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
@@ -381,7 +390,6 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
   '/app/billing': typeof AppentryBillingRoute
-  '/app/checkout': typeof AppentryCheckoutRoute
   '/app/profile': typeof AppentryProfileRoute
   '/app/settings': typeof AppentrySettingsRoute
   '/products': typeof openProductsIndexRoute
@@ -397,6 +405,7 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
+  '/app/$workspaceId/$projectId/seo': typeof AppWorkspaceIdProjectIdSeoRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
   '/app/$workspaceId/$projectId/setup': typeof AppWorkspaceIdProjectIdSetupRoute
@@ -423,6 +432,7 @@ export interface FileRoutesById {
   '/(auth)/password-reset': typeof authPasswordResetRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(open)/pricing': typeof openPricingRoute
+  '/app/checkout': typeof AppCheckoutRoute
   '/(open)/': typeof openIndexRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
@@ -431,7 +441,6 @@ export interface FileRoutesById {
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
   '/app/(entry)/billing': typeof AppentryBillingRoute
-  '/app/(entry)/checkout': typeof AppentryCheckoutRoute
   '/app/(entry)/profile': typeof AppentryProfileRoute
   '/app/(entry)/settings': typeof AppentrySettingsRoute
   '/(open)/products/': typeof openProductsIndexRoute
@@ -448,6 +457,7 @@ export interface FileRoutesById {
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
+  '/app/$workspaceId/$projectId/seo': typeof AppWorkspaceIdProjectIdSeoRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
   '/app/$workspaceId/$projectId/setup': typeof AppWorkspaceIdProjectIdSetupRoute
@@ -472,6 +482,7 @@ export interface FileRouteTypes {
     | '/password-reset'
     | '/sign-up'
     | '/pricing'
+    | '/app/checkout'
     | '/'
     | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
@@ -480,7 +491,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
     | '/app/billing'
-    | '/app/checkout'
     | '/app/profile'
     | '/app/settings'
     | '/products/'
@@ -497,6 +507,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
+    | '/app/$workspaceId/$projectId/seo'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
     | '/app/$workspaceId/$projectId/setup'
@@ -518,6 +529,7 @@ export interface FileRouteTypes {
     | '/password-reset'
     | '/sign-up'
     | '/pricing'
+    | '/app/checkout'
     | '/'
     | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
@@ -526,7 +538,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
     | '/app/billing'
-    | '/app/checkout'
     | '/app/profile'
     | '/app/settings'
     | '/products'
@@ -542,6 +553,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
+    | '/app/$workspaceId/$projectId/seo'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
     | '/app/$workspaceId/$projectId/setup'
@@ -567,6 +579,7 @@ export interface FileRouteTypes {
     | '/(auth)/password-reset'
     | '/(auth)/sign-up'
     | '/(open)/pricing'
+    | '/app/checkout'
     | '/(open)/'
     | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
@@ -575,7 +588,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
     | '/app/(entry)/billing'
-    | '/app/(entry)/checkout'
     | '/app/(entry)/profile'
     | '/app/(entry)/settings'
     | '/(open)/products/'
@@ -592,6 +604,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
+    | '/app/$workspaceId/$projectId/seo'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
     | '/app/$workspaceId/$projectId/setup'
@@ -692,6 +705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppentryRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/checkout': {
+      id: '/app/checkout'
+      path: '/checkout'
+      fullPath: '/app/checkout'
+      preLoaderRoute: typeof AppCheckoutRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/(open)/products/': {
       id: '/(open)/products/'
       path: '/products'
@@ -767,13 +787,6 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/app/billing'
       preLoaderRoute: typeof AppentryBillingRouteImport
-      parentRoute: typeof AppentryRouteRoute
-    }
-    '/app/(entry)/checkout': {
-      id: '/app/(entry)/checkout'
-      path: '/checkout'
-      fullPath: '/app/checkout'
-      preLoaderRoute: typeof AppentryCheckoutRouteImport
       parentRoute: typeof AppentryRouteRoute
     }
     '/app/(entry)/profile': {
@@ -879,6 +892,13 @@ declare module '@tanstack/react-router' {
       path: '/$projectId/reports'
       fullPath: '/app/$workspaceId/$projectId/reports'
       preLoaderRoute: typeof AppWorkspaceIdProjectIdReportsRouteImport
+      parentRoute: typeof AppWorkspaceIdRouteRoute
+    }
+    '/app/$workspaceId/$projectId/seo': {
+      id: '/app/$workspaceId/$projectId/seo'
+      path: '/$projectId/seo'
+      fullPath: '/app/$workspaceId/$projectId/seo'
+      preLoaderRoute: typeof AppWorkspaceIdProjectIdSeoRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
     '/app/$workspaceId/$projectId/session-replay': {
@@ -1012,6 +1032,7 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdProjectIdHeatmapsRoute: typeof AppWorkspaceIdProjectIdHeatmapsRoute
   AppWorkspaceIdProjectIdPerformanceRoute: typeof AppWorkspaceIdProjectIdPerformanceRoute
   AppWorkspaceIdProjectIdReportsRoute: typeof AppWorkspaceIdProjectIdReportsRoute
+  AppWorkspaceIdProjectIdSeoRoute: typeof AppWorkspaceIdProjectIdSeoRoute
   AppWorkspaceIdProjectIdSessionReplayRoute: typeof AppWorkspaceIdProjectIdSessionReplayRoute
   AppWorkspaceIdProjectIdSettingsRoute: typeof AppWorkspaceIdProjectIdSettingsRoute
   AppWorkspaceIdProjectIdSetupRoute: typeof AppWorkspaceIdProjectIdSetupRoute
@@ -1045,6 +1066,7 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
   AppWorkspaceIdProjectIdPerformanceRoute:
     AppWorkspaceIdProjectIdPerformanceRoute,
   AppWorkspaceIdProjectIdReportsRoute: AppWorkspaceIdProjectIdReportsRoute,
+  AppWorkspaceIdProjectIdSeoRoute: AppWorkspaceIdProjectIdSeoRoute,
   AppWorkspaceIdProjectIdSessionReplayRoute:
     AppWorkspaceIdProjectIdSessionReplayRoute,
   AppWorkspaceIdProjectIdSettingsRoute: AppWorkspaceIdProjectIdSettingsRoute,
@@ -1068,7 +1090,6 @@ const AppWorkspaceIdRouteRouteWithChildren =
 
 interface AppentryRouteRouteChildren {
   AppentryBillingRoute: typeof AppentryBillingRoute
-  AppentryCheckoutRoute: typeof AppentryCheckoutRoute
   AppentryProfileRoute: typeof AppentryProfileRoute
   AppentrySettingsRoute: typeof AppentrySettingsRoute
   AppentryIndexRoute: typeof AppentryIndexRoute
@@ -1076,7 +1097,6 @@ interface AppentryRouteRouteChildren {
 
 const AppentryRouteRouteChildren: AppentryRouteRouteChildren = {
   AppentryBillingRoute: AppentryBillingRoute,
-  AppentryCheckoutRoute: AppentryCheckoutRoute,
   AppentryProfileRoute: AppentryProfileRoute,
   AppentrySettingsRoute: AppentrySettingsRoute,
   AppentryIndexRoute: AppentryIndexRoute,
@@ -1089,11 +1109,13 @@ const AppentryRouteRouteWithChildren = AppentryRouteRoute._addFileChildren(
 interface AppRouteRouteChildren {
   AppWorkspaceIdRouteRoute: typeof AppWorkspaceIdRouteRouteWithChildren
   AppentryRouteRoute: typeof AppentryRouteRouteWithChildren
+  AppCheckoutRoute: typeof AppCheckoutRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppWorkspaceIdRouteRoute: AppWorkspaceIdRouteRouteWithChildren,
   AppentryRouteRoute: AppentryRouteRouteWithChildren,
+  AppCheckoutRoute: AppCheckoutRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

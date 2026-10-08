@@ -72,6 +72,7 @@ export interface HeatmapsResponse {
 export interface HeatmapsParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: HeatmapsRange
   device?: HeatmapDevice
   page_path?: string

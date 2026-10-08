@@ -6,6 +6,7 @@ export type DashboardDevice = 'all' | 'desktop' | 'mobile' | 'tablet'
 
 type T_WeeklyChange = {
   value: number
+  total: number
   positive: boolean
 }
 
@@ -17,8 +18,7 @@ type T_Page = {
 
 type T_VisitorsChart = {
   day: string
-  visitors: number
-  sessions: number
+  value: number
 }
 
 type T_Difference = {
@@ -44,11 +44,11 @@ export type T_Dashboard = {
   visitorsChart: T_VisitorsChart[]
   eventsChart: {
     day: string
-    events: number
+    value: number
   }[]
   sessionChart: {
     day: string
-    sessions: number
+    value: number
   }[]
   trafficSources: {
     name: string
@@ -63,6 +63,7 @@ export type T_Dashboard = {
   countries: {
     name: string
     code: string
+    city: string
     visitors: number
   }[]
   topBrowsers: {
@@ -98,6 +99,7 @@ export interface UsersResponse {
 const getDashboard = async (params: {
   workspace_id: string
   project_id?: string
+  domain?: string
   range: DashboardRange
   device: DashboardDevice
 }): Promise<UsersResponse> => {
@@ -111,6 +113,7 @@ const getDashboard = async (params: {
 export const getDashboardOptions = (params: {
   workspace_id: string
   project_id?: string
+  domain?: string
   range: DashboardRange
   device: DashboardDevice
   refetchInterval?: number

@@ -89,6 +89,7 @@ export interface SessionReplayDetailResponse {
 export interface SessionReplayParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: SessionReplayRange
   device: SessionReplayDevice
   search?: string
@@ -100,6 +101,7 @@ export interface SessionReplayDetailParams {
   workspace_id: string
   project_id: string
   session_id: string
+  domain?: string
 }
 
 export interface SessionReplayChunkUpdate {
@@ -126,7 +128,6 @@ export const getSessionReplayOptions = (params: SessionReplayParams) =>
     queryKey: ['SESSION_REPLAY', params],
     queryFn: () => getSessionReplay(params),
     enabled: Boolean(params.workspace_id && params.project_id),
-    refetchInterval: 5_000,
   })
 
 const getSessionReplayDetail = async (
@@ -138,6 +139,7 @@ const getSessionReplayDetail = async (
       params: {
         workspace_id: params.workspace_id,
         project_id: params.project_id,
+        domain: params.domain,
       },
     }
   )

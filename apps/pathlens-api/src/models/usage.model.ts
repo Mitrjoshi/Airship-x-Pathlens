@@ -21,6 +21,12 @@ interface WorkspaceUsageRow extends Record<string, unknown> {
   heatmap_pages: number | string | null;
 }
 
+interface WorkspaceLimitState extends Record<string, unknown> {
+  usage_status: string;
+  usage_warning_at: Date | string | null;
+  lifetime_access: boolean | null;
+}
+
 function toNumber(value: unknown): number {
   if (typeof value === "number") return value;
   if (typeof value === "string") return Number(value);
@@ -31,6 +37,19 @@ function toIsoDate(value: unknown): string | null {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(String(value));
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+async function getWorkspaceLimitState(
+  workspaceId: string
+): Promise<WorkspaceLimitState | undefined> {
+  const result = await db.execute<WorkspaceLimitState>(sql`
+    SELECT w.usage_status, w.usage_warning_at, u.lifetime_access
+    FROM workspaces w
+    INNER JOIN users u ON u.id = w.user_id
+    WHERE w.id = ${workspaceId}
+  `);
+
+  return result.rows[0];
 }
 
 export interface WorkspaceUsage {
@@ -94,15 +113,9 @@ export async function assertWorkspaceUsageLimit(
   increment = 1,
   allowGracePeriod = true
 ) {
-  const state = await db.execute<{
-    usage_status: string;
-    usage_warning_at: Date | string | null;
-  }>(sql`
-    SELECT usage_status, usage_warning_at
-    FROM workspaces
-    WHERE id = ${workspaceId}
-  `);
-  const workspace = state.rows[0];
+  const workspace = await getWorkspaceLimitState(workspaceId);
+
+  if (workspace?.lifetime_access === true) return;
 
   const warningAt = workspace?.usage_warning_at
     ? new Date(workspace.usage_warning_at)
@@ -138,6 +151,10 @@ export async function assertWorkspaceHeatmapPages(
   workspaceId: string,
   paths: string[]
 ) {
+  const workspace = await getWorkspaceLimitState(workspaceId);
+
+  if (workspace?.lifetime_access === true) return;
+
   const newPaths = [...new Set(paths.map((path) => path.trim() || "/"))];
   if (newPaths.length === 0) return;
 

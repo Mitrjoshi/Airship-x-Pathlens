@@ -9,6 +9,7 @@ export interface DashboardFilters {
   projectId?: string;
   range: DashboardRange;
   device: DashboardDevice;
+  domain?: string;
 }
 
 const RANGE_DAYS: Record<DashboardRange, number> = {
@@ -45,6 +46,7 @@ const regionDisplayNames = displayNamesConstructor
 
 export interface DashboardDifference {
   value: number;
+  total: number;
   positive: boolean;
 }
 
@@ -62,16 +64,15 @@ export interface DashboardResponse {
   }[];
   visitorsChart: {
     day: string;
-    visitors: number;
-    sessions: number;
+    value: number;
   }[];
   eventsChart: {
     day: string;
-    events: number;
+    value: number;
   }[];
   sessionChart: {
     day: string;
-    sessions: number;
+    value: number;
   }[];
   trafficSources: {
     name: string;
@@ -86,6 +87,7 @@ export interface DashboardResponse {
   countries: {
     name: string;
     code: string;
+    city: string;
     visitors: number;
   }[];
   topBrowsers: {
@@ -129,18 +131,17 @@ interface PageRow extends Record<string, unknown> {
 
 interface VisitorChartRow extends Record<string, unknown> {
   day: string;
-  visitors: number | string | null;
-  sessions: number | string | null;
+  value: number | string | null;
 }
 
 interface EventChartRow extends Record<string, unknown> {
   day: string;
-  events: number | string | null;
+  value: number | string | null;
 }
 
 interface SessionChartRow extends Record<string, unknown> {
   day: string;
-  sessions: number | string | null;
+  value: number | string | null;
 }
 
 interface SourceRow extends Record<string, unknown> {
@@ -156,6 +157,7 @@ interface DeviceRow extends Record<string, unknown> {
 interface CountryRow extends Record<string, unknown> {
   code: string | null;
   name: string | null;
+  city: string | null;
   visitors: number | string | null;
 }
 
@@ -208,6 +210,7 @@ function getChange(current: number, previous: number): DashboardDifference {
   if (previous === 0) {
     return {
       value: current > 0 ? 100 : 0,
+      total: current,
       positive: current >= previous,
     };
   }
@@ -216,6 +219,7 @@ function getChange(current: number, previous: number): DashboardDifference {
 
   return {
     value: Number(change.toFixed(1)),
+    total: current,
     positive: change >= 0,
   };
 }
@@ -231,10 +235,14 @@ export async function getDashboardModel(
     filters.device !== "all"
       ? sql` AND LOWER(device) = ${filters.device}`
       : sql``;
+  const domainFilter = filters.domain
+    ? sql` AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
+    : sql``;
   const baseFilter = sql`
     workspace_id = ${filters.workspaceId}
     ${projectFilter}
     ${deviceFilter}
+    ${domainFilter}
   `;
 
   const [
@@ -426,11 +434,10 @@ export async function getDashboardModel(
           FROM page_visits
           GROUP BY path
         )
-        SELECT page, views, avg_duration_seconds
-        FROM page_stats
-        ORDER BY views DESC
-        LIMIT 5;
-      `),
+         SELECT page, views, avg_duration_seconds
+         FROM page_stats
+         ORDER BY views DESC;
+       `),
     db.execute<VisitorChartRow>(sql`
         WITH days AS (
           SELECT generate_series(
@@ -441,17 +448,17 @@ export async function getDashboardModel(
         )
         SELECT
           TO_CHAR(days.day, 'Dy') AS day,
-          COUNT(DISTINCT e.visitor_id)::int AS visitors,
-          COUNT(DISTINCT e.session_id)::int AS sessions
+          COUNT(DISTINCT e.visitor_id)::int AS value
         FROM days
         LEFT JOIN events e
           ON e.occurred_at >= NOW() - make_interval(days => ${rangeDays})
           AND e.occurred_at >= days.day
           AND e.occurred_at < days.day + INTERVAL '1 day'
           AND e.workspace_id = ${filters.workspaceId}
-          AND e.type = 'page_view'
-          ${projectFilter}
-        GROUP BY days.day
+           AND e.type = 'page_view'
+           ${projectFilter}
+           ${domainFilter}
+         GROUP BY days.day
            ORDER BY days.day;
        `),
     db.execute<EventChartRow>(sql`
@@ -464,15 +471,16 @@ export async function getDashboardModel(
          )
          SELECT
            TO_CHAR(days.day, 'Dy') AS day,
-           COUNT(e.*)::int AS events
+            COUNT(e.*)::int AS value
          FROM days
          LEFT JOIN events e
            ON e.occurred_at >= NOW() - make_interval(days => ${rangeDays})
            AND e.occurred_at >= days.day
            AND e.occurred_at < days.day + INTERVAL '1 day'
-           AND e.workspace_id = ${filters.workspaceId}
-           ${projectFilter}
-           ${deviceFilter}
+            AND e.workspace_id = ${filters.workspaceId}
+            ${projectFilter}
+            ${domainFilter}
+            ${deviceFilter}
          GROUP BY days.day
          ORDER BY days.day;
        `),
@@ -486,7 +494,7 @@ export async function getDashboardModel(
          )
          SELECT
            TO_CHAR(days.day, 'Dy') AS day,
-           COUNT(DISTINCT e.session_id)::int AS sessions
+            COUNT(DISTINCT e.session_id)::int AS value
          FROM days
          LEFT JOIN events e
            ON e.occurred_at >= NOW() - make_interval(days => ${rangeDays})
@@ -494,7 +502,8 @@ export async function getDashboardModel(
            AND e.occurred_at < days.day + INTERVAL '1 day'
            AND e.workspace_id = ${filters.workspaceId}
            ${projectFilter}
-           ${deviceFilter}
+            ${deviceFilter}
+            ${domainFilter}
          GROUP BY days.day
          ORDER BY days.day;
        `),
@@ -520,14 +529,15 @@ export async function getDashboardModel(
          ORDER BY sessions DESC;
        `),
     db.execute<CountryRow>(sql`
-         SELECT
-           NULLIF(country_code, '') AS code,
-           NULLIF(country, '') AS name,
-           COUNT(DISTINCT visitor_id)::int AS visitors
+          SELECT
+            NULLIF(country_code, '') AS code,
+            NULLIF(country, '') AS name,
+            NULLIF(city, '') AS city,
+            COUNT(DISTINCT visitor_id)::int AS visitors
          FROM events
          WHERE ${baseFilter}
            AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
-         GROUP BY country_code, country
+            GROUP BY country_code, country, city
          ORDER BY visitors DESC
          LIMIT 5;
        `),
@@ -584,18 +594,17 @@ export async function getDashboardModel(
 
   const visitorsChart = visitorsChartResult.rows.map((row) => ({
     day: row.day,
-    visitors: toNumber(row.visitors),
-    sessions: toNumber(row.sessions),
+    value: toNumber(row.value),
   }));
 
   const eventsChart = eventsChartResult.rows.map((row) => ({
     day: row.day,
-    events: toNumber(row.events),
+    value: toNumber(row.value),
   }));
 
   const sessionChart = sessionChartResult.rows.map((row) => ({
     day: row.day,
-    sessions: toNumber(row.sessions),
+    value: toNumber(row.value),
   }));
 
   const sourcesTotal = sourcesResult.rows.reduce(
@@ -646,6 +655,7 @@ export async function getDashboardModel(
     return {
       code,
       name: getCountryName(code, fallbackName),
+      city: row.city?.trim() || "Unknown city",
       visitors: toNumber(row.visitors),
     };
   });

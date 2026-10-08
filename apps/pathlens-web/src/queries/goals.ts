@@ -25,6 +25,7 @@ export interface Goal {
 export interface GoalsParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: GoalRange
 }
 

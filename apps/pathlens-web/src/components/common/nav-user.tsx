@@ -82,6 +82,7 @@ export function NavUser({ user }: { user: NavUserData }) {
           >
             Account
           </DropdownMenuItem>
+
           <DropdownMenuItem
             render={
               <Button

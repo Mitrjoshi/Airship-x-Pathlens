@@ -336,6 +336,7 @@ export const getProjectsModel = async (
 
   return projectRows.map((project) => ({
     ...project,
+    faviconUrl: project.faviconUrl,
     domain:
       domainsByProject.get(project.id)?.find((domain) => domain.isDefault)
         ?.domain ?? null,
@@ -468,7 +469,11 @@ export const getProjectStatsModel = async (
 
 export const getProjectByIdModel = async (projectId: string) => {
   return await db
-    .select({ id: projects.id, workspace_id: projects.workspaceId })
+    .select({
+      id: projects.id,
+      workspace_id: projects.workspaceId,
+      faviconUrl: projects.faviconUrl,
+    })
     .from(projects)
     .where(eq(projects.id, projectId));
 };

@@ -347,6 +347,8 @@ export const projects = pgTable(
 
     description: text("description"),
 
+    faviconUrl: text("favicon_url"),
+
     createdAt: timestamp("created_at", {
       withTimezone: true,
     }).defaultNow(),

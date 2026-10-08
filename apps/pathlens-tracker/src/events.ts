@@ -344,7 +344,7 @@ function registerNavigation(tracker: PathLensTracker) {
 function registerPerformance(tracker: PathLensTracker) {
   if (!tracker.config.capturePerformance) return;
 
-  window.addEventListener("load", () => {
+  const capturePerformance = () => {
     setTimeout(() => {
       const nav = performance.getEntriesByType("navigation")[0] as
         PerformanceNavigationTiming | undefined;
@@ -359,7 +359,13 @@ function registerPerformance(tracker: PathLensTracker) {
         load: Math.round(nav.loadEventEnd - nav.startTime),
       });
     }, 0);
-  });
+  };
+
+  if (document.readyState === "complete") {
+    capturePerformance();
+  } else {
+    window.addEventListener("load", capturePerformance, { once: true });
+  }
 }
 
 function registerUnload(tracker: PathLensTracker) {

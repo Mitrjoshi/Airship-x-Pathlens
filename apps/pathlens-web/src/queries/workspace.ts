@@ -9,6 +9,7 @@ export type T_Workspace = {
   isDefault: boolean
   createdAt: string
   role?: string
+  external: boolean
   permissionProfileId: string | null
   permissionProfileName: string | null
   permissions: Permission[]

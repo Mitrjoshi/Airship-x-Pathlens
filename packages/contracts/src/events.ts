@@ -14,6 +14,7 @@ export const incomingEventSchema = z
     url: optionalText,
     path: optionalText,
     title: optionalText,
+    faviconUrl: optionalText,
     referrer: optionalText,
     device: z.string().max(64).nullable().optional(),
     browser: z.string().max(64).nullable().optional(),

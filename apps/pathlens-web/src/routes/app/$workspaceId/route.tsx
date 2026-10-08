@@ -33,6 +33,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
@@ -47,6 +48,7 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import { Header } from '../-components/header'
 import { SearchOverAppDialog } from '@/components/common/search-over-app-dialog'
 import { navigationIcons } from '@/config/navigation-icons'
+import { Badge } from '@workspace/ui/components/badge'
 
 export const Route = createFileRoute('/app/$workspaceId')({
   component: RouteComponent,
@@ -171,6 +173,12 @@ const sidebarProjectsItems = [
         icon: navigationIcons.performance,
         to: '/app/$workspaceId/$projectId/performance',
         isActive: (pathname: string) => pathname.includes('performance'),
+      },
+      {
+        label: 'SEO',
+        icon: navigationIcons.seo,
+        to: '/app/$workspaceId/$projectId/seo',
+        isActive: (pathname: string) => pathname.includes('seo'),
       },
     ],
   },
@@ -497,31 +505,74 @@ export const WorkspaceSwitcher = ({
           <DropdownMenuSeparator />
 
           <DropdownMenuGroup className={'h-60! overflow-auto'}>
-            {workspaceData?.map((item, index) => (
-              <DropdownMenuItem
-                key={index}
-                render={
-                  <Button
-                    size="lg"
-                    variant={
-                      activeWorkspace === item.id ? 'secondary' : 'ghost'
-                    }
-                    className={'w-full justify-between'}
+            <DropdownMenuLabel>Owned</DropdownMenuLabel>
+            {workspaceData
+              ?.filter((item) => !item.external)
+              ?.map((item, index) => (
+                <DropdownMenuItem
+                  key={index}
+                  render={
+                    <Button
+                      size="lg"
+                      variant={
+                        activeWorkspace === item.id ? 'secondary' : 'ghost'
+                      }
+                      className={'w-full justify-between'}
+                      render={
+                        <Link
+                          to={'/app/$workspaceId'}
+                          params={{
+                            workspaceId: item.id,
+                          }}
+                        />
+                      }
+                    />
+                  }
+                >
+                  <p className="truncate">{item.name}</p>
+                  {activeWorkspace === item.id && <CheckIcon />}
+                </DropdownMenuItem>
+              ))}
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuLabel>Member</DropdownMenuLabel>
+
+            {workspaceData?.filter((item) => item.external).length ? (
+              workspaceData
+                ?.filter((item) => item.external)
+                ?.map((item, index) => (
+                  <DropdownMenuItem
+                    key={index}
                     render={
-                      <Link
-                        to={'/app/$workspaceId'}
-                        params={{
-                          workspaceId: item.id,
-                        }}
+                      <Button
+                        size="lg"
+                        variant={
+                          activeWorkspace === item.id ? 'secondary' : 'ghost'
+                        }
+                        className={'w-full justify-between'}
+                        render={
+                          <Link
+                            to={'/app/$workspaceId'}
+                            params={{
+                              workspaceId: item.id,
+                            }}
+                          />
+                        }
                       />
                     }
-                  />
-                }
-              >
-                <p className="truncate">{item.name}</p>
-                {activeWorkspace === item.id && <CheckIcon />}
-              </DropdownMenuItem>
-            ))}
+                  >
+                    <p className="truncate">{item.name}</p>
+                    {activeWorkspace === item.id && <CheckIcon />}
+                  </DropdownMenuItem>
+                ))
+            ) : (
+              <div className="py-5">
+                <p className="text-muted-foreground text-center text-xs">
+                  You're not a member of any workspace.
+                </p>
+              </div>
+            )}
           </DropdownMenuGroup>
 
           <DropdownMenuSeparator />

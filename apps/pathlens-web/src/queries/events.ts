@@ -23,7 +23,9 @@ export type {
 export type EventsChartParams = Pick<
   EventsParams,
   'workspace_id' | 'project_id' | 'range'
->
+> & {
+  domain?: string
+}
 
 const getEvents = async (params: EventsParams): Promise<EventsResponse> => {
   const response = await apiClient.get('/events', { params })

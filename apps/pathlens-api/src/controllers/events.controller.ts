@@ -9,6 +9,7 @@ import { incomingEventsSchema } from "@workspace/contracts/events";
 import { getClientIp, getGeoLocation } from "../lib/geoip";
 import { z, ZodError } from "zod";
 import { WorkspaceUsageLimitError } from "../lib/usage-limits";
+import { normalizeProjectHostname } from "../lib/project-domain";
 
 const eventsQuerySchema = z.object({
   workspace_id: z.string().min(1),
@@ -22,6 +23,7 @@ const eventsQuerySchema = z.object({
     .default("all"),
   path: z.string().trim().max(2048).optional(),
   search: z.string().trim().max(100).optional(),
+  domain: z.string().trim().max(2048).optional(),
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(50),
 });
@@ -30,6 +32,7 @@ const eventsChartQuerySchema = z.object({
   workspace_id: z.string().min(1),
   project_id: z.string().min(1),
   range: z.enum(["24h", "7d", "30d", "90d"]).default("24h"),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 export async function ingestEvents(req: Request, res: Response) {
@@ -76,6 +79,9 @@ export async function getEvents(req: Request, res: Response) {
       device: query.device,
       path: query.path,
       search: query.search,
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
       page: query.page,
       pageSize: query.page_size,
     });
@@ -107,6 +113,9 @@ export async function getEventsChart(req: Request, res: Response) {
       workspaceId: query.workspace_id,
       projectId: query.project_id,
       range: query.range as EventsRange,
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
     });
 
     return res.status(200).json({

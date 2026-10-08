@@ -26,6 +26,11 @@ import {
 import { getProjectsOptions, type T_Projects } from '@/queries/projects'
 import { Separator } from '@workspace/ui/components/separator'
 import { useQuery } from '@tanstack/react-query'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@workspace/ui/components/avatar'
 
 export const Header = () => {
   const user = useRouteContext({
@@ -37,11 +42,7 @@ export const Header = () => {
     strict: false,
   })
 
-  const {
-    data: projects,
-    isPending: projectsLoading,
-    isError: projectsError,
-  } = useQuery(
+  const { data: projects, isPending: projectsLoading } = useQuery(
     getProjectsOptions({
       workspace_id: workspaceId!,
     })
@@ -55,7 +56,7 @@ export const Header = () => {
             activeProject={projectId}
             projectData={projects?.data as T_Projects[]}
             projectDataLoading={projectsLoading}
-            workspaceId={workspaceId}
+            workspaceId={workspaceId!}
           />
         )}
       </div>
@@ -148,7 +149,14 @@ export const ProjectSwitcher = ({
                   />
                 }
               >
-                <p>{item.name}</p>
+                <div className="flex items-center gap-2">
+                  <Avatar size="sm" className={'border bg-white'}>
+                    <AvatarImage
+                      src={item.faviconUrl ? item.faviconUrl : '/logo.png'}
+                    />
+                  </Avatar>
+                  <p>{item.name}</p>
+                </div>
                 {activeProject === item.id && <CheckIcon />}
               </DropdownMenuItem>
             ))}

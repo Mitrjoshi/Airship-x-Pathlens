@@ -6,6 +6,7 @@ import {
   type SessionReplayDevice,
   type SessionReplayRange,
 } from "../models/session-replay.model";
+import { normalizeProjectHostname } from "../lib/project-domain";
 
 const sessionReplayQuerySchema = z.object({
   workspace_id: z.string().min(1),
@@ -15,6 +16,7 @@ const sessionReplayQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(50),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 export async function getSessionReplay(req: Request, res: Response) {
@@ -28,6 +30,9 @@ export async function getSessionReplay(req: Request, res: Response) {
       search: query.search,
       page: query.page,
       pageSize: query.page_size,
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
     });
 
     return res.status(200).json({
@@ -53,6 +58,7 @@ export async function getSessionReplay(req: Request, res: Response) {
 const sessionReplayDetailQuerySchema = z.object({
   workspace_id: z.string().min(1),
   project_id: z.string().min(1),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 export async function getSessionReplayDetail(req: Request, res: Response) {
@@ -62,6 +68,9 @@ export async function getSessionReplayDetail(req: Request, res: Response) {
       workspaceId: query.workspace_id,
       projectId: query.project_id,
       sessionId: z.string().min(1).max(255).parse(req.params.sessionId),
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
     });
 
     if (!sessionReplay) {

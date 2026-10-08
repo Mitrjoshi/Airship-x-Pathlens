@@ -13,6 +13,7 @@ export interface VisitorsFilters {
   search?: string;
   page: number;
   pageSize: number;
+  domain?: string;
 }
 
 export interface VisitorSummary {
@@ -27,6 +28,7 @@ export interface Visitor {
   id: string;
   location: string;
   countryCode: string;
+  city: string;
   device: "Desktop" | "Mobile" | "Tablet" | "Unknown";
   browser: string;
   sessions: number;
@@ -163,6 +165,7 @@ export async function getVisitorLocationsModel(filters: {
   projectId: string;
   range: VisitorsRange;
   status: VisitorStatus;
+  domain?: string;
 }): Promise<VisitorLocationsResponse> {
   const rangeDays = RANGE_DAYS[filters.range];
   const statusFilter =
@@ -175,6 +178,7 @@ export async function getVisitorLocationsModel(filters: {
     workspace_id = ${filters.workspaceId}
     AND project_id = ${filters.projectId}
     AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+    ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
   `;
 
   const result = await db.execute<VisitorLocationRow>(sql`
@@ -263,6 +267,7 @@ export async function getVisitorsModel(
     workspace_id = ${filters.workspaceId}
     AND project_id = ${filters.projectId}
     AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+    ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
   `;
   const visitorCtes = sql`
     WITH filtered_events AS (
@@ -399,6 +404,7 @@ export async function getVisitorsModel(
               AND previous.project_id = ${filters.projectId}
               AND previous.visitor_id = current_visitors.visitor_id
               AND previous.occurred_at < NOW() - make_interval(days => ${rangeDays})
+              ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(previous.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
           ) AS is_returning
         FROM current_visitors
       )
@@ -445,6 +451,7 @@ export async function getVisitorsModel(
       id: row.visitor_id,
       location: formatLocation(row),
       countryCode: row.country_code?.toUpperCase() ?? "--",
+      city: row.city?.trim() || "Unknown city",
       device: formatDevice(row.device),
       browser: row.browser?.trim() || "Unknown browser",
       sessions: toNumber(row.sessions),

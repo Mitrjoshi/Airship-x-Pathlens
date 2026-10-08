@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { z, ZodError } from "zod";
 import { getDashboardModel } from "../models/dashboard.model";
+import { normalizeProjectHostname } from "../lib/project-domain";
 
 const getDashboardSchema = z.object({
   workspace_id: z.string({
@@ -9,6 +10,7 @@ const getDashboardSchema = z.object({
   project_id: z.string().optional(),
   range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
   device: z.enum(["all", "desktop", "mobile", "tablet"]).default("all"),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 export const getDashboard = async (req: Request, res: Response) => {
@@ -20,6 +22,9 @@ export const getDashboard = async (req: Request, res: Response) => {
       projectId: query.project_id,
       range: query.range,
       device: query.device,
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
     });
 
     res.status(200).json({

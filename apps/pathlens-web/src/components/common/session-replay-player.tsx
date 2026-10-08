@@ -12,7 +12,6 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import type {
   SessionReplayDetail,
   SessionReplayEvent,
-  SessionReplaySession,
 } from '@/queries/session-replay'
 import {
   streamSessionReplay,
@@ -39,7 +38,6 @@ interface SessionReplayPlayerProps {
   open: boolean
   workspaceId: string
   projectId: string
-  session: SessionReplaySession | null
   detail: SessionReplayDetail | undefined
   initialEventId?: string
   isLoading: boolean
@@ -150,7 +148,6 @@ export function SessionReplayPlayer({
   open,
   workspaceId,
   projectId,
-  session,
   detail,
   initialEventId,
   isLoading,
@@ -172,6 +169,7 @@ export function SessionReplayPlayer({
   const [streamStatus, setStreamStatus] = useState<StreamStatus>('idle')
   const [replayErrorKey, setReplayErrorKey] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+
   const events = detail?.events ?? EMPTY_SESSION_EVENTS
   const currentEvent = events[currentEventIndex]
   const initialReplayEvents = detail?.replay.events ?? EMPTY_REPLAY_EVENTS
@@ -436,11 +434,7 @@ export function SessionReplayPlayer({
         <DialogHeader className="border-b px-6 py-5 pr-12">
           <div className="flex flex-wrap items-center gap-2">
             <DialogTitle>Session replay</DialogTitle>
-            {session && (
-              <Badge variant="secondary">
-                Anonymous #{session.visitorId.slice(0, 8)}
-              </Badge>
-            )}
+
             {isLiveMode && (
               <Badge className="gap-1.5" variant="destructive">
                 <RadioIcon className="size-3" />
@@ -449,9 +443,7 @@ export function SessionReplayPlayer({
             )}
           </div>
           <DialogDescription>
-            {session
-              ? `${session.country} · ${session.device} · ${session.duration}`
-              : 'Review the reconstructed screen and interaction timeline.'}
+            {'Review the reconstructed screen and interaction timeline.'}
           </DialogDescription>
           <Button
             variant="ghost"
@@ -487,13 +479,13 @@ export function SessionReplayPlayer({
           </div>
         ) : (
           <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[minmax(0,1fr)_20rem]">
-            <div className="bg-muted/30 flex min-h-0 min-w-0 flex-col p-4">
-              <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl border bg-black/5 p-2">
-                <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-lg bg-white shadow-sm dark:bg-neutral-950">
-                  <div className="flex items-center gap-2 border-b px-4 py-3">
+            <div className="bg-muted/30 flex min-h-0 min-w-0 flex-col">
+              <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden border p-2">
+                <div className="bg-background flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
+                  <div className="flex items-center gap-1 border-b px-4 py-3">
                     <CircleIcon className="text-destructive size-2.5 fill-current" />
-                    <CircleIcon className="text-muted-foreground size-2.5 fill-current" />
-                    <CircleIcon className="text-muted-foreground size-2.5 fill-current" />
+                    <CircleIcon className="size-2.5 fill-current text-yellow-400" />
+                    <CircleIcon className="size-2.5 fill-current text-green-400" />
                     <div className="text-muted-foreground bg-muted ml-3 min-w-0 flex-1 truncate rounded-md px-3 py-1.5 text-xs">
                       {currentEvent ? getEventPath(currentEvent) : '/'}
                     </div>
@@ -613,8 +605,10 @@ export function SessionReplayPlayer({
                     <Button
                       key={event.id}
                       type="button"
-                      variant="ghost"
-                      className={`w-full justify-start rounded-lg border p-3 text-left transition-colors ${index === currentEventIndex ? 'border-foreground bg-muted' : 'hover:bg-muted/60 border-transparent'}`}
+                      variant={
+                        index === currentEventIndex ? 'outline' : 'ghost'
+                      }
+                      className={`w-full justify-start rounded-lg border p-3 text-left transition-colors`}
                       onClick={() => {
                         pause()
                         setCurrentEventIndex(index)

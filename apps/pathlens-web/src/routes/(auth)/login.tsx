@@ -50,7 +50,14 @@ function RouteComponent() {
       onSubmit: formSchema,
     },
     onSubmit: async ({ value: { email, password } }) => {
-      loginMutate({ email, password })
+      loginMutate(
+        { email, password },
+        {
+          onSuccess: () => {
+            localStorage.removeItem('pathlens-last-sign-in-method')
+          },
+        }
+      )
     },
   })
 

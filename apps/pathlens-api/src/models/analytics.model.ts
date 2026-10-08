@@ -9,6 +9,7 @@ export interface AnalyticsFilters {
   projectId?: string;
   range: AnalyticsRange;
   device: AnalyticsDevice;
+  domain?: string;
 }
 
 export interface AnalyticsResponse {
@@ -177,11 +178,15 @@ export async function getAnalyticsModel(
     filters.device !== "all"
       ? sql` AND LOWER(device) = ${filters.device}`
       : sql``;
+  const domainFilter = filters.domain
+    ? sql` AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
+    : sql``;
   const eventWhere = sql`
     workspace_id = ${filters.workspaceId}
     AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
     ${projectFilter}
     ${deviceFilter}
+    ${domainFilter}
   `;
 
   const [
@@ -255,7 +260,8 @@ export async function getAnalyticsModel(
           AND e.occurred_at < days.day + INTERVAL '1 day'
           AND e.workspace_id = ${filters.workspaceId}
           ${projectFilter}
-          ${deviceFilter}
+           ${deviceFilter}
+           ${domainFilter}
         GROUP BY days.day
         ORDER BY days.day;
       `),
@@ -347,6 +353,7 @@ export async function getAnalyticsModel(
                 AND previous.visitor_id = current_visitors.visitor_id
                 AND previous.occurred_at < NOW() - make_interval(days => ${rangeDays})
                 ${projectFilter}
+                ${domainFilter}
             )
           )::int AS new_visitors,
           COUNT(*) FILTER (
@@ -357,6 +364,7 @@ export async function getAnalyticsModel(
                 AND previous.visitor_id = current_visitors.visitor_id
                 AND previous.occurred_at < NOW() - make_interval(days => ${rangeDays})
                 ${projectFilter}
+                ${domainFilter}
             )
           )::int AS returning_visitors
         FROM current_visitors;

@@ -6,9 +6,14 @@ function toUrl(value: string): URL | null {
   }
 }
 
-function normalizeHostname(value: string): string | null {
+export function normalizeProjectHostname(value: string): string | null {
   const url = toUrl(value);
-  return url?.hostname.toLowerCase().replace(/\.$/, "") ?? null;
+  return (
+    url?.hostname
+      .toLowerCase()
+      .replace(/^www\./, "")
+      .replace(/\.$/, "") ?? null
+  );
 }
 
 export function normalizeProjectDomain(value: string): string | null {
@@ -35,7 +40,7 @@ export function normalizeProjectDomains(values: readonly string[]): string[] {
 
 function getAllowedHostnames(domains: readonly string[]): Set<string> {
   const hostnames = domains
-    .map((domain) => normalizeHostname(domain))
+    .map((domain) => normalizeProjectHostname(domain))
     .filter((domain): domain is string => Boolean(domain));
 
   return new Set(
@@ -61,7 +66,7 @@ export function isProjectOriginAllowed(
   const requestSource = origin && origin !== "null" ? origin : referer;
   if (!requestSource) return false;
 
-  const requestHostname = normalizeHostname(requestSource);
+  const requestHostname = normalizeProjectHostname(requestSource);
   if (!requestHostname) return false;
 
   return getAllowedHostnames(domains).has(requestHostname);

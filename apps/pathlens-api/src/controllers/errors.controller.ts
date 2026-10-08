@@ -5,6 +5,7 @@ import {
   type ErrorsDevice,
   type ErrorsRange,
 } from "../models/errors.model";
+import { normalizeProjectHostname } from "../lib/project-domain";
 
 const errorsQuerySchema = z.object({
   workspace_id: z.string().min(1),
@@ -18,6 +19,7 @@ const errorsQuerySchema = z.object({
   search: z.string().trim().max(200).optional(),
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(50),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 export async function getErrors(req: Request, res: Response) {
@@ -33,6 +35,9 @@ export async function getErrors(req: Request, res: Response) {
       search: query.search,
       page: query.page,
       pageSize: query.page_size,
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
     });
 
     return res.status(200).json({

@@ -6,6 +6,7 @@ import {
   type VisitorStatus,
   type VisitorsRange,
 } from "../models/visitors.model";
+import { normalizeProjectHostname } from "../lib/project-domain";
 
 const visitorsQuerySchema = z.object({
   workspace_id: z.string().min(1),
@@ -15,6 +16,7 @@ const visitorsQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(50),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 const visitorLocationsQuerySchema = z.object({
@@ -22,6 +24,7 @@ const visitorLocationsQuerySchema = z.object({
   project_id: z.string().min(1),
   range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
   status: z.enum(["all", "online", "offline"]).default("all"),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 export async function getVisitorLocations(req: Request, res: Response) {
@@ -32,6 +35,9 @@ export async function getVisitorLocations(req: Request, res: Response) {
       projectId: query.project_id,
       range: query.range as VisitorsRange,
       status: query.status as VisitorStatus,
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
     });
 
     return res.status(200).json({
@@ -65,6 +71,9 @@ export async function getVisitors(req: Request, res: Response) {
       search: query.search,
       page: query.page,
       pageSize: query.page_size,
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
     });
 
     return res.status(200).json({

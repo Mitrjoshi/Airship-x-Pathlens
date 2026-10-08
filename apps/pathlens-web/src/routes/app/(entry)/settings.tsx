@@ -194,23 +194,28 @@ function RouteComponent() {
   return (
     <div>
       <Dialog>
-        <div className="mx-auto max-w-4xl pt-10">
+        <div className="mx-auto max-w-4xl py-10">
           <div className="space-y-5">
             <p className="text-2xl font-semibold">Account Settings</p>
 
             <Card className="bg-card/30 rounded-none border-2 border-dashed">
               <CardContent className="flex items-start gap-6">
-                <Avatar className={'relative size-50'}>
-                  <AvatarImage src={user.avatar} />
+                <Avatar className={'group relative size-50 overflow-hidden'}>
+                  <AvatarImage src={user.avatar!} />
                   <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
 
-                  <button
+                  <div
                     className={
-                      'hover:bg-muted/20 absolute right-2 bottom-2 z-10 aspect-square cursor-pointer rounded-full bg-black/10 p-2 text-white backdrop-blur-3xl duration-200'
+                      'hover:bg-muted/20 absolute inset-0 right-0 bottom-0 z-10 flex aspect-square h-full w-full cursor-pointer items-center justify-center rounded-full bg-black/10 p-2 text-white opacity-0 backdrop-blur-sm duration-200 group-hover:opacity-100'
                     }
                   >
+                    <input
+                      type="file"
+                      className="absolute h-full w-full"
+                      onChange={handleAvatarChange}
+                    />
                     <Camera />
-                  </button>
+                  </div>
                 </Avatar>
 
                 <div className="space-y-4">

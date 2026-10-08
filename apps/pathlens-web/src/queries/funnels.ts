@@ -24,6 +24,7 @@ export interface Funnel {
 export interface FunnelsParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: FunnelRange
 }
 

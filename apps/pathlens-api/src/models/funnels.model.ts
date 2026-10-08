@@ -152,7 +152,8 @@ function getTrend(currentRate: number, previousRate: number) {
 
 async function getFunnelDefinitionEvents(
   definition: FunnelDefinition,
-  rangeDays: number
+  rangeDays: number,
+  domain?: string
 ): Promise<FunnelEventRow[]> {
   const targets = definition.steps.map((step) => step.target.trim());
   const targetFilters = targets.map((target) =>
@@ -168,6 +169,7 @@ async function getFunnelDefinitionEvents(
     WHERE workspace_id = ${definition.workspaceId}
       AND project_id = ${definition.projectId}
       AND occurred_at >= NOW() - make_interval(days => ${rangeDays * 2})
+      ${domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${domain}` : sql``}
       AND (${targetFilter})
     ORDER BY session_id, occurred_at ASC;
   `);
@@ -177,13 +179,18 @@ async function getFunnelDefinitionEvents(
 
 async function getFunnelWithStats(
   definition: FunnelDefinition,
-  range: FunnelRange
+  range: FunnelRange,
+  domain?: string
 ): Promise<Funnel> {
   const rangeDays = RANGE_DAYS[range];
   const now = Date.now();
   const currentStart = now - rangeDays * 24 * 60 * 60 * 1000;
   const previousStart = currentStart - rangeDays * 24 * 60 * 60 * 1000;
-  const sourceEvents = await getFunnelDefinitionEvents(definition, rangeDays);
+  const sourceEvents = await getFunnelDefinitionEvents(
+    definition,
+    rangeDays,
+    domain
+  );
   const currentEvents = sourceEvents.filter((event) => {
     const timestamp = toTimestamp(event.occurred_at);
 
@@ -254,12 +261,15 @@ async function getFunnelDefinitions(
 export async function getFunnelsModel(
   workspaceId: string,
   projectId: string,
-  range: FunnelRange
+  range: FunnelRange,
+  domain?: string
 ): Promise<Funnel[]> {
   const definitions = await getFunnelDefinitions(workspaceId, projectId);
 
   return Promise.all(
-    definitions.map((definition) => getFunnelWithStats(definition, range))
+    definitions.map((definition) =>
+      getFunnelWithStats(definition, range, domain)
+    )
   );
 }
 

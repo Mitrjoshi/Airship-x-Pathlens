@@ -18,6 +18,8 @@ export type T_Performance = {
   }
   trend: {
     date: string
+    dns: number
+    tcp: number
     ttfb: number
     domLoaded: number
     load: number
@@ -51,6 +53,7 @@ export interface PerformanceResponse {
 export interface PerformanceParams {
   workspace_id: string
   project_id?: string
+  domain?: string
   range: PerformanceRange
   device: PerformanceDevice
 }

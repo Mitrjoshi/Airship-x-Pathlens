@@ -79,6 +79,7 @@ export interface EventsChartResponse {
 export interface EventsParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: EventsRange
   category: EventsCategory
   device: EventsDevice

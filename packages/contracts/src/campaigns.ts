@@ -62,6 +62,7 @@ export interface CampaignAnalyticsResponse {
 export interface CampaignAnalyticsParams {
   workspace_id: string
   project_id: string
+  domain?: string
   range: CampaignRange
   device: CampaignDevice
   goal_id?: string

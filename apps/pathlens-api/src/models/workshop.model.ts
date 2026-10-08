@@ -275,6 +275,7 @@ export async function getWorkspaces(user_id: string) {
 
   return workspacesResult.map((workspace) => ({
     ...workspace,
+    external: workspace.userId !== user_id,
     permissions:
       workspace.role === "owner"
         ? [...DEFAULT_FULL_ACCESS_PERMISSIONS]

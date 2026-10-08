@@ -145,10 +145,15 @@ export function now(): string {
 }
 
 export function getPageInfo() {
+  const favicon = document.querySelector<HTMLLinkElement>(
+    'link[rel~="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'
+  );
+
   return {
     url: location.href,
     path: location.pathname,
     title: document.title,
+    faviconUrl: favicon?.href ?? new URL("/favicon.ico", location.origin).href,
   };
 }
 

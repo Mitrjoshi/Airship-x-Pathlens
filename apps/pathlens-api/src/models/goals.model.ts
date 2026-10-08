@@ -136,7 +136,8 @@ function getStatus(
 
 async function getGoalEvents(
   definition: GoalDefinition,
-  rangeDays: number
+  rangeDays: number,
+  domain?: string
 ): Promise<GoalEventRow[]> {
   const target = definition.matchTarget.trim();
   const targetFilter =
@@ -154,6 +155,7 @@ async function getGoalEvents(
     WHERE workspace_id = ${definition.workspaceId}
       AND project_id = ${definition.projectId}
       AND occurred_at >= NOW() - make_interval(days => ${rangeDays * 2})
+      ${domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${domain}` : sql``}
       AND ${targetFilter}
     ORDER BY occurred_at ASC;
   `);
@@ -163,13 +165,14 @@ async function getGoalEvents(
 
 async function getGoalWithStats(
   definition: GoalDefinition,
-  range: GoalRange
+  range: GoalRange,
+  domain?: string
 ): Promise<Goal> {
   const rangeDays = RANGE_DAYS[range];
   const now = Date.now();
   const currentStart = now - rangeDays * 24 * 60 * 60 * 1000;
   const previousStart = currentStart - rangeDays * 24 * 60 * 60 * 1000;
-  const sourceEvents = await getGoalEvents(definition, rangeDays);
+  const sourceEvents = await getGoalEvents(definition, rangeDays, domain);
   const currentEvents = sourceEvents.filter((event) => {
     const timestamp = toTimestamp(event.occurred_at);
 
@@ -235,12 +238,13 @@ async function getGoalDefinitions(
 export async function getGoalsModel(
   workspaceId: string,
   projectId: string,
-  range: GoalRange
+  range: GoalRange,
+  domain?: string
 ): Promise<Goal[]> {
   const definitions = await getGoalDefinitions(workspaceId, projectId);
 
   return Promise.all(
-    definitions.map((definition) => getGoalWithStats(definition, range))
+    definitions.map((definition) => getGoalWithStats(definition, range, domain))
   );
 }
 

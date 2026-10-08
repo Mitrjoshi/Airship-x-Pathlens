@@ -1,8 +1,8 @@
-import { getProjectsOptions } from '@/queries/projects'
 import {
   getVisitorLocationsOptions,
   getVisitorsOptions,
   type VisitorsRange,
+  type VisitorStatus,
 } from '@/queries/visitors'
 import {
   formatNumber,
@@ -30,13 +30,12 @@ import { Separator } from '@workspace/ui/components/separator'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   CalendarIcon,
-  LinkIcon,
   PauseIcon,
   PlayIcon,
   RefreshCcwIcon,
   SearchIcon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { VisitorsWorldMap } from './-components/visitors/visitors-world-map'
 import {
   Card,
@@ -59,7 +58,9 @@ import {
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
 import { Badge } from '@workspace/ui/components/badge'
-import VisitorsLoading from './-components/common/visitors-loading'
+import { getProjectDomainsOptions } from '@/queries/domains'
+import { DomainSwitcher } from './-components/common/domain-switcher'
+import { useRelativeTime } from '@/hooks/use-relative-time'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/visitors')({
   component: RouteComponent,
@@ -72,18 +73,35 @@ const rangeLabels: Record<VisitorsRange, string> = {
   '90d': 'Last 90 days',
 }
 
+const statusItems = [
+  {
+    label: 'All',
+    value: 'all',
+  },
+  {
+    label: 'Online',
+    value: 'online',
+  },
+  {
+    label: 'Offline',
+    value: 'offline',
+  },
+]
+
 const PAGE_SIZE = 50
 
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
-  const [range, setRange] = useState<VisitorsRange>('30d')
+  const [range, setRange] = useState<VisitorsRange>('7d')
   const [liveMode, setLiveMode] = useState(false)
   const [page, setPage] = useState(1)
+  const [domain, setDomain] = useState('')
+  const [status, setStatus] = useState<VisitorStatus>('all')
 
   const {
     data: visitorsLocationData,
-    isFetching: isVisitorsFetching,
+    isLoading: isVisitorsFetching,
     refetch,
     dataUpdatedAt,
   } = useQuery(
@@ -92,74 +110,68 @@ function RouteComponent() {
       project_id: projectId,
       range,
       status: 'all',
+      domain,
     })
   )
 
   const {
     data,
-    isFetching,
+    isLoading,
     refetch: refetchVisitors,
   } = useQuery(
     getVisitorsOptions({
       workspace_id: workspaceId,
       project_id: projectId,
       range,
-      status: 'all',
+      status,
       search: undefined,
       page,
       page_size: PAGE_SIZE,
+      domain,
     })
   )
 
-  const { data: projectData, isLoading: projectLoading } = useQuery(
-    getProjectsOptions({
-      workspace_id: workspaceId,
-      project_id: projectId,
-    })
+  const { data: domainsData, isLoading: domainsLoading } = useQuery(
+    getProjectDomainsOptions(projectId)
   )
 
-  const projectDetails = projectData?.data[0]
   const visitorsLocation = visitorsLocationData?.data
   const visitors = data?.data.visitors ?? []
+  const domains = domainsData?.data
 
   const totalEvents = data?.data.pagination.total ?? 0
   const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
   const paginationItems = getPaginationItems(page, totalPages)
+  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
 
   const from = totalEvents === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const to = Math.min(page * PAGE_SIZE, totalEvents)
 
-  if (projectLoading) {
-    return <VisitorsLoading />
-  }
+  useEffect(() => {
+    if (domains) {
+      setDomain(domains[0].domain)
+    }
+  }, [domains])
 
   return (
     <div>
       <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
         <div className="flex items-center gap-4">
-          <Button
-            disabled={projectLoading}
-            render={
-              <a href={projectDetails?.domain as string} target="_blank" />
-            }
-            variant={'link'}
-            className={'text-foreground px-0'}
-          >
-            <LinkIcon className="mr-1" />
-            {projectLoading ? (
-              <Skeleton className="h-5 w-50" />
-            ) : (
-              projectDetails?.domain
-            )}
-          </Button>
+          <DomainSwitcher
+            loading={domainsLoading}
+            domain={domain}
+            setDomain={setDomain}
+            domains={domains!}
+            refetch={refetch}
+          />
 
           <Separator orientation="vertical" />
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-muted-foreground text-sm">
               Last updated{' '}
-              {dataUpdatedAt &&
-                formatRelativeTime(new Date(dataUpdatedAt).toString())}
+              {lastUpdated &&
+                formatRelativeTime(new Date(lastUpdated).toString())}
             </p>
           </div>
         </div>
@@ -254,7 +266,7 @@ function RouteComponent() {
               <p className="px-4 pb-3 text-lg font-medium">Countries</p>
 
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pr-2">
-                {isFetching ? (
+                {isLoading ? (
                   Array.from({ length: 5 }).map((_, index) => (
                     <div
                       key={index}
@@ -330,6 +342,26 @@ function RouteComponent() {
               </InputGroupButton>
               <InputGroupInput placeholder="Search..." />
             </InputGroup>
+
+            <Select
+              items={statusItems}
+              value={status}
+              onValueChange={(value) => {
+                setStatus(value as VisitorStatus)
+                setPage(1)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {statusItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="overflow-hidden">
@@ -357,7 +389,7 @@ function RouteComponent() {
                   </TableRow>
                 ) : (
                   <TableBody>
-                    {isFetching
+                    {isLoading
                       ? [...Array(5)].map((_, index) => (
                           <TableRow key={index}>
                             <TableCell>
@@ -418,7 +450,7 @@ function RouteComponent() {
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <p className="truncate">{visitor.id}</p>
+                                  <p className="truncate">{visitor.city}</p>
                                   <p className="text-muted-foreground truncate text-xs">
                                     {visitor.location}
                                   </p>

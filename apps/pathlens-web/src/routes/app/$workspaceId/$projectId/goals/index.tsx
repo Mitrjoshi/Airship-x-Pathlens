@@ -182,7 +182,7 @@ const goalTypeMeta: Record<
 function RouteComponent() {
   const { projectId, workspaceId } = Route.useParams()
 
-  const [range, setRange] = useState<GoalRange>('90d')
+  const [range, setRange] = useState<GoalRange>('7d')
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const { data: goalsData, isLoading: goalsLoading } = useQuery(
