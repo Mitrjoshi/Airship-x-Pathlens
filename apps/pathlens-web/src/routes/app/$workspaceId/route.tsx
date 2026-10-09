@@ -174,12 +174,6 @@ const sidebarProjectsItems = [
         to: '/app/$workspaceId/$projectId/performance',
         isActive: (pathname: string) => pathname.includes('performance'),
       },
-      {
-        label: 'SEO',
-        icon: navigationIcons.seo,
-        to: '/app/$workspaceId/$projectId/seo',
-        isActive: (pathname: string) => pathname.includes('seo'),
-      },
     ],
   },
 

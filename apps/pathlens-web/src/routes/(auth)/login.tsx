@@ -22,6 +22,7 @@ import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { Marker, MarkerContent } from '@workspace/ui/components/marker'
 import { Badge } from '@workspace/ui/components/badge'
 import { startGithubLogin } from '@/lib/github-auth'
+import { startGoogleLogin } from '@/lib/google-auth'
 
 export const Route = createFileRoute('/(auth)/login')({
   component: RouteComponent,
@@ -79,18 +80,24 @@ function RouteComponent() {
           </div>
 
           <div className="space-y-4">
-            {/* <Button className="relative w-full" variant="outline" size="lg">
+            <Button
+              type="button"
+              className="relative w-full"
+              variant="outline"
+              size="lg"
+              onClick={startGoogleLogin}
+            >
               <GoogleIcon />
               Continue with Google
               {lastSigninMethod === 'google' && (
                 <Badge
                   variant={'outline'}
-                  className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
+                  className="bg-primary/20 border-primary absolute -top-2 -right-4 z-10 backdrop-blur-3xl"
                 >
                   Last used
                 </Badge>
               )}
-            </Button> */}
+            </Button>
 
             <Button
               type="button"
@@ -104,7 +111,7 @@ function RouteComponent() {
               {lastSigninMethod === 'github' && (
                 <Badge
                   variant={'outline'}
-                  className="bg-primary-foreground border-primary/50 absolute -top-2 -right-4 z-10 border"
+                  className="bg-primary/20 border-primary absolute -top-2 -right-4 z-10 backdrop-blur-3xl"
                 >
                   Last used
                 </Badge>

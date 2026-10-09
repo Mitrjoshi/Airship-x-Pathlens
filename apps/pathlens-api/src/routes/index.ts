@@ -24,6 +24,10 @@ import {
   githubCallback,
   githubLogin,
 } from "../controllers/github-auth.controller";
+import {
+  googleCallback,
+  googleLogin,
+} from "../controllers/google-auth.controller";
 
 const router = Router();
 
@@ -33,6 +37,8 @@ router.get("/tracking/config", getTrackingConfig);
 router.use("/billing", billingRouter);
 router.get("/auth/github", githubLogin);
 router.get("/auth/github/callback", githubCallback);
+router.get("/auth/google", googleLogin);
+router.get("/auth/google/callback", googleCallback);
 
 router.use(ApiKeyMiddleware);
 

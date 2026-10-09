@@ -54,6 +54,7 @@ import {
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { Badge } from '@workspace/ui/components/badge'
 import { SessionReplayPlayer } from '@/components/common/session-replay-player'
+import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
 
 const PAGE_SIZE = 50
 
@@ -278,8 +279,8 @@ function RouteComponent() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Visitor</TableHead>
-                    <TableHead className="w-32 text-center">Country</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead className="w-32">Visitor ID</TableHead>
                     <TableHead className="w-32 text-center">Device</TableHead>
                     <TableHead className="w-32 text-center">Duration</TableHead>
                     <TableHead className="w-32 text-center">Source</TableHead>
@@ -298,12 +299,19 @@ function RouteComponent() {
                     ? [...Array(PAGE_SIZE)].map((_, index) => (
                         <TableRow key={index}>
                           <TableCell>
-                            <Skeleton className="h-5 w-64" />
+                            <div className="flex min-w-0 items-start gap-2">
+                              <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+
+                              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                                <Skeleton className="h-4 w-50" />
+                                <Skeleton className="h-3 w-1/8" />
+                              </div>
+                            </div>
                           </TableCell>
 
-                          <TableCell className="w-32">
+                          <TableCell className="">
                             <div className="flex justify-center">
-                              <Skeleton className="h-5 w-16" />
+                              <Skeleton className="h-5 w-50" />
                             </div>
                           </TableCell>
 
@@ -354,18 +362,30 @@ function RouteComponent() {
                           className="hover:bg-card/40 cursor-pointer"
                         >
                           <TableCell>
-                            {item.visitorId}
-                            <Badge
-                              className="ml-2"
-                              variant={item.isLive ? 'default' : 'secondary'}
-                            >
-                              {item.isLive ? 'Live' : 'Offline'}
-                            </Badge>
+                            <div className="flex items-start gap-2">
+                              <div className="flex items-center gap-3">
+                                <Avatar>
+                                  <AvatarFallback>
+                                    {item.countryCode}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="truncate">{item.city}</p>
+                                  <p className="text-muted-foreground truncate text-xs">
+                                    {item.country}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <Badge
+                                variant={item.isLive ? 'default' : 'secondary'}
+                              >
+                                {item.isLive ? 'Online' : 'Offline'}
+                              </Badge>
+                            </div>
                           </TableCell>
 
-                          <TableCell className="w-24 text-center">
-                            {item.country}
-                          </TableCell>
+                          <TableCell className="">{item.visitorId}</TableCell>
 
                           <TableCell className="w-32 text-center whitespace-nowrap">
                             {item.device}

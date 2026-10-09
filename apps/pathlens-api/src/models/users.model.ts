@@ -13,6 +13,7 @@ interface I_Payload {
   password?: string | null;
   avatar?: string | null;
   githubId?: string | null;
+  googleId?: string | null;
 }
 
 export async function createUserModel(
@@ -26,6 +27,7 @@ export async function createUserModel(
       name: data.name,
       avatar: data.avatar,
       githubId: data.githubId,
+      googleId: data.googleId,
     })
     .returning({ id: users.id });
 }
@@ -54,6 +56,32 @@ export async function linkGithubAccountModel(data: {
     .update(users)
     .set({
       githubId: data.githubId,
+      avatar: data.avatar,
+    })
+    .where(eq(users.id, data.id))
+    .returning({ id: users.id });
+
+  return user;
+}
+
+export async function getUserByGoogleIdModel(googleId: string) {
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.googleId, googleId));
+
+  return user;
+}
+
+export async function linkGoogleAccountModel(data: {
+  id: string;
+  googleId: string;
+  avatar?: string | null;
+}) {
+  const [user] = await db
+    .update(users)
+    .set({
+      googleId: data.googleId,
       avatar: data.avatar,
     })
     .where(eq(users.id, data.id))

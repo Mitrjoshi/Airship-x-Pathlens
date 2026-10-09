@@ -3,9 +3,10 @@ import {
   getEventsChartOptions,
   getEventsOptions,
   type EventsCategory,
+  type EventsDevice,
+  type EventsRange,
   type ProjectEvent,
 } from '@/queries/events'
-import { getProjectsOptions } from '@/queries/projects'
 import {
   capitalizeFirstLetter,
   formatRelativeTime,
@@ -60,7 +61,7 @@ import {
   CalendarIcon,
   CheckIcon,
   CopyIcon,
-  LinkIcon,
+  MinusIcon,
   PauseIcon,
   PlayIcon,
   RefreshCcwIcon,
@@ -68,7 +69,6 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import VisitorsLoading from './-components/common/visitors-loading'
 import {
   Sheet,
   SheetContent,
@@ -79,27 +79,27 @@ import {
 import { DotSeparator, DotSeparatorItem } from '../../-components/dot-separator'
 import { DomainSwitcher } from './-components/common/domain-switcher'
 import { getProjectDomainsOptions } from '@/queries/domains'
+import { SessionReplayPlayer } from '@/components/common/session-replay-player'
+import { getSessionReplayDetailOptions } from '@/queries/session-replay'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/events')({
   component: RouteComponent,
 })
 
-const deviceLabels = {
-  all: 'All devices',
-  desktop: 'Desktop',
-  mobile: 'Mobile',
-  tablet: 'Tablet',
-  unknown: 'Unknown',
-} as const
+const deviceLabels = [
+  { value: 'all', label: 'All devices' },
+  { value: 'desktop', label: 'Desktop' },
+  { value: 'mobile', label: 'Mobile' },
+  { value: 'tablet', label: 'Tablet' },
+  { value: 'unknown', label: 'Unknown' },
+]
 
-type DeviceFilter = keyof typeof deviceLabels
-
-const rangeLabels: Record<AnalyticsRange, string> = {
-  '24h': 'Last 24 hours',
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-}
+const rangeLabels = [
+  { value: '24h', label: 'Last 24 hours' },
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: '90d', label: 'Last 90 days' },
+]
 
 const chartConfig = {
   views: {
@@ -355,12 +355,14 @@ function RouteComponent() {
 
   const [range, setRange] = useState<AnalyticsRange>('7d')
   const [liveMode, setLiveMode] = useState(false)
-  const [device, setDevice] = useState<DeviceFilter>('all')
+  const [device, setDevice] = useState<EventsDevice>('all')
   const [page, setPage] = useState(1)
   const [event, setEvent] = useState<ProjectEvent | null>(null)
   const [category, setCategory] = useState<EventsCategory>('high_signal')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [domain, setDomain] = useState('')
+  const [open, setOpen] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
 
   const {
     data: eventsData,
@@ -396,6 +398,19 @@ function RouteComponent() {
 
   const { data: domainsData, isLoading: domainsLoading } = useQuery(
     getProjectDomainsOptions(projectId)
+  )
+
+  const {
+    data: sessionDetails,
+    isLoading: sessionDetailsLoading,
+    isError: sessionDetailsError,
+  } = useQuery(
+    getSessionReplayDetailOptions({
+      project_id: projectId,
+      workspace_id: workspaceId,
+      session_id: sessionId ?? '',
+      domain,
+    })
   )
 
   const events = eventsData?.data
@@ -510,27 +525,21 @@ function RouteComponent() {
             </Popover>
 
             <Select
+              items={rangeLabels}
               value={range}
               onValueChange={(value) => {
-                if (value) {
-                  setRange(value as AnalyticsRange)
-                }
+                if (value) setRange(value as EventsRange)
               }}
             >
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="Date range">
-                  {rangeLabels[range]}
-                </SelectValue>
+                <SelectValue />
               </SelectTrigger>
-
               <SelectContent alignItemWithTrigger={false}>
-                <SelectItem value="24h">Last 24 hours</SelectItem>
-
-                <SelectItem value="7d">Last 7 days</SelectItem>
-
-                <SelectItem value="30d">Last 30 days</SelectItem>
-
-                <SelectItem value="90d">Last 90 days</SelectItem>
+                {rangeLabels.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </ButtonGroup>
@@ -606,23 +615,22 @@ function RouteComponent() {
               </Select>
 
               <Select
+                items={deviceLabels}
                 value={device}
                 onValueChange={(value) => {
                   if (value) {
-                    setDevice(value as DeviceFilter)
+                    setDevice(value as EventsDevice)
                   }
                 }}
               >
                 <SelectTrigger className="w-full sm:w-36">
-                  <SelectValue placeholder="Device">
-                    {deviceLabels[device]}
-                  </SelectValue>
+                  <SelectValue />
                 </SelectTrigger>
 
                 <SelectContent alignItemWithTrigger={false}>
-                  {Object.entries(deviceLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
+                  {deviceLabels.map((device) => (
+                    <SelectItem key={device.value} value={device.value}>
+                      {device.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -745,7 +753,9 @@ function RouteComponent() {
                                 <PlayIcon />
                               </Button>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <div className="flex justify-center">
+                                <MinusIcon className="text-muted-foreground" />
+                              </div>
                             )}
                           </TableCell>
                         </TableRow>
@@ -974,9 +984,20 @@ function RouteComponent() {
                       }
                     />
 
-                    {event?.replayAvailable && (
-                      <Button className="w-full">View session replay</Button>
-                    )}
+                    <Button
+                      disabled={!event?.replayAvailable}
+                      onClick={() => {
+                        if (event?.sessionId) {
+                          setSessionId(event?.sessionId)
+                          setOpen(true)
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      {event?.replayAvailable
+                        ? 'View session replay'
+                        : 'Replay Unavailable'}
+                    </Button>
                   </EventSection>
 
                   <Separator />
@@ -1007,6 +1028,19 @@ function RouteComponent() {
           </Sheet>
         </div>
       </div>
+
+      <SessionReplayPlayer
+        open={open}
+        onOpenChange={(o) => {
+          if (!o) setSessionId(null)
+          setOpen(o)
+        }}
+        detail={sessionDetails?.data}
+        isError={sessionDetailsError}
+        isLoading={sessionDetailsLoading}
+        projectId={projectId}
+        workspaceId={workspaceId}
+      />
     </div>
   )
 }

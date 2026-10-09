@@ -29,6 +29,7 @@ export interface SessionReplaySession {
   visitorId: string;
   country: string;
   countryCode: string;
+  city: string;
   device: "Desktop" | "Mobile" | "Tablet" | "Unknown";
   duration: string;
   pages: number;
@@ -74,6 +75,7 @@ export interface SessionReplayDetail {
   visitorId: string;
   country: string;
   countryCode: string;
+  city: string;
   device: "Desktop" | "Mobile" | "Tablet" | "Unknown";
   duration: string;
   startedAt: string;
@@ -97,6 +99,7 @@ interface SessionReplayRow extends Record<string, unknown> {
   visitor_id: string;
   country: string | null;
   country_code: string | null;
+  city: string | null;
   device: string | null;
   duration_seconds: number | string | null;
   pages: number | string | null;
@@ -124,6 +127,7 @@ interface SessionReplayDetailRow extends Record<string, unknown> {
   visitor_id: string;
   country: string | null;
   country_code: string | null;
+  city: string | null;
   device: string | null;
   started_at: Date | string | null;
   ended_at: Date | string | null;
@@ -314,9 +318,10 @@ export async function getSessionReplayModel(
         occurred_at,
         type,
         path,
-        country,
-        country_code,
-        device,
+         country,
+         country_code,
+         city,
+         device,
         referrer_domain,
         session_duration_ms,
         payload
@@ -352,8 +357,9 @@ export async function getSessionReplayModel(
       SELECT DISTINCT ON (session_id)
         session_id,
         country,
-        country_code,
-        device,
+         country_code,
+         city,
+         device,
         referrer_domain
       FROM filtered_events
       ORDER BY session_id, occurred_at DESC
@@ -382,9 +388,10 @@ export async function getSessionReplayModel(
       SELECT
         sr.session_id,
         sr.visitor_id,
-        le.country,
-        le.country_code,
-        le.device,
+         le.country,
+         le.country_code,
+         le.city,
+         le.device,
         CASE
           WHEN sr.duration_ms IS NOT NULL
             THEN sr.duration_ms / 1000.0
@@ -482,6 +489,7 @@ export async function getSessionReplayModel(
       visitorId: row.visitor_id,
       country: formatCountry(row.country, row.country_code),
       countryCode: row.country_code?.trim().toUpperCase() || "--",
+      city: row.city?.trim() || "Unknown city",
       device: formatDevice(row.device),
       duration: formatDuration(toNumber(row.duration_seconds)),
       pages: toNumber(row.pages),
@@ -511,6 +519,7 @@ export async function getSessionReplayDetailModel(
         visitor_id,
         MAX(country) AS country,
         MAX(country_code) AS country_code,
+        MAX(city) AS city,
         MAX(device) AS device,
         MIN(occurred_at) AS started_at,
         MAX(occurred_at) AS ended_at,
@@ -595,6 +604,7 @@ export async function getSessionReplayDetailModel(
     visitorId: summary.visitor_id,
     country: formatCountry(summary.country, summary.country_code),
     countryCode: summary.country_code?.trim().toUpperCase() || "--",
+    city: summary.city?.trim() || "Unknown city",
     device: formatDevice(summary.device),
     duration: formatDuration(toNumber(summary.duration_seconds)),
     startedAt: toIso(summary.started_at),

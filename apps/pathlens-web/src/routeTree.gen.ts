@@ -13,6 +13,7 @@ import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as openRouteRouteImport } from './routes/(open)/route'
 import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as authGithubCallbackRouteImport } from './routes/(auth)/github-callback'
+import { Route as authGoogleCallbackRouteImport } from './routes/(auth)/google-callback'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authPasswordResetRouteImport } from './routes/(auth)/password-reset'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
@@ -47,7 +48,6 @@ import { Route as AppWorkspaceIdProjectIdEventsRouteImport } from './routes/app/
 import { Route as AppWorkspaceIdProjectIdHeatmapsRouteImport } from './routes/app/$workspaceId/$projectId/heatmaps'
 import { Route as AppWorkspaceIdProjectIdPerformanceRouteImport } from './routes/app/$workspaceId/$projectId/performance'
 import { Route as AppWorkspaceIdProjectIdReportsRouteImport } from './routes/app/$workspaceId/$projectId/reports'
-import { Route as AppWorkspaceIdProjectIdSeoRouteImport } from './routes/app/$workspaceId/$projectId/seo'
 import { Route as AppWorkspaceIdProjectIdSessionReplayRouteImport } from './routes/app/$workspaceId/$projectId/session-replay'
 import { Route as AppWorkspaceIdProjectIdSettingsRouteImport } from './routes/app/$workspaceId/$projectId/settings'
 import { Route as AppWorkspaceIdProjectIdSetupRouteImport } from './routes/app/$workspaceId/$projectId/setup'
@@ -75,6 +75,11 @@ const AppRouteRoute = AppRouteRouteImport.update({
 const authGithubCallbackRoute = authGithubCallbackRouteImport.update({
   id: '/github-callback',
   path: '/github-callback',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authGoogleCallbackRoute = authGoogleCallbackRouteImport.update({
+  id: '/google-callback',
+  path: '/google-callback',
   getParentRoute: () => authRouteRoute,
 } as any)
 const authLoginRoute = authLoginRouteImport.update({
@@ -259,12 +264,6 @@ const AppWorkspaceIdProjectIdReportsRoute =
     path: '/$projectId/reports',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
-const AppWorkspaceIdProjectIdSeoRoute =
-  AppWorkspaceIdProjectIdSeoRouteImport.update({
-    id: '/$projectId/seo',
-    path: '/$projectId/seo',
-    getParentRoute: () => AppWorkspaceIdRouteRoute,
-  } as any)
 const AppWorkspaceIdProjectIdSessionReplayRoute =
   AppWorkspaceIdProjectIdSessionReplayRouteImport.update({
     id: '/$projectId/session-replay',
@@ -330,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppentryRouteRouteWithChildren
   '/app/$workspaceId': typeof AppWorkspaceIdRouteRouteWithChildren
   '/github-callback': typeof authGithubCallbackRoute
+  '/google-callback': typeof authGoogleCallbackRoute
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
@@ -359,7 +359,6 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
-  '/app/$workspaceId/$projectId/seo': typeof AppWorkspaceIdProjectIdSeoRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
   '/app/$workspaceId/$projectId/setup': typeof AppWorkspaceIdProjectIdSetupRoute
@@ -377,6 +376,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/app': typeof AppentryIndexRoute
   '/github-callback': typeof authGithubCallbackRoute
+  '/google-callback': typeof authGoogleCallbackRoute
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
@@ -405,7 +405,6 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
-  '/app/$workspaceId/$projectId/seo': typeof AppWorkspaceIdProjectIdSeoRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
   '/app/$workspaceId/$projectId/setup': typeof AppWorkspaceIdProjectIdSetupRoute
@@ -428,6 +427,7 @@ export interface FileRoutesById {
   '/app/$workspaceId': typeof AppWorkspaceIdRouteRouteWithChildren
   '/app/(entry)': typeof AppentryRouteRouteWithChildren
   '/(auth)/github-callback': typeof authGithubCallbackRoute
+  '/(auth)/google-callback': typeof authGoogleCallbackRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/password-reset': typeof authPasswordResetRoute
   '/(auth)/sign-up': typeof authSignUpRoute
@@ -457,7 +457,6 @@ export interface FileRoutesById {
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
-  '/app/$workspaceId/$projectId/seo': typeof AppWorkspaceIdProjectIdSeoRoute
   '/app/$workspaceId/$projectId/session-replay': typeof AppWorkspaceIdProjectIdSessionReplayRoute
   '/app/$workspaceId/$projectId/settings': typeof AppWorkspaceIdProjectIdSettingsRoute
   '/app/$workspaceId/$projectId/setup': typeof AppWorkspaceIdProjectIdSetupRoute
@@ -478,6 +477,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/$workspaceId'
     | '/github-callback'
+    | '/google-callback'
     | '/login'
     | '/password-reset'
     | '/sign-up'
@@ -507,7 +507,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
-    | '/app/$workspaceId/$projectId/seo'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
     | '/app/$workspaceId/$projectId/setup'
@@ -525,6 +524,7 @@ export interface FileRouteTypes {
   to:
     | '/app'
     | '/github-callback'
+    | '/google-callback'
     | '/login'
     | '/password-reset'
     | '/sign-up'
@@ -553,7 +553,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
-    | '/app/$workspaceId/$projectId/seo'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
     | '/app/$workspaceId/$projectId/setup'
@@ -575,6 +574,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId'
     | '/app/(entry)'
     | '/(auth)/github-callback'
+    | '/(auth)/google-callback'
     | '/(auth)/login'
     | '/(auth)/password-reset'
     | '/(auth)/sign-up'
@@ -604,7 +604,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
-    | '/app/$workspaceId/$projectId/seo'
     | '/app/$workspaceId/$projectId/session-replay'
     | '/app/$workspaceId/$projectId/settings'
     | '/app/$workspaceId/$projectId/setup'
@@ -654,6 +653,13 @@ declare module '@tanstack/react-router' {
       path: '/github-callback'
       fullPath: '/github-callback'
       preLoaderRoute: typeof authGithubCallbackRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/google-callback': {
+      id: '/(auth)/google-callback'
+      path: '/google-callback'
+      fullPath: '/google-callback'
+      preLoaderRoute: typeof authGoogleCallbackRouteImport
       parentRoute: typeof authRouteRoute
     }
     '/(auth)/login': {
@@ -894,13 +900,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdReportsRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
-    '/app/$workspaceId/$projectId/seo': {
-      id: '/app/$workspaceId/$projectId/seo'
-      path: '/$projectId/seo'
-      fullPath: '/app/$workspaceId/$projectId/seo'
-      preLoaderRoute: typeof AppWorkspaceIdProjectIdSeoRouteImport
-      parentRoute: typeof AppWorkspaceIdRouteRoute
-    }
     '/app/$workspaceId/$projectId/session-replay': {
       id: '/app/$workspaceId/$projectId/session-replay'
       path: '/$projectId/session-replay'
@@ -976,6 +975,7 @@ declare module '@tanstack/react-router' {
 
 interface authRouteRouteChildren {
   authGithubCallbackRoute: typeof authGithubCallbackRoute
+  authGoogleCallbackRoute: typeof authGoogleCallbackRoute
   authLoginRoute: typeof authLoginRoute
   authPasswordResetRoute: typeof authPasswordResetRoute
   authSignUpRoute: typeof authSignUpRoute
@@ -983,6 +983,7 @@ interface authRouteRouteChildren {
 
 const authRouteRouteChildren: authRouteRouteChildren = {
   authGithubCallbackRoute: authGithubCallbackRoute,
+  authGoogleCallbackRoute: authGoogleCallbackRoute,
   authLoginRoute: authLoginRoute,
   authPasswordResetRoute: authPasswordResetRoute,
   authSignUpRoute: authSignUpRoute,
@@ -1032,7 +1033,6 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdProjectIdHeatmapsRoute: typeof AppWorkspaceIdProjectIdHeatmapsRoute
   AppWorkspaceIdProjectIdPerformanceRoute: typeof AppWorkspaceIdProjectIdPerformanceRoute
   AppWorkspaceIdProjectIdReportsRoute: typeof AppWorkspaceIdProjectIdReportsRoute
-  AppWorkspaceIdProjectIdSeoRoute: typeof AppWorkspaceIdProjectIdSeoRoute
   AppWorkspaceIdProjectIdSessionReplayRoute: typeof AppWorkspaceIdProjectIdSessionReplayRoute
   AppWorkspaceIdProjectIdSettingsRoute: typeof AppWorkspaceIdProjectIdSettingsRoute
   AppWorkspaceIdProjectIdSetupRoute: typeof AppWorkspaceIdProjectIdSetupRoute
@@ -1066,7 +1066,6 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
   AppWorkspaceIdProjectIdPerformanceRoute:
     AppWorkspaceIdProjectIdPerformanceRoute,
   AppWorkspaceIdProjectIdReportsRoute: AppWorkspaceIdProjectIdReportsRoute,
-  AppWorkspaceIdProjectIdSeoRoute: AppWorkspaceIdProjectIdSeoRoute,
   AppWorkspaceIdProjectIdSessionReplayRoute:
     AppWorkspaceIdProjectIdSessionReplayRoute,
   AppWorkspaceIdProjectIdSettingsRoute: AppWorkspaceIdProjectIdSettingsRoute,

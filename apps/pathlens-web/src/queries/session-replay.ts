@@ -10,6 +10,7 @@ export interface SessionReplaySession {
   visitorId: string
   country: string
   countryCode: string
+  city: string
   device: 'Desktop' | 'Mobile' | 'Tablet' | 'Unknown'
   duration: string
   pages: number
@@ -57,6 +58,7 @@ export interface SessionReplayDetail {
   visitorId: string
   country: string
   countryCode: string
+  city: string
   device: 'Desktop' | 'Mobile' | 'Tablet' | 'Unknown'
   duration: string
   startedAt: string

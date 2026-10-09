@@ -7,6 +7,7 @@ import type {
   HeatmapPageDetail,
   HeatmapScrollPoint,
   HeatmapsData,
+  HeatmapsListData,
 } from "@workspace/contracts";
 import { db } from "../db/client";
 import { getReplayDataModel } from "./replay.model";
@@ -55,6 +56,9 @@ export interface HeatmapsFilters {
   device: HeatmapDevice;
   pagePath?: string;
   domain?: string;
+  page?: number;
+  pageSize?: number;
+  includeDetails?: boolean;
 }
 
 interface PageRow extends Record<string, unknown> {
@@ -67,6 +71,7 @@ interface PageRow extends Record<string, unknown> {
   viewport_width: number | string | null;
   viewport_height: number | string | null;
   replay_available: boolean | null;
+  total: number | string | null;
 }
 
 interface HeatmapEventRow extends Record<string, unknown> {
@@ -500,6 +505,12 @@ export async function getHeatmapsModel(
   const domainFilter = filters.domain
     ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
     : sql``;
+  const page = filters.page ?? 1;
+  const pageSize = filters.pageSize ?? 50;
+  const pagePathFilter =
+    filters.includeDetails && filters.pagePath
+      ? sql`AND COALESCE(NULLIF(path, ''), '/') = ${filters.pagePath}`
+      : sql``;
   const pageResult = await db.execute<PageRow>(sql`
     WITH page_metrics AS (
       SELECT
@@ -514,13 +525,15 @@ export async function getHeatmapsModel(
       FROM events
       WHERE workspace_id = ${filters.workspaceId}
         AND project_id = ${filters.projectId}
-        AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
-        ${deviceFilter}
-      GROUP BY COALESCE(NULLIF(path, ''), '/')
+         AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+         ${deviceFilter}
+         ${pagePathFilter}
+       GROUP BY COALESCE(NULLIF(path, ''), '/')
       HAVING COUNT(*) FILTER (WHERE type IN ('page_view', 'click', 'scroll')) > 0
     )
     SELECT
       page_metrics.*,
+      COUNT(*) OVER()::int AS total,
       EXISTS (
         SELECT 1
         FROM replay_sessions replay
@@ -545,7 +558,8 @@ export async function getHeatmapsModel(
       ) AS replay_available
     FROM page_metrics
     ORDER BY views DESC, clicks DESC, path ASC
-    LIMIT 100;
+      LIMIT ${pageSize}
+      OFFSET ${(page - 1) * pageSize};
   `);
   const scrollSummaryResult = await db.execute<ScrollSummaryRow>(sql`
     WITH session_scroll AS (
@@ -601,8 +615,22 @@ export async function getHeatmapsModel(
     };
   });
 
+  const total = toNumber(pageResult.rows[0]?.total);
+  const totalPages = Math.ceil(total / pageSize);
+  const pagination = {
+    page,
+    pageSize,
+    total,
+    totalPages,
+    hasNextPage: page < totalPages,
+  };
+
   if (pages.length === 0) {
-    return { pages: [], selectedPage: null };
+    return { pages: [], selectedPage: null, pagination };
+  }
+
+  if (filters.includeDetails === false) {
+    return { pages, selectedPage: null, pagination };
   }
 
   const selectedPage =
@@ -681,5 +709,33 @@ export async function getHeatmapsModel(
   return {
     pages,
     selectedPage: pageDetail,
+    pagination,
   };
+}
+
+export async function getHeatmapsListModel(
+  filters: HeatmapsFilters
+): Promise<HeatmapsListData> {
+  const data = await getHeatmapsModel({
+    ...filters,
+    includeDetails: false,
+  });
+
+  return {
+    pages: data.pages,
+    pagination: data.pagination,
+  };
+}
+
+export async function getHeatmapDetailsModel(
+  filters: HeatmapsFilters
+): Promise<HeatmapPageDetail | null> {
+  const data = await getHeatmapsModel({
+    ...filters,
+    includeDetails: true,
+    page: 1,
+    pageSize: 1,
+  });
+
+  return data.selectedPage;
 }

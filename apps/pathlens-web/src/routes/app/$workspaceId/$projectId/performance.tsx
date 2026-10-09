@@ -148,20 +148,20 @@ const getMetricStatus = (
   return { label: 'Needs attention', className: 'text-destructive' }
 }
 
-const deviceLabels = {
-  all: 'All devices',
-  desktop: 'Desktop',
-  mobile: 'Mobile',
-  tablet: 'Tablet',
-  unknown: 'Unknown',
-} as const
+const deviceLabels = [
+  { value: 'all', label: 'All devices' },
+  { value: 'desktop', label: 'Desktop' },
+  { value: 'mobile', label: 'Mobile' },
+  { value: 'tablet', label: 'Tablet' },
+  { value: 'unknown', label: 'Unknown' },
+]
 
-const rangeLabels: Record<PerformanceRange, string> = {
-  '24h': 'Last 24 hours',
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-}
+const rangeLabels = [
+  { value: '24h', label: 'Last 24 hours' },
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: '90d', label: 'Last 90 days' },
+]
 
 const chartConfig = {
   dns: {
@@ -282,26 +282,27 @@ function RouteComponent() {
             </Popover>
 
             <Select
+              items={rangeLabels}
               value={range}
               onValueChange={(value) => {
                 if (value) setRange(value as PerformanceRange)
               }}
             >
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="Date range">
-                  {rangeLabels[range]}
-                </SelectValue>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
-                <SelectItem value="24h">Last 24 hours</SelectItem>
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 90 days</SelectItem>
+                {rangeLabels.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </ButtonGroup>
 
           <Select
+            items={deviceLabels}
             value={device}
             onValueChange={(value) => {
               if (value) {
@@ -310,15 +311,13 @@ function RouteComponent() {
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
-              <SelectValue placeholder="Device">
-                {deviceLabels[device]}
-              </SelectValue>
+              <SelectValue />
             </SelectTrigger>
 
             <SelectContent alignItemWithTrigger={false}>
-              {Object.entries(deviceLabels).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
+              {deviceLabels.map((device) => (
+                <SelectItem key={device.value} value={device.value}>
+                  {device.label}
                 </SelectItem>
               ))}
             </SelectContent>

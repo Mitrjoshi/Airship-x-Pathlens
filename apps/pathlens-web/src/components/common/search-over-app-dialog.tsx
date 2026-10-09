@@ -51,7 +51,6 @@ type ProjectPagePath =
   | '/app/$workspaceId/$projectId/visitors'
   | '/app/$workspaceId/$projectId/errors'
   | '/app/$workspaceId/$projectId/performance'
-  | '/app/$workspaceId/$projectId/seo'
   | '/app/$workspaceId/$projectId/reports'
   | '/app/$workspaceId/$projectId/ai-insights'
   | '/app/$workspaceId/$projectId/usage'
@@ -259,17 +258,6 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
     to: '/app/$workspaceId/$projectId/performance',
     permissions: ['analytics.performance.view'],
   },
-  {
-    id: 'project-seo',
-    title: 'SEO',
-    description: 'Review your website search engine optimization',
-    keywords:
-      'seo search engine optimization google rankings metadata sitemap indexing pages',
-    icon: navigationIcons.seo,
-    to: '/app/$workspaceId/$projectId/seo',
-    permissions: ['analytics.seo.view'],
-  },
-
   /* ------------------------------- Insights ----------------------------- */
 
   {

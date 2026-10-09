@@ -59,9 +59,33 @@ export interface HeatmapPageDetail extends HeatmapPage {
   coordinateMode: 'document' | 'viewport' | 'mixed'
 }
 
+export interface HeatmapsPagination {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+  hasNextPage: boolean
+}
+
+export interface HeatmapsListData {
+  pages: HeatmapPage[]
+  pagination: HeatmapsPagination
+}
+
+export interface HeatmapsListResponse {
+  success: boolean
+  data: HeatmapsListData
+}
+
+export interface HeatmapDetailsResponse {
+  success: boolean
+  data: HeatmapPageDetail | null
+}
+
 export interface HeatmapsData {
   pages: HeatmapPage[]
   selectedPage: HeatmapPageDetail | null
+  pagination: HeatmapsPagination
 }
 
 export interface HeatmapsResponse {
@@ -76,4 +100,15 @@ export interface HeatmapsParams {
   range: HeatmapsRange
   device?: HeatmapDevice
   page_path?: string
+  page?: number
+  page_size?: number
+}
+
+export interface HeatmapDetailsParams {
+  workspace_id: string
+  project_id: string
+  domain?: string
+  range: HeatmapsRange
+  device?: HeatmapDevice
+  page_path: string | null
 }

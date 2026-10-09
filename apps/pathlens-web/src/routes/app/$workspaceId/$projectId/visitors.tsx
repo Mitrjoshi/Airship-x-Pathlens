@@ -66,12 +66,12 @@ export const Route = createFileRoute('/app/$workspaceId/$projectId/visitors')({
   component: RouteComponent,
 })
 
-const rangeLabels: Record<VisitorsRange, string> = {
-  '24h': 'Last 24 hours',
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-}
+const rangeLabels = [
+  { value: '24h', label: 'Last 24 hours' },
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: '90d', label: 'Last 90 days' },
+]
 
 const statusItems = [
   {
@@ -221,21 +221,21 @@ function RouteComponent() {
             </Popover>
 
             <Select
+              items={rangeLabels}
               value={range}
               onValueChange={(value) => {
                 if (value) setRange(value as VisitorsRange)
               }}
             >
               <SelectTrigger className="w-full sm:w-36">
-                <SelectValue placeholder="Date range">
-                  {rangeLabels[range]}
-                </SelectValue>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
-                <SelectItem value="24h">Last 24 hours</SelectItem>
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 90 days</SelectItem>
+                {rangeLabels.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </ButtonGroup>

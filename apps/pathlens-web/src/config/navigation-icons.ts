@@ -25,7 +25,6 @@ import {
   TrashIcon,
   UsersIcon,
   WorkflowIcon,
-  SearchCheckIcon,
 } from 'lucide-react'
 
 export const navigationIcons = {
@@ -63,5 +62,4 @@ export const navigationIcons = {
   copy: CopyIcon,
   edit: EditIcon,
   audit: LogsIcon,
-  seo: SearchCheckIcon,
 } as const
