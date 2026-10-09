@@ -26,11 +26,7 @@ import {
 import { getProjectsOptions, type T_Projects } from '@/queries/projects'
 import { Separator } from '@workspace/ui/components/separator'
 import { useQuery } from '@tanstack/react-query'
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@workspace/ui/components/avatar'
+import { Avatar, AvatarImage } from '@workspace/ui/components/avatar'
 
 export const Header = () => {
   const user = useRouteContext({

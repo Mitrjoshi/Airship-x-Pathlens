@@ -31,7 +31,9 @@ export const users = pgTable("users", {
 
   avatar: text("avatar"),
   githubId: text("github_id").unique(),
+  githubAvatar: text("github_avatar"),
   googleId: text("google_id").unique(),
+  googleAvatar: text("google_avatar"),
 
   lifetimeAccess: boolean("lifetime_access").notNull().default(false),
 

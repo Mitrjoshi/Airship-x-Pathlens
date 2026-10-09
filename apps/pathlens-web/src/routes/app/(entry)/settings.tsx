@@ -202,31 +202,64 @@ function RouteComponent() {
               <CardContent className="flex items-start gap-6">
                 <Avatar className={'group relative size-50 overflow-hidden'}>
                   <AvatarImage src={user.avatar!} />
-                  <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
-
-                  <div
+                  <AvatarFallback
                     className={
-                      'hover:bg-muted/20 absolute inset-0 right-0 bottom-0 z-10 flex aspect-square h-full w-full cursor-pointer items-center justify-center rounded-full bg-black/10 p-2 text-white opacity-0 backdrop-blur-sm duration-200 group-hover:opacity-100'
+                      'bg-primary/40 text-7xl text-black dark:text-white'
                     }
                   >
-                    <input
-                      type="file"
-                      className="absolute h-full w-full"
-                      onChange={handleAvatarChange}
-                    />
-                    <Camera />
-                  </div>
+                    {user.name.charAt(0)}
+                  </AvatarFallback>
                 </Avatar>
 
-                <div className="space-y-4">
+                <div className="w-full space-y-4">
                   <Field>
-                    <Label>Display Name</Label>
+                    <FieldLabel>Display Name</FieldLabel>
                     <Input value={user.name} />
                   </Field>
 
                   <Field>
-                    <Label>Email</Label>
+                    <FieldLabel>Email</FieldLabel>
                     <Input value={user.email} />
+                  </Field>
+
+                  <Separator />
+
+                  <Field>
+                    <FieldLabel>Avatars</FieldLabel>
+                    <div className="flex items-center gap-2">
+                      <Avatar
+                        render={<Button size="icon-lg" variant={'outline'} />}
+                      >
+                        <AvatarImage src={user.avatar!} />
+                        <AvatarFallback
+                          className={'bg-primary/40 text-black dark:text-white'}
+                        >
+                          {user.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      {user.githubAvatar && (
+                        <Avatar
+                          render={<Button size="icon-lg" variant={'outline'} />}
+                        >
+                          <AvatarImage src={user.githubAvatar!} />
+                          <AvatarFallback>
+                            {user?.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+
+                      {user.googleAvatar && (
+                        <Avatar
+                          render={<Button size="icon-lg" variant={'outline'} />}
+                        >
+                          <AvatarImage src={user.googleAvatar!} />
+                          <AvatarFallback>
+                            {user?.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                    </div>
                   </Field>
                 </div>
               </CardContent>

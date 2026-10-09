@@ -13,7 +13,9 @@ interface I_Payload {
   password?: string | null;
   avatar?: string | null;
   githubId?: string | null;
+  githubAvatar?: string | null;
   googleId?: string | null;
+  googleAvatar?: string | null;
 }
 
 export async function createUserModel(
@@ -27,7 +29,9 @@ export async function createUserModel(
       name: data.name,
       avatar: data.avatar,
       githubId: data.githubId,
+      githubAvatar: data.githubAvatar,
       googleId: data.googleId,
+      googleAvatar: data.googleAvatar,
     })
     .returning({ id: users.id });
 }
@@ -50,13 +54,13 @@ export async function getUserByGithubIdModel(githubId: string) {
 export async function linkGithubAccountModel(data: {
   id: string;
   githubId: string;
-  avatar?: string | null;
+  providerAvatar?: string | null;
 }) {
   const [user] = await db
     .update(users)
     .set({
       githubId: data.githubId,
-      avatar: data.avatar,
+      githubAvatar: data.providerAvatar,
     })
     .where(eq(users.id, data.id))
     .returning({ id: users.id });
@@ -76,13 +80,13 @@ export async function getUserByGoogleIdModel(googleId: string) {
 export async function linkGoogleAccountModel(data: {
   id: string;
   googleId: string;
-  avatar?: string | null;
+  providerAvatar?: string | null;
 }) {
   const [user] = await db
     .update(users)
     .set({
       googleId: data.googleId,
-      avatar: data.avatar,
+      googleAvatar: data.providerAvatar,
     })
     .where(eq(users.id, data.id))
     .returning({ id: users.id });

@@ -171,11 +171,14 @@ export async function googleCallback(req: Request, res: Response) {
     }
 
     if (user) {
-      if (user.googleId !== profile.sub || user.avatar !== profile.picture) {
+      if (
+        user.googleId !== profile.sub ||
+        user.googleAvatar !== profile.picture
+      ) {
         await linkGoogleAccountModel({
           id: user.id,
           googleId: profile.sub,
-          avatar: profile.picture,
+          providerAvatar: profile.picture,
         });
       }
     } else {
@@ -185,6 +188,7 @@ export async function googleCallback(req: Request, res: Response) {
         password: null,
         avatar: profile.picture,
         googleId: profile.sub,
+        googleAvatar: profile.picture,
       });
       user = await getUserByGoogleIdModel(profile.sub);
 

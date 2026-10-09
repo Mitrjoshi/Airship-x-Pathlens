@@ -197,11 +197,14 @@ export async function githubCallback(req: Request, res: Response) {
     }
 
     if (user) {
-      if (user.githubId !== githubId || user.avatar !== profile.avatar_url) {
+      if (
+        user.githubId !== githubId ||
+        user.githubAvatar !== profile.avatar_url
+      ) {
         await linkGithubAccountModel({
           id: user.id,
           githubId,
-          avatar: profile.avatar_url,
+          providerAvatar: profile.avatar_url,
         });
       }
     } else {
@@ -211,6 +214,7 @@ export async function githubCallback(req: Request, res: Response) {
         password: null,
         avatar: profile.avatar_url,
         githubId,
+        githubAvatar: profile.avatar_url,
       });
       user = await getUserByGithubIdModel(githubId);
 

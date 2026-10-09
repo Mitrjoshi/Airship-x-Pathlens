@@ -7,6 +7,8 @@ export type T_User = {
   name: string
   email: string
   avatar: string | null
+  googleAvatar: string | null
+  githubAvatar: string | null
   createdAt: string
   defaultWorkspace: T_Workspace
 }

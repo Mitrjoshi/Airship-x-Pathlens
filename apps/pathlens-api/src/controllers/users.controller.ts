@@ -232,11 +232,17 @@ export async function getUser(req: AuthRequest, res: Response) {
       });
     }
 
+    const {
+      password: _password,
+      googleId: _googleId,
+      githubId: _githubId,
+      ...safeUserData
+    } = userData;
+
     res.status(200).send({
       success: true,
       data: {
-        ...userData,
-        password: undefined,
+        ...safeUserData,
       },
     });
   } catch (error) {

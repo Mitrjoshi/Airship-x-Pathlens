@@ -379,118 +379,118 @@ function RouteComponent() {
                   </TableRow>
                 </TableHeader>
 
-                {!visitors.length ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center">
-                      <p className="text-muted-foreground text-sm">
-                        No visitors found.
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  <TableBody>
-                    {isLoading
-                      ? [...Array(5)].map((_, index) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              <div className="flex min-w-0 items-start gap-2">
-                                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                <TableBody>
+                  {isLoading ? (
+                    [...Array(5)].map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <div className="flex min-w-0 items-start gap-2">
+                            <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
 
-                                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                                  <Skeleton className="h-4 w-90" />
-                                  <Skeleton className="h-3 w-1/8" />
-                                </div>
-                              </div>
-                            </TableCell>
+                            <div className="flex min-w-0 flex-1 flex-col gap-1">
+                              <Skeleton className="h-4 w-90" />
+                              <Skeleton className="h-3 w-1/8" />
+                            </div>
+                          </div>
+                        </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-full" />
-                              </div>
-                            </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <Skeleton className="h-6 w-full" />
+                          </div>
+                        </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-full" />
-                              </div>
-                            </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <Skeleton className="h-6 w-full" />
+                          </div>
+                        </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-full" />
-                              </div>
-                            </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <Skeleton className="h-6 w-full" />
+                          </div>
+                        </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-full" />
-                              </div>
-                            </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <Skeleton className="h-6 w-full" />
+                          </div>
+                        </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-full" />
-                              </div>
-                            </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <Skeleton className="h-6 w-full" />
+                          </div>
+                        </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-full" />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      : visitors?.map((visitor) => (
-                          <TableRow key={visitor.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <Avatar>
-                                  <AvatarFallback>
-                                    {visitor.countryCode}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="truncate">{visitor.city}</p>
-                                  <p className="text-muted-foreground truncate text-xs">
-                                    {visitor.location}
-                                  </p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{visitor.device}</TableCell>
-                            <TableCell>{visitor.browser}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-center">
+                            <Skeleton className="h-6 w-full" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : !visitors.length ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-32 text-center">
+                        <p className="text-muted-foreground text-sm">
+                          No visitors found.
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    visitors?.map((visitor) => (
+                      <TableRow key={visitor.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarFallback>
+                                {visitor.countryCode}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="truncate">{visitor.city}</p>
+                              <p className="text-muted-foreground truncate text-xs">
+                                {visitor.location}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{visitor.device}</TableCell>
+                        <TableCell>{visitor.browser}</TableCell>
 
-                            <TableCell>{visitor.sessions}</TableCell>
-                            <TableCell>{visitor.pageViews}</TableCell>
+                        <TableCell>{visitor.sessions}</TableCell>
+                        <TableCell>{visitor.pageViews}</TableCell>
 
-                            <TableCell className="text-sm">
-                              {visitor.duration}
-                            </TableCell>
-                            <TableCell className="pr-5">
-                              <Badge
-                                variant="outline"
-                                className={
-                                  visitor.status === 'online'
-                                    ? 'border-primary/40 bg-primary/10 dark:text-primary text-emerald-700'
-                                    : 'text-muted-foreground'
-                                }
-                              >
-                                <span
-                                  className={`mr-1.5 size-1.5 rounded-full ${visitor.status === 'online' ? 'bg-primary' : 'bg-muted-foreground/50'}`}
-                                />
-                                {visitor.status === 'online'
-                                  ? 'Active now'
-                                  : formatRelativeTime(visitor.lastSeen)}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                  </TableBody>
-                )}
+                        <TableCell className="text-sm">
+                          {visitor.duration}
+                        </TableCell>
+                        <TableCell className="pr-5">
+                          <Badge
+                            variant="outline"
+                            className={
+                              visitor.status === 'online'
+                                ? 'border-primary/40 bg-primary/10 dark:text-primary text-emerald-700'
+                                : 'text-muted-foreground'
+                            }
+                          >
+                            <span
+                              className={`mr-1.5 size-1.5 rounded-full ${visitor.status === 'online' ? 'bg-primary' : 'bg-muted-foreground/50'}`}
+                            />
+                            {visitor.status === 'online'
+                              ? 'Active now'
+                              : formatRelativeTime(visitor.lastSeen)}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
               </Table>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center justify-between border-t px-4 py-3">
                 <p className="text-muted-foreground text-sm">
                   {totalEvents > 0 ? (
                     <>
