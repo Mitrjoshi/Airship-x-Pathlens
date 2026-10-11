@@ -1,7 +1,15 @@
 import { getProjectsOptions } from '@/queries/projects'
 import { getUsageOptions } from '@/queries/usage'
+import { formatBytes, formatNumber } from '@/utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { Button } from '@workspace/ui/components/button'
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/card'
 import {
   Select,
   SelectContent,
@@ -9,60 +17,84 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select'
-import { z } from 'zod'
+import { Skeleton } from '@workspace/ui/components/skeleton'
+import { ArrowUpRightIcon } from 'lucide-react'
+import { useState } from 'react'
 
 export const Route = createFileRoute('/app/$workspaceId/usage')({
   component: RouteComponent,
-  validateSearch: z.object({ project_id: z.string().optional() }),
 })
-
-const items = [
-  { label: 'Light', value: 'light' },
-  { label: 'Dark', value: 'dark' },
-  { label: 'System', value: 'system' },
-]
 
 function RouteComponent() {
   const { workspaceId } = Route.useParams()
-  const { project_id: projectId } = Route.useSearch()
-  const navigate = Route.useNavigate()
 
-  const { data: projects } = useQuery(
+  const [projectId, setProjectId] = useState('all')
+
+  const { data: projectsData, isLoading: projectsDataLoading } = useQuery(
     getProjectsOptions({
       workspace_id: workspaceId,
     })
   )
 
-  const { data, isPending, isError } = useQuery(
-    getUsageOptions(workspaceId, projectId)
+  const { data: usageData, isLoading: usageDataLoading } = useQuery(
+    getUsageOptions(workspaceId, projectId === 'all' ? undefined : projectId)
   )
 
-  console.log({ data })
+  const usage = usageData?.data
+  const projects = projectsData?.data
+
+  const usageItems = [
+    { label: 'Page Views', value: formatNumber(usage?.usage?.pageViews) },
+    { label: 'Events', value: formatNumber(usage?.usage?.events) },
+    { label: 'Recordings', value: formatNumber(usage?.usage?.recordings) },
+    {
+      label: 'Storage',
+      value: usage?.usage?.storageBytes
+        ? formatBytes(usage?.usage?.storageBytes as number)
+        : '0B',
+    },
+    { label: 'Projects', value: formatNumber(usage?.usage?.projects) },
+    { label: 'Members', value: formatNumber(usage?.usage?.members) },
+    { label: 'Funnels', value: formatNumber(usage?.usage?.funnels) },
+    { label: 'Goals', value: formatNumber(usage?.usage?.goals) },
+    { label: 'Workspaces', value: formatNumber(usage?.usage?.workspaces) },
+    { label: 'Heatmap Pages', value: formatNumber(usage?.usage?.heatmapPages) },
+  ]
+
+  const projectItems = [
+    {
+      label: 'All Projects',
+      value: 'all',
+    },
+    ...(projects?.map((item) => ({
+      label: item.name,
+      value: String(item.id),
+    })) ?? []),
+  ]
 
   return (
     <div>
       <div className="mx-auto w-full max-w-4xl pt-10">
-        <div className="space-y-5">
-          <p className="text-2xl font-medium">Usage</p>
+        <div className="flex items-center justify-between space-y-5">
+          <div>
+            <p className="text-2xl font-medium">Usage</p>
+          </div>
 
           <Select
-            value={projectId ?? 'All Projects'}
-            onValueChange={(value) =>
-              navigate({
-                search: {
-                  project_id: value === 'All Projects' ? undefined : value,
-                },
-              })
-            }
-            items={items}
+            items={projectItems}
+            value={projectId}
+            onValueChange={(value) => {
+              setProjectId(value ?? 'all')
+            }}
           >
-            <SelectTrigger className="w-50">
+            <SelectTrigger disabled={projectsDataLoading || usageDataLoading}>
               <SelectValue placeholder="All Projects" />
             </SelectTrigger>
-            <SelectContent>
-              {projects?.data.map((item) => (
-                <SelectItem key={item.name} value={item.id}>
-                  {item.name}
+
+            <SelectContent alignItemWithTrigger={false}>
+              {projectItems?.map((item, index) => (
+                <SelectItem key={index} value={item.value}>
+                  {item.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -70,9 +102,34 @@ function RouteComponent() {
         </div>
 
         <div>
-          <p className="text-muted-foreground text-sm">
-            Lifetime account access is active.
-          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {usageItems?.map((item, index) => (
+              <Card
+                key={index}
+                className="bg-card/30 rounded-none border-2 border-dashed"
+              >
+                <CardHeader>
+                  {usageDataLoading ? (
+                    <div>
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="mt-2 h-7 w-16" />
+                    </div>
+                  ) : (
+                    <>
+                      <CardDescription>{item.label}</CardDescription>
+                      <CardTitle className="text-xl">{item.value}</CardTitle>
+                    </>
+                  )}
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+
+          {usage?.accountLifetimeAccess && (
+            <p className="text-muted-foreground mt-10 text-center text-sm">
+              Lifetime account access is active. No limits are applied.
+            </p>
+          )}
         </div>
       </div>
     </div>

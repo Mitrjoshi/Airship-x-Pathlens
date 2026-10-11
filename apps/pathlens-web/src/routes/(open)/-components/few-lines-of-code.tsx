@@ -25,19 +25,23 @@ export const integrations = [
     language: 'tsx',
     code: `import { useEffect } from 'react'
 
-useEffect(() => {
-  const script = document.createElement('script')
+export const TrackingScript = () => {
+  useEffect(() => {
+    const script = document.createElement('script')
 
-  script.src = '${TRACKER_SCRIPT_URL}'
-  script.dataset.projectId = "plk_********"
-  script.defer = true
+    script.src = '${TRACKER_SCRIPT_URL}'
+    script.dataset.apiKey = 'plk_********'
+    script.defer = true
 
-  document.head.appendChild(script)
+    document.head.appendChild(script)
 
-  return () => {
-    document.head.removeChild(script)
-  }
-}, [])`,
+    return () => {
+      script.remove()
+    }
+  }, [])
+
+  return null
+}`,
   },
   {
     id: 'next',
@@ -58,16 +62,22 @@ useEffect(() => {
     filename: '/src/App.vue',
     language: 'vue',
     code: `<script setup>
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
+
+let script
 
 onMounted(() => {
-  const script = document.createElement('script')
+  script = document.createElement('script')
 
   script.src = '${TRACKER_SCRIPT_URL}'
-  script.dataset.projectId = "plk_********"
+  script.dataset.apiKey = 'plk_********'
   script.defer = true
 
   document.head.appendChild(script)
+})
+
+onUnmounted(() => {
+  script?.remove()
 })
 </script>`,
   },
@@ -82,7 +92,7 @@ onMounted(() => {
       script: [
         {
           src: '${TRACKER_SCRIPT_URL}',
-          'data-project-id': "plk_********"
+          'data-api-key': 'plk_********',
           defer: true,
         },
       ],
@@ -120,6 +130,7 @@ onMounted(() => {
     code: `<script
   src="${TRACKER_SCRIPT_URL}"
   data-api-key="plk_********"
+  defer
 ></script>`,
   },
 ]
@@ -153,8 +164,8 @@ export const CodeBlock = ({
 
   if (!html) {
     return (
-      <pre className="overflow-x-auto p-6 text-sm leading-7">
-        <code>{code}</code>
+      <pre className="overflow-hidden overflow-x-auto p-6 text-sm leading-7">
+        <code className="text-wrap">{code}</code>
       </pre>
     )
   }

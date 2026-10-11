@@ -216,7 +216,7 @@ function RouteComponent() {
 
 function PageHeader({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="flex items-start justify-between gap-6">
+    <div className="flex items-center justify-between gap-6">
       <div className="space-y-1">
         <h1 className="text-xl font-medium">API Keys</h1>
 

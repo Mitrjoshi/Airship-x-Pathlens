@@ -17,20 +17,7 @@ import {
 } from '@/utils/utils'
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import { Button } from '@workspace/ui/components/button'
-import {
-  CalendarIcon,
-  PauseIcon,
-  PlayIcon,
-  RefreshCcwIcon,
-  SearchIcon,
-} from 'lucide-react'
-import { ButtonGroup } from '@workspace/ui/components/button-group'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@workspace/ui/components/popover'
-import { Calendar } from '@workspace/ui/components/calendar'
+import { PauseIcon, PlayIcon, RefreshCcwIcon, SearchIcon } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -56,7 +43,7 @@ import { Badge } from '@workspace/ui/components/badge'
 import { SessionReplayPlayer } from '@/components/common/session-replay-player'
 import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 10
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/session-replay'
@@ -106,6 +93,7 @@ function RouteComponent() {
       range,
       domain,
       search: undefined,
+      refetchInterval: liveMode ? 5000 : undefined,
     })
   )
 
@@ -160,9 +148,7 @@ function RouteComponent() {
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-muted-foreground text-sm">
-              Last updated{' '}
-              {lastUpdated &&
-                formatRelativeTime(new Date(lastUpdated).toString())}
+              Last updated {lastUpdated ? lastUpdated : '-'}
             </p>
           </div>
         </div>
@@ -192,43 +178,24 @@ function RouteComponent() {
 
           <Separator orientation="vertical" />
 
-          <ButtonGroup>
-            <Popover>
-              <PopoverTrigger
-                render={<Button variant={'outline'} size="icon" />}
-              >
-                <CalendarIcon />
-              </PopoverTrigger>
-
-              <PopoverContent
-                align="center"
-                sideOffset={20}
-                alignOffset={-20}
-                className={'w-fit p-0'}
-              >
-                <Calendar mode="range" numberOfMonths={2} />
-              </PopoverContent>
-            </Popover>
-
-            <Select
-              items={rangeLabels}
-              value={range}
-              onValueChange={(value) => {
-                if (value) setRange(value as SessionReplayRange)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {rangeLabels.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ButtonGroup>
+          <Select
+            items={rangeLabels}
+            value={range}
+            onValueChange={(value) => {
+              if (value) setRange(value as SessionReplayRange)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {rangeLabels.map((range) => (
+                <SelectItem key={range.value} value={range.value}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Select
             items={deviceLabels}

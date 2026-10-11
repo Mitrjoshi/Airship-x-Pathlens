@@ -27,6 +27,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "geoip-lite": "^2.0.3",
     "jsonwebtoken": "^9.0.3",

@@ -213,21 +213,40 @@ export const updateProjectModel = async (data: {
   projectId: string;
   name: string;
   description: string | null;
+  domain: string;
 }) => {
-  const [project] = await db
-    .update(projects)
-    .set({
-      name: data.name,
-      description: data.description,
-    })
-    .where(eq(projects.id, data.projectId))
-    .returning({
-      id: projects.id,
-      name: projects.name,
-      description: projects.description,
-    });
+  const domain = normalizeProjectDomains([data.domain])[0];
 
-  return project;
+  if (!domain) throw new Error("A valid project domain is required.");
+
+  return db.transaction(async (transaction) => {
+    const [project] = await transaction
+      .update(projects)
+      .set({
+        name: data.name,
+        description: data.description,
+      })
+      .where(eq(projects.id, data.projectId))
+      .returning({
+        id: projects.id,
+        name: projects.name,
+        description: projects.description,
+      });
+
+    if (!project) return undefined;
+
+    await transaction
+      .update(projectDomains)
+      .set({ domain })
+      .where(
+        and(
+          eq(projectDomains.projectId, data.projectId),
+          eq(projectDomains.isDefault, true)
+        )
+      );
+
+    return project;
+  });
 };
 
 function getSnapshotStatus(value: string): ProjectSnapshotStatus {

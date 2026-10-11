@@ -332,7 +332,7 @@ function RouteComponent() {
                     {invitationsPending ? (
                       <Skeleton className="h-6 w-40" />
                     ) : (
-                      <> Pending invitations ({invitations.length})</>
+                      <> Awaiting Acceptance ({invitations.length})</>
                     )}
                   </CardTitle>
                 </CardHeader>

@@ -1,26 +1,32 @@
 import type { Browser } from 'playwright-core'
 
-import { claimSnapshot } from './db.js'
-import { processSnapshot } from './index.js'
+import { claimHeatmapSnapshot, claimSnapshot } from './db.js'
+import { processHeatmapSnapshot, processSnapshot } from './index.js'
 import type { SnapshotStorage } from './storage.js'
 
 export interface SnapshotMessage {
-  projectId: string
+  type?: 'project' | 'heatmap-page'
+  projectId?: string
+  snapshotId?: string
 }
 
 export function parseSnapshotMessage(body: string): SnapshotMessage {
   const value: unknown = JSON.parse(body)
 
-  if (
-    !value ||
-    typeof value !== 'object' ||
-    typeof (value as { projectId?: unknown }).projectId !== 'string' ||
-    !(value as { projectId: string }).projectId.trim()
-  ) {
+  if (!value || typeof value !== 'object') {
     throw new Error('SQS message must contain a non-empty projectId')
   }
 
-  return { projectId: (value as { projectId: string }).projectId.trim() }
+  const message = value as SnapshotMessage
+  if (message.type === 'heatmap-page' && message.snapshotId?.trim()) {
+    return { type: 'heatmap-page', snapshotId: message.snapshotId.trim() }
+  }
+
+  if (typeof message.projectId === 'string' && message.projectId.trim()) {
+    return { type: 'project', projectId: message.projectId.trim() }
+  }
+
+  throw new Error('SQS message must contain a projectId or snapshotId')
 }
 
 export async function processSnapshotMessage(
@@ -28,14 +34,23 @@ export async function processSnapshotMessage(
   browser: Browser,
   storage: SnapshotStorage
 ): Promise<void> {
-  const job = await claimSnapshot(message.projectId)
+  if (message.type === 'heatmap-page' && message.snapshotId) {
+    const job = await claimHeatmapSnapshot(message.snapshotId)
+    if (job) {
+      await processHeatmapSnapshot(browser, storage, job)
+    }
+    return
+  }
 
-  if (job) {
-    await processSnapshot(
-      browser,
-      storage,
-      job,
-      Number(process.env.SNAPSHOT_SETTLE_DELAY_MS ?? 750)
-    )
+  if (message.projectId) {
+    const job = await claimSnapshot(message.projectId)
+    if (job) {
+      await processSnapshot(
+        browser,
+        storage,
+        job,
+        Number(process.env.SNAPSHOT_SETTLE_DELAY_MS ?? 750)
+      )
+    }
   }
 }

@@ -57,6 +57,11 @@ export interface HeatmapPageDetail extends HeatmapPage {
     height: number
   } | null
   coordinateMode: 'document' | 'viewport' | 'mixed'
+  screenshotUrl: string | null
+  screenshotStatus: 'pending' | 'processing' | 'ready' | 'stale' | 'failed'
+  screenshotCapturedAt: string | null
+  screenshotWidth: number | null
+  screenshotHeight: number | null
 }
 
 export interface HeatmapsPagination {
@@ -102,6 +107,7 @@ export interface HeatmapsParams {
   page_path?: string
   page?: number
   page_size?: number
+  refetchInterval?: number
 }
 
 export interface HeatmapDetailsParams {

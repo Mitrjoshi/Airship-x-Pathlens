@@ -40,7 +40,7 @@ export const Route = createFileRoute('/app/$workspaceId/$projectId/audit-logs')(
   }
 )
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 10
 
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()

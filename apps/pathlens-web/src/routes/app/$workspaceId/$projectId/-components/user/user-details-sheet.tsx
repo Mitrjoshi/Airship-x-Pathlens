@@ -64,14 +64,6 @@ export const UserDetailsSheet = ({
 
   const isLoading = isFetching || workspaceDataFetching
 
-  const initials =
-    userData?.name
-      ?.split(' ')
-      .map((name) => name.charAt(0))
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() ?? 'U'
-
   const canRemoveUser =
     userData?.role !== 'owner' &&
     workspace?.permissions.includes('workspace.members.remove') &&
@@ -130,8 +122,12 @@ export const UserDetailsSheet = ({
                     alt={userData.name}
                   />
 
-                  <AvatarFallback className="text-2xl">
-                    {initials}
+                  <AvatarFallback
+                    className={
+                      'bg-primary/40 text-7xl text-black dark:text-white'
+                    }
+                  >
+                    {userData.name.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
 

@@ -88,7 +88,7 @@ const statusItems = [
   },
 ]
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 10
 
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
@@ -104,6 +104,7 @@ function RouteComponent() {
     isLoading: isVisitorsFetching,
     refetch,
     dataUpdatedAt,
+    isRefetching: visitorsLocationRefetching,
   } = useQuery(
     getVisitorLocationsOptions({
       workspace_id: workspaceId,
@@ -111,6 +112,7 @@ function RouteComponent() {
       range,
       status: 'all',
       domain,
+      refetchInterval: liveMode ? 5000 : undefined,
     })
   )
 
@@ -118,6 +120,7 @@ function RouteComponent() {
     data,
     isLoading,
     refetch: refetchVisitors,
+    isRefetching: visitorsRefetching,
   } = useQuery(
     getVisitorsOptions({
       workspace_id: workspaceId,
@@ -128,6 +131,7 @@ function RouteComponent() {
       page,
       page_size: PAGE_SIZE,
       domain,
+      refetchInterval: liveMode ? 5000 : undefined,
     })
   )
 
@@ -142,6 +146,7 @@ function RouteComponent() {
   const totalEvents = data?.data.pagination.total ?? 0
   const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
   const paginationItems = getPaginationItems(page, totalPages)
+
   const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
 
   const from = totalEvents === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
@@ -169,9 +174,7 @@ function RouteComponent() {
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-muted-foreground text-sm">
-              Last updated{' '}
-              {lastUpdated &&
-                formatRelativeTime(new Date(lastUpdated).toString())}
+              Last updated {lastUpdated ? lastUpdated : '-'}
             </p>
           </div>
         </div>
@@ -187,7 +190,9 @@ function RouteComponent() {
             Live Refresh
           </Button>
           <Button
-            disabled={isVisitorsFetching}
+            disabled={
+              visitorsLocationRefetching || visitorsRefetching || isLoading
+            }
             onClick={() => {
               refetch()
               refetchVisitors()
@@ -195,50 +200,31 @@ function RouteComponent() {
             variant="outline"
           >
             <RefreshCcwIcon
-              className={`${isVisitorsFetching ? 'animate-spin' : ''}`}
+              className={`${visitorsLocationRefetching || visitorsRefetching || isLoading ? 'animate-spin' : ''}`}
             />
             Refresh
           </Button>
 
           <Separator orientation="vertical" />
 
-          <ButtonGroup>
-            <Popover>
-              <PopoverTrigger
-                render={<Button variant={'outline'} size="icon" />}
-              >
-                <CalendarIcon />
-              </PopoverTrigger>
-
-              <PopoverContent
-                align="center"
-                sideOffset={20}
-                alignOffset={-20}
-                className={'w-fit p-0'}
-              >
-                <Calendar mode="range" numberOfMonths={2} />
-              </PopoverContent>
-            </Popover>
-
-            <Select
-              items={rangeLabels}
-              value={range}
-              onValueChange={(value) => {
-                if (value) setRange(value as VisitorsRange)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {rangeLabels.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ButtonGroup>
+          <Select
+            items={rangeLabels}
+            value={range}
+            onValueChange={(value) => {
+              if (value) setRange(value as VisitorsRange)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {rangeLabels.map((range) => (
+                <SelectItem key={range.value} value={range.value}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

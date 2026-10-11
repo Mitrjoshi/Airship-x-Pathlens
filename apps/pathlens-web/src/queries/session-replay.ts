@@ -97,6 +97,7 @@ export interface SessionReplayParams {
   search?: string
   page: number
   page_size: number
+  refetchInterval?: number
 }
 
 export interface SessionReplayDetailParams {
@@ -130,6 +131,7 @@ export const getSessionReplayOptions = (params: SessionReplayParams) =>
     queryKey: ['SESSION_REPLAY', params],
     queryFn: () => getSessionReplay(params),
     enabled: Boolean(params.workspace_id && params.project_id),
+    refetchInterval: params.refetchInterval,
   })
 
 const getSessionReplayDetail = async (

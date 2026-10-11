@@ -1,6 +1,11 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client";
-import { events, projects, visitorCampaignAttribution } from "../db/schema";
+import {
+  events,
+  heatmapPageSnapshots,
+  projects,
+  visitorCampaignAttribution,
+} from "../db/schema";
 import type {
   EventsCategory,
   EventsDevice,
@@ -12,7 +17,9 @@ import type {
   ProjectEventDetailValue,
 } from "@workspace/contracts";
 import type { GeoLocation } from "../lib/geoip";
+import { normalizeProjectHostname } from "../lib/project-domain";
 import { getProjectByIdModel } from "./projects.model";
+import { getProjectDomainsModel } from "./project-domains.model";
 import {
   assertWorkspaceHeatmapPages,
   assertWorkspaceUsageLimit,
@@ -350,6 +357,35 @@ function getLandingUrl(value: string | null | undefined): string | null {
   }
 }
 
+function getHeatmapSnapshotCandidate(
+  event: IncomingEvent,
+  workspaceId: string,
+  allowedDomains: string[]
+) {
+  if (event.type !== "page_view" || !event.url) return null;
+
+  try {
+    const url = new URL(event.url);
+    const hostname = normalizeProjectHostname(url.hostname);
+    if (!hostname || !allowedDomains.includes(hostname)) return null;
+
+    url.search = "";
+    url.hash = "";
+
+    return {
+      workspaceId,
+      projectId: event.projectId,
+      domain: hostname,
+      pagePath: event.path || url.pathname || "/",
+      sourceUrl: url.toString(),
+      viewportWidth: event.viewport?.width ?? 1280,
+      viewportHeight: event.viewport?.height ?? 900,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function getCampaignAttribution(
   event: IncomingEvent,
   workspaceId: string,
@@ -387,6 +423,7 @@ export async function createEvents(
     {
       projectId: string;
       workspaceId: string;
+      domains: string[];
     }
   >();
 
@@ -396,6 +433,11 @@ export async function createEvents(
     typeof visitorCampaignAttribution.$inferInsert
   >();
   const faviconUpdates = new Map<string, string>();
+  const heatmapSnapshotCandidates = new Map<
+    string,
+    typeof heatmapPageSnapshots.$inferInsert
+  >();
+  let heatmapSnapshotIds: string[] = [];
 
   const workspaceIncrements = new Map<
     string,
@@ -415,6 +457,9 @@ export async function createEvents(
       project = {
         projectId: dbProject.id,
         workspaceId: dbProject.workspace_id,
+        domains: (await getProjectDomainsModel(dbProject.id))
+          .map((domain) => normalizeProjectHostname(domain.domain))
+          .filter((domain): domain is string => Boolean(domain)),
       };
 
       projectCache.set(event.projectId, project);
@@ -440,6 +485,18 @@ export async function createEvents(
     if (event.type === "page_view") increment.pageViews += 1;
     if (event.type === "page_view") increment.pagePaths.push(event.path ?? "/");
     workspaceIncrements.set(project.workspaceId, increment);
+
+    const heatmapSnapshot = getHeatmapSnapshotCandidate(
+      event,
+      project.workspaceId,
+      project.domains
+    );
+    if (heatmapSnapshot) {
+      heatmapSnapshotCandidates.set(
+        `${heatmapSnapshot.projectId}:${heatmapSnapshot.sourceUrl}`,
+        heatmapSnapshot
+      );
+    }
 
     const attribution = getCampaignAttribution(
       event,
@@ -555,7 +612,25 @@ export async function createEvents(
           `,
         });
     }
+
+    if (heatmapSnapshotCandidates.size > 0) {
+      const insertedSnapshots = await transaction
+        .insert(heatmapPageSnapshots)
+        .values(Array.from(heatmapSnapshotCandidates.values()))
+        .onConflictDoNothing({
+          target: [
+            heatmapPageSnapshots.projectId,
+            heatmapPageSnapshots.sourceUrl,
+          ],
+        })
+        .returning({ id: heatmapPageSnapshots.id });
+      heatmapSnapshotIds = insertedSnapshots.map((snapshot) => snapshot.id);
+    }
   });
+
+  return {
+    heatmapSnapshotIds,
+  };
 }
 
 export async function getEventsModel(

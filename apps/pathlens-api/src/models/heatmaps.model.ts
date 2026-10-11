@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type {
   HeatmapClickPoint,
   HeatmapDevice,
@@ -10,6 +10,7 @@ import type {
   HeatmapsListData,
 } from "@workspace/contracts";
 import { db } from "../db/client";
+import { heatmapPageSnapshots } from "../db/schema";
 import { getReplayDataModel } from "./replay.model";
 
 const MAX_HEATMAP_EVENTS = 20_000;
@@ -59,6 +60,26 @@ export interface HeatmapsFilters {
   page?: number;
   pageSize?: number;
   includeDetails?: boolean;
+}
+
+export async function getHeatmapPageSnapshot(data: {
+  projectId: string;
+  domain?: string;
+  pagePath: string;
+}) {
+  const [snapshot] = await db
+    .select()
+    .from(heatmapPageSnapshots)
+    .where(
+      and(
+        eq(heatmapPageSnapshots.projectId, data.projectId),
+        eq(heatmapPageSnapshots.domain, data.domain ?? ""),
+        eq(heatmapPageSnapshots.pagePath, data.pagePath)
+      )
+    )
+    .limit(1);
+
+  return snapshot ?? null;
 }
 
 interface PageRow extends Record<string, unknown> {
@@ -687,6 +708,11 @@ export async function getHeatmapsModel(
   const clickAggregation = buildClickPoints(eventResult.rows, selectedPage);
   const selectedScrollSummary = scrollSummaries.get(selectedPage.path);
   const sessionCount = toNumber(selectedScrollSummary?.sessions);
+  const snapshot = await getHeatmapPageSnapshot({
+    projectId: filters.projectId,
+    domain: filters.domain,
+    pagePath: selectedPage.path,
+  });
   const pageDetail: HeatmapPageDetail = {
     ...selectedPage,
     clickPoints: clickAggregation.points,
@@ -704,6 +730,13 @@ export async function getHeatmapsModel(
         : selectedPage.viewport,
     coordinateMode: clickAggregation.coordinateMode,
     replayAvailable: Boolean(replay?.available),
+    screenshotUrl: null,
+    screenshotStatus:
+      (snapshot?.status as HeatmapPageDetail["screenshotStatus"] | undefined) ??
+      "pending",
+    screenshotCapturedAt: snapshot?.capturedAt?.toISOString() ?? null,
+    screenshotWidth: snapshot?.viewportWidth ?? null,
+    screenshotHeight: snapshot?.viewportHeight ?? null,
   };
 
   return {

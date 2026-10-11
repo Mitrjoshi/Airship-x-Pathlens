@@ -87,86 +87,77 @@ function RouteComponent() {
   return (
     <div className="p-6">
       <div className="space-y-5">
-        {/* Header */}
-        <div>
-          <p className="text-xl font-medium">Domains</p>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open)
 
-          <p className="text-muted-foreground text-sm">
-            Manage the domains where Pathlens is installed and collecting
-            analytics.
-          </p>
-        </div>
+            if (!open) {
+              setDomain('')
+            }
+          }}
+        >
+          <div className="flex items-center justify-between gap-6">
+            {/* Header */}
+            <div className="space-y-1">
+              <p className="text-xl font-medium">Domains</p>
 
-        {/* Search + Create */}
-        <div className="flex items-center justify-between gap-4">
-          <InputGroup className="w-120">
-            <InputGroupButton>
-              <SearchIcon />
-            </InputGroupButton>
+              <p className="text-muted-foreground text-sm">
+                Manage the domains where Pathlens is installed and collecting
+                analytics.
+              </p>
+            </div>
 
-            <InputGroupInput placeholder="Search..." />
-          </InputGroup>
-
-          <Dialog
-            open={dialogOpen}
-            onOpenChange={(open) => {
-              setDialogOpen(open)
-
-              if (!open) {
-                setDomain('')
-              }
-            }}
-          >
             <DialogTrigger render={<Button />}>
               <PlusIcon />
               New Domain
             </DialogTrigger>
+          </div>
 
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Domain</DialogTitle>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Domain</DialogTitle>
 
-                <DialogDescription>
-                  Add a domain where Pathlens will be installed and collect
-                  analytics.
-                </DialogDescription>
-              </DialogHeader>
+              <DialogDescription>
+                Add a domain where Pathlens will be installed and collect
+                analytics.
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="space-y-2 py-2">
-                <Label htmlFor="create-domain">Domain</Label>
+            <div className="space-y-2 py-2">
+              <Label htmlFor="create-domain">Domain</Label>
 
-                <Input
-                  id="create-domain"
-                  value={domain}
-                  onChange={(event) => setDomain(event.target.value)}
-                  placeholder="example.com"
-                  disabled={isCreating}
-                  autoFocus
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      handleCreateDomain()
-                    }
-                  }}
-                />
-              </div>
+              <Input
+                id="create-domain"
+                value={domain}
+                onChange={(event) => setDomain(event.target.value)}
+                placeholder="example.com"
+                disabled={isCreating}
+                autoFocus
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    handleCreateDomain()
+                  }
+                }}
+              />
+            </div>
 
-              <DialogFooter>
-                <DialogClose
-                  render={<Button variant="outline" disabled={isCreating} />}
-                >
-                  Cancel
-                </DialogClose>
+            <DialogFooter>
+              <DialogClose
+                render={<Button variant="outline" disabled={isCreating} />}
+              >
+                Cancel
+              </DialogClose>
 
-                <Button
-                  onClick={handleCreateDomain}
-                  disabled={!domain.trim() || isCreating}
-                >
-                  <LoadingSwap isLoading={isCreating}>Add Domain</LoadingSwap>
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <Button
+                onClick={handleCreateDomain}
+                disabled={!domain.trim() || isCreating}
+              >
+                <LoadingSwap isLoading={isCreating}>Add Domain</LoadingSwap>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Table */}
         <div className="border">

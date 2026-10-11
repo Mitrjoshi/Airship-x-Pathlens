@@ -48,6 +48,7 @@ export interface VisitorsParams {
   search?: string
   page: number
   page_size: number
+  refetchInterval?: number
 }
 
 export interface VisitorLocation {
@@ -75,6 +76,7 @@ export interface VisitorLocationsParams {
   domain?: string
   range: VisitorsRange
   status: VisitorStatus
+  refetchInterval?: number
 }
 
 const getVisitorLocations = async (
@@ -90,6 +92,7 @@ export const getVisitorLocationsOptions = (params: VisitorLocationsParams) =>
     queryKey: ['VISITOR_LOCATIONS', params],
     queryFn: () => getVisitorLocations(params),
     enabled: Boolean(params.workspace_id && params.project_id),
+    refetchInterval: params.refetchInterval,
   })
 
 const getVisitors = async (
@@ -105,5 +108,5 @@ export const getVisitorsOptions = (params: VisitorsParams) =>
     queryKey: ['VISITORS', params],
     queryFn: () => getVisitors(params),
     enabled: Boolean(params.workspace_id && params.project_id),
-    refetchInterval: 30_000,
+    refetchInterval: params.refetchInterval,
   })

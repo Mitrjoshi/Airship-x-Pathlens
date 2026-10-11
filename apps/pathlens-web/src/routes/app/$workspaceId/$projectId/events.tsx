@@ -18,8 +18,6 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
-import { ButtonGroup } from '@workspace/ui/components/button-group'
-import { Calendar } from '@workspace/ui/components/calendar'
 import { Card, CardContent } from '@workspace/ui/components/card'
 import {
   ChartContainer,
@@ -34,11 +32,6 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@workspace/ui/components/popover'
 import {
   Select,
   SelectContent,
@@ -58,7 +51,6 @@ import {
 } from '@workspace/ui/components/table'
 
 import {
-  CalendarIcon,
   CheckIcon,
   CopyIcon,
   MinusIcon,
@@ -81,6 +73,7 @@ import { DomainSwitcher } from './-components/common/domain-switcher'
 import { getProjectDomainsOptions } from '@/queries/domains'
 import { SessionReplayPlayer } from '@/components/common/session-replay-player'
 import { getSessionReplayDetailOptions } from '@/queries/session-replay'
+import { useRelativeTime } from '@/hooks/use-relative-time'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/events')({
   component: RouteComponent,
@@ -366,9 +359,10 @@ function RouteComponent() {
 
   const {
     data: eventsData,
-    isFetching: isEventsFetching,
+    isLoading: isEventsFetching,
     refetch: refetchEvents,
     dataUpdatedAt: eventsUpdatedAt,
+    isRefetching: eventsDataRefetching,
   } = useQuery(
     getEventsOptions({
       workspace_id: workspaceId,
@@ -379,20 +373,23 @@ function RouteComponent() {
       page,
       page_size: PAGE_SIZE,
       domain,
+      refetchInterval: liveMode ? 5000 : undefined,
     })
   )
 
   const {
     data: chartResponse,
-    isFetching: isChartFetching,
+    isLoading: isChartFetching,
     refetch: refetchChart,
     dataUpdatedAt: chartUpdatedAt,
+    isRefetching: eventsChartRefetching,
   } = useQuery(
     getEventsChartOptions({
       workspace_id: workspaceId,
       project_id: projectId,
       range,
       domain,
+      refetchInterval: liveMode ? 5000 : undefined,
     })
   )
 
@@ -428,6 +425,8 @@ function RouteComponent() {
   const dataUpdatedAt = Math.max(eventsUpdatedAt, chartUpdatedAt)
   const refetch = () => Promise.all([refetchEvents(), refetchChart()])
 
+  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
+
   const totalEvents = events?.total ?? 0
   const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
   const paginationItems = getPaginationItems(page, totalPages)
@@ -457,10 +456,7 @@ function RouteComponent() {
           <Separator orientation="vertical" className="hidden sm:block" />
 
           <p className="text-muted-foreground text-sm whitespace-nowrap">
-            Last updated{' '}
-            {dataUpdatedAt
-              ? formatRelativeTime(new Date(dataUpdatedAt).toString())
-              : '—'}
+            Last updated {lastUpdated ? lastUpdated : '—'}
           </p>
         </div>
 
@@ -485,64 +481,38 @@ function RouteComponent() {
 
           {/* Manual refresh */}
           <Button
-            disabled={isFetching}
+            disabled={eventsDataRefetching || eventsChartRefetching}
             onClick={() => {
               refetch()
             }}
             variant="outline"
           >
             <RefreshCcwIcon
-              className={`size-4 ${isFetching ? 'animate-spin' : ''}`}
+              className={`size-4 ${eventsDataRefetching || eventsChartRefetching ? 'animate-spin' : ''}`}
             />
             Refresh
           </Button>
 
           <Separator orientation="vertical" className="hidden sm:block" />
 
-          {/* Date controls */}
-          <ButtonGroup>
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label="Open date picker"
-                  />
-                }
-              >
-                <CalendarIcon className="size-4" />
-              </PopoverTrigger>
-
-              <PopoverContent
-                align="center"
-                sideOffset={20}
-                alignOffset={-20}
-                className="w-fit p-0"
-              >
-                <Calendar mode="range" numberOfMonths={2} />
-              </PopoverContent>
-            </Popover>
-
-            <Select
-              items={rangeLabels}
-              value={range}
-              onValueChange={(value) => {
-                if (value) setRange(value as EventsRange)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {rangeLabels.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ButtonGroup>
+          <Select
+            items={rangeLabels}
+            value={range}
+            onValueChange={(value) => {
+              if (value) setRange(value as EventsRange)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {rangeLabels.map((range) => (
+                <SelectItem key={range.value} value={range.value}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

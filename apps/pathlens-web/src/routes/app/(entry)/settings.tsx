@@ -17,7 +17,6 @@ import { Button } from '@workspace/ui/components/button'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -34,29 +33,23 @@ import {
 } from '@workspace/ui/components/dialog'
 import {
   Field,
-  FieldContent,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-  FieldTitle,
 } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'
-import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import {
   AlertCircleIcon,
-  Camera,
-  DeleteIcon,
   Loader2Icon,
+  LogOutIcon,
   Trash2Icon,
 } from 'lucide-react'
-import { Label } from '@workspace/ui/components/label'
-import { useTheme } from '@/components/common/theme-provider'
 import { Separator } from '@workspace/ui/components/separator'
 import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@workspace/ui/components/radio-group'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@workspace/ui/components/popover'
 
 export const Route = createFileRoute('/app/(entry)/settings')({
   component: RouteComponent,
@@ -90,6 +83,8 @@ const deleteAccountSchema = z.object({
   }),
 })
 
+const avatars = ['/avatar.png', '/saola.png', '/amur.png']
+
 function RouteComponent() {
   const user = useRouteContext({
     from: '/app',
@@ -101,8 +96,6 @@ function RouteComponent() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [avatarPreview, setAvatarPreview] = useState(user.avatar)
-
-  const { theme, setTheme } = useTheme()
 
   const profileForm = useForm({
     defaultValues: {
@@ -200,8 +193,8 @@ function RouteComponent() {
 
             <Card className="bg-card/30 rounded-none border-2 border-dashed">
               <CardContent className="flex items-start gap-6">
-                <Avatar className={'group relative size-50 overflow-hidden'}>
-                  <AvatarImage src={user.avatar!} />
+                <Avatar className={'size-40 cursor-pointer overflow-hidden'}>
+                  <AvatarImage src={avatarPreview!} />
                   <AvatarFallback
                     className={
                       'bg-primary/40 text-7xl text-black dark:text-white'
@@ -221,377 +214,35 @@ function RouteComponent() {
                     <FieldLabel>Email</FieldLabel>
                     <Input value={user.email} />
                   </Field>
-
-                  <Separator />
-
-                  <Field>
-                    <FieldLabel>Avatars</FieldLabel>
-                    <div className="flex items-center gap-2">
-                      <Avatar
-                        render={<Button size="icon-lg" variant={'outline'} />}
-                      >
-                        <AvatarImage src={user.avatar!} />
-                        <AvatarFallback
-                          className={'bg-primary/40 text-black dark:text-white'}
-                        >
-                          {user.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      {user.githubAvatar && (
-                        <Avatar
-                          render={<Button size="icon-lg" variant={'outline'} />}
-                        >
-                          <AvatarImage src={user.githubAvatar!} />
-                          <AvatarFallback>
-                            {user?.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-
-                      {user.googleAvatar && (
-                        <Avatar
-                          render={<Button size="icon-lg" variant={'outline'} />}
-                        >
-                          <AvatarImage src={user.googleAvatar!} />
-                          <AvatarFallback>
-                            {user?.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                    </div>
-                  </Field>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-card/30 rounded-none border-2 border-dashed"></Card>
-
             <Card className="bg-card/30 rounded-none border-2 border-dashed">
               <CardHeader>
-                <CardTitle>Theme</CardTitle>
-                <CardDescription>Select theme for the App</CardDescription>
+                <CardTitle>Change Password</CardTitle>
               </CardHeader>
 
-              <CardContent className="flex items-center gap-4">
-                <RadioGroup
-                  defaultValue={theme}
-                  className="grid grid-cols-[25%_25%_25%] gap-4"
-                >
-                  <FieldLabel htmlFor="light">
-                    <Field
-                      data-active={theme === 'light'}
-                      orientation="vertical"
-                      className="data-active:border-primary bg-muted/40 border-2 border-dashed"
-                      onClick={() => setTheme('light')}
-                    >
-                      <FieldContent>
-                        <div className="relative aspect-square w-full cursor-pointer overflow-hidden bg-white p-2 text-[#0b0b0b] duration-200">
-                          {/* Header */}
-                          <div className="flex items-center justify-between">
-                            <div className="h-2.5 w-16 rounded-sm bg-[#0b0b0b]" />
-
-                            <div className="flex gap-1">
-                              <div className="size-2 rounded-full bg-[#0b0b0b]" />
-                              <div className="size-2 rounded-full border border-[#0b0b0b]" />
-                            </div>
-                          </div>
-
-                          {/* Stats */}
-                          <div className="mt-3 grid grid-cols-2 gap-1.5">
-                            <div className="border border-[#0b0b0b] p-1.5">
-                              <div className="h-1.5 w-8 bg-[#0b0b0b]/30" />
-                              <div className="mt-1 h-3 w-10 bg-[#0b0b0b]" />
-                            </div>
-
-                            <div className="border border-[#0b0b0b] p-1.5">
-                              <div className="h-1.5 w-7 bg-[#0b0b0b]/30" />
-                              <div className="mt-1 h-3 w-8 bg-[#0b0b0b]" />
-                            </div>
-                          </div>
-
-                          {/* Chart */}
-                          <div className="mt-2 border border-[#0b0b0b] p-1.5">
-                            <div className="mb-2 h-1.5 w-12 bg-[#0b0b0b]" />
-
-                            <div className="relative h-12">
-                              <svg
-                                viewBox="0 0 120 40"
-                                className="h-full w-full"
-                                preserveAspectRatio="none"
-                              >
-                                <polyline
-                                  points="0,32 15,27 28,30 42,17 55,23 68,12 80,18 94,7 108,13 120,3"
-                                  fill="none"
-                                  stroke="#0b0b0b"
-                                  strokeWidth="2"
-                                />
-                              </svg>
-                            </div>
-                          </div>
-
-                          {/* Bottom rows */}
-                          <div className="mt-2 space-y-1">
-                            <div className="flex items-center justify-between border-b border-[#0b0b0b]/20 pb-1">
-                              <div className="h-1.5 w-12 bg-[#0b0b0b]/40" />
-                              <div className="h-1.5 w-5 bg-[#0b0b0b]" />
-                            </div>
-
-                            <div className="flex items-center justify-between border-b border-[#0b0b0b]/20 pb-1">
-                              <div className="h-1.5 w-16 bg-[#0b0b0b]/40" />
-                              <div className="h-1.5 w-7 bg-[#0b0b0b]" />
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <div className="h-1.5 w-10 bg-[#0b0b0b]/40" />
-                              <div className="h-1.5 w-6 bg-[#0b0b0b]" />
-                            </div>
-                          </div>
-                        </div>
-                      </FieldContent>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="light" id="light" />
-                        <FieldTitle>Light Mode</FieldTitle>
-                      </div>
-                    </Field>
-                  </FieldLabel>
-
-                  <FieldLabel htmlFor="dark">
-                    <Field
-                      data-active={theme === 'dark'}
-                      orientation="vertical"
-                      className="data-active:border-primary bg-muted/40 border-2 border-dashed"
-                      onClick={() => setTheme('dark')}
-                    >
-                      <FieldContent>
-                        <div className="relative aspect-square w-full cursor-pointer overflow-hidden bg-[#0b0b0b] p-2 text-white duration-200">
-                          {/* Header */}
-                          <div className="flex items-center justify-between">
-                            <div className="h-2.5 w-16 rounded-sm bg-white" />
-
-                            <div className="flex gap-1">
-                              <div className="size-2 rounded-full bg-white" />
-                              <div className="size-2 rounded-full border border-white/40" />
-                            </div>
-                          </div>
-
-                          {/* Stats */}
-                          <div className="mt-3 grid grid-cols-2 gap-1.5">
-                            <div className="border border-white/15 bg-white/[0.04] p-1.5">
-                              <div className="h-1.5 w-8 bg-white/30" />
-                              <div className="mt-1 h-3 w-10 bg-white" />
-                            </div>
-
-                            <div className="border border-white/15 bg-white/[0.04] p-1.5">
-                              <div className="h-1.5 w-7 bg-white/30" />
-                              <div className="mt-1 h-3 w-8 bg-white" />
-                            </div>
-                          </div>
-
-                          {/* Chart */}
-                          <div className="mt-2 border border-white/15 bg-white/[0.03] p-1.5">
-                            <div className="mb-2 h-1.5 w-12 bg-white/70" />
-
-                            <div className="relative h-12">
-                              <svg
-                                viewBox="0 0 120 40"
-                                className="h-full w-full"
-                                preserveAspectRatio="none"
-                              >
-                                <polyline
-                                  points="0,32 15,27 28,30 42,17 55,23 68,12 80,18 94,7 108,13 120,3"
-                                  fill="none"
-                                  stroke="white"
-                                  strokeWidth="2"
-                                />
-                              </svg>
-                            </div>
-                          </div>
-
-                          {/* Data rows */}
-                          <div className="mt-2 space-y-1">
-                            <div className="flex items-center justify-between border-b border-white/10 pb-1">
-                              <div className="h-1.5 w-12 bg-white/30" />
-                              <div className="h-1.5 w-5 bg-white/80" />
-                            </div>
-
-                            <div className="flex items-center justify-between border-b border-white/10 pb-1">
-                              <div className="h-1.5 w-16 bg-white/30" />
-                              <div className="h-1.5 w-7 bg-white/80" />
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <div className="h-1.5 w-10 bg-white/30" />
-                              <div className="h-1.5 w-6 bg-white/80" />
-                            </div>
-                          </div>
-                        </div>
-                      </FieldContent>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="dark" id="dark" />
-                        <FieldTitle>Dark Mode</FieldTitle>
-                      </div>
-                    </Field>
-                  </FieldLabel>
-
-                  <FieldLabel htmlFor="system">
-                    <Field
-                      orientation="vertical"
-                      className="data-active:border-primary bg-muted/40 border-2 border-dashed"
-                      data-active={theme === 'system'}
-                      onClick={() => setTheme('system')}
-                    >
-                      <FieldContent>
-                        <div className="relative aspect-square w-full cursor-pointer overflow-hidden duration-200">
-                          <div
-                            className="absolute inset-0 bg-[#0b0b0b] text-white"
-                            style={{
-                              clipPath: 'polygon(0 0, 100% 0, 0 100%)',
-                            }}
-                          >
-                            <div className="absolute inset-0 p-2">
-                              {/* Header */}
-                              <div className="flex items-center justify-between">
-                                <div className="h-2.5 w-16 rounded-sm bg-white" />
-
-                                <div className="flex gap-1">
-                                  <div className="size-2 rounded-full bg-white" />
-                                  <div className="size-2 rounded-full border border-white" />
-                                </div>
-                              </div>
-
-                              {/* Stats */}
-                              <div className="mt-3 grid grid-cols-2 gap-1.5">
-                                <div className="border border-white p-1.5">
-                                  <div className="h-1.5 w-8 bg-white/30" />
-                                  <div className="mt-1 h-3 w-10 bg-white" />
-                                </div>
-
-                                <div className="border border-white p-1.5">
-                                  <div className="h-1.5 w-7 bg-white/30" />
-                                  <div className="mt-1 h-3 w-8 bg-white" />
-                                </div>
-                              </div>
-
-                              {/* Chart */}
-                              <div className="mt-2 border border-white p-1.5">
-                                <div className="mb-2 h-1.5 w-12 bg-white" />
-
-                                <div className="relative h-12">
-                                  <svg
-                                    viewBox="0 0 120 40"
-                                    className="h-full w-full"
-                                    preserveAspectRatio="none"
-                                  >
-                                    <polyline
-                                      points="0,32 15,27 28,30 42,17 55,23 68,12 80,18 94,7 108,13 120,3"
-                                      fill="none"
-                                      stroke="white"
-                                      strokeWidth="2"
-                                    />
-                                  </svg>
-                                </div>
-                              </div>
-
-                              {/* Bottom rows */}
-                              <div className="mt-2 space-y-1">
-                                <div className="flex items-center justify-between border-b border-white/20 pb-1">
-                                  <div className="h-1.5 w-12 bg-white/40" />
-                                  <div className="h-1.5 w-5 bg-white" />
-                                </div>
-
-                                <div className="flex items-center justify-between border-b border-white/20 pb-1">
-                                  <div className="h-1.5 w-16 bg-white/40" />
-                                  <div className="h-1.5 w-7 bg-white" />
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                  <div className="h-1.5 w-10 bg-white/40" />
-                                  <div className="h-1.5 w-6 bg-white" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div
-                            className="absolute inset-0 bg-white text-[#0b0b0b]"
-                            style={{
-                              clipPath: 'polygon(100% 0, 100% 100%, 0 100%)',
-                            }}
-                          >
-                            <div className="absolute inset-0 p-2">
-                              {/* Header */}
-                              <div className="flex items-center justify-between">
-                                <div className="h-2.5 w-16 rounded-sm bg-[#0b0b0b]" />
-
-                                <div className="flex gap-1">
-                                  <div className="size-2 rounded-full bg-[#0b0b0b]" />
-                                  <div className="size-2 rounded-full border border-[#0b0b0b]" />
-                                </div>
-                              </div>
-
-                              {/* Stats */}
-                              <div className="mt-3 grid grid-cols-2 gap-1.5">
-                                <div className="border border-[#0b0b0b] p-1.5">
-                                  <div className="h-1.5 w-8 bg-[#0b0b0b]/30" />
-                                  <div className="mt-1 h-3 w-10 bg-[#0b0b0b]" />
-                                </div>
-
-                                <div className="border border-[#0b0b0b] p-1.5">
-                                  <div className="h-1.5 w-7 bg-[#0b0b0b]/30" />
-                                  <div className="mt-1 h-3 w-8 bg-[#0b0b0b]" />
-                                </div>
-                              </div>
-
-                              {/* Chart */}
-                              <div className="mt-2 border border-[#0b0b0b] p-1.5">
-                                <div className="mb-2 h-1.5 w-12 bg-[#0b0b0b]" />
-
-                                <div className="relative h-12">
-                                  <svg
-                                    viewBox="0 0 120 40"
-                                    className="h-full w-full"
-                                    preserveAspectRatio="none"
-                                  >
-                                    <polyline
-                                      points="0,32 15,27 28,30 42,17 55,23 68,12 80,18 94,7 108,13 120,3"
-                                      fill="none"
-                                      stroke="#0b0b0b"
-                                      strokeWidth="2"
-                                    />
-                                  </svg>
-                                </div>
-                              </div>
-
-                              {/* Bottom rows */}
-                              <div className="mt-2 space-y-1">
-                                <div className="flex items-center justify-between border-b border-[#0b0b0b]/20 pb-1">
-                                  <div className="h-1.5 w-12 bg-[#0b0b0b]/40" />
-                                  <div className="h-1.5 w-5 bg-[#0b0b0b]" />
-                                </div>
-
-                                <div className="flex items-center justify-between border-b border-[#0b0b0b]/20 pb-1">
-                                  <div className="h-1.5 w-16 bg-[#0b0b0b]/40" />
-                                  <div className="h-1.5 w-7 bg-[#0b0b0b]" />
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                  <div className="h-1.5 w-10 bg-[#0b0b0b]/40" />
-                                  <div className="h-1.5 w-6 bg-[#0b0b0b]" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </FieldContent>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="system" id="system" />
-                        <FieldTitle>System</FieldTitle>
-                      </div>
-                    </Field>
-                  </FieldLabel>
-                </RadioGroup>
+              <CardContent>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel>Current Password</FieldLabel>
+                    <Input placeholder="Enter your current password" />
+                  </Field>
+                  <Field>
+                    <FieldLabel>New Password</FieldLabel>
+                    <Input placeholder="Enter your new password" />
+                  </Field>
+                  <Field>
+                    <FieldLabel>Confirm Password</FieldLabel>
+                    <Input placeholder="Confirm your new password" />
+                  </Field>
+                </FieldGroup>
               </CardContent>
+
+              <CardFooter className="bg-transparen justify-end gap-4">
+                <DialogTrigger render={<Button>Save changes</Button>} />
+              </CardFooter>
             </Card>
 
             <Card className="bg-card/30 border-destructive/50 rounded-none border-2 border-dashed">
@@ -609,7 +260,7 @@ function RouteComponent() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="justify-end bg-transparent">
+              <CardFooter className="bg-transparen justify-end gap-4">
                 <DialogTrigger
                   render={
                     <Button variant="destructive">

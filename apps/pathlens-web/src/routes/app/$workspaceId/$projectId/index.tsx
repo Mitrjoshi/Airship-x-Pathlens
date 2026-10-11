@@ -2,18 +2,9 @@ import { getDashboardOptions, type DashboardRange } from '@/queries/dashboard'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
-import { Calendar } from '@workspace/ui/components/calendar'
-import { ButtonGroup } from '@workspace/ui/components/button-group'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@workspace/ui/components/popover'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   ArrowUpRightIcon,
-  CalendarIcon,
-  LayoutIcon,
   LoaderIcon,
   PauseIcon,
   PlayIcon,
@@ -36,7 +27,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@workspace/ui/components/chart'
-import { AreaChart, Pie, PieChart, ResponsiveContainer, Area } from 'recharts'
+import { AreaChart, Pie, PieChart, Area } from 'recharts'
 import {
   Card,
   CardContent,
@@ -44,7 +35,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card'
-import { capitalizeFirstLetter, formatNumber } from '@/utils/utils'
+import { formatNumber } from '@/utils/utils'
 import { Badge } from '@workspace/ui/components/badge'
 import { VisitorsGlobe } from './-components/dashboard/visitors-globe'
 import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
@@ -221,43 +212,24 @@ function RouteComponent() {
 
           <Separator orientation="vertical" />
 
-          <ButtonGroup>
-            <Popover>
-              <PopoverTrigger
-                render={<Button variant={'outline'} size="icon" />}
-              >
-                <CalendarIcon />
-              </PopoverTrigger>
-
-              <PopoverContent
-                align="center"
-                sideOffset={20}
-                alignOffset={-20}
-                className={'w-fit p-0'}
-              >
-                <Calendar mode="range" numberOfMonths={2} />
-              </PopoverContent>
-            </Popover>
-
-            <Select
-              items={rangeLabels}
-              value={range}
-              onValueChange={(value) => {
-                if (value) setRange(value as DashboardRange)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {rangeLabels.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ButtonGroup>
+          <Select
+            items={rangeLabels}
+            value={range}
+            onValueChange={(value) => {
+              if (value) setRange(value as DashboardRange)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {rangeLabels.map((range) => (
+                <SelectItem key={range.value} value={range.value}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

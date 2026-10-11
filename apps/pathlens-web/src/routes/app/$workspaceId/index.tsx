@@ -247,18 +247,18 @@ const ProjectCard = ({
         })
       },
     },
-    {
-      label: 'Manage Members',
-      onClick: () => {
-        navigate({
-          to: '/app/$workspaceId/$projectId/members',
-          params: {
-            workspaceId,
-            projectId: item.id,
-          },
-        })
-      },
-    },
+    // {
+    //   label: 'Manage Members',
+    //   onClick: () => {
+    //     navigate({
+    //       to: '/app/$workspaceId/$projectId/members',
+    //       params: {
+    //         workspaceId,
+    //         projectId: item.id,
+    //       },
+    //     })
+    //   },
+    // },
     {
       label: 'Manage API Keys',
       onClick: () => {

@@ -182,6 +182,13 @@ const updateProjectSchema = z.object({
     .trim()
     .max(100, "Project description must be 100 characters or less.")
     .nullable(),
+  domain: z
+    .string({
+      error: "Please enter a project domain.",
+    })
+    .trim()
+    .min(1, "Project domain is required.")
+    .max(2048, "Project domain is too long."),
 });
 
 export async function getProjects(req: AuthRequest, res: Response) {
@@ -239,6 +246,7 @@ export async function updateProject(req: AuthRequest, res: Response) {
       projectId: project_id,
       name: payload.name,
       description: payload.description,
+      domain: payload.domain,
     });
 
     if (!project) {
@@ -259,6 +267,7 @@ export async function updateProject(req: AuthRequest, res: Response) {
         metadata: {
           name: payload.name,
           description: payload.description,
+          domain: payload.domain,
         },
       });
     }

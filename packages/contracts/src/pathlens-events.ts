@@ -87,4 +87,5 @@ export interface EventsParams {
   search?: string
   page: number
   page_size: number
+  refetchInterval?: number
 }

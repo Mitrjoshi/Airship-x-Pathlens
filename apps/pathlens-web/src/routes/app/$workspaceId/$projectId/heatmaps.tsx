@@ -13,11 +13,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { DomainSwitcher } from './-components/common/domain-switcher'
 import { Separator } from '@workspace/ui/components/separator'
-import {
-  formatNumber,
-  formatRelativeTime,
-  getPaginationItems,
-} from '@/utils/utils'
+import { formatNumber, getPaginationItems } from '@/utils/utils'
 import { Button } from '@workspace/ui/components/button'
 import {
   CalendarIcon,
@@ -77,7 +73,7 @@ const deviceLabels = [
   { value: 'unknown', label: 'Unknown' },
 ]
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 10
 
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
@@ -89,6 +85,12 @@ function RouteComponent() {
   const [domain, setDomain] = useState('')
   const [path, setPath] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
+
+  const { data: domainsData, isLoading: domainsLoading } = useQuery(
+    getProjectDomainsOptions(projectId)
+  )
+  const domains = domainsData?.data
+  const activeDomain = domain || domains?.[0]?.domain || ''
 
   const {
     data: heatmapsData,
@@ -103,30 +105,26 @@ function RouteComponent() {
       range,
       device,
       // page_path,
-      domain,
+      domain: activeDomain,
       page,
       page_size: PAGE_SIZE,
+      refetchInterval: liveMode ? 5000 : undefined,
     })
   )
 
-  const { data: heatmapDetails, isLoading: heatmapDetailsLoading } = useQuery(
+  const { data: heatmapDetails } = useQuery(
     getHeatmapDetailsOptions({
       project_id: projectId,
       workspace_id: workspaceId,
       range,
       device,
       page_path: path,
-      domain,
+      domain: activeDomain,
     })
-  )
-
-  const { data: domainsData, isLoading: domainsLoading } = useQuery(
-    getProjectDomainsOptions(projectId)
   )
 
   const heatmaps = heatmapsData?.data
   const heatmap = heatmapDetails?.data
-  const domains = domainsData?.data
 
   const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
 
@@ -137,12 +135,6 @@ function RouteComponent() {
   const from = totalEvents === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const to = Math.min(page * PAGE_SIZE, totalEvents)
 
-  useEffect(() => {
-    if (domains) {
-      setDomain(domains[0].domain)
-    }
-  }, [domains])
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <div>
@@ -150,7 +142,7 @@ function RouteComponent() {
           <div className="flex items-center gap-4">
             <DomainSwitcher
               loading={domainsLoading}
-              domain={domain}
+              domain={activeDomain}
               setDomain={setDomain}
               domains={domains!}
               refetch={refetch}
@@ -160,9 +152,7 @@ function RouteComponent() {
 
             <div className="flex items-center justify-between gap-3">
               <p className="text-muted-foreground text-sm">
-                Last updated{' '}
-                {lastUpdated &&
-                  formatRelativeTime(new Date(lastUpdated).toString())}
+                Last updated {lastUpdated ? lastUpdated : '-'}
               </p>
             </div>
           </div>
@@ -467,6 +457,11 @@ function RouteComponent() {
   )
 }
 
+// keep your existing imports, plus useState if missing
+
+const MAX_DOC_HEIGHT = 20000 // canvas and iframe safety cap
+const BLOB_RADIUS = 28
+
 export const HeatmapPreview = ({
   heatmap,
 }: {
@@ -474,23 +469,29 @@ export const HeatmapPreview = ({
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const [scale, setScale] = useState(1)
 
   const metaEvent = heatmap?.replayEvents?.find((event) => event.type === 4)
 
-  const viewportWidth = metaEvent?.data?.width ?? 1920
-  const viewportHeight = metaEvent?.data?.height ?? 1080
+  const viewportWidth =
+    heatmap?.replayViewport?.width ?? metaEvent?.data?.width ?? 1920
+  const viewportHeight =
+    heatmap?.replayViewport?.height ?? metaEvent?.data?.height ?? 1080
+  const renderWidth = heatmap?.screenshotWidth ?? viewportWidth
+  const screenshotHeight = heatmap?.screenshotHeight ?? null
 
-  // Dynamically calculate available width
+  const [docHeight, setDocHeight] = useState(viewportHeight)
+  const renderHeight = screenshotHeight ?? docHeight
+
+  // Fit the preview to the available width
   useEffect(() => {
     const wrapper = wrapperRef.current
     if (!wrapper) return
 
     const observer = new ResizeObserver(([entry]) => {
-      const availableWidth = entry.contentRect.width
-
-      setScale(Math.min(availableWidth / viewportWidth, 1))
+      setScale(Math.min(entry.contentRect.width / viewportWidth, 1))
     })
 
     observer.observe(wrapper)
@@ -498,12 +499,18 @@ export const HeatmapPreview = ({
     return () => observer.disconnect()
   }, [viewportWidth])
 
-  // Initialize rrweb
+  // Render the replay at its final state, expanded to the full document height
   useEffect(() => {
     const container = containerRef.current
     const events = heatmap?.replayEvents as eventWithTime[] | undefined
 
+    if (heatmap?.screenshotUrl) {
+      return
+    }
+
     if (!container || !events?.length) return
+
+    setDocHeight(viewportHeight)
 
     const replayer = new Replayer(events, {
       root: container,
@@ -511,15 +518,65 @@ export const HeatmapPreview = ({
       showWarning: false,
     })
 
-    const first = events[1].timestamp
-    const last = events[events.length - 1].timestamp
+    replayer.pause(replayer.getMetaData().totalTime)
 
-    replayer.pause(last - first)
+    // Measure at the original viewport height so vh units do not feed back
+    // into the measurement, then expand the iframe to the real content height.
+    const measure = () => {
+      const iframe = replayer.iframe
+      const doc = iframe.contentDocument
+      if (!doc) return
+
+      iframe.setAttribute('scrolling', 'no')
+      iframe.setAttribute('height', String(viewportHeight))
+
+      const content = doc.documentElement.scrollHeight
+      const next = Math.min(Math.max(content, viewportHeight), MAX_DOC_HEIGHT)
+
+      iframe.setAttribute('height', String(next))
+      setDocHeight(next)
+    }
+
+    // Re-measure a few times to catch images, fonts and late layout shifts
+    const timers = [0, 400, 1200].map((delay) =>
+      window.setTimeout(measure, delay)
+    )
 
     return () => {
+      timers.forEach(window.clearTimeout)
       replayer.destroy()
     }
-  }, [heatmap])
+  }, [heatmap, screenshotHeight, viewportHeight])
+
+  // Draw click blobs over the full-page render
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const points = heatmap?.clickPoints
+    if (!canvas || !points) return
+
+    canvas.width = renderWidth
+    canvas.height = renderHeight
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    for (const point of points) {
+      const x = point.x <= 1 ? point.x * renderWidth : point.x
+      const y = point.y <= 1 ? point.y * renderHeight : point.y
+      const alpha = Math.min(Math.max(point.intensity, 0), 1) * 0.6
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, BLOB_RADIUS)
+      gradient.addColorStop(0, `rgba(255, 0, 0, ${alpha})`)
+      gradient.addColorStop(1, 'rgba(255, 0, 0, 0)')
+
+      ctx.fillStyle = gradient
+      ctx.fillRect(
+        x - BLOB_RADIUS,
+        y - BLOB_RADIUS,
+        BLOB_RADIUS * 2,
+        BLOB_RADIUS * 2
+      )
+    }
+  }, [heatmap?.clickPoints, renderWidth, renderHeight])
 
   if (!heatmap) return null
 
@@ -528,16 +585,15 @@ export const HeatmapPreview = ({
       <div ref={wrapperRef} className="w-full">
         <div
           style={{
-            width: viewportWidth * scale,
-            height: viewportHeight * scale,
+            width: renderWidth * scale,
+            height: renderHeight * scale,
             position: 'relative',
           }}
         >
           <div
-            ref={containerRef}
             style={{
-              width: viewportWidth,
-              height: viewportHeight,
+              width: renderWidth,
+              height: renderHeight,
               transform: `scale(${scale})`,
               transformOrigin: 'top left',
               position: 'absolute',
@@ -545,7 +601,23 @@ export const HeatmapPreview = ({
               left: 0,
               pointerEvents: 'none',
             }}
-          />
+          >
+            {heatmap.screenshotUrl ? (
+              <img
+                src={heatmap.screenshotUrl}
+                alt={`Screenshot of ${heatmap.path}`}
+                width={renderWidth}
+                height={renderHeight}
+                style={{ display: 'block' }}
+              />
+            ) : (
+              <div ref={containerRef} />
+            )}
+            <canvas
+              ref={canvasRef}
+              style={{ position: 'absolute', top: 0, left: 0 }}
+            />
+          </div>
         </div>
       </div>
     </div>

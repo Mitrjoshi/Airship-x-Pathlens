@@ -33,3 +33,22 @@ export async function enqueueProjectSnapshot(projectId: string): Promise<void> {
     })
   );
 }
+
+export async function enqueueHeatmapPageSnapshot(
+  snapshotId: string
+): Promise<void> {
+  const queueUrl =
+    process.env.SNAPSHOT_QUEUE_URL?.trim() ??
+    (process.env.NODE_ENV === "production" ? productionQueueUrl : undefined);
+
+  if (!queueUrl) {
+    throw new Error("SNAPSHOT_QUEUE_URL is required outside production");
+  }
+
+  await sqs.send(
+    new SendMessageCommand({
+      QueueUrl: queueUrl,
+      MessageBody: JSON.stringify({ type: "heatmap-page", snapshotId }),
+    })
+  );
+}

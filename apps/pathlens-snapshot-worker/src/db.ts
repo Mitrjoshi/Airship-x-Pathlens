@@ -26,6 +26,20 @@ export interface SnapshotJob {
   failureCount: number
 }
 
+export interface HeatmapSnapshotJob {
+  id: string
+  projectId: string
+  workspaceId: string
+  domain: string
+  pagePath: string
+  sourceUrl: string
+  status: string
+  storagePath: string | null
+  viewportWidth: number
+  viewportHeight: number
+  failureCount: number
+}
+
 interface SnapshotRow extends QueryResultRow {
   project_id: string
   workspace_id: string
@@ -89,6 +103,130 @@ export async function ensureSnapshotTable(): Promise<void> {
     CREATE INDEX IF NOT EXISTS project_snapshots_due_idx
     ON project_snapshots (status, next_attempt_at, captured_at)
   `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS heatmap_page_snapshots (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      domain TEXT NOT NULL,
+      page_path TEXT NOT NULL,
+      source_url TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      storage_path TEXT,
+      viewport_width INTEGER NOT NULL DEFAULT 1280,
+      viewport_height INTEGER NOT NULL DEFAULT 900,
+      captured_at TIMESTAMPTZ,
+      requested_at TIMESTAMPTZ,
+      last_attempt_at TIMESTAMPTZ,
+      next_attempt_at TIMESTAMPTZ,
+      last_error TEXT,
+      failure_count INTEGER NOT NULL DEFAULT 0,
+      UNIQUE (project_id, source_url)
+    )
+  `)
+}
+
+export async function claimHeatmapSnapshot(
+  snapshotId: string
+): Promise<HeatmapSnapshotJob | null> {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+    const result = await client.query<HeatmapSnapshotJob>(
+      `
+        SELECT
+          id,
+          project_id AS "projectId",
+          workspace_id AS "workspaceId",
+          domain,
+          page_path AS "pagePath",
+          source_url AS "sourceUrl",
+          status,
+          storage_path AS "storagePath",
+          viewport_width AS "viewportWidth",
+          viewport_height AS "viewportHeight",
+          failure_count AS "failureCount"
+        FROM heatmap_page_snapshots
+        WHERE id = $1
+          AND status IN ('pending', 'queued', 'stale', 'failed')
+        FOR UPDATE SKIP LOCKED
+      `,
+      [snapshotId]
+    )
+    const row = result.rows[0]
+
+    if (!row) {
+      await client.query('COMMIT')
+      return null
+    }
+
+    await client.query(
+      `
+        UPDATE heatmap_page_snapshots
+        SET status = 'processing', last_attempt_at = NOW(), next_attempt_at = NULL
+        WHERE id = $1
+      `,
+      [snapshotId]
+    )
+    await client.query('COMMIT')
+    return row
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined)
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function markHeatmapSnapshotReady(
+  job: HeatmapSnapshotJob,
+  storagePath: string,
+  width: number,
+  height: number
+): Promise<boolean> {
+  const result = await pool.query(
+    `
+      UPDATE heatmap_page_snapshots
+      SET status = 'ready', storage_path = $2,
+          viewport_width = $3, viewport_height = $4, captured_at = NOW(),
+          requested_at = NULL, next_attempt_at = NULL,
+          last_error = NULL, failure_count = 0
+      WHERE id = $1 AND status = 'processing'
+    `,
+    [job.id, storagePath, width, height]
+  )
+
+  return result.rowCount === 1
+}
+
+export async function markHeatmapSnapshotStale(
+  job: HeatmapSnapshotJob,
+  error: unknown
+): Promise<boolean> {
+  const failureCount = Math.min(Math.max(job.failureCount, 0) + 1, 30)
+  const message = (error instanceof Error ? error.message : String(error))
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 2000)
+  const result = await pool.query(
+    `
+      UPDATE heatmap_page_snapshots
+      SET status = 'stale', last_attempt_at = NOW(),
+          next_attempt_at = NOW() + ($2::double precision * INTERVAL '1 second'),
+          last_error = $3, failure_count = $4
+      WHERE id = $1 AND status = 'processing'
+    `,
+    [
+      job.id,
+      Math.min(6 * 60 * 60, 60 * 2 ** Math.min(failureCount - 1, 12)),
+      message,
+      failureCount,
+    ]
+  )
+
+  return result.rowCount === 1
 }
 
 function mapSnapshotRow(row: SnapshotRow): SnapshotJob {
@@ -374,6 +512,32 @@ export async function queueDueSnapshotProjectIds(
   } finally {
     client.release()
   }
+}
+
+export async function queueDueHeatmapSnapshotIds(
+  limit = 100
+): Promise<string[]> {
+  const result = await pool.query<{ id: string }>(
+    `
+      WITH due AS (
+        SELECT id
+        FROM heatmap_page_snapshots
+        WHERE status IN ('pending', 'stale', 'failed')
+          AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
+        ORDER BY COALESCE(requested_at, next_attempt_at, captured_at, NOW())
+        LIMIT $1
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE heatmap_page_snapshots AS snapshot
+      SET status = 'queued', last_attempt_at = NOW()
+      FROM due
+      WHERE snapshot.id = due.id
+      RETURNING snapshot.id
+    `,
+    [Math.max(1, Math.min(limit, 1000))]
+  )
+
+  return result.rows.map((row) => row.id)
 }
 
 export async function markSnapshotReady(

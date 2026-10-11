@@ -5,8 +5,9 @@ import {
 } from '@/routes/(open)/-components/few-lines-of-code'
 import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
 import { Button } from '@workspace/ui/components/button'
+import { Skeleton } from '@workspace/ui/components/skeleton'
 import { IntegrationSelector } from './api-keys'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getProjectApiKeysOptions } from '@/queries/api-keys'
 import { mask } from '@/utils/utils'
@@ -23,51 +24,153 @@ function RouteComponent() {
   const [copied, setCopied] = useState(false)
   const [masked, setMasked] = useState(true)
 
-  const { data: keysData, isLoading: keysLoading } = useQuery(
-    getProjectApiKeysOptions(projectId)
-  )
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const apiKeys = keysData?.data
-  const apiKey = apiKeys && apiKeys[0]?.secret
+  const {
+    data: keysData,
+    isLoading: keysLoading,
+    isError: keysError,
+    refetch,
+  } = useQuery(getProjectApiKeysOptions(projectId))
 
-  if (keysLoading && !apiKeys?.length && !apiKey) {
-    return 'loading...'
-  }
+  const apiKey = keysData?.data?.[0]?.secret
 
   const integration =
     integrations.find((item) => item.id === activeIntegration) ??
     integrations[0]!
 
-  const actualCode = integration.code.replace('plk_********', apiKey)
+  const actualCode = apiKey
+    ? integration.code.replace('plk_********', apiKey)
+    : ''
 
-  const previewCode = integration.code.replace(
-    'plk_********',
-    masked ? mask(apiKey) : apiKey
-  )
+  const previewCode = apiKey
+    ? integration.code.replace('plk_********', masked ? mask(apiKey) : apiKey)
+    : ''
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleIntegrationChange = (value: string) => {
+    setActiveIntegration(value)
+    setCopied(false)
+  }
 
   const handleCopy = async () => {
+    if (!apiKey) {
+      toast.error('No API key found for this project')
+      return
+    }
+
     try {
       await navigator.clipboard.writeText(actualCode)
 
       setCopied(true)
-
       toast.success('Script copied successfully')
 
-      window.setTimeout(() => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+
+      copyTimeoutRef.current = setTimeout(() => {
         setCopied(false)
+        copyTimeoutRef.current = null
       }, 1500)
     } catch {
       toast.error('Failed to copy script')
     }
   }
 
+  if (keysLoading) {
+    return (
+      <div className="p-6">
+        <div className="space-y-10">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-24" />
+            <Skeleton className="h-4 w-full max-w-xl" />
+            <Skeleton className="h-4 w-3/4 max-w-lg" />
+          </div>
+
+          <div className="mx-auto w-fit space-y-4 pt-2">
+            <Skeleton className="h-10 w-64 max-w-full" />
+
+            <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
+              <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
+                <div className="flex items-center gap-1">
+                  <Skeleton className="size-3 rounded-full" />
+                  <Skeleton className="size-3 rounded-full" />
+                  <Skeleton className="size-3 rounded-full" />
+                  <Skeleton className="ml-2 h-4 w-32" />
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Skeleton className="size-9 rounded-md" />
+                  <Skeleton className="size-9 rounded-md" />
+                </div>
+              </div>
+
+              <div className="space-y-4 p-4">
+                {Array.from({ length: 8 }, (_, index) => (
+                  <Skeleton
+                    key={index}
+                    className="h-4"
+                    style={{
+                      width: `${[85, 65, 92, 48, 76, 55, 70, 35][index]}%`,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (keysError || !apiKey) {
+    return (
+      <div className="p-6">
+        <div className="space-y-1">
+          <h1 className="text-xl font-medium">Setup</h1>
+          <p className="text-muted-foreground text-sm">
+            {keysError
+              ? 'Unable to load your project API key. Please try again.'
+              : 'No API key was found for this project. Create an API key to start tracking your website.'}
+          </p>
+
+          <Button
+            type="button"
+            variant="secondary"
+            className="mt-3"
+            onClick={() => void refetch()}
+          >
+            Try again
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex h-[calc(100dvh-57px)] items-center justify-center">
-      <div>
-        <div className="space-y-4 pt-2">
+    <div className="p-6">
+      <div className="space-y-10">
+        <div className="space-y-1">
+          <h1 className="text-xl font-medium">Setup</h1>
+
+          <p className="text-muted-foreground text-sm">
+            Add the tracking script to your website to start collecting events
+            and uncover insights into your users' behavior.
+          </p>
+        </div>
+
+        <div className="mx-auto w-fit space-y-4 pt-2">
           <IntegrationSelector
             value={activeIntegration}
-            onChange={setActiveIntegration}
+            onChange={handleIntegrationChange}
           />
 
           <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
@@ -88,9 +191,7 @@ function RouteComponent() {
                   variant="secondary"
                   size="icon"
                   title={masked ? 'Show API key' : 'Hide API key'}
-                  onClick={() => {
-                    setMasked((current) => !current)
-                  }}
+                  onClick={() => setMasked((current) => !current)}
                 >
                   {masked ? (
                     <EyeIcon key="show" className="copy-icon-animate" />
@@ -115,7 +216,7 @@ function RouteComponent() {
               </div>
             </div>
 
-            <div className="bg-background max-h-80 overflow-auto">
+            <div className="bg-background overflow-auto">
               <CodeBlock code={previewCode} language={integration.language} />
             </div>
           </div>

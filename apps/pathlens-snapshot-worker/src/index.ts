@@ -4,14 +4,20 @@ import type { Browser } from 'playwright-core'
 
 import {
   claimNextSnapshot,
+  markHeatmapSnapshotReady,
+  markHeatmapSnapshotStale,
   closeDatabase,
   ensureSnapshotTable,
   markSnapshotReady,
   markSnapshotStale,
+  type HeatmapSnapshotJob,
   type SnapshotJob,
 } from './db.js'
-import { normalizeProjectDomain } from './security.js'
-import { captureProjectScreenshot } from './screenshot.js'
+import { normalizeProjectDomain, validatePublicHttpUrl } from './security.js'
+import {
+  captureHeatmapScreenshot,
+  captureProjectScreenshot,
+} from './screenshot.js'
 import { launchBrowser } from './browser.js'
 import {
   createSnapshotStorage,
@@ -93,6 +99,37 @@ export async function processSnapshot(
         )}`
       )
     }
+  }
+}
+
+export async function processHeatmapSnapshot(
+  browser: Browser,
+  storage: SnapshotStorage,
+  job: HeatmapSnapshotJob
+): Promise<void> {
+  try {
+    const targetUrl = await validatePublicHttpUrl(job.sourceUrl)
+    const screenshot = await captureHeatmapScreenshot(
+      browser,
+      targetUrl,
+      Number(process.env.SNAPSHOT_SETTLE_DELAY_MS ?? defaultSettleDelayMs),
+      job.viewportWidth,
+      job.viewportHeight
+    )
+    const storagePath = `heatmaps/${job.workspaceId}/${job.projectId}/${job.id}.jpg`
+
+    await storage.upload(storagePath, screenshot.image)
+    await markHeatmapSnapshotReady(
+      job,
+      storagePath,
+      screenshot.width,
+      screenshot.height
+    )
+  } catch (error) {
+    await markHeatmapSnapshotStale(job, error)
+    console.error(
+      `Heatmap screenshot failed for ${job.sourceUrl}: ${errorMessage(error)}`
+    )
   }
 }
 

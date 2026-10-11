@@ -20,7 +20,6 @@ import {
   FieldGroup,
   FieldLabel,
   FieldLegend,
-  FieldSet,
   FieldTitle,
 } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'

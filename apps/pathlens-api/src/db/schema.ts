@@ -264,6 +264,62 @@ export const auditLogs = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/*                            REPORT GENERATIONS                              */
+/* -------------------------------------------------------------------------- */
+
+export const reportGenerations = pgTable(
+  "report_generations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, {
+        onDelete: "cascade",
+      }),
+
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "cascade",
+    }),
+
+    actorUserId: uuid("actor_user_id")
+      .notNull()
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
+    reportType: text("report_type").notNull(),
+    filters: jsonb("filters").$type<Record<string, unknown>>().notNull(),
+    status: text("status").notNull().default("generating"),
+    storagePath: text("storage_path"),
+    fileName: text("file_name"),
+    mimeType: text("mime_type"),
+    fileSize: integer("file_size"),
+    error: text("error"),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+    }),
+  },
+  (table) => ({
+    workspaceCreatedIdx: index("report_generations_workspace_created_idx").on(
+      table.workspaceId,
+      table.createdAt
+    ),
+    workspaceProjectCreatedIdx: index(
+      "report_generations_workspace_project_created_idx"
+    ).on(table.workspaceId, table.projectId, table.createdAt),
+    statusIdx: index("report_generations_status_idx").on(table.status),
+  })
+);
+
+/* -------------------------------------------------------------------------- */
 /*                               NOTIFICATIONS                                */
 /* -------------------------------------------------------------------------- */
 
@@ -479,6 +535,45 @@ export const projectSnapshots = pgTable(
       table.workspaceId
     ),
     dueIdx: index("project_snapshots_due_idx").on(
+      table.status,
+      table.nextAttemptAt,
+      table.capturedAt
+    ),
+  })
+);
+
+export const heatmapPageSnapshots = pgTable(
+  "heatmap_page_snapshots",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+
+    domain: text("domain").notNull(),
+    pagePath: text("page_path").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    status: text("status").notNull().default("pending"),
+    storagePath: text("storage_path"),
+    viewportWidth: integer("viewport_width").notNull().default(1280),
+    viewportHeight: integer("viewport_height").notNull().default(900),
+    capturedAt: timestamp("captured_at", { withTimezone: true }),
+    requestedAt: timestamp("requested_at", { withTimezone: true }),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    failureCount: integer("failure_count").notNull().default(0),
+  },
+  (table) => ({
+    projectSourceUrlIdx: uniqueIndex(
+      "heatmap_page_snapshots_project_source_url_idx"
+    ).on(table.projectId, table.sourceUrl),
+    dueIdx: index("heatmap_page_snapshots_due_idx").on(
       table.status,
       table.nextAttemptAt,
       table.capturedAt
