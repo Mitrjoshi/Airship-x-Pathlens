@@ -10,11 +10,7 @@ import {
   type SessionReplayRange,
 } from '@/queries/session-replay'
 import { Separator } from '@workspace/ui/components/separator'
-import {
-  formatDate,
-  formatRelativeTime,
-  getPaginationItems,
-} from '@/utils/utils'
+import { formatDate, getPaginationItems } from '@/utils/utils'
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import { Button } from '@workspace/ui/components/button'
 import { PauseIcon, PlayIcon, RefreshCcwIcon, SearchIcon } from 'lucide-react'
@@ -69,7 +65,10 @@ const deviceLabels = [
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
-  const [range, setRange] = useState<SessionReplayRange>('7d')
+  const rangeLocal = localStorage.getItem('range')
+  const [range, setRange] = useState<SessionReplayRange>(
+    (rangeLocal || '7d') as SessionReplayRange
+  )
   const [liveMode, setLiveMode] = useState(false)
   const [page, setPage] = useState(1)
   const [domain, setDomain] = useState('')
@@ -117,7 +116,7 @@ function RouteComponent() {
   const sessions = sessionsData?.data
   const domains = domainsData?.data
 
-  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
+  const lastUpdated = useRelativeTime(dataUpdatedAt)
 
   const totalSessions = sessions?.pagination?.total ?? 0
   const totalPages = Math.ceil(totalSessions / PAGE_SIZE)
@@ -182,7 +181,9 @@ function RouteComponent() {
             items={rangeLabels}
             value={range}
             onValueChange={(value) => {
-              if (value) setRange(value as SessionReplayRange)
+              if (!value) return
+              setRange(value as SessionReplayRange)
+              localStorage.setItem('range', value)
             }}
           >
             <SelectTrigger className="w-full sm:w-36">

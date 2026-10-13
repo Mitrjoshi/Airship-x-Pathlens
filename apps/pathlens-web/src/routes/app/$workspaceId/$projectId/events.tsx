@@ -346,7 +346,10 @@ function EventsChart({ data }: { data: ChartDataItem[] }) {
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
-  const [range, setRange] = useState<AnalyticsRange>('7d')
+  const rangeLocal = localStorage.getItem('range')
+  const [range, setRange] = useState<AnalyticsRange>(
+    (rangeLocal || '7d') as AnalyticsRange
+  )
   const [liveMode, setLiveMode] = useState(false)
   const [device, setDevice] = useState<EventsDevice>('all')
   const [page, setPage] = useState(1)
@@ -421,11 +424,10 @@ function RouteComponent() {
   )
 
   const isInitialChartLoading = isChartFetching
-  const isFetching = isEventsFetching || isChartFetching
   const dataUpdatedAt = Math.max(eventsUpdatedAt, chartUpdatedAt)
   const refetch = () => Promise.all([refetchEvents(), refetchChart()])
 
-  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
+  const lastUpdated = useRelativeTime(dataUpdatedAt)
 
   const totalEvents = events?.total ?? 0
   const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
@@ -499,7 +501,9 @@ function RouteComponent() {
             items={rangeLabels}
             value={range}
             onValueChange={(value) => {
-              if (value) setRange(value as EventsRange)
+              if (!value) return
+              setRange(value as EventsRange)
+              localStorage.setItem('range', value)
             }}
           >
             <SelectTrigger className="w-full sm:w-36">

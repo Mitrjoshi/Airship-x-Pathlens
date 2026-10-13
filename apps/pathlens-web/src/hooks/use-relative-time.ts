@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 export const useRelativeTime = (
   timestamp?: number | string | Date,
-  interval = 1000
+  interval = 60_000
 ) => {
   const [, setTick] = useState(0)
 

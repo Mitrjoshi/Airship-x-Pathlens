@@ -189,7 +189,10 @@ const chartConfig = {
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
-  const [range, setRange] = useState<PerformanceRange>('7d')
+  const rangeLocal = localStorage.getItem('range')
+  const [range, setRange] = useState<PerformanceRange>(
+    (rangeLocal || '7d') as PerformanceRange
+  )
   const [device, setDevice] = useState<PerformanceDevice>('all')
   const [domain, setDomain] = useState('')
 
@@ -213,7 +216,7 @@ function RouteComponent() {
     getProjectDomainsOptions(projectId)
   )
 
-  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
+  const lastUpdated = useRelativeTime(dataUpdatedAt)
 
   const performance = performanceData?.data
   const domains = domainsData?.data
@@ -263,43 +266,26 @@ function RouteComponent() {
 
           <Separator orientation="vertical" />
 
-          <ButtonGroup>
-            <Popover>
-              <PopoverTrigger
-                render={<Button variant={'outline'} size="icon" />}
-              >
-                <CalendarIcon />
-              </PopoverTrigger>
-
-              <PopoverContent
-                align="center"
-                sideOffset={20}
-                alignOffset={-20}
-                className={'w-fit p-0'}
-              >
-                <Calendar mode="range" numberOfMonths={2} />
-              </PopoverContent>
-            </Popover>
-
-            <Select
-              items={rangeLabels}
-              value={range}
-              onValueChange={(value) => {
-                if (value) setRange(value as PerformanceRange)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {rangeLabels.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ButtonGroup>
+          <Select
+            items={rangeLabels}
+            value={range}
+            onValueChange={(value) => {
+              if (!value) return
+              setRange(value as PerformanceRange)
+              localStorage.setItem('range', value)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {rangeLabels.map((range) => (
+                <SelectItem key={range.value} value={range.value}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Select
             items={deviceLabels}

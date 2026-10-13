@@ -182,7 +182,10 @@ const goalTypeMeta: Record<
 function RouteComponent() {
   const { projectId, workspaceId } = Route.useParams()
 
-  const [range, setRange] = useState<GoalRange>('7d')
+  const rangeLocal = localStorage.getItem('range')
+  const [range, setRange] = useState<GoalRange>(
+    (rangeLocal || '7d') as GoalRange
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const { data: goalsData, isLoading: goalsLoading } = useQuery(
@@ -267,7 +270,9 @@ function RouteComponent() {
               items={rangeLabels}
               value={range}
               onValueChange={(value) => {
-                if (value) setRange(value as GoalRange)
+                if (!value) return
+                setRange(value as GoalRange)
+                localStorage.setItem('range', value)
               }}
             >
               <SelectTrigger className="w-full sm:w-36">

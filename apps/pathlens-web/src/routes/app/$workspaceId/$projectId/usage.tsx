@@ -58,13 +58,6 @@ function RouteComponent() {
       format: formatBytes,
     },
     {
-      key: 'projects',
-      label: 'Projects',
-      value: formatNumber(usage?.projects ?? 0),
-      limit: limits?.projects,
-      format: formatNumber,
-    },
-    {
       key: 'funnels',
       label: 'Funnels',
       value: formatNumber(usage?.funnels ?? 0),

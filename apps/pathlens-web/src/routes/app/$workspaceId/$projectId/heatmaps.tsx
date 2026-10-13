@@ -78,7 +78,10 @@ const PAGE_SIZE = 10
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
-  const [range, setRange] = useState<HeatmapsRange>('7d')
+  const rangeLocal = localStorage.getItem('range')
+  const [range, setRange] = useState<HeatmapsRange>(
+    (rangeLocal || '7d') as HeatmapsRange
+  )
   const [liveMode, setLiveMode] = useState(false)
   const [page, setPage] = useState(1)
   const [device, setDevice] = useState<HeatmapDevice>('all')
@@ -126,7 +129,7 @@ function RouteComponent() {
   const heatmaps = heatmapsData?.data
   const heatmap = heatmapDetails?.data
 
-  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
+  const lastUpdated = useRelativeTime(dataUpdatedAt)
 
   const totalEvents = heatmaps?.pagination?.total ?? 0
   const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
@@ -182,43 +185,26 @@ function RouteComponent() {
 
             <Separator orientation="vertical" />
 
-            <ButtonGroup>
-              <Popover>
-                <PopoverTrigger
-                  render={<Button variant={'outline'} size="icon" />}
-                >
-                  <CalendarIcon />
-                </PopoverTrigger>
-
-                <PopoverContent
-                  align="center"
-                  sideOffset={20}
-                  alignOffset={-20}
-                  className={'w-fit p-0'}
-                >
-                  <Calendar mode="range" numberOfMonths={2} />
-                </PopoverContent>
-              </Popover>
-
-              <Select
-                items={rangeLabels}
-                value={range}
-                onValueChange={(value) => {
-                  if (value) setRange(value as HeatmapsRange)
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false}>
-                  {rangeLabels.map((range) => (
-                    <SelectItem key={range.value} value={range.value}>
-                      {range.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </ButtonGroup>
+            <Select
+              items={rangeLabels}
+              value={range}
+              onValueChange={(value) => {
+                if (!value) return
+                setRange(value as HeatmapsRange)
+                localStorage.setItem('range', value)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {rangeLabels.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <Select
               items={deviceLabels}

@@ -93,7 +93,10 @@ const PAGE_SIZE = 10
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
-  const [range, setRange] = useState<VisitorsRange>('7d')
+  const rangeLocal = localStorage.getItem('range')
+  const [range, setRange] = useState<VisitorsRange>(
+    (rangeLocal || '7d') as VisitorsRange
+  )
   const [liveMode, setLiveMode] = useState(false)
   const [page, setPage] = useState(1)
   const [domain, setDomain] = useState('')
@@ -147,7 +150,7 @@ function RouteComponent() {
   const totalPages = Math.ceil(totalEvents / PAGE_SIZE)
   const paginationItems = getPaginationItems(page, totalPages)
 
-  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
+  const lastUpdated = useRelativeTime(dataUpdatedAt)
 
   const from = totalEvents === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const to = Math.min(page * PAGE_SIZE, totalEvents)
@@ -211,7 +214,9 @@ function RouteComponent() {
             items={rangeLabels}
             value={range}
             onValueChange={(value) => {
-              if (value) setRange(value as VisitorsRange)
+              if (!value) return
+              setRange(value as VisitorsRange)
+              localStorage.setItem('range', value)
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
@@ -243,7 +248,7 @@ function RouteComponent() {
           </CardHeader>
           <CardContent className="divide-border grid h-100 min-h-0 grid-cols-[1fr_45%] items-stretch divide-x-2 overflow-hidden p-2">
             {/* Map */}
-            <div className="flex h-full min-h-0 items-center">
+            <div className="relative h-full min-h-0 min-w-0 overflow-hidden">
               <VisitorsWorldMap locations={visitorsLocation?.locations ?? []} />
             </div>
 

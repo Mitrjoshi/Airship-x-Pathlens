@@ -79,7 +79,11 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
   const navigate = useNavigate()
 
-  const [range, setRange] = useState<DashboardRange>('7d')
+  const rangeLocal = localStorage.getItem('range')
+
+  const [range, setRange] = useState<DashboardRange>(
+    (rangeLocal || '7d') as DashboardRange
+  )
   const [liveMode, setLiveMode] = useState(false)
   const [domain, setDomain] = useState('')
 
@@ -107,7 +111,7 @@ function RouteComponent() {
   const dashboard = dashboardData?.data
   const domains = domainsData?.data
 
-  const lastUpdated = useRelativeTime(dataUpdatedAt, 60_000)
+  const lastUpdated = useRelativeTime(dataUpdatedAt)
 
   const deviceChartConfig = {
     value: {
@@ -216,7 +220,9 @@ function RouteComponent() {
             items={rangeLabels}
             value={range}
             onValueChange={(value) => {
-              if (value) setRange(value as DashboardRange)
+              if (!value) return
+              setRange(value as DashboardRange)
+              localStorage.setItem('range', value)
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
