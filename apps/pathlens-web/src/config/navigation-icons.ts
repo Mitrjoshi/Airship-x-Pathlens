@@ -18,13 +18,14 @@ import {
   MousePointerClickIcon,
   ReceiptTextIcon,
   RouteIcon,
-  ScanSearchIcon,
+  FlameIcon,
   SettingsIcon,
   ShieldCheckIcon,
   LogsIcon,
   TrashIcon,
   UsersIcon,
-  WorkflowIcon,
+  FunnelIcon,
+  MessageSquareTextIcon,
 } from 'lucide-react'
 
 export const navigationIcons = {
@@ -37,8 +38,8 @@ export const navigationIcons = {
   sessions: ActivityIcon,
   visitors: UsersIcon,
   sessionReplay: ClapperboardIcon,
-  heatmaps: ScanSearchIcon,
-  funnels: WorkflowIcon,
+  heatmaps: FlameIcon,
+  funnels: FunnelIcon,
   goals: GoalIcon,
   aiInsights: BotIcon,
   reports: BarChart3Icon,
@@ -62,4 +63,5 @@ export const navigationIcons = {
   copy: CopyIcon,
   edit: EditIcon,
   audit: LogsIcon,
+  chat: MessageSquareTextIcon,
 } as const

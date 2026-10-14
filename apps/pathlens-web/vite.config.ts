@@ -19,4 +19,9 @@ export default defineConfig({
       '@': resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    hmr: {
+      overlay: false,
+    },
+  },
 })

@@ -30,22 +30,40 @@ import {
 } from '@workspace/ui/components/radio-group'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { ArrowLeftIcon, MailPlusIcon, PlusIcon } from 'lucide-react'
-import { useState } from 'react'
 import { z } from 'zod'
 
 export const Route = createFileRoute('/app/$workspaceId/invite')({
   component: RouteComponent,
 })
 
+const emailSchema = z.email()
+
+const parseEmails = (value: string) =>
+  Array.from(
+    new Set(
+      value
+        .split(',')
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean)
+    )
+  )
+
+const emailListSchema = z.string().refine((value) => {
+  const emails = parseEmails(value)
+  return (
+    emails.length > 0 &&
+    emails.every((email) => emailSchema.safeParse(email).success)
+  )
+}, 'Enter one or more valid email addresses separated by commas.')
+
 const formSchema = z.object({
-  email: z.email(),
+  email: emailListSchema,
   permission_profile_id: z.string(),
 })
 
 function RouteComponent() {
   const { workspaceId } = Route.useParams()
   const router = useRouter()
-  const [permissionProfileId, setPermissionProfileId] = useState('')
 
   const { data: profilesData, isPending: profilesPending } = useQuery(
     getWorkspacePermissionProfilesOptions(workspaceId)
@@ -53,10 +71,6 @@ function RouteComponent() {
   const createInvitation = useCreateWorkspaceInvitation(workspaceId)
 
   const profiles = profilesData?.data ?? []
-  const defaultProfile =
-    profiles.find((profile) => profile.name === 'Viewer') ?? profiles[0]
-  const selectedPermissionProfileId =
-    permissionProfileId || defaultProfile?.id || ''
 
   const form = useForm({
     defaultValues: {
@@ -68,7 +82,7 @@ function RouteComponent() {
     },
     onSubmit: async ({ value: { email, permission_profile_id } }) => {
       createInvitation.mutate({
-        email,
+        emails: parseEmails(email),
         permissionProfileId: permission_profile_id,
       })
     },
@@ -220,8 +234,8 @@ function RouteComponent() {
                               }
                               aria-invalid={isInvalid}
                               placeholder="name1@example.com, name2@example.com"
-                              maxLength={50}
-                              type="email"
+                              maxLength={1000}
+                              type="text"
                             />
                             {isInvalid && (
                               <FieldError errors={field.state.meta.errors} />

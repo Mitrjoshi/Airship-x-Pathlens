@@ -919,7 +919,7 @@ export const RegionGlobe = () => {
         primary: styles.getPropertyValue('--primary').trim() || '#44d59d',
 
         card:
-          styles.getPropertyValue('--primary-foreground').trim() || '#ffffff',
+          styles.getPropertyValue('--primary-foreground-2').trim() || '#ffffff',
 
         cardForeground:
           styles.getPropertyValue('--card-foreground').trim() || '#101719',

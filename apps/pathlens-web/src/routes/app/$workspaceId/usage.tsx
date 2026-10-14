@@ -3,7 +3,6 @@ import { getUsageOptions } from '@/queries/usage'
 import { formatBytes, formatNumber } from '@/utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Button } from '@workspace/ui/components/button'
 import {
   Card,
   CardDescription,
@@ -18,7 +17,6 @@ import {
   SelectValue,
 } from '@workspace/ui/components/select'
 import { Skeleton } from '@workspace/ui/components/skeleton'
-import { ArrowUpRightIcon } from 'lucide-react'
 import { useState } from 'react'
 
 export const Route = createFileRoute('/app/$workspaceId/usage')({

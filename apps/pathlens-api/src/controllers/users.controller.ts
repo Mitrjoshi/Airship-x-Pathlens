@@ -127,7 +127,7 @@ const updateUserSchema = z.object({
 
 const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required."),
+    currentPassword: z.string().optional(),
     newPassword: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string().min(1, "Please confirm your new password."),
   })
@@ -137,7 +137,7 @@ const changePasswordSchema = z
   });
 
 const deleteUserSchema = z.object({
-  password: z.string().min(1, "Your current password is required."),
+  password: z.string().optional(),
 });
 
 function hasDatabaseErrorCode(error: unknown, code: string): boolean {
@@ -243,6 +243,7 @@ export async function getUser(req: AuthRequest, res: Response) {
       success: true,
       data: {
         ...safeUserData,
+        hasPassword: Boolean(userData.password),
       },
     });
   } catch (error) {
@@ -405,6 +406,13 @@ export async function changePassword(req: AuthRequest, res: Response) {
       });
     }
 
+    if (userData.password && !currentPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is required.",
+      });
+    }
+
     if (userData.password && userData.password !== currentPassword) {
       return res.status(400).json({
         success: false,
@@ -452,7 +460,7 @@ export async function deleteUser(req: AuthRequest, res: Response) {
       });
     }
 
-    if (!userData.password || userData.password !== password) {
+    if (userData.password && userData.password !== password) {
       return res.status(400).json({
         success: false,
         message: "Password is incorrect.",

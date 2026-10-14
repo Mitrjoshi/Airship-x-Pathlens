@@ -88,6 +88,7 @@ function RouteComponent() {
   const [removeMember, setRemoveMember] = useState<T_WorkspaceMember | null>(
     null
   )
+  const [open, setOpen] = useState(false)
 
   const [permissionProfileId, setPermissionProfileId] = useState('')
 
@@ -368,9 +369,9 @@ function RouteComponent() {
                           </p>
                         </div>
 
-                        <Dialog>
+                        <Dialog open={open} onOpenChange={setOpen}>
                           <DialogTrigger
-                            render={<Button variant="destructive" />}
+                            render={<Button size="sm" variant="destructive" />}
                           >
                             Revoke
                           </DialogTrigger>
@@ -390,7 +391,13 @@ function RouteComponent() {
                                 Cancel
                               </DialogClose>
                               <Button
-                                onClick={() => revokeInvitation(item.id)}
+                                onClick={() =>
+                                  revokeInvitation(item.id, {
+                                    onSuccess: () => {
+                                      setOpen(false)
+                                    },
+                                  })
+                                }
                                 variant="destructive"
                               >
                                 <LoadingSwap

@@ -34,15 +34,11 @@ apiClient.interceptors.response.use(
     if (error.response) {
       const message = error.response.data?.message || 'Something went wrong'
 
-      // e.g. handle 401
+      // Only an invalid or expired session should log the user out. Permission,
+      // entitlement, and not-found responses are actionable API errors.
       const isLoginRequest = error.config?.url?.endsWith('/auth/login')
 
-      if (
-        !isLoginRequest &&
-        (error.response.status === 401 ||
-          error.response.status === 403 ||
-          error.response.status === 404)
-      ) {
+      if (!isLoginRequest && error.response.status === 401) {
         localStorage.removeItem('pathlens-token')
         window.location.href = '/login'
         // queryClient.removeQueries({

@@ -1019,7 +1019,7 @@ function RouteComponent() {
   )
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+export function MetricCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-muted/40 border-2 border-dashed p-3">
       <p className="text-muted-foreground text-xs">{label}</p>
@@ -1029,7 +1029,7 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   )
 }
 
-function EventSection({
+export function EventSection({
   title,
   children,
 }: {
@@ -1047,17 +1047,41 @@ function EventSection({
   )
 }
 
-function EventRow({ label, value }: { label: string; value: React.ReactNode }) {
+export function EventRow({
+  label,
+  value,
+  fullWidth = false,
+}: {
+  label: React.ReactNode
+  value: React.ReactNode
+  fullWidth?: boolean
+}) {
   return (
-    <div className="grid grid-cols-[130px_1fr] gap-4 text-sm">
-      <span className="text-muted-foreground">{label}</span>
+    <div
+      className={
+        fullWidth
+          ? 'flex w-full min-w-0 items-center justify-between gap-4 text-sm'
+          : 'grid grid-cols-[130px_1fr] gap-4 text-sm'
+      }
+    >
+      <span
+        className={
+          fullWidth
+            ? 'text-muted-foreground min-w-0 flex-1 truncate'
+            : 'text-muted-foreground'
+        }
+      >
+        {label}
+      </span>
 
-      <div className="min-w-0 break-words">{value || '—'}</div>
+      <div className={fullWidth ? 'shrink-0' : 'min-w-0 break-words'}>
+        {value ?? '—'}
+      </div>
     </div>
   )
 }
 
-function CopyableValue({ value }: { value?: string | null }) {
+export function CopyableValue({ value }: { value?: string | null }) {
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
@@ -1081,9 +1105,10 @@ function CopyableValue({ value }: { value?: string | null }) {
       <span className="truncate font-mono text-xs">{value}</span>
 
       <Button
+        key={copied ? 'copied' : 'copy'}
         variant="ghost"
         size="icon"
-        className="size-7 shrink-0"
+        className="copy-icon-animate size-7 shrink-0"
         onClick={handleCopy}
       >
         {copied ? (

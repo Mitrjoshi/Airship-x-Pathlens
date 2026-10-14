@@ -45,6 +45,7 @@ import { Route as AppWorkspaceIdProjectIdCampaignsRouteImport } from './routes/a
 import { Route as AppWorkspaceIdProjectIdDomainsRouteImport } from './routes/app/$workspaceId/$projectId/domains'
 import { Route as AppWorkspaceIdProjectIdErrorsRouteImport } from './routes/app/$workspaceId/$projectId/errors'
 import { Route as AppWorkspaceIdProjectIdEventsRouteImport } from './routes/app/$workspaceId/$projectId/events'
+import { Route as AppWorkspaceIdProjectIdFunnelsRouteImport } from './routes/app/$workspaceId/$projectId/funnels'
 import { Route as AppWorkspaceIdProjectIdHeatmapsRouteImport } from './routes/app/$workspaceId/$projectId/heatmaps'
 import { Route as AppWorkspaceIdProjectIdPerformanceRouteImport } from './routes/app/$workspaceId/$projectId/performance'
 import { Route as AppWorkspaceIdProjectIdReportsRouteImport } from './routes/app/$workspaceId/$projectId/reports'
@@ -246,6 +247,12 @@ const AppWorkspaceIdProjectIdEventsRoute =
     path: '/$projectId/events',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
+const AppWorkspaceIdProjectIdFunnelsRoute =
+  AppWorkspaceIdProjectIdFunnelsRouteImport.update({
+    id: '/$projectId/funnels',
+    path: '/$projectId/funnels',
+    getParentRoute: () => AppWorkspaceIdRouteRoute,
+  } as any)
 const AppWorkspaceIdProjectIdHeatmapsRoute =
   AppWorkspaceIdProjectIdHeatmapsRouteImport.update({
     id: '/$projectId/heatmaps',
@@ -356,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
   '/app/$workspaceId/$projectId/errors': typeof AppWorkspaceIdProjectIdErrorsRoute
   '/app/$workspaceId/$projectId/events': typeof AppWorkspaceIdProjectIdEventsRoute
+  '/app/$workspaceId/$projectId/funnels': typeof AppWorkspaceIdProjectIdFunnelsRoute
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
@@ -402,6 +410,7 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
   '/app/$workspaceId/$projectId/errors': typeof AppWorkspaceIdProjectIdErrorsRoute
   '/app/$workspaceId/$projectId/events': typeof AppWorkspaceIdProjectIdEventsRoute
+  '/app/$workspaceId/$projectId/funnels': typeof AppWorkspaceIdProjectIdFunnelsRoute
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
@@ -454,6 +463,7 @@ export interface FileRoutesById {
   '/app/$workspaceId/$projectId/domains': typeof AppWorkspaceIdProjectIdDomainsRoute
   '/app/$workspaceId/$projectId/errors': typeof AppWorkspaceIdProjectIdErrorsRoute
   '/app/$workspaceId/$projectId/events': typeof AppWorkspaceIdProjectIdEventsRoute
+  '/app/$workspaceId/$projectId/funnels': typeof AppWorkspaceIdProjectIdFunnelsRoute
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsRoute
   '/app/$workspaceId/$projectId/performance': typeof AppWorkspaceIdProjectIdPerformanceRoute
   '/app/$workspaceId/$projectId/reports': typeof AppWorkspaceIdProjectIdReportsRoute
@@ -504,6 +514,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/domains'
     | '/app/$workspaceId/$projectId/errors'
     | '/app/$workspaceId/$projectId/events'
+    | '/app/$workspaceId/$projectId/funnels'
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
@@ -550,6 +561,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/domains'
     | '/app/$workspaceId/$projectId/errors'
     | '/app/$workspaceId/$projectId/events'
+    | '/app/$workspaceId/$projectId/funnels'
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
@@ -601,6 +613,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/domains'
     | '/app/$workspaceId/$projectId/errors'
     | '/app/$workspaceId/$projectId/events'
+    | '/app/$workspaceId/$projectId/funnels'
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/performance'
     | '/app/$workspaceId/$projectId/reports'
@@ -879,6 +892,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdEventsRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
+    '/app/$workspaceId/$projectId/funnels': {
+      id: '/app/$workspaceId/$projectId/funnels'
+      path: '/$projectId/funnels'
+      fullPath: '/app/$workspaceId/$projectId/funnels'
+      preLoaderRoute: typeof AppWorkspaceIdProjectIdFunnelsRouteImport
+      parentRoute: typeof AppWorkspaceIdRouteRoute
+    }
     '/app/$workspaceId/$projectId/heatmaps': {
       id: '/app/$workspaceId/$projectId/heatmaps'
       path: '/$projectId/heatmaps'
@@ -1030,6 +1050,7 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdProjectIdDomainsRoute: typeof AppWorkspaceIdProjectIdDomainsRoute
   AppWorkspaceIdProjectIdErrorsRoute: typeof AppWorkspaceIdProjectIdErrorsRoute
   AppWorkspaceIdProjectIdEventsRoute: typeof AppWorkspaceIdProjectIdEventsRoute
+  AppWorkspaceIdProjectIdFunnelsRoute: typeof AppWorkspaceIdProjectIdFunnelsRoute
   AppWorkspaceIdProjectIdHeatmapsRoute: typeof AppWorkspaceIdProjectIdHeatmapsRoute
   AppWorkspaceIdProjectIdPerformanceRoute: typeof AppWorkspaceIdProjectIdPerformanceRoute
   AppWorkspaceIdProjectIdReportsRoute: typeof AppWorkspaceIdProjectIdReportsRoute
@@ -1062,6 +1083,7 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
   AppWorkspaceIdProjectIdDomainsRoute: AppWorkspaceIdProjectIdDomainsRoute,
   AppWorkspaceIdProjectIdErrorsRoute: AppWorkspaceIdProjectIdErrorsRoute,
   AppWorkspaceIdProjectIdEventsRoute: AppWorkspaceIdProjectIdEventsRoute,
+  AppWorkspaceIdProjectIdFunnelsRoute: AppWorkspaceIdProjectIdFunnelsRoute,
   AppWorkspaceIdProjectIdHeatmapsRoute: AppWorkspaceIdProjectIdHeatmapsRoute,
   AppWorkspaceIdProjectIdPerformanceRoute:
     AppWorkspaceIdProjectIdPerformanceRoute,

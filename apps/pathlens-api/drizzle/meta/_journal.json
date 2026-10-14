@@ -330,6 +330,13 @@
       "when": 1791646138903,
       "tag": "0046_tearful_warhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791965700118,
+      "tag": "0047_worthless_puppet_master",
+      "breakpoints": true
     }
   ]
 }

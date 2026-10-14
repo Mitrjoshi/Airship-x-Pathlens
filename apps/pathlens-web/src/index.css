@@ -68,6 +68,7 @@
 
   /* Brand */
   --primary: #41ce8f;
+  --primary-foreground-2: #dcfff1;
   --primary-foreground: #052e1e;
 
   /* Neutral UI */
@@ -132,6 +133,7 @@
   /* Brand */
   --primary: #41ce8f;
   --primary-foreground: #052e1e;
+  --primary-foreground-2: #052e1e;
 
   /* Neutral UI */
   --secondary: #262626;

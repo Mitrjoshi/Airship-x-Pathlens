@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   DEFAULT_FULL_ACCESS_PERMISSIONS,
   DEFAULT_VIEWER_PERMISSIONS,
@@ -609,6 +609,27 @@ export async function getWorkspacePendingInvitationsModel(workspaceId: string) {
     .orderBy(desc(notifications.createdAt));
 }
 
+export async function getWorkspacePendingInvitationRecipientIdsModel(
+  workspaceId: string,
+  recipientUserIds: string[]
+) {
+  if (recipientUserIds.length === 0) return [];
+
+  const rows = await db
+    .select({ recipientUserId: notifications.recipientUserId })
+    .from(notifications)
+    .where(
+      and(
+        eq(notifications.workspaceId, workspaceId),
+        eq(notifications.type, "workspace_invite"),
+        isNull(notifications.acceptedAt),
+        inArray(notifications.recipientUserId, recipientUserIds)
+      )
+    );
+
+  return rows.map((row) => row.recipientUserId);
+}
+
 export async function revokeWorkspaceInvitationModel(data: {
   workspaceId: string;
   invitationId: string;
@@ -694,6 +715,7 @@ export async function createWorkspaceInvitationModel(data: {
       role: "member",
       permissionProfileId: data.permissionProfileId,
     })
+    .onConflictDoNothing()
     .returning({
       id: notifications.id,
       createdAt: notifications.createdAt,

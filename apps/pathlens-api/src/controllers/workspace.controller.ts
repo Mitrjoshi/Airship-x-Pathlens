@@ -16,6 +16,7 @@ import {
   getWorkspaceMemberModel,
   getWorkspaceMembersModel,
   getWorkspacePendingInvitationsModel,
+  getWorkspacePendingInvitationRecipientIdsModel,
   getWorkspaces,
   removeWorkspaceMemberModel,
   revokeWorkspaceInvitationModel,
@@ -46,10 +47,20 @@ const usageQuerySchema = workspaceParamsSchema.extend({
   project_id: z.string().min(1).optional(),
 });
 
-const createInvitationSchema = z.object({
-  email: z.email("A valid user email is required."),
-  permissionProfileId: z.uuid("A permission profile is required."),
-});
+const createInvitationSchema = z
+  .object({
+    email: z.email("A valid user email is required.").optional(),
+    emails: z
+      .array(z.email("A valid user email is required."))
+      .min(1, "At least one email is required.")
+      .max(100, "You can invite up to 100 members at a time.")
+      .optional(),
+    permissionProfileId: z.uuid("A permission profile is required."),
+  })
+  .refine((value) => Boolean(value.email || value.emails?.length), {
+    path: ["emails"],
+    message: "At least one email is required.",
+  });
 
 const memberParamsSchema = z.object({
   workspace_id: z.string().min(1, "Workspace id is required."),
@@ -592,7 +603,7 @@ export async function createWorkspaceInvitation(
 
   try {
     const { workspace_id } = workspaceParamsSchema.parse(req.params);
-    const { email, permissionProfileId } = createInvitationSchema.parse(
+    const { email, emails, permissionProfileId } = createInvitationSchema.parse(
       req.body ?? {}
     );
     const member = await requireWorkspacePermission(
@@ -608,34 +619,6 @@ export async function createWorkspaceInvitation(
       });
     }
 
-    const recipient = await getUserByEmailModel(email);
-
-    if (!recipient) {
-      return res.status(404).json({
-        success: false,
-        message: "That user does not have a Pathlens account yet.",
-      });
-    }
-
-    if (recipient.id === userId) {
-      return res.status(400).json({
-        success: false,
-        message: "You are already a member of this workspace.",
-      });
-    }
-
-    const recipientMember = await getWorkspaceMemberModel(
-      workspace_id,
-      recipient.id
-    );
-
-    if (recipientMember) {
-      return res.status(409).json({
-        success: false,
-        message: "That user is already a member of this workspace.",
-      });
-    }
-
     const permissionProfile = await getPermissionProfileModel(
       workspace_id,
       permissionProfileId
@@ -648,30 +631,86 @@ export async function createWorkspaceInvitation(
       });
     }
 
-    const notification = await createWorkspaceInvitationModel({
-      workspaceId: workspace_id,
-      recipientUserId: recipient.id,
-      senderUserId: userId,
-      permissionProfileId: permissionProfile.id,
-    });
+    const normalizedEmails = Array.from(
+      new Set((emails ?? [email!]).map((value) => value.trim().toLowerCase()))
+    );
+    const recipients = await Promise.all(
+      normalizedEmails.map(async (recipientEmail) => ({
+        email: recipientEmail,
+        user: await getUserByEmailModel(recipientEmail),
+      }))
+    );
+    const recipientUserIds = recipients
+      .map((recipient) => recipient.user?.id)
+      .filter((id): id is string => Boolean(id));
+    const pendingRecipientIds = new Set(
+      await getWorkspacePendingInvitationRecipientIdsModel(
+        workspace_id,
+        recipientUserIds
+      )
+    );
+    const skipped: string[] = [];
+    let created = 0;
 
-    await createAuditLog({
-      workspaceId: workspace_id,
-      actorUserId: userId,
-      action: "workspace.member_invited",
-      resourceType: "workspace_invitation",
-      resourceId: notification.id,
-      metadata: {
-        notificationId: notification.id,
-        recipientUserId: recipient.id,
-        recipientEmail: recipient.email,
-        permissionProfileId,
-      },
-    });
+    for (const recipient of recipients) {
+      if (!recipient.user) {
+        skipped.push(`${recipient.email} (no Pathlens account)`);
+        continue;
+      }
+
+      if (recipient.user.id === userId) {
+        skipped.push(`${recipient.email} (already a member)`);
+        continue;
+      }
+
+      const recipientMember = await getWorkspaceMemberModel(
+        workspace_id,
+        recipient.user.id
+      );
+
+      if (recipientMember) {
+        skipped.push(`${recipient.email} (already a member)`);
+        continue;
+      }
+
+      if (pendingRecipientIds.has(recipient.user.id)) {
+        skipped.push(`${recipient.email} (invitation already sent)`);
+        continue;
+      }
+
+      const notification = await createWorkspaceInvitationModel({
+        workspaceId: workspace_id,
+        recipientUserId: recipient.user.id,
+        senderUserId: userId,
+        permissionProfileId: permissionProfile.id,
+      });
+
+      if (!notification) {
+        skipped.push(`${recipient.email} (invitation already sent)`);
+        continue;
+      }
+
+      pendingRecipientIds.add(recipient.user.id);
+      created += 1;
+
+      await createAuditLog({
+        workspaceId: workspace_id,
+        actorUserId: userId,
+        action: "workspace.member_invited",
+        resourceType: "workspace_invitation",
+        resourceId: notification.id,
+        metadata: {
+          notificationId: notification.id,
+          recipientUserId: recipient.user.id,
+          recipientEmail: recipient.user.email,
+          permissionProfileId,
+        },
+      });
+    }
 
     return res.status(201).json({
       success: true,
-      data: notification,
+      data: { created, skipped },
     });
   } catch (error) {
     return res.status(error instanceof ZodError ? 400 : 500).json({

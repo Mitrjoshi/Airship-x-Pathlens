@@ -51,12 +51,14 @@ export const useUpdateProfile = () => {
 }
 
 type ChangePasswordPayload = {
-  currentPassword: string
+  currentPassword?: string
   newPassword: string
   confirmPassword: string
 }
 
 export const useChangePassword = () => {
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: async (
       payload: ChangePasswordPayload
@@ -73,6 +75,7 @@ export const useChangePassword = () => {
         throw new Error(data.message ?? 'Unable to update your password.')
       }
 
+      await queryClient.invalidateQueries({ queryKey: ['ME'] })
       toast.success('Password updated.')
     },
     onError: (error) => toast.error(error.message),
@@ -85,7 +88,7 @@ export const useDeleteAccount = () => {
 
   return useMutation({
     mutationFn: async (payload: {
-      password: string
+      password?: string
     }): Promise<AccountResponse> => {
       const response = await apiClient.delete<AccountResponse>('/auth/me', {
         data: payload,

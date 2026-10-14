@@ -246,7 +246,7 @@ function RouteComponent() {
           <CardHeader className="p-2">
             <CardDescription>Requests by country</CardDescription>
           </CardHeader>
-          <CardContent className="divide-border grid h-100 min-h-0 grid-cols-[1fr_45%] items-stretch divide-x-2 overflow-hidden p-2">
+          <CardContent className="divide-border grid h-100 min-h-0 grid-cols-[1fr_45%] items-stretch divide-x-2 overflow-hidden">
             {/* Map */}
             <div className="relative h-full min-h-0 min-w-0 overflow-hidden">
               <VisitorsWorldMap locations={visitorsLocation?.locations ?? []} />

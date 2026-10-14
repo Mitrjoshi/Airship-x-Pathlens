@@ -35,10 +35,6 @@ export const Footer = () => {
                     <ArrowUpRightIcon />
                   </Button>
                 </Link>
-
-                <Link to="/docs">
-                  <Button variant="outline">View documentation</Button>
-                </Link>
               </div>
             </div>
           </div>

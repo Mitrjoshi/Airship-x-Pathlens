@@ -119,15 +119,12 @@ export const useDeleteWorkspace = () => {
 
 type CreateInviteResponse = {
   success: boolean
-  data: {
-    id: string
-    createdAt: string | null
-  }
+  data: { created: number; skipped: string[] }
   message?: string
 }
 
 type CreateInvitationPayload = {
-  email: string
+  emails: string[]
   permissionProfileId: string
 }
 
@@ -138,7 +135,7 @@ export const useCreateWorkspaceInvitation = (workspaceId: string) => {
     mutationFn: async (
       payload: CreateInvitationPayload
     ): Promise<CreateInviteResponse> => {
-      const response = await apiClient.post(
+      const response = await apiClient.post<CreateInviteResponse>(
         `/workspaces/${workspaceId}/invitations`,
         payload
       )
@@ -153,7 +150,16 @@ export const useCreateWorkspaceInvitation = (workspaceId: string) => {
       await queryClient.invalidateQueries({
         queryKey: ['WORKSPACE_INVITATIONS', workspaceId],
       })
-      toast.success('Invitation sent.')
+      if (data.data.created > 0) {
+        toast.success(
+          `${data.data.created} invitation${data.data.created === 1 ? '' : 's'} sent.`
+        )
+      }
+      if (data.data.skipped.length > 0) {
+        toast.info(
+          `${data.data.skipped.length} invitation${data.data.skipped.length === 1 ? '' : 's'} skipped: ${data.data.skipped.join(', ')}`
+        )
+      }
     },
     onError: (error) => toast.error(error.message),
   })

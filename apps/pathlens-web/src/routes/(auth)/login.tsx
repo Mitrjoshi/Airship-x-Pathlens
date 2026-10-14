@@ -334,7 +334,7 @@ export const GoogleIcon = () => {
 export const GithubIcon = () => {
   return (
     <svg
-      className="size-4 dark:invert"
+      className="size-5 dark:invert"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       id="github"

@@ -121,6 +121,12 @@ const sidebarProjectsItems = [
         isActive: (pathname: string) => pathname.includes('goals'),
       },
       {
+        label: 'Funnels',
+        icon: navigationIcons.funnels,
+        to: '/app/$workspaceId/$projectId/funnels',
+        isActive: (pathname: string) => pathname.includes('funnels'),
+      },
+      {
         label: 'Events',
         icon: navigationIcons.events,
         to: '/app/$workspaceId/$projectId/events',

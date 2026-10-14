@@ -53,6 +53,7 @@ import {
 } from '@workspace/ui/components/dialog'
 import type { HeatmapPageDetail } from '@workspace/contracts'
 import 'rrweb/dist/style.css'
+import { CenterEllipsis } from './-components/common/center-ellipsis'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/heatmaps')({
   component: RouteComponent,
@@ -308,7 +309,9 @@ function RouteComponent() {
                         key={index}
                         className="hover:bg-card/40 cursor-pointer"
                       >
-                        <TableCell>{item.url}</TableCell>
+                        <TableCell>
+                          <CenterEllipsis text={item.url!} maxLength={70} />
+                        </TableCell>
 
                         <TableCell className="w-24 text-center">
                           {item.path}

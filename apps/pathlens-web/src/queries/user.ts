@@ -7,6 +7,7 @@ export type T_User = {
   name: string
   email: string
   avatar: string | null
+  hasPassword: boolean
   googleAvatar: string | null
   githubAvatar: string | null
   createdAt: string
@@ -18,7 +19,7 @@ export interface UsersResponse {
   data: T_User
 }
 
-export type T_PublicUser = Omit<T_User, 'defaultWorkspace'> & {
+export type T_PublicUser = Omit<T_User, 'defaultWorkspace' | 'hasPassword'> & {
   role: string
   permissionProfileId: string | null
   permissionProfileName: string | null

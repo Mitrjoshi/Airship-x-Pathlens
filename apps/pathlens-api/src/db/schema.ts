@@ -384,6 +384,13 @@ export const notifications = pgTable(
       table.recipientUserId
     ),
     workspaceIdx: index("notifications_workspace_idx").on(table.workspaceId),
+    pendingWorkspaceInviteIdx: uniqueIndex(
+      "notifications_pending_workspace_invite_idx"
+    )
+      .on(table.workspaceId, table.recipientUserId)
+      .where(
+        sql`${table.type} = 'workspace_invite' AND ${table.acceptedAt} IS NULL`
+      ),
   })
 );
 
