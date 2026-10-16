@@ -7,6 +7,7 @@ import {
   deletePermissionProfile,
   deleteWorkspace,
   getPermissionProfiles,
+  getPermissionProfile,
   getUserWorkspacesController,
   getWorkspaceMembers,
   getWorkspaceByIdController,
@@ -35,6 +36,10 @@ router.get("/:workspace_id/members", getWorkspaceMembers);
 router.get("/:workspace_id/usage", getWorkspaceUsage);
 router.get("/:workspace_id/invitations", getWorkspacePendingInvitations);
 router.get("/:workspace_id/permission-profiles", getPermissionProfiles);
+router.get(
+  "/:workspace_id/permission-profiles/:profile_id",
+  getPermissionProfile
+);
 router.get(
   "/:workspace_id/audit-logs",
   requireWorkspacePermission("workspace.audit_logs.view"),

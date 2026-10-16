@@ -66,13 +66,17 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+  const deviceLocal = localStorage.getItem('device')
+
   const [range, setRange] = useState<SessionReplayRange>(
     (rangeLocal || '7d') as SessionReplayRange
+  )
+  const [device, setDevice] = useState<SessionReplayDevice>(
+    (deviceLocal || 'all') as SessionReplayDevice
   )
   const [liveMode, setLiveMode] = useState(false)
   const [page, setPage] = useState(1)
   const [domain, setDomain] = useState('')
-  const [device, setDevice] = useState<SessionReplayDevice>('all')
   const [open, setOpen] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
 
@@ -204,6 +208,7 @@ function RouteComponent() {
             onValueChange={(value) => {
               if (value) {
                 setDevice(value as SessionReplayDevice)
+                localStorage.setItem('device', value)
               }
             }}
           >

@@ -66,11 +66,16 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+  const deviceLocal = localStorage.getItem('device')
+
   const [range, setRange] = useState<CampaignRange>(
     (rangeLocal || '7d') as CampaignRange
   )
+  const [device, setDevice] = useState<CampaignDevice>(
+    (deviceLocal || 'all') as CampaignDevice
+  )
+
   const [liveMode, setLiveMode] = useState(false)
-  const [device, setDevice] = useState<CampaignDevice>('all')
   const [page, setPage] = useState(1)
   const [domain, setDomain] = useState('')
 
@@ -242,6 +247,7 @@ function RouteComponent() {
             onValueChange={(value) => {
               if (!value) return
               setDevice(value as CampaignDevice)
+              localStorage.setItem('device', value)
             }}
           >
             <SelectTrigger className="w-full sm:w-36">
@@ -313,14 +319,24 @@ function RouteComponent() {
                     <TableHead>Medium</TableHead>
                     <TableHead>Term</TableHead>
                     <TableHead>Content</TableHead>
-                    <TableHead>Visitors</TableHead>
-                    <TableHead>Sessions</TableHead>
-                    <TableHead>Engaged Visitors</TableHead>
-                    <TableHead>Engaged Sessions</TableHead>
-                    <TableHead>Engagement Rate</TableHead>
-                    <TableHead>Converted Visitors</TableHead>
-                    <TableHead>Conversion Rate</TableHead>
-                    <TableHead>Revenue</TableHead>
+                    <TableHead className="text-center">Visitors</TableHead>
+                    <TableHead className="text-center">Sessions</TableHead>
+                    <TableHead className="text-center">
+                      Engaged Visitors
+                    </TableHead>
+                    <TableHead className="text-center">
+                      Engaged Sessions
+                    </TableHead>
+                    <TableHead className="text-center">
+                      Engagement Rate
+                    </TableHead>
+                    <TableHead className="text-center">
+                      Converted Visitors
+                    </TableHead>
+                    <TableHead className="text-center">
+                      Conversion Rate
+                    </TableHead>
+                    <TableHead className="text-center">Revenue</TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -423,29 +439,43 @@ function RouteComponent() {
 
                           <TableCell>{item.utmContent || 'N/A'}</TableCell>
 
-                          <TableCell>{item.visitors || 'N/A'}</TableCell>
+                          <TableCell className="text-center">
+                            {item.visitors || 'N/A'}
+                          </TableCell>
 
-                          <TableCell>{item.sessions || 'N/A'}</TableCell>
+                          <TableCell className="text-center">
+                            {item.sessions || 'N/A'}
+                          </TableCell>
 
-                          <TableCell>{item.engagedVisitors || 'N/A'}</TableCell>
+                          <TableCell className="text-center">
+                            {item.engagedVisitors || 'N/A'}
+                          </TableCell>
 
-                          <TableCell>{item.engagedSessions || 'N/A'}</TableCell>
+                          <TableCell className="text-center">
+                            {item.engagedSessions || 'N/A'}
+                          </TableCell>
 
-                          <TableCell>{item.engagementRate || 'N/A'}</TableCell>
+                          <TableCell className="text-center">
+                            {item.engagementRate || 'N/A'}
+                          </TableCell>
 
-                          <TableCell>
+                          <TableCell className="text-center">
                             {item.convertedVisitors || 'N/A'}
                           </TableCell>
 
-                          <TableCell>{item.conversionRate || 'N/A'}</TableCell>
+                          <TableCell className="text-center">
+                            {item.conversionRate || 'N/A'}
+                          </TableCell>
 
-                          <TableCell>{item.revenue || 'N/A'}</TableCell>
+                          <TableCell className="text-center">
+                            {item.revenue || 'N/A'}
+                          </TableCell>
                         </TableRow>
                       ))}
 
                   {!isLoading && !campaigns?.campaigns?.length && (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-32 text-center">
+                      <TableCell colSpan={13} className="h-32 text-center">
                         <p className="text-muted-foreground text-sm">
                           No campaigns found.
                         </p>

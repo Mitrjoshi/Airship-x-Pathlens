@@ -135,6 +135,27 @@ export const getWorkspacePermissionProfilesOptions = (workspaceId: string) =>
     enabled: Boolean(workspaceId),
   })
 
+export interface PermissionProfileResponse {
+  success: boolean
+  data: T_PermissionProfile
+}
+
+export const getWorkspacePermissionProfileOptions = (
+  workspaceId: string,
+  profileId: string
+) =>
+  queryOptions({
+    queryKey: ['WORKSPACE_PERMISSION_PROFILE', workspaceId, profileId],
+    queryFn: async (): Promise<PermissionProfileResponse> => {
+      const response = await apiClient.get(
+        `/workspaces/${workspaceId}/permission-profiles/${profileId}`
+      )
+
+      return response.data
+    },
+    enabled: Boolean(workspaceId && profileId),
+  })
+
 export type T_WorkspaceNotification = {
   id: string
   type: string

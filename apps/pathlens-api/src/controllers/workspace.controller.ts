@@ -9,6 +9,7 @@ import {
   deletePermissionProfileModel,
   deleteWorkspaceModel,
   getPermissionProfileModel,
+  getPermissionProfileDetailsModel,
   getPermissionProfileUsageModel,
   getPermissionProfilesModel,
   getWorkspaceAccessModel,
@@ -811,6 +812,54 @@ export async function getPermissionProfiles(req: AuthRequest, res: Response) {
     const profiles = await getPermissionProfilesModel(workspace_id);
 
     return res.status(200).json({ success: true, data: profiles });
+  } catch (error) {
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+export async function getPermissionProfile(req: AuthRequest, res: Response) {
+  const userId = getAuthenticatedUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { workspace_id, profile_id } = permissionProfileParamsSchema.parse(
+      req.params
+    );
+    const member = await requireWorkspacePermission(
+      workspace_id,
+      userId,
+      "workspace.permission_profiles.view",
+      "workspace.permission_profiles.create",
+      "workspace.permission_profiles.update",
+      "workspace.permission_profiles.delete"
+    );
+
+    if (!member) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to view permission profiles.",
+      });
+    }
+
+    const profile = await getPermissionProfileDetailsModel(
+      workspace_id,
+      profile_id
+    );
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: "Permission profile not found.",
+      });
+    }
+
+    return res.status(200).json({ success: true, data: profile });
   } catch (error) {
     return res.status(error instanceof ZodError ? 400 : 500).json({
       success: false,

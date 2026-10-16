@@ -70,7 +70,7 @@ export const useChangePassword = () => {
 
       return response.data
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (!data.success) {
         throw new Error(data.message ?? 'Unable to update your password.')
       }

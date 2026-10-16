@@ -40,20 +40,20 @@ function RouteComponent() {
         </DotLayout>
       </HomeLayout>
 
-      <HomeLayout>
-        <DotLayout className="border-x-2 border-t-2 border-dashed">
-          <div className="bg-background nut-top-left mx-auto max-w-[75%] border-x-2 border-dashed p-20">
-            <FewLinesOfCode />
-          </div>
-        </DotLayout>
-      </HomeLayout>
-
       <Separator className={'border-t-2 border-dashed bg-transparent'} />
 
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
           <div className="bg-background nut-top-left mx-auto w-[75%] border-x-2 border-dashed">
             <WhyChooseUs />
+          </div>
+        </DotLayout>
+      </HomeLayout>
+
+      <HomeLayout>
+        <DotLayout className="border-x-2 border-t-2 border-dashed">
+          <div className="bg-background nut-top-left mx-auto max-w-[75%] border-x-2 border-dashed p-20">
+            <FewLinesOfCode />
           </div>
         </DotLayout>
       </HomeLayout>

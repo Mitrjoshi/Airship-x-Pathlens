@@ -79,6 +79,10 @@ export const Header = () => {
               </NavigationMenuList>
             </NavigationMenu>
 
+            <a href="/developer">
+              <p className={navigationMenuTriggerStyle()}>Developer</p>
+            </a>
+
             <a href="/pricing">
               <p className={navigationMenuTriggerStyle()}>Pricing</p>
             </a>

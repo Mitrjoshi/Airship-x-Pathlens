@@ -190,10 +190,14 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+  const deviceLocal = localStorage.getItem('device')
+
   const [range, setRange] = useState<PerformanceRange>(
     (rangeLocal || '7d') as PerformanceRange
   )
-  const [device, setDevice] = useState<PerformanceDevice>('all')
+  const [device, setDevice] = useState<PerformanceDevice>(
+    (deviceLocal || 'all') as PerformanceDevice
+  )
   const [domain, setDomain] = useState('')
 
   const {
@@ -293,6 +297,7 @@ function RouteComponent() {
             onValueChange={(value) => {
               if (value) {
                 setDevice(value as PerformanceDevice)
+                localStorage.setItem('device', value)
               }
             }}
           >

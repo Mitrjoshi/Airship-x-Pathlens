@@ -80,10 +80,6 @@ function RouteComponent() {
     })
   }
 
-  if (isLoading) {
-    return <ApiKeyLoading />
-  }
-
   return (
     <div className="p-6">
       <div className="space-y-5">

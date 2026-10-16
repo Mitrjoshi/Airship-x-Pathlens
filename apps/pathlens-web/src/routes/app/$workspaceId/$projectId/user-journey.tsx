@@ -25,7 +25,7 @@ import {
 } from '@workspace/ui/components/select'
 import { Separator } from '@workspace/ui/components/separator'
 
-import { PauseIcon, PlayIcon, RefreshCcwIcon } from 'lucide-react'
+import { LoaderIcon, PauseIcon, PlayIcon, RefreshCcwIcon } from 'lucide-react'
 
 import { DomainSwitcher } from './-components/common/domain-switcher'
 
@@ -355,7 +355,7 @@ function JourneyLoading() {
   return (
     <div className="flex h-full items-center justify-center">
       <div className="text-center">
-        <RefreshCcwIcon className="text-muted-foreground mx-auto mb-3 size-5 animate-spin" />
+        <LoaderIcon className="text-muted-foreground mx-auto mb-3 size-5 animate-spin" />
 
         <p className="text-sm font-medium">Loading user journey</p>
 

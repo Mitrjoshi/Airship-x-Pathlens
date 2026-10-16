@@ -84,10 +84,14 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+  const deviceLocal = localStorage.getItem('device')
+
   const [range, setRange] = useState<ErrorsRange>(
     (rangeLocal || '7d') as ErrorsRange
   )
-  const [device, setDevice] = useState<ErrorsDevice>('all')
+  const [device, setDevice] = useState<ErrorsDevice>(
+    (deviceLocal || 'all') as ErrorsDevice
+  )
   const [browser, setBrowser] = useState('all')
   const [page, setPage] = useState(1)
   const [domain, setDomain] = useState('')
@@ -233,6 +237,7 @@ function RouteComponent() {
             onValueChange={(value) => {
               if (value) {
                 setDevice(value as ErrorsDevice)
+                localStorage.setItem('device', value)
               }
             }}
           >

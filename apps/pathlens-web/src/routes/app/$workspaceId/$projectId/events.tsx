@@ -347,11 +347,15 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+  const deviceLocal = localStorage.getItem('device')
+
   const [range, setRange] = useState<AnalyticsRange>(
     (rangeLocal || '7d') as AnalyticsRange
   )
+  const [device, setDevice] = useState<EventsDevice>(
+    (deviceLocal || 'all') as EventsDevice
+  )
   const [liveMode, setLiveMode] = useState(false)
-  const [device, setDevice] = useState<EventsDevice>('all')
   const [page, setPage] = useState(1)
   const [event, setEvent] = useState<ProjectEvent | null>(null)
   const [category, setCategory] = useState<EventsCategory>('high_signal')
@@ -594,6 +598,7 @@ function RouteComponent() {
                 onValueChange={(value) => {
                   if (value) {
                     setDevice(value as EventsDevice)
+                    localStorage.setItem('device', value)
                   }
                 }}
               >

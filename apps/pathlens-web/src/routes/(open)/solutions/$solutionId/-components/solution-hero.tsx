@@ -145,7 +145,6 @@ export const SolutionHero = ({
               style={{
                 backgroundColor: `${solutionData.color.hex}`,
               }}
-
               className={'text-white'}
             >
               {solutionData.page.hero?.primaryAction}

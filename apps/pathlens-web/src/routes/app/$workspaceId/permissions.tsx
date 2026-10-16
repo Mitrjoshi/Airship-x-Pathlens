@@ -13,7 +13,14 @@ import {
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
 import { Skeleton } from '@workspace/ui/components/skeleton'
-import { EllipsisIcon, InfoIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import {
+  CheckIcon,
+  EllipsisIcon,
+  InfoIcon,
+  PlusIcon,
+  SearchIcon,
+  XIcon,
+} from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -54,8 +61,15 @@ import {
 } from '@/mutations/workspace'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { z } from 'zod'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@workspace/ui/components/sheet'
 
-export const Route = createFileRoute('/app/$workspaceId/permissions/')({
+export const Route = createFileRoute('/app/$workspaceId/permissions')({
   component: RouteComponent,
   validateSearch: z.object({ create: z.boolean().default(false) }),
 })
@@ -96,6 +110,8 @@ function RouteComponent() {
       : null
   )
   const [deleteOpen, setDeleteOpen] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState<boolean>(false)
+  const [permissionId, setPermissionId] = useState<string | null>(null)
 
   const {
     data: profilesData,
@@ -123,6 +139,7 @@ function RouteComponent() {
   const permissions = workspaceData?.data?.permissions ?? []
 
   const profiles = profilesData?.data ?? []
+  const permissionProfile = profiles?.filter((i) => i.id === permissionId)[0]
 
   const filteredProfiles = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -250,6 +267,10 @@ function RouteComponent() {
                           onDelete={(profileId) => {
                             setDeleteOpen(profileId)
                           }}
+                          onClick={() => {
+                            setSheetOpen(true)
+                            setPermissionId(item.id)
+                          }}
                         />
                       ))
                     )}
@@ -290,6 +311,67 @@ function RouteComponent() {
           })
         }}
       />
+
+      <Sheet
+        open={sheetOpen}
+        onOpenChangeComplete={(o) => {
+          if (!o) setPermissionId(null)
+        }}
+        onOpenChange={(o) => {
+          setSheetOpen(o)
+        }}
+      >
+        <SheetContent className="max-w-3xl! gap-0">
+          <SheetHeader className="border-b">
+            <SheetTitle>{permissionProfile?.name}</SheetTitle>
+            <SheetDescription>
+              {permissionProfile?.description}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-8 overflow-auto p-5">
+            {PERMISSION_GROUPS.map((group, index) => (
+              <>
+                <div key={index}>
+                  <p className="mb-2 font-medium">{group.label}</p>
+
+                  <div className="grid grid-cols-2 gap-2 divide-dashed">
+                    {group.permissions.map((item) => (
+                      <>
+                        <div
+                          data-disabled={
+                            !permissionProfile?.permissions.includes(item.key)
+                          }
+                          className="bg-primary/5 flex items-start justify-between gap-4 border-2 border-dashed p-2 opacity-100 data-disabled:bg-transparent data-disabled:opacity-50"
+                        >
+                          <div>
+                            <p>{item.label}</p>
+                            <p className="text-muted-foreground text-xs">
+                              {item.description}
+                            </p>
+                          </div>
+
+                          {permissionProfile?.permissions.includes(item.key) ? (
+                            <CheckIcon
+                              className="text-primary mt-1"
+                              size={16}
+                            />
+                          ) : (
+                            <XIcon
+                              className="text-destructive mt-1"
+                              size={16}
+                            />
+                          )}
+                        </div>
+                      </>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
@@ -620,6 +702,7 @@ type PermissionsCardProps = {
   permissions: Permission[]
   onEdit: (profile: T_PermissionProfile) => void
   onDelete: (profileId: string) => void
+  onClick: () => void
 }
 
 function PermissionsCard({
@@ -627,9 +710,8 @@ function PermissionsCard({
   permissions,
   onEdit,
   onDelete,
+  onClick,
 }: PermissionsCardProps) {
-  const navigate = useNavigate()
-
   const permissionMenuItems = [
     {
       label: 'Edit',
@@ -651,18 +733,8 @@ function PermissionsCard({
     },
   ]
 
-  const openProfile = () => {
-    navigate({
-      to: '/app/$workspaceId/permissions/$permissionId',
-      params: {
-        permissionId: item.id,
-        workspaceId: item.workspaceId,
-      },
-    })
-  }
-
   return (
-    <TableRow className="hover:bg-card/40 cursor-pointer" onClick={openProfile}>
+    <TableRow className="hover:bg-card/40 cursor-pointer" onClick={onClick}>
       <TableCell>
         <div className="max-w-80 overflow-hidden">
           <div className="flex items-center gap-2 overflow-hidden">

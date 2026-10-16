@@ -504,7 +504,9 @@ export const WorkspaceSwitcher = ({
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuGroup className={'h-60! overflow-auto'}>
+          <DropdownMenuGroup
+            className={'h-60! overflow-auto overflow-x-hidden'}
+          >
             <DropdownMenuLabel>Owned</DropdownMenuLabel>
             {workspaceData
               ?.filter((item) => !item.external)

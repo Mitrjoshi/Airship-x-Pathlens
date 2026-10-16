@@ -80,12 +80,16 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+  const deviceLocal = localStorage.getItem('device')
+
   const [range, setRange] = useState<HeatmapsRange>(
     (rangeLocal || '7d') as HeatmapsRange
   )
+  const [device, setDevice] = useState<HeatmapDevice>(
+    (deviceLocal || 'all') as HeatmapDevice
+  )
   const [liveMode, setLiveMode] = useState(false)
   const [page, setPage] = useState(1)
-  const [device, setDevice] = useState<HeatmapDevice>('all')
   const [domain, setDomain] = useState('')
   const [path, setPath] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -213,6 +217,7 @@ function RouteComponent() {
               onValueChange={(value) => {
                 if (value) {
                   setDevice(value as HeatmapDevice)
+                  localStorage.setItem('device', value)
                 }
               }}
             >

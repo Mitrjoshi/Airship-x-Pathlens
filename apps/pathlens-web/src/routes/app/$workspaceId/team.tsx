@@ -65,6 +65,7 @@ import {
   UserPlusIcon,
 } from 'lucide-react'
 import { useState } from 'react'
+import { PermissionProfileSheet } from './-components/permission-profile-sheet'
 
 export const Route = createFileRoute('/app/$workspaceId/team')({
   component: RouteComponent,
@@ -263,22 +264,10 @@ function RouteComponent() {
 
                             <TableCell className="text-center">
                               {item.permissionProfileId ? (
-                                <Button
-                                  className="text-foreground"
-                                  variant="link"
-                                  render={
-                                    <Link
-                                      to="/app/$workspaceId/permissions/$permissionId"
-                                      params={{
-                                        workspaceId,
-                                        permissionId: item.permissionProfileId,
-                                      }}
-                                    />
-                                  }
-                                >
-                                  {item.permissionProfileName}
-                                  <ArrowUpRightIcon />
-                                </Button>
+                                <PermissionProfileSheet
+                                  workspace_id={workspaceId}
+                                  permission_id={item.permissionProfileId}
+                                />
                               ) : (
                                 <span className="text-muted-foreground text-sm">
                                   —

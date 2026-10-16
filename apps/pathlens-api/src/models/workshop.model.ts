@@ -70,7 +70,11 @@ export async function ensureWorkspacePermissionProfilesModel(
       .onConflictDoNothing();
 
     const profiles = await tx
-      .select({ id: permissionProfiles.id, name: permissionProfiles.name })
+      .select({
+        id: permissionProfiles.id,
+        name: permissionProfiles.name,
+        isSystem: permissionProfiles.isSystem,
+      })
       .from(permissionProfiles)
       .where(eq(permissionProfiles.workspaceId, workspaceId));
 
@@ -79,9 +83,19 @@ export async function ensureWorkspacePermissionProfilesModel(
     );
     const viewerProfile = profiles.find((profile) => profile.name === "Viewer");
 
-    if (!fullAccessProfile || !viewerProfile) {
+    if (!fullAccessProfile?.isSystem || !viewerProfile) {
       throw new Error("Default workspace permission profiles are unavailable.");
     }
+
+    await tx
+      .update(permissionProfiles)
+      .set({ permissions: [...DEFAULT_FULL_ACCESS_PERMISSIONS] })
+      .where(
+        and(
+          eq(permissionProfiles.id, fullAccessProfile.id),
+          eq(permissionProfiles.isSystem, true)
+        )
+      );
 
     const members = await tx
       .select({
@@ -442,6 +456,40 @@ export async function getPermissionProfilesModel(workspaceId: string) {
     .from(permissionProfiles)
     .where(eq(permissionProfiles.workspaceId, workspaceId))
     .orderBy(permissionProfiles.name);
+}
+
+export async function getPermissionProfileDetailsModel(
+  workspaceId: string,
+  profileId: string
+) {
+  const [profile] = await db
+    .select({
+      id: permissionProfiles.id,
+      workspaceId: permissionProfiles.workspaceId,
+      name: permissionProfiles.name,
+      description: permissionProfiles.description,
+      permissions: permissionProfiles.permissions,
+      isSystem: permissionProfiles.isSystem,
+      createdAt: permissionProfiles.createdAt,
+      updatedAt: permissionProfiles.updatedAt,
+      memberCount: db.$count(
+        workspaceMembers,
+        eq(workspaceMembers.permissionProfileId, permissionProfiles.id)
+      ),
+      pendingInvitationCount: db.$count(
+        notifications,
+        eq(notifications.permissionProfileId, permissionProfiles.id)
+      ),
+    })
+    .from(permissionProfiles)
+    .where(
+      and(
+        eq(permissionProfiles.workspaceId, workspaceId),
+        eq(permissionProfiles.id, profileId)
+      )
+    );
+
+  return profile;
 }
 
 export async function getPermissionProfileModel(

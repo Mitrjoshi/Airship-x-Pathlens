@@ -80,8 +80,17 @@ test("normalizes, deduplicates, and ignores invalid domains", () => {
       "example.com",
       "www.example.com",
       "not a domain",
+      "overflow-hidden",
+      "overflow",
     ]),
     ["https://example.com", "https://www.example.com"]
+  );
+});
+
+test("requires a valid domain suffix", () => {
+  assert.deepEqual(
+    normalizeProjectDomains(["example.in", "example.co.uk", "example.c"]),
+    ["https://example.in", "https://example.co.uk"]
   );
 });
 

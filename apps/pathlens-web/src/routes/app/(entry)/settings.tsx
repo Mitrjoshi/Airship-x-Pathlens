@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { z } from 'zod'
@@ -38,10 +38,30 @@ import {
 } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'
 import { AlertCircleIcon, Loader2Icon, Trash2Icon } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@workspace/ui/components/popover'
 
 export const Route = createFileRoute('/app/(entry)/settings')({
   component: RouteComponent,
 })
+
+const AVATARS = [
+  '/avatars/panda.png',
+  '/avatars/amur.png',
+  '/avatars/elephant.png',
+  '/avatars/turtle.png',
+  '/avatars/gorilla.png',
+  '/avatars/whale.png',
+  '/avatars/orangutan.png',
+  '/avatars/saola.png',
+  '/avatars/pangolin.png',
+  '/avatars/rhino.png',
+]
 
 const profileSchema = z.object({
   name: z
@@ -82,6 +102,11 @@ function RouteComponent() {
     from: '/app',
     select: (context) => context.user,
   })
+
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(
+    user?.avatar
+  )
+
   const updateProfile = useUpdateProfile()
   const changePassword = useChangePassword()
   const deleteAccount = useDeleteAccount()
@@ -155,16 +180,58 @@ function RouteComponent() {
                 }}
               >
                 <CardContent className="flex items-start gap-6 pb-4">
-                  <Avatar className={'size-40 cursor-pointer overflow-hidden'}>
-                    <AvatarImage src={user.avatar!} />
-                    <AvatarFallback
-                      className={
-                        'bg-primary/40 text-7xl text-black dark:text-white'
-                      }
-                    >
-                      {user.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <Popover>
+                    <PopoverTrigger>
+                      <Avatar
+                        className={'size-40 cursor-pointer overflow-hidden'}
+                      >
+                        <AvatarImage src={avatarPreview!} />
+                        <AvatarFallback
+                          className={
+                            'bg-primary/40 text-7xl text-black dark:text-white'
+                          }
+                        >
+                          {user.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </PopoverTrigger>
+
+                    <PopoverContent className={'w-fit'}>
+                      <PopoverHeader>
+                        <PopoverTitle>Avatars</PopoverTitle>
+                      </PopoverHeader>
+                      <div className="grid grid-cols-6 gap-2">
+                        {AVATARS.map((avatar) => (
+                          <Avatar
+                            onClick={() => setAvatarPreview(avatar)}
+                            className={'size-10 cursor-pointer overflow-hidden'}
+                          >
+                            <AvatarImage src={avatar} />
+                            <AvatarFallback className={'text-xl'}>
+                              {avatar
+                                .split('/')
+                                ?.pop()
+                                ?.charAt(0)
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+
+                        <Avatar
+                          className={'size-10 cursor-pointer overflow-hidden'}
+                        >
+                          <AvatarImage src={user.avatar!} />
+                          <AvatarFallback
+                            className={
+                              'bg-primary/40 text-xl text-black dark:text-white'
+                            }
+                          >
+                            {user.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
 
                   <div className="w-full space-y-4">
                     <profileForm.Field name="name">

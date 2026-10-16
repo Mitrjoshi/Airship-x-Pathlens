@@ -6,6 +6,22 @@ function toUrl(value: string): URL | null {
   }
 }
 
+function hasValidDomainSuffix(hostname: string): boolean {
+  const labels = hostname.toLowerCase().split(".");
+  const topLevelDomain = labels[labels.length - 1] ?? "";
+
+  return (
+    labels.length >= 2 &&
+    labels.every(
+      (label) =>
+        label.length > 0 &&
+        label.length <= 63 &&
+        /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)
+    ) &&
+    /^(?:[a-z]{2,63}|xn--[a-z0-9-]{2,59})$/.test(topLevelDomain)
+  );
+}
+
 export function normalizeProjectHostname(value: string): string | null {
   const url = toUrl(value);
   return (
@@ -19,7 +35,7 @@ export function normalizeProjectHostname(value: string): string | null {
 export function normalizeProjectDomain(value: string): string | null {
   const url = toUrl(value.trim());
 
-  if (!url || !url.hostname) return null;
+  if (!url || !hasValidDomainSuffix(url.hostname)) return null;
 
   url.pathname = "/";
   url.search = "";
