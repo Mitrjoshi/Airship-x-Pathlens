@@ -337,6 +337,27 @@
       "when": 1791965700118,
       "tag": "0047_worthless_puppet_master",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792248773997,
+      "tag": "0048_old_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792256586411,
+      "tag": "0049_flimsy_skrulls",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792256955675,
+      "tag": "0050_cheerful_landau",
+      "breakpoints": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import {
   createUser,
   changePassword,
   deleteUser,
+  getAvatarOptions,
   getUser,
   getUserById,
   getUserWorkspaces,
@@ -24,6 +25,7 @@ router.post("/password-reset/confirm", confirmPasswordReset);
 
 router.use(authMiddleware);
 
+router.get("/avatars", getAvatarOptions);
 router.get("/me", getUser);
 router.get("/users/:user_id", getUserById);
 router.patch("/me", updateUser);

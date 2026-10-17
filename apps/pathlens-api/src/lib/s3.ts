@@ -7,6 +7,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const DEFAULT_SNAPSHOT_BUCKET = "project-snapshots";
 const SIGNED_URL_EXPIRES_IN = 24 * 60 * 60;
+const AVATAR_SIGNED_URL_EXPIRES_IN = 60 * 60;
 
 let s3Client: S3Client | null | undefined;
 
@@ -40,6 +41,29 @@ export async function createSnapshotSignedUrl(
     );
   } catch (error) {
     console.error("Unable to create project snapshot URL.", error);
+    return null;
+  }
+}
+
+export async function createAvatarSignedUrl(
+  storageKey: string
+): Promise<string | null> {
+  const client = getS3Client();
+  const bucket =
+    process.env.AVATAR_BUCKET?.trim() ||
+    process.env.S3_BUCKET?.trim() ||
+    DEFAULT_SNAPSHOT_BUCKET;
+
+  if (!client) return null;
+
+  try {
+    return await getSignedUrl(
+      client,
+      new GetObjectCommand({ Bucket: bucket, Key: storageKey }),
+      { expiresIn: AVATAR_SIGNED_URL_EXPIRES_IN }
+    );
+  } catch (error) {
+    console.error("Unable to create avatar URL.", error);
     return null;
   }
 }

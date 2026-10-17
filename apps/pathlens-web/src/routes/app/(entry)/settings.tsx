@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { z } from 'zod'
 import {
@@ -45,23 +46,13 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@workspace/ui/components/popover'
+import { Separator } from '@workspace/ui/components/separator'
+import { getAvatarOptions } from '@/queries/avatars'
+import { capitalizeFirstLetter } from '@/utils/utils'
 
 export const Route = createFileRoute('/app/(entry)/settings')({
   component: RouteComponent,
 })
-
-const AVATARS = [
-  '/avatars/panda.png',
-  '/avatars/amur.png',
-  '/avatars/elephant.png',
-  '/avatars/turtle.png',
-  '/avatars/gorilla.png',
-  '/avatars/whale.png',
-  '/avatars/orangutan.png',
-  '/avatars/saola.png',
-  '/avatars/pangolin.png',
-  '/avatars/rhino.png',
-]
 
 const profileSchema = z.object({
   name: z
@@ -71,6 +62,7 @@ const profileSchema = z.object({
     .max(120, 'Name must be 120 characters or less'),
   email: z.email('Enter a valid email address'),
   avatar: z.string().nullable(),
+  avatar_id: z.string().uuid().nullable(),
 })
 
 const getPasswordSchema = (hasPassword: boolean) =>
@@ -102,6 +94,17 @@ function RouteComponent() {
     from: '/app',
     select: (context) => context.user,
   })
+  const { data: avatarOptionsData, isLoading: avatarsLoading } =
+    useQuery(getAvatarOptions())
+  const avatarOptions = avatarOptionsData?.data ?? []
+  const avatarSections = avatarOptions.reduce<
+    Record<string, (typeof avatarOptions)[number][]>
+  >((sections, avatar) => {
+    const category = avatar.category || 'other'
+    sections[category] ??= []
+    sections[category].push(avatar)
+    return sections
+  }, {})
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
     user?.avatar
@@ -113,9 +116,10 @@ function RouteComponent() {
 
   const profileForm = useForm({
     defaultValues: {
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
+      name: user?.name,
+      email: user?.email,
+      avatar: user?.avatar,
+      avatar_id: user?.avatarId ?? null,
     },
     validators: {
       onChange: profileSchema,
@@ -126,6 +130,15 @@ function RouteComponent() {
     },
   })
 
+  const handleAvatarChange = (
+    avatarId: string | null,
+    avatar: string | null
+  ) => {
+    setAvatarPreview(avatar)
+    profileForm.setFieldValue('avatar_id', avatarId)
+    profileForm.setFieldValue('avatar', avatarId ? null : avatar)
+  }
+
   const passwordForm = useForm({
     defaultValues: {
       currentPassword: '',
@@ -133,7 +146,7 @@ function RouteComponent() {
       confirmPassword: '',
     },
     validators: {
-      onChange: getPasswordSchema(user.hasPassword),
+      onChange: getPasswordSchema(user?.hasPassword),
     },
     onSubmit: async ({ value }) => {
       await changePassword.mutateAsync(value)
@@ -147,7 +160,7 @@ function RouteComponent() {
       confirmation: '',
     },
     validators: {
-      onChange: getDeleteAccountSchema(user.hasPassword),
+      onChange: getDeleteAccountSchema(user?.hasPassword),
     },
     onSubmit: async ({ value }) => {
       await deleteAccount.mutateAsync({ password: value.password })
@@ -158,11 +171,12 @@ function RouteComponent() {
     if (profileForm.state.isDirty) return
 
     profileForm.reset({
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
+      name: user?.name,
+      email: user?.email,
+      avatar: user?.avatar,
+      avatar_id: user?.avatarId ?? null,
     })
-  }, [profileForm, user.avatar, user.email, user.name])
+  }, [profileForm, user?.avatar, user?.avatarId, user?.email, user?.name])
 
   return (
     <div>
@@ -191,7 +205,7 @@ function RouteComponent() {
                             'bg-primary/40 text-7xl text-black dark:text-white'
                           }
                         >
-                          {user.name.charAt(0)}
+                          {user?.name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                     </PopoverTrigger>
@@ -200,36 +214,65 @@ function RouteComponent() {
                       <PopoverHeader>
                         <PopoverTitle>Avatars</PopoverTitle>
                       </PopoverHeader>
-                      <div className="grid grid-cols-6 gap-2">
-                        {AVATARS.map((avatar) => (
-                          <Avatar
-                            onClick={() => setAvatarPreview(avatar)}
-                            className={'size-10 cursor-pointer overflow-hidden'}
-                          >
-                            <AvatarImage src={avatar} />
-                            <AvatarFallback className={'text-xl'}>
-                              {avatar
-                                .split('/')
-                                ?.pop()
-                                ?.charAt(0)
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
+                      {avatarsLoading ? (
+                        <span className="text-muted-foreground text-sm">
+                          Loading avatars...
+                        </span>
+                      ) : (
+                        <div className="flex flex-col gap-6">
+                          {Object.entries(avatarSections).map(
+                            ([category, avatars]) => (
+                              <>
+                                <section key={category} className="space-y-2">
+                                  <p className="text-muted-foreground text-sm">
+                                    {capitalizeFirstLetter(category)}
+                                  </p>
+                                  <div className="grid grid-cols-6 gap-2">
+                                    {avatars.map((avatar) => (
+                                      <button
+                                        key={avatar.id}
+                                        type="button"
+                                        aria-label={`Choose ${avatar.name}`}
+                                        onClick={() =>
+                                          handleAvatarChange(
+                                            avatar.id,
+                                            avatar.url
+                                          )
+                                        }
+                                      >
+                                        <Avatar
+                                          className={'size-12 overflow-hidden'}
+                                        >
+                                          <AvatarImage
+                                            src={avatar.url ?? undefined}
+                                          />
+                                          <AvatarFallback className={'text-xl'}>
+                                            {avatar.name
+                                              .charAt(0)
+                                              .toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </section>
+                              </>
+                            )
+                          )}
+                        </div>
+                      )}
 
-                        <Avatar
-                          className={'size-10 cursor-pointer overflow-hidden'}
-                        >
-                          <AvatarImage src={user.avatar!} />
-                          <AvatarFallback
-                            className={
-                              'bg-primary/40 text-xl text-black dark:text-white'
-                            }
-                          >
-                            {user.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
+                      <Separator />
+
+                      <Button
+                        type="button"
+                        disabled={!avatarPreview}
+                        className="text-destructive text-sm font-medium"
+                        onClick={() => handleAvatarChange(null, null)}
+                        variant={'destructive'}
+                      >
+                        Remove avatar
+                      </Button>
                     </PopoverContent>
                   </Popover>
 
@@ -304,7 +347,7 @@ function RouteComponent() {
             <Card className="bg-card/30 rounded-none border-2 border-dashed">
               <CardHeader>
                 <CardTitle>
-                  {user.hasPassword ? 'Change Password' : 'Set Password'}
+                  {user?.hasPassword ? 'Change Password' : 'Set Password'}
                 </CardTitle>
               </CardHeader>
 
@@ -317,7 +360,7 @@ function RouteComponent() {
               >
                 <CardContent className="pb-4">
                   <FieldGroup>
-                    {user.hasPassword && (
+                    {user?.hasPassword && (
                       <passwordForm.Field name="currentPassword">
                         {(field) => {
                           const isInvalid =
@@ -495,7 +538,7 @@ function RouteComponent() {
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              {user.hasPassword && (
+              {user?.hasPassword && (
                 <deleteForm.Field name="password">
                   {(field) => {
                     const isInvalid =

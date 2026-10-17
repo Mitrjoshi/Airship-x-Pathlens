@@ -230,6 +230,26 @@ function RouteComponent() {
               ))}
             </SelectContent>
           </Select>
+
+          <Select
+            items={statusItems}
+            value={status}
+            onValueChange={(value) => {
+              setStatus(value as VisitorStatus)
+              setPage(1)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {statusItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -333,26 +353,6 @@ function RouteComponent() {
               </InputGroupButton>
               <InputGroupInput placeholder="Search..." />
             </InputGroup>
-
-            <Select
-              items={statusItems}
-              value={status}
-              onValueChange={(value) => {
-                setStatus(value as VisitorStatus)
-                setPage(1)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {statusItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="overflow-hidden">
@@ -451,8 +451,8 @@ function RouteComponent() {
                         <TableCell>{visitor.device}</TableCell>
                         <TableCell>{visitor.browser}</TableCell>
 
-                        <TableCell>{visitor.sessions}</TableCell>
-                        <TableCell>{visitor.pageViews}</TableCell>
+                        <TableCell>{formatNumber(visitor.sessions)}</TableCell>
+                        <TableCell>{formatNumber(visitor.pageViews)}</TableCell>
 
                         <TableCell className="text-sm">
                           {visitor.duration}

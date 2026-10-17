@@ -21,6 +21,17 @@ import type { ReplayEvent } from "@workspace/contracts";
 /*                                    USERS                                   */
 /* -------------------------------------------------------------------------- */
 
+export const avatars = pgTable("avatars", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull().unique(),
+  category: text("category").notNull(),
+  storageKey: text("storage_key").notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
 
@@ -30,6 +41,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
 
   avatar: text("avatar"),
+  avatarId: uuid("avatar_id").references(() => avatars.id, {
+    onDelete: "set null",
+  }),
   githubId: text("github_id").unique(),
   githubAvatar: text("github_avatar"),
   googleId: text("google_id").unique(),
@@ -704,6 +718,10 @@ export const goals = pgTable(
         onDelete: "cascade",
       }),
 
+    domainId: uuid("domain_id").references(() => projectDomains.id, {
+      onDelete: "set null",
+    }),
+
     name: text("name").notNull(),
 
     type: text("type").notNull(),
@@ -735,6 +753,7 @@ export const goals = pgTable(
   (table) => ({
     workspaceIdx: index("goals_workspace_idx").on(table.workspaceId),
     projectIdx: index("goals_project_idx").on(table.projectId),
+    domainIdx: index("goals_domain_idx").on(table.domainId),
   })
 );
 

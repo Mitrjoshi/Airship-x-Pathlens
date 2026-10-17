@@ -1,6 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/client";
+import { createAvatarSignedUrl } from "../lib/s3";
 import {
+  avatars,
   permissionProfiles,
   users,
   workspaceMembers,
@@ -12,6 +14,7 @@ interface I_Payload {
   email: string;
   password?: string | null;
   avatar?: string | null;
+  avatarId?: string | null;
   githubId?: string | null;
   githubAvatar?: string | null;
   googleId?: string | null;
@@ -28,6 +31,7 @@ export async function createUserModel(
       password: data.password,
       name: data.name,
       avatar: data.avatar,
+      avatarId: data.avatarId,
       githubId: data.githubId,
       githubAvatar: data.githubAvatar,
       googleId: data.googleId,
@@ -98,9 +102,11 @@ export async function getUserByIDModel(id: string) {
   const [result] = await db
     .select({
       user: users,
+      avatarRecord: avatars,
       defaultWorkspace: workspaces,
     })
     .from(users)
+    .leftJoin(avatars, eq(avatars.id, users.avatarId))
     .leftJoin(
       workspaces,
       and(eq(workspaces.userId, users.id), eq(workspaces.isDefault, true))
@@ -111,6 +117,9 @@ export async function getUserByIDModel(id: string) {
 
   return {
     ...result.user,
+    avatar: result.avatarRecord
+      ? await createAvatarSignedUrl(result.avatarRecord.storageKey)
+      : result.user.avatar,
     defaultWorkspace: result.defaultWorkspace,
   };
 }
@@ -125,12 +134,15 @@ export async function getPublicUserByIDInWorkspaceModel(
       name: users.name,
       email: users.email,
       avatar: users.avatar,
+      avatarId: users.avatarId,
+      avatarRecord: avatars,
       createdAt: users.createdAt,
       role: workspaceMembers.role,
       permissionProfileId: workspaceMembers.permissionProfileId,
       permissionProfileName: permissionProfiles.name,
     })
     .from(users)
+    .leftJoin(avatars, eq(avatars.id, users.avatarId))
     .innerJoin(
       workspaceMembers,
       and(
@@ -144,7 +156,15 @@ export async function getPublicUserByIDInWorkspaceModel(
     )
     .where(eq(users.id, userId));
 
-  return user;
+  if (!user) return user;
+
+  return {
+    ...user,
+    avatar: user.avatarRecord
+      ? await createAvatarSignedUrl(user.avatarRecord.storageKey)
+      : user.avatar,
+    avatarRecord: undefined,
+  };
 }
 
 export async function updateUserModel(data: {
@@ -152,6 +172,7 @@ export async function updateUserModel(data: {
   name: string;
   email: string;
   avatar?: string | null;
+  avatarId?: string | null;
 }) {
   const [user] = await db
     .update(users)
@@ -159,6 +180,7 @@ export async function updateUserModel(data: {
       name: data.name,
       email: data.email,
       ...(data.avatar !== undefined ? { avatar: data.avatar } : {}),
+      ...(data.avatarId !== undefined ? { avatarId: data.avatarId } : {}),
     })
     .where(eq(users.id, data.id))
     .returning({
@@ -170,6 +192,38 @@ export async function updateUserModel(data: {
     });
 
   return user;
+}
+
+export async function getAvatarOptionsModel() {
+  const records = await db
+    .select({
+      id: avatars.id,
+      name: avatars.name,
+      category: avatars.category,
+      storageKey: avatars.storageKey,
+    })
+    .from(avatars)
+    .where(eq(avatars.isActive, true))
+    .orderBy(avatars.name);
+
+  return Promise.all(
+    records.map(async (avatar) => ({
+      id: avatar.id,
+      name: avatar.name,
+      category: avatar.category,
+      url: await createAvatarSignedUrl(avatar.storageKey),
+    }))
+  );
+}
+
+export async function getAvatarModel(id: string) {
+  const [avatar] = await db
+    .select({ id: avatars.id })
+    .from(avatars)
+    .where(and(eq(avatars.id, id), eq(avatars.isActive, true)))
+    .limit(1);
+
+  return avatar;
 }
 
 export async function updateUserPasswordModel(data: {

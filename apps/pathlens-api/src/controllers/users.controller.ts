@@ -3,6 +3,8 @@ import { z, ZodError } from "zod";
 import {
   createUserModel,
   deleteUserModel,
+  getAvatarModel,
+  getAvatarOptionsModel,
   getUserByEmailModel,
   getUserByIDModel,
   getPublicUserByIDInWorkspaceModel,
@@ -123,6 +125,7 @@ const updateUserSchema = z.object({
         value === null || value === undefined || value.length <= 2800000,
       "Avatar must be 2 MB or smaller."
     ),
+  avatar_id: z.uuid().nullable().optional(),
 });
 
 const changePasswordSchema = z
@@ -264,6 +267,21 @@ export async function getUser(req: AuthRequest, res: Response) {
   }
 }
 
+export async function getAvatarOptions(req: AuthRequest, res: Response) {
+  try {
+    return res.status(200).json({
+      success: true,
+      data: await getAvatarOptionsModel(),
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to load avatars.",
+    });
+  }
+}
+
 export async function getUserById(req: AuthRequest, res: Response) {
   const requesterId = req.user?.id;
 
@@ -332,7 +350,17 @@ export async function updateUser(req: AuthRequest, res: Response) {
   }
 
   try {
-    const { name, email, avatar } = updateUserSchema.parse(req.body);
+    const { name, email, avatar, avatar_id } = updateUserSchema.parse(req.body);
+    if (avatar_id) {
+      const avatarRecord = await getAvatarModel(avatar_id);
+
+      if (!avatarRecord) {
+        return res.status(400).json({
+          success: false,
+          message: "The selected avatar is unavailable.",
+        });
+      }
+    }
     const existingUser = await getUserByEmailModel(email);
 
     if (existingUser && existingUser.id !== userId) {
@@ -347,6 +375,7 @@ export async function updateUser(req: AuthRequest, res: Response) {
       name,
       email,
       avatar,
+      avatarId: avatar_id,
     });
 
     if (!updatedUser) {

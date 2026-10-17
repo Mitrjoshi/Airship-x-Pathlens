@@ -25,6 +25,7 @@ import {
 } from 'react'
 
 import { navigationIcons } from '@/config/navigation-icons'
+import { ModKey } from '@/hooks/use-modifier-key'
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -687,7 +688,9 @@ export const SearchOverAppDialog = ({
               <span>Quick Search...</span>
             </span>
 
-            <kbd className="text-xs font-normal">Ctrl+K</kbd>
+            <kbd className="flex items-center gap-1 text-xs font-normal">
+              <ModKey />K
+            </kbd>
           </Button>
         }
       />

@@ -13,6 +13,7 @@ type UpdateProfilePayload = {
   name: string
   email: string
   avatar?: string | null
+  avatar_id?: string | null
 }
 
 type UpdateProfileResponse = AccountResponse & {

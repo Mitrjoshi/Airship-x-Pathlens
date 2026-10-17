@@ -10,6 +10,7 @@ import type { GeometryCollection, Topology } from 'topojson-specification'
 
 import worldTopology from 'world-atlas/countries-110m.json'
 import type { VisitorLocation } from '@/queries/visitors'
+import { formatNumber } from '@/utils/utils'
 
 type VisitorsWorldMapProps = {
   locations: VisitorLocation[]
@@ -262,7 +263,7 @@ export const VisitorsWorldMap = ({ locations }: VisitorsWorldMapProps) => {
               <span className="text-muted-foreground text-xs">Visitors</span>
 
               <span className="text-xs font-semibold tabular-nums">
-                {tooltip.visitors.toLocaleString()}
+                {formatNumber(tooltip.visitors)}
               </span>
             </div>
           </motion.div>

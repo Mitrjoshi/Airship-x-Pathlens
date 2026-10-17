@@ -7,6 +7,7 @@ export type T_User = {
   name: string
   email: string
   avatar: string | null
+  avatarId: string | null
   hasPassword: boolean
   googleAvatar: string | null
   githubAvatar: string | null

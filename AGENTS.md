@@ -5,7 +5,7 @@
 - This is a pnpm 11 (`pnpm@11.22.0`) Turborepo. Run `pnpm install` and other commands from the repository root; use `pnpm --filter <package> <script>` for focused work.
 - `apps/pathlens-web` and `apps/airship-web` are Vite frontends; `apps/pathlens-api` is the Pathlens Express/PostgreSQL API; `apps/airship-api` is a health-check API; `apps/pathlens-tracker` is the browser IIFE; and `apps/pathlens-snapshot-worker` is the Playwright/SQS/S3 worker.
 - Shared UI is in `packages/ui`, browser-safe schemas/types are in `packages/contracts`, and server-only types are in `packages/backend-types`.
-- Read `apps/airship-web/AGENTS.md` before changing Airship web code. Add shared shadcn primitives to `packages/ui`, then import them as `@workspace/ui/components/*`.
+- Read `apps/airship-web/AGENTS.md` before changing Airship web code. Add shared shadcn primitives to `packages/ui`, then import them as `@workspace/ui/components/*`; keep product-specific UI in its owning app.
 
 ## Commands
 
@@ -13,12 +13,12 @@
 - The only configured test script is `pnpm --filter @pathlens/api test:geoip`; there is no workspace-wide test runner.
 - Build the tracker with `pnpm --filter @pathlens/tracker build`; the output is `apps/pathlens-tracker/dist/tracker.global.js`.
 - For Pathlens API schema changes, run `pnpm --filter @pathlens/api generate` and then `pnpm --filter @pathlens/api migrate`. Never hand-edit `apps/pathlens-api/drizzle/meta/**`; use `push` only for deliberate direct synchronization.
-- Snapshot local runs require `apps/pathlens-snapshot-worker/.env`, a private S3 bucket, LocalStack on port `4566`, the queue created with `aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name pathlens-snapshot-worker-queue`, and one-time `pnpm --filter @pathlens/snapshot-worker install-browser`; then run `pnpm --filter @pathlens/snapshot-worker local`.
+- Snapshot local runs require `apps/pathlens-snapshot-worker/.env`, a private S3 bucket, LocalStack on port `4566`, the queue created with `aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name pathlens-snapshot-worker-queue`, and one-time `pnpm --filter @pathlens/snapshot-worker install-browser`; then run `pnpm --filter @pathlens/snapshot-worker local`. See that app's README for deployment details.
 
 ## Boundaries
 
 - Copy the relevant `.env.example` before local development. Pathlens API `dev` and `start` explicitly load `apps/pathlens-api/.env`.
-- TanStack Router generates `src/routeTree.gen.ts` in both web apps; never edit it. Add routes under the owning app's `src/routes`.
+- TanStack Router generates `apps/{pathlens-web,airship-web}/src/routeTree.gen.ts`; never edit these files. Add routes under the owning app's `src/routes`.
 - Pathlens API starts at `apps/pathlens-api/src/server.ts`, mounts routes under `/api`, and listens on `8080`; Airship API starts at `apps/airship-api/src/index.ts` and exposes `/health` on port `8081` by default.
 
 ## Runtime Contracts

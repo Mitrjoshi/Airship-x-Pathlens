@@ -39,13 +39,13 @@ export function NavUser({ user }: { user: NavUserData }) {
         <Avatar>
           <AvatarImage
             className={''}
-            src={user.avatar ?? undefined}
-            alt={user.name}
+            src={user?.avatar ?? undefined}
+            alt={user?.name}
           />
           <AvatarFallback
             className={'bg-primary/40 text-black dark:text-white'}
           >
-            {user.name.charAt(0)}
+            {user?.name?.charAt(0)}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
@@ -60,9 +60,9 @@ export function NavUser({ user }: { user: NavUserData }) {
             <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="text-foreground truncate font-medium">
-                  {user.name}
+                  {user?.name}
                 </span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate text-xs">{user?.email}</span>
               </div>
             </div>
           </DropdownMenuLabel>

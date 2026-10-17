@@ -17,6 +17,7 @@ interface I_Props {
   setDomain: (val: string) => void
   domains: T_ProjectDomain[]
   refetch: () => void
+  includeAll?: boolean
 }
 
 export const DomainSwitcher = ({
@@ -25,6 +26,7 @@ export const DomainSwitcher = ({
   setDomain,
   domains,
   refetch,
+  includeAll = false,
 }: I_Props) => {
   return (
     <ButtonGroup>
@@ -35,7 +37,11 @@ export const DomainSwitcher = ({
         className={'text-foreground'}
       >
         <LinkIcon className="mr-1" />
-        {loading ? <Skeleton className="h-5 w-50" /> : domain}
+        {loading ? (
+          <Skeleton className="h-5 w-50" />
+        ) : (
+          domain || (includeAll ? 'All domains' : domain)
+        )}
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -65,6 +71,25 @@ export const DomainSwitcher = ({
                 />
               </DropdownMenuItem>
             ))}
+            {includeAll && (
+              <DropdownMenuItem
+                render={
+                  <Button
+                    className={'w-full justify-between text-left'}
+                    variant={domain === '' ? 'secondary' : 'ghost'}
+                    onClick={() => {
+                      setDomain('')
+                      refetch()
+                    }}
+                  />
+                }
+              >
+                All domains
+                <CheckIcon
+                  className={`${domain === '' ? 'opacity-100' : 'opacity-0'} ml-7`}
+                />
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>

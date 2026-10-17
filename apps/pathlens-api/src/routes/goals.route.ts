@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createGoal,
   deleteGoal,
+  getGoalDashboard,
   getGoals,
   updateGoal,
 } from "../controllers/goals.controller";
@@ -11,6 +12,11 @@ import { requireWorkspacePermission } from "../middleware/permission.middleware"
 const router = Router();
 
 router.use(authMiddleware);
+router.get(
+  "/:goal_id/dashboard",
+  requireWorkspacePermission("analytics.goals.view"),
+  getGoalDashboard
+);
 router.get("/", requireWorkspacePermission("analytics.goals.view"), getGoals);
 router.post(
   "/",

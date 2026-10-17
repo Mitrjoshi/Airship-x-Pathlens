@@ -26,7 +26,7 @@ export const Route = createFileRoute('/app')({
     return { user: res.data }
   },
   pendingComponent: () => <LoadingComponent />,
-  pendingMinMs: 3000,
+  pendingMinMs: 1000,
   errorComponent: (props) => <ErrorComponent {...props} />,
 })
 

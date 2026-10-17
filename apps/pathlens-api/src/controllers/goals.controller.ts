@@ -4,7 +4,9 @@ import type { AuthRequest } from "../lib/jwt";
 import {
   createGoalModel,
   deleteGoalModel,
+  getGoalDashboardModel,
   getGoalsModel,
+  getProjectDomainModel,
   updateGoalModel,
   type GoalRange,
   type GoalType,
@@ -24,6 +26,7 @@ const goalPayloadSchema = z
     match_target: z.string().trim().min(1).max(255),
     match_path: z.string().trim().min(1).max(2048).nullable().optional(),
     deadline: z.string().date().nullable().optional(),
+    domain_id: z.string().uuid().nullable().optional(),
   })
   .superRefine((payload, context) => {
     if (payload.type === "button" && !payload.match_path) {
@@ -35,15 +38,28 @@ const goalPayloadSchema = z
     }
   });
 
+const createGoalPayloadSchema = goalPayloadSchema.safeExtend({
+  domain_id: z.string().uuid("A domain is required for a goal."),
+});
+
 const goalsQuerySchema = z.object({
   workspace_id: z.string().min(1),
   project_id: z.string().min(1),
   range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
   domain: z.string().trim().max(2048).optional(),
+  domain_id: z.string().uuid().optional(),
 });
 
 const goalParamsSchema = z.object({
   goal_id: z.string().min(1),
+});
+
+const goalDashboardQuerySchema = z.object({
+  workspace_id: z.string().min(1),
+  project_id: z.string().min(1),
+  range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
+  device: z.enum(["all", "desktop", "mobile", "tablet"]).default("all"),
+  domain: z.string().trim().max(2048).optional(),
 });
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -69,7 +85,8 @@ export async function getGoals(req: AuthRequest, res: Response) {
       query.workspace_id,
       query.project_id,
       query.range as GoalRange,
-      query.domain ? (normalizeProjectHostname(query.domain) ?? "") : undefined
+      query.domain ? (normalizeProjectHostname(query.domain) ?? "") : undefined,
+      query.domain_id
     );
 
     return res.status(200).json({
@@ -94,12 +111,61 @@ export async function getGoals(req: AuthRequest, res: Response) {
   }
 }
 
+export async function getGoalDashboard(req: AuthRequest, res: Response) {
+  try {
+    const params = goalParamsSchema.parse(req.params);
+    const query = goalDashboardQuerySchema.parse(req.query);
+    const dashboard = await getGoalDashboardModel({
+      goalId: params.goal_id,
+      workspaceId: query.workspace_id,
+      projectId: query.project_id,
+      range: query.range as GoalRange,
+      device: query.device,
+      domain: query.domain
+        ? (normalizeProjectHostname(query.domain) ?? "")
+        : undefined,
+    });
+
+    if (!dashboard) {
+      return res.status(404).json({
+        success: false,
+        message: "Goal not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: dashboard,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message: getErrorMessage(error, "Unable to load goal dashboard."),
+    });
+  }
+}
+
 export async function createGoal(req: AuthRequest, res: Response) {
   try {
-    const payload = goalPayloadSchema.parse(req.body);
+    const payload = createGoalPayloadSchema.parse(req.body);
+    const domain = await getProjectDomainModel(
+      payload.domain_id,
+      payload.project_id
+    );
+
+    if (!domain) {
+      return res.status(400).json({
+        success: false,
+        message: "The selected domain does not belong to this project.",
+      });
+    }
+
     const id = await createGoalModel({
       workspaceId: payload.workspace_id,
       projectId: payload.project_id,
+      domainId: payload.domain_id,
       name: payload.name,
       type: payload.type as GoalType,
       target: payload.target,
@@ -125,6 +191,7 @@ export async function createGoal(req: AuthRequest, res: Response) {
           unit: payload.unit,
           matchTarget: payload.match_target,
           matchPath: payload.match_path,
+          domainId: payload.domain_id,
           deadline: payload.deadline,
         },
       });
@@ -156,10 +223,25 @@ export async function updateGoal(req: AuthRequest, res: Response) {
   try {
     const params = goalParamsSchema.parse(req.params);
     const payload = goalPayloadSchema.parse(req.body);
+    if (payload.domain_id) {
+      const domain = await getProjectDomainModel(
+        payload.domain_id,
+        payload.project_id
+      );
+
+      if (!domain) {
+        return res.status(400).json({
+          success: false,
+          message: "The selected domain does not belong to this project.",
+        });
+      }
+    }
+
     const updated = await updateGoalModel({
       id: params.goal_id,
       workspaceId: payload.workspace_id,
       projectId: payload.project_id,
+      domainId: payload.domain_id ?? null,
       name: payload.name,
       type: payload.type as GoalType,
       target: payload.target,
@@ -192,6 +274,7 @@ export async function updateGoal(req: AuthRequest, res: Response) {
           unit: payload.unit,
           matchTarget: payload.match_target,
           matchPath: payload.match_path,
+          domainId: payload.domain_id,
           deadline: payload.deadline,
         },
       });

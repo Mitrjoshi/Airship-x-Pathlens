@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -8,6 +8,7 @@ import {
   type GoalRange,
   type GoalType,
 } from '@/queries/goals'
+import { getProjectDomainsOptions } from '@/queries/domains'
 import { useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/mutations/goals'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -43,17 +44,8 @@ import {
 } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
-import {
-  CalendarIcon,
-  EllipsisIcon,
-  MinusIcon,
-  PlusIcon,
-  SearchIcon,
-  TargetIcon,
-  TrendingDownIcon,
-  TrendingUpIcon,
-} from 'lucide-react'
-import GoalsLoading from '../-components/common/goals-loading'
+import { CalendarIcon, EllipsisIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import { DomainSwitcher } from '../-components/common/domain-switcher'
 import { Calendar } from '@workspace/ui/components/calendar'
 import {
   Popover,
@@ -65,16 +57,11 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@workspace/ui/components/card'
 import { Badge } from '@workspace/ui/components/badge'
 import { formatDate } from '@/utils/utils'
-import {
-  DotSeparator,
-  DotSeparatorItem,
-} from '../../../-components/dot-separator'
 import { Progress } from '@workspace/ui/components/progress'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
@@ -84,6 +71,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
+import { Separator } from '@workspace/ui/components/separator'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/goals/')({
   component: RouteComponent,
@@ -187,12 +175,24 @@ function RouteComponent() {
     (rangeLocal || '7d') as GoalRange
   )
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [domain, setDomain] = useState('')
 
-  const { data: goalsData, isLoading: goalsLoading } = useQuery(
+  const { data: domainsData, isLoading: domainsLoading } = useQuery(
+    getProjectDomainsOptions(projectId)
+  )
+  const domains = domainsData?.data ?? []
+  const selectedDomain = domains.find((item) => item.domain === domain)
+
+  const {
+    data: goalsData,
+    isLoading: goalsLoading,
+    refetch: refetchGoals,
+  } = useQuery(
     getGoalsOptions({
       project_id: projectId,
       range,
       workspace_id: workspaceId,
+      domain_id: selectedDomain?.id,
     })
   )
 
@@ -204,6 +204,7 @@ function RouteComponent() {
     defaultValues: {
       workspace_id: workspaceId,
       project_id: projectId,
+      domain_id: '',
       name: '',
       type: 'event' as GoalType,
       target: 100,
@@ -217,6 +218,7 @@ function RouteComponent() {
       const payload: GoalPayload = {
         workspace_id: workspaceId,
         project_id: projectId,
+        domain_id: value.domain_id,
         name: value.name.trim(),
         type: value.type,
         target: Number(value.target),
@@ -243,50 +245,46 @@ function RouteComponent() {
     }
   }
 
+  useEffect(() => {
+    if (domains) {
+      setDomain(domains[0]?.domain)
+    }
+  }, [domains])
+
   return (
-    <div className="p-6">
-      <div className="space-y-5">
-        {/* Header */}
-        <div>
-          <p className="text-xl font-medium">Goals</p>
+    <div className="">
+      <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+        <DomainSwitcher
+          loading={domainsLoading}
+          domain={domain}
+          setDomain={setDomain}
+          domains={domains!}
+          refetch={refetchGoals}
+        />
 
-          <p className="text-muted-foreground text-sm">
-            Define and manage the key actions you want to track as conversions.
-          </p>
-        </div>
+        <div className="flex items-center gap-2">
+          <Select
+            items={rangeLabels}
+            value={range}
+            onValueChange={(value) => {
+              if (!value) return
+              setRange(value as GoalRange)
+              localStorage.setItem('range', value)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {rangeLabels.map((range) => (
+                <SelectItem key={range.value} value={range.value}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* Controls */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <InputGroup className="w-120">
-              <InputGroupButton>
-                <SearchIcon />
-              </InputGroupButton>
-
-              <InputGroupInput placeholder="Search..." />
-            </InputGroup>
-
-            <Select
-              items={rangeLabels}
-              value={range}
-              onValueChange={(value) => {
-                if (!value) return
-                setRange(value as GoalRange)
-                localStorage.setItem('range', value)
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {rangeLabels.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Separator orientation="vertical" />
 
           {/* Create Goal Dialog */}
           <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
@@ -362,6 +360,51 @@ function RouteComponent() {
                             }
                           />
 
+                          {field.state.meta.isTouched &&
+                            !field.state.meta.isValid && (
+                              <FieldError errors={field.state.meta.errors} />
+                            )}
+                        </Field>
+                      )}
+                    </form.Field>
+
+                    <form.Field
+                      name="domain_id"
+                      validators={{
+                        onChange: ({ value }) =>
+                          value ? undefined : 'Select a domain for this goal.',
+                      }}
+                    >
+                      {(field) => (
+                        <Field
+                          data-invalid={
+                            field.state.meta.isTouched &&
+                            !field.state.meta.isValid
+                          }
+                        >
+                          <FieldLabel>Domain</FieldLabel>
+                          <Select
+                            value={field.state.value}
+                            disabled={isPending || domainsLoading}
+                            items={domains.map((item) => ({
+                              value: item.id,
+                              label: item.domain,
+                            }))}
+                            onValueChange={(value) => {
+                              if (value) field.handleChange(value)
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select a domain" />
+                            </SelectTrigger>
+                            <SelectContent alignItemWithTrigger={false}>
+                              {domains.map((item) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  {item.domain}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           {field.state.meta.isTouched &&
                             !field.state.meta.isValid && (
                               <FieldError errors={field.state.meta.errors} />
@@ -771,10 +814,34 @@ function RouteComponent() {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      <div className="space-y-5 p-6">
+        {/* Header */}
+        <div>
+          <p className="text-xl font-medium">Goals</p>
+
+          <p className="text-muted-foreground text-sm">
+            Define and manage the key actions you want to track as conversions.
+          </p>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <InputGroup className="w-120">
+              <InputGroupButton>
+                <SearchIcon />
+              </InputGroupButton>
+
+              <InputGroupInput placeholder="Search..." />
+            </InputGroup>
+          </div>
+        </div>
 
         {/* Goals */}
         {goalsLoading ? (
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {[...Array(3)].map((_, index) => (
               <GoalCardSkeleton key={index} />
             ))}
@@ -786,7 +853,7 @@ function RouteComponent() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {goals.map((goal) => (
               <GoalCard
                 key={goal.id}
@@ -880,6 +947,7 @@ const GoalCard = ({
   const editForm = useForm({
     defaultValues: {
       name: item.name,
+      domain_id: item.domainId ?? '',
       type: item.type.toLowerCase() as GoalType,
       target: item.target,
       unit: item.unit,
@@ -895,6 +963,7 @@ const GoalCard = ({
           payload: {
             workspace_id: workspaceId,
             project_id: projectId,
+            domain_id: value.domain_id || null,
             name: value.name.trim(),
             type: value.type,
             target: Number(value.target),
@@ -939,7 +1008,7 @@ const GoalCard = ({
             },
           })
         }}
-        className="bg-card/30 hover:bg-muted/50 cursor-pointer rounded-none border-2 border-dashed p-2 duration-200"
+        className="bg-card/30 hover:bg-muted/40 cursor-pointer rounded-none border-2 border-dashed p-2 duration-200"
       >
         <CardHeader className="gap-1 p-0">
           <div className="flex items-center justify-between gap-2">
@@ -980,6 +1049,7 @@ const GoalCard = ({
                       match_target: item.matchTarget ?? '',
                       match_path: item.matchPath ?? '',
                       deadline: item.deadline?.slice(0, 10) ?? '',
+                      domain_id: item.domainId!,
                     })
 
                     setEditOpen(true)
