@@ -26,6 +26,7 @@ import {
   UsersIcon,
   FunnelIcon,
   MessageSquareTextIcon,
+  CodeXmlIcon,
 } from 'lucide-react'
 
 export const navigationIcons = {
@@ -64,4 +65,5 @@ export const navigationIcons = {
   edit: EditIcon,
   audit: LogsIcon,
   chat: MessageSquareTextIcon,
+  setup: CodeXmlIcon,
 } as const

@@ -60,9 +60,14 @@ export const Header = () => {
       <div className="flex shrink-0 items-center gap-2">
         <FeedbackPopover />
 
-        <NotificationsPopover />
+        {/* <Button variant={'outline'} className={'pl-1'}>
+          <img src="/ai.png" className="aspect-square size-7" />
+          Ask
+        </Button> */}
 
         <Separator orientation="vertical" />
+
+        <NotificationsPopover />
 
         <NavUser user={user} />
       </div>

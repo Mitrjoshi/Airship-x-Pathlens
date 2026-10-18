@@ -125,13 +125,7 @@ export const FeedbackPopover = ({
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger
-        render={
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            Feedback
-          </Button>
-        }
-      />
+      <PopoverTrigger render={<Button variant="outline">Feedback</Button>} />
 
       <PopoverContent
         align="end"

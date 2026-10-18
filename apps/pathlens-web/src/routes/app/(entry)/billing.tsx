@@ -5,6 +5,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { CheckCircle2Icon } from 'lucide-react'
+import { FaqQuestions } from '@/routes/(open)/-components/faq'
 
 export const Route = createFileRoute('/app/(entry)/billing')({
   component: RouteComponent,
@@ -38,107 +39,116 @@ function RouteComponent() {
           </div>
 
           {!access.lifetime_access ? (
-            <div className="mx-auto grid grid-cols-2 divide-x-2 divide-dashed border-2 border-dashed">
-              <PricingCard
-                current={!access.lifetime_access}
-                plan="FREE"
-                price={0}
-                description="Build and learn free with no time limits and no credit card required."
-                limits={[
-                  {
-                    label: 'Events',
-                    value: '100K',
-                  },
-                  {
-                    label: 'Page Views',
-                    value: '10K',
-                  },
-                  {
-                    label: 'Session Recordings',
-                    value: '100',
-                  },
-                  {
-                    label: 'Funnels',
-                    value: '3',
-                  },
-                  {
-                    label: 'Goals',
-                    value: '3',
-                  },
-                  {
-                    label: 'Heatmaps',
-                    value: '5',
-                  },
-                  {
-                    label: 'Workspaces',
-                    value: '1',
-                  },
-                  {
-                    label: 'Projects',
-                    value: '5',
-                  },
-                  {
-                    label: 'Team Members',
-                    value: '0',
-                  },
-                  {
-                    label: '',
-                    value:
-                      'User privacy comes first. All user inputs are masked by default, helping you understand user behavior without exposing sensitive information.',
-                  },
-                ]}
-              />
+            <div className="space-y-10">
+              <div className="mx-auto grid grid-cols-2 divide-x-2 divide-dashed border-2 border-dashed">
+                <PricingCard
+                  current={!access.lifetime_access}
+                  plan="FREE"
+                  price={0}
+                  description="Build and learn free with no time limits and no credit card required."
+                  limits={[
+                    {
+                      label: 'Events',
+                      value: '100K',
+                    },
+                    {
+                      label: 'Page Views',
+                      value: '10K',
+                    },
+                    {
+                      label: 'Session Recordings',
+                      value: '100',
+                    },
+                    {
+                      label: 'Funnels',
+                      value: '3',
+                    },
+                    {
+                      label: 'Goals',
+                      value: '3',
+                    },
+                    {
+                      label: 'Heatmaps',
+                      value: '5',
+                    },
+                    {
+                      label: 'Workspaces',
+                      value: '1',
+                    },
+                    {
+                      label: 'Projects',
+                      value: '5',
+                    },
+                    {
+                      label: 'Team Members',
+                      value: '0',
+                    },
+                    {
+                      label: '',
+                      value:
+                        'User privacy comes first. All user inputs are masked by default, helping you understand user behavior without exposing sensitive information.',
+                    },
+                  ]}
+                />
 
-              <PricingCard
-                current={access.lifetime_access}
-                best
-                plan="UNLIMITED"
-                price={499}
-                description="More users, more recordings, and advanced analytics to understand and improve user behavior."
-                limits={[
-                  {
-                    label: 'Events',
-                    value: 'Unlimited',
-                  },
-                  {
-                    label: 'Page Views',
-                    value: 'Unlimited',
-                  },
-                  {
-                    label: 'Session Recordings',
-                    value: 'Unlimited',
-                  },
-                  {
-                    label: 'Funnels',
-                    value: 'Unlimited',
-                  },
-                  {
-                    label: 'Goals',
-                    value: 'Unlimited',
-                  },
-                  {
-                    label: 'Heatmaps',
-                    value: 'Unlimited',
-                  },
-                  {
-                    label: 'Workspaces',
-                    value: 'Unlimited',
-                  },
-                  {
-                    label: 'Projects',
-                    value: 'Unlimited',
-                  },
-                  {
-                    label: 'Team Members',
-                    value: 'Unlimited',
-                  },
-                  {
-                    label: '',
-                    value:
-                      'User privacy comes first. All user inputs are masked by default, helping you understand user behavior without exposing sensitive information.',
-                  },
-                ]}
-              />
+                <PricingCard
+                  current={access.lifetime_access}
+                  best
+                  plan="UNLIMITED"
+                  price={499}
+                  description="More users, more recordings, and advanced analytics to understand and improve user behavior."
+                  limits={[
+                    {
+                      label: 'Events',
+                      value: 'Unlimited',
+                    },
+                    {
+                      label: 'Page Views',
+                      value: 'Unlimited',
+                    },
+                    {
+                      label: 'Session Recordings',
+                      value: 'Unlimited',
+                    },
+                    {
+                      label: 'Funnels',
+                      value: 'Unlimited',
+                    },
+                    {
+                      label: 'Goals',
+                      value: 'Unlimited',
+                    },
+                    {
+                      label: 'Heatmaps',
+                      value: 'Unlimited',
+                    },
+                    {
+                      label: 'Workspaces',
+                      value: 'Unlimited',
+                    },
+                    {
+                      label: 'Projects',
+                      value: 'Unlimited',
+                    },
+                    {
+                      label: 'Team Members',
+                      value: 'Unlimited',
+                    },
+                    {
+                      label: '',
+                      value:
+                        'User privacy comes first. All user inputs are masked by default, helping you understand user behavior without exposing sensitive information.',
+                    },
+                  ]}
+                />
+              </div>
+
+              <div className="mt-10 space-y-4">
+                <p className="text-2xl font-medium">
+                  Frequently Asked Questions
+                </p>
+                <FaqQuestions />
+              </div>
             </div>
           ) : (
             <div className="bg-card/30 flex items-start gap-3 border-2 border-dashed p-4">

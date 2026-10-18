@@ -1,11 +1,12 @@
 import { useCreateFunnel, useDeleteFunnel } from '@/mutations/funnels'
 import { getFunnelsOptions, type FunnelRange } from '@/queries/funnels'
+import { getProjectDomainsOptions } from '@/queries/domains'
 import { useQuery } from '@tanstack/react-query'
+import { useForm } from '@tanstack/react-form'
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { useState } from 'react'
 import { DomainSwitcher } from './-components/common/domain-switcher'
-import { getProjectDomainsOptions } from '@/queries/domains'
 import { Separator } from '@workspace/ui/components/separator'
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import {
@@ -24,6 +25,7 @@ import {
   RefreshCcwIcon,
   TrendingDownIcon,
   TrendingUpIcon,
+  XIcon,
 } from 'lucide-react'
 import {
   Card,
@@ -44,6 +46,27 @@ import { Progress } from '@workspace/ui/components/progress'
 import { formatDate } from '@/utils/utils'
 import { Badge } from '@workspace/ui/components/badge'
 import { cn } from '@workspace/ui'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@workspace/ui/components/dialog'
+import { z } from 'zod'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@workspace/ui/components/field'
+import { Input } from '@workspace/ui/components/input'
+import { Textarea } from '@workspace/ui/components/textarea'
+import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/funnels')({
   component: RouteComponent,
@@ -56,15 +79,44 @@ const rangeLabels = [
   { value: '90d', label: 'Last 90 days' },
 ]
 
+const formSchema = z.object({
+  workspace_id: z.string(),
+  project_id: z.string(),
+  name: z.string().min(1, 'Funnel name is required'),
+  description: z.string().nullable(),
+  steps: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Step name is required'),
+        target: z.string().min(1, 'Target is required'),
+      })
+    )
+    .min(1, 'At least one step is required'),
+})
+
+type FunnelFormValues = z.infer<typeof formSchema>
+
 function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+
   const [range, setRange] = useState<FunnelRange>(
     (rangeLocal || '7d') as FunnelRange
   )
+
   const [domain, setDomain] = useState('')
   const [liveMode, setLiveMode] = useState(false)
+
+  // Create dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedFunnel, setSelectedFunnel] = useState<{
+    id: string
+    name: string
+  } | null>(null)
 
   const {
     data: funnelsData,
@@ -91,8 +143,71 @@ function RouteComponent() {
 
   const lastUpdated = useRelativeTime(dataUpdatedAt)
 
-  const { mutate: createFunnel } = useCreateFunnel()
-  const { mutate: deleteFunnel } = useDeleteFunnel()
+  const { mutate: createFunnel, isPending: createFormPending } =
+    useCreateFunnel()
+
+  const { mutate: deleteFunnel, isPending: deleteFunnelPending } =
+    useDeleteFunnel()
+
+  const form = useForm<FunnelFormValues>({
+    defaultValues: {
+      workspace_id: workspaceId,
+      project_id: projectId,
+      name: '',
+      description: null,
+      steps: [
+        {
+          name: '',
+          target: '',
+        },
+      ],
+    },
+
+    validators: {
+      onSubmit: formSchema,
+    },
+
+    onSubmit: async ({ value }) => {
+      createFunnel(value, {
+        onSuccess: () => {
+          setCreateDialogOpen(false)
+
+          form.reset()
+
+          refetch()
+        },
+      })
+    },
+  })
+
+  const handleDeleteClick = (funnel: { id: string; name: string }) => {
+    setSelectedFunnel({
+      id: funnel.id,
+      name: funnel.name,
+    })
+
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!selectedFunnel) return
+
+    deleteFunnel(
+      {
+        id: selectedFunnel.id,
+        project_id: projectId,
+        workspace_id: workspaceId,
+      },
+      {
+        onSuccess: () => {
+          setDeleteDialogOpen(false)
+          setSelectedFunnel(null)
+
+          refetch()
+        },
+      }
+    )
+  }
 
   return (
     <div>
@@ -125,6 +240,7 @@ function RouteComponent() {
             {liveMode ? <PauseIcon /> : <PlayIcon />}
             Live Refresh
           </Button>
+
           <Button
             disabled={isRefetching}
             onClick={() => {
@@ -145,6 +261,7 @@ function RouteComponent() {
             value={range}
             onValueChange={(value) => {
               if (!value) return
+
               setRange(value as FunnelRange)
               localStorage.setItem('range', value)
             }}
@@ -152,6 +269,7 @@ function RouteComponent() {
             <SelectTrigger className="w-full sm:w-36">
               <SelectValue />
             </SelectTrigger>
+
             <SelectContent alignItemWithTrigger={false}>
               {rangeLabels.map((range) => (
                 <SelectItem key={range.value} value={range.value}>
@@ -174,29 +292,336 @@ function RouteComponent() {
             </p>
           </div>
 
-          <Button>
-            <PlusIcon />
-            Create Funnel
-          </Button>
+          {/* Create Funnel Dialog */}
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger
+              render={
+                <Button>
+                  <PlusIcon />
+                  Create Funnel
+                </Button>
+              }
+            />
+
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Create Funnel</DialogTitle>
+              </DialogHeader>
+
+              <form
+                className="no-scrollbar -mx-4 max-h-[50vh] overflow-y-auto px-4"
+                id="create-funnel"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  form.handleSubmit()
+                }}
+              >
+                <FieldGroup>
+                  {/* Funnel name */}
+                  <form.Field
+                    name="name"
+                    children={(field) => {
+                      const isInvalid =
+                        field.state.meta.isTouched && !field.state.meta.isValid
+
+                      return (
+                        <Field data-invalid={isInvalid}>
+                          <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+
+                          <Input
+                            id={field.name}
+                            name={field.name}
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            aria-invalid={isInvalid}
+                            placeholder="Checkout funnel"
+                            autoComplete="off"
+                          />
+
+                          <FieldDescription>
+                            Give your funnel a name that clearly describes the
+                            user journey.
+                          </FieldDescription>
+
+                          {isInvalid && (
+                            <FieldError errors={field.state.meta.errors} />
+                          )}
+                        </Field>
+                      )
+                    }}
+                  />
+
+                  {/* Description */}
+                  <form.Field
+                    name="description"
+                    children={(field) => {
+                      const isInvalid =
+                        field.state.meta.isTouched && !field.state.meta.isValid
+
+                      return (
+                        <Field data-invalid={isInvalid}>
+                          <FieldLabel htmlFor={field.name}>
+                            Description
+                          </FieldLabel>
+
+                          <Textarea
+                            id={field.name}
+                            name={field.name}
+                            value={field.state.value ?? ''}
+                            onBlur={field.handleBlur}
+                            onChange={(e) =>
+                              field.handleChange(e.target.value || null)
+                            }
+                            aria-invalid={isInvalid}
+                            placeholder="Track users from landing page to checkout."
+                          />
+
+                          <FieldDescription>
+                            Optional description for this funnel.
+                          </FieldDescription>
+
+                          {isInvalid && (
+                            <FieldError errors={field.state.meta.errors} />
+                          )}
+                        </Field>
+                      )
+                    }}
+                  />
+
+                  {/* Steps */}
+                  <form.Field name="steps">
+                    {(field) => {
+                      const isInvalid =
+                        field.state.meta.isTouched && !field.state.meta.isValid
+
+                      return (
+                        <FieldGroup>
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <FieldLabel>Steps</FieldLabel>
+
+                              <FieldDescription>
+                                Define the pages or actions users need to
+                                complete.
+                              </FieldDescription>
+                            </div>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                field.pushValue({
+                                  name: '',
+                                  target: '',
+                                })
+                              }
+                            >
+                              <PlusIcon />
+                              Add step
+                            </Button>
+                          </div>
+
+                          <div className="space-y-3">
+                            {field.state.value.map((_, index) => (
+                              <div
+                                key={index}
+                                className="rounded-lg border p-3"
+                              >
+                                <div className="mb-3 flex items-center justify-between">
+                                  <p className="text-sm font-medium">
+                                    Step {index + 1}
+                                  </p>
+
+                                  {field.state.value.length > 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-8"
+                                      onClick={() => field.removeValue(index)}
+                                    >
+                                      <XIcon />
+                                      <span className="sr-only">
+                                        Remove step
+                                      </span>
+                                    </Button>
+                                  )}
+                                </div>
+
+                                <div className="grid gap-3">
+                                  {/* Step name */}
+                                  <form.Field
+                                    name={`steps[${index}].name`}
+                                    children={(stepNameField) => {
+                                      const isInvalid =
+                                        stepNameField.state.meta.isTouched &&
+                                        !stepNameField.state.meta.isValid
+
+                                      return (
+                                        <Field data-invalid={isInvalid}>
+                                          <FieldLabel
+                                            htmlFor={stepNameField.name}
+                                          >
+                                            Step name
+                                          </FieldLabel>
+
+                                          <Input
+                                            id={stepNameField.name}
+                                            name={stepNameField.name}
+                                            value={stepNameField.state.value}
+                                            onBlur={stepNameField.handleBlur}
+                                            onChange={(e) =>
+                                              stepNameField.handleChange(
+                                                e.target.value
+                                              )
+                                            }
+                                            aria-invalid={isInvalid}
+                                            placeholder="Landing page"
+                                          />
+
+                                          {isInvalid && (
+                                            <FieldError
+                                              errors={
+                                                stepNameField.state.meta.errors
+                                              }
+                                            />
+                                          )}
+                                        </Field>
+                                      )
+                                    }}
+                                  />
+
+                                  {/* Step target */}
+                                  <form.Field
+                                    name={`steps[${index}].target`}
+                                    children={(targetField) => {
+                                      const isInvalid =
+                                        targetField.state.meta.isTouched &&
+                                        !targetField.state.meta.isValid
+
+                                      return (
+                                        <Field data-invalid={isInvalid}>
+                                          <FieldLabel
+                                            htmlFor={targetField.name}
+                                          >
+                                            Target
+                                          </FieldLabel>
+
+                                          <Input
+                                            id={targetField.name}
+                                            name={targetField.name}
+                                            value={targetField.state.value}
+                                            onBlur={targetField.handleBlur}
+                                            onChange={(e) =>
+                                              targetField.handleChange(
+                                                e.target.value
+                                              )
+                                            }
+                                            aria-invalid={isInvalid}
+                                            placeholder="/checkout"
+                                          />
+
+                                          <FieldDescription>
+                                            The URL path or target to match.
+                                          </FieldDescription>
+
+                                          {isInvalid && (
+                                            <FieldError
+                                              errors={
+                                                targetField.state.meta.errors
+                                              }
+                                            />
+                                          )}
+                                        </Field>
+                                      )
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {isInvalid && (
+                            <FieldError errors={field.state.meta.errors} />
+                          )}
+                        </FieldGroup>
+                      )
+                    }}
+                  </form.Field>
+                </FieldGroup>
+              </form>
+
+              <DialogFooter className="py-2">
+                <DialogClose>
+                  <Button type="button" variant="outline">
+                    Cancel
+                  </Button>
+                </DialogClose>
+
+                <Button
+                  disabled={createFormPending}
+                  type="submit"
+                  form="create-funnel"
+                >
+                  <LoadingSwap isLoading={createFormPending}>
+                    Create
+                  </LoadingSwap>
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {isLoading
-              ? [...Array(5)].map((_, index) => (
+              ? [...Array(3)].map((_, index) => (
                   <Card
-                    className="bg-card/30 rounded-none border-2 border-dashed p-2"
+                    className="bg-card/30 gap-4 rounded-none border-2 border-dashed p-4"
                     key={index}
                   >
-                    <CardHeader className="p-0">
-                      <Skeleton className="h-5 w-20" />
-                      <Skeleton className="h-4 w-42" />
+                    <CardHeader className="flex items-start justify-between p-0">
+                      <div className="min-w-0 space-y-2">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-48" />
+                      </div>
+
+                      <Skeleton className="size-8" />
                     </CardHeader>
 
-                    <CardContent className="flex items-center gap-4 p-0">
-                      <Skeleton className="h-8 w-8" />
-                      <Skeleton className="h-8 w-8" />
-                      <Skeleton className="h-8 w-8" />
+                    <CardContent className="space-y-4 p-0">
+                      {/* Conversion Rate */}
+                      <div className="flex items-end justify-between">
+                        <div className="space-y-2">
+                          <Skeleton className="h-3 w-24" />
+                          <Skeleton className="h-8 w-20" />
+                        </div>
+
+                        <Skeleton className="h-6 w-16 rounded-md" />
+                      </div>
+
+                      {/* Funnel Steps */}
+                      <div className="space-y-3">
+                        {[...Array(2)].map((_, stepIndex) => (
+                          <div key={stepIndex} className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <Skeleton className="h-3 w-28" />
+                              <Skeleton className="h-3 w-16" />
+                            </div>
+
+                            <Skeleton className="h-1.5 w-full" />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between border-t pt-3">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
                     </CardContent>
                   </Card>
                 ))
@@ -249,15 +674,11 @@ function RouteComponent() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>Edit</DropdownMenuItem>
                           <DropdownMenuItem>View</DropdownMenuItem>
+
                           <DropdownMenuSeparator />
+
                           <DropdownMenuItem
-                            onClick={() =>
-                              deleteFunnel({
-                                id: item.id,
-                                project_id: projectId,
-                                workspace_id: workspaceId,
-                              })
-                            }
+                            onClick={() => handleDeleteClick(item)}
                             variant="destructive"
                           >
                             Delete
@@ -309,6 +730,7 @@ function RouteComponent() {
 
                                 <span className="shrink-0 font-medium tabular-nums">
                                   {step.visitors.toLocaleString()}
+
                                   <span className="text-muted-foreground ml-1 font-normal">
                                     visitors
                                   </span>
@@ -336,6 +758,44 @@ function RouteComponent() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete funnel?</DialogTitle>
+
+            <DialogDescription>
+              Are you sure you want to delete{' '}
+              <span className="text-foreground font-medium">
+                {selectedFunnel?.name}
+              </span>
+              ? This action cannot be undone and all funnel data will be
+              permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <DialogClose
+              disabled={deleteFunnelPending}
+              onClick={() => setSelectedFunnel(null)}
+              render={<Button variant={'outline'} />}
+            >
+              Cancel
+            </DialogClose>
+
+            <Button
+              variant="destructive"
+              disabled={deleteFunnelPending}
+              onClick={handleDeleteConfirm}
+            >
+              <LoadingSwap isLoading={deleteFunnelPending}>
+                Delete Funnel
+              </LoadingSwap>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

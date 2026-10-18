@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { CheckIcon } from 'lucide-react'
+import { ArrowUpRightIcon, CheckIcon } from 'lucide-react'
 import { useTheme } from '@/components/common/theme-provider'
 
 export interface NavUserData {
@@ -80,7 +80,7 @@ export function NavUser({ user }: { user: NavUserData }) {
               />
             }
           >
-            Account
+            Settings
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -92,19 +92,16 @@ export function NavUser({ user }: { user: NavUserData }) {
               />
             }
           >
-            Billing
+            Subscription
           </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuGroup>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger
               render={<Button variant="ghost" className={'w-full'} />}
             >
-              Appearance
+              Theme
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
-              <DropdownMenuSubContent className={'w-32'} sideOffset={10}>
+              <DropdownMenuSubContent className={'w-40'} sideOffset={10}>
                 <DropdownMenuItem
                   render={
                     <Button
@@ -140,6 +137,44 @@ export function NavUser({ user }: { user: NavUserData }) {
                 >
                   System
                   {theme === 'system' && <CheckIcon />}
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+        </DropdownMenuGroup>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuGroup>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger
+              render={<Button variant="ghost" className={'w-full'} />}
+            >
+              Terms and Privacy
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className={'w-40'} sideOffset={10}>
+                <DropdownMenuItem
+                  render={
+                    <Button
+                      className={'flex w-full cursor-pointer justify-between'}
+                      variant="ghost"
+                    />
+                  }
+                >
+                  Terms
+                  <ArrowUpRightIcon />
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  render={
+                    <Button
+                      className={'flex w-full cursor-pointer justify-between'}
+                      variant="ghost"
+                    />
+                  }
+                >
+                  Privacy Policy
+                  <ArrowUpRightIcon />
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>

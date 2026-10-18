@@ -59,10 +59,12 @@ export const Hero = () => {
 }
 
 export const HeroIcons = () => {
+  const [grouped, setGrouped] = useState(false)
+
   return (
     <div className="bg-primary dots-grid-uni rounded-xl">
       <div className="flashlight-bottom @container relative flex w-full flex-col items-center justify-center space-y-6 overflow-hidden py-32">
-        <IconAnimations />
+        <IconAnimations grouped={grouped} />
         <div className="relative z-10 flex max-w-3xl flex-col items-center space-y-6">
           <p className="text-center text-5xl font-semibold text-black">
             Your users leave clues.{' '}
@@ -76,7 +78,13 @@ export const HeroIcons = () => {
           </p>
 
           <Link to="/login">
-            <Button className="h-12 rounded-full border border-white bg-white px-6 text-black backdrop-blur-3xl duration-200 hover:border-white hover:bg-transparent">
+            <Button
+              onMouseEnter={() => setGrouped(true)}
+              onMouseLeave={() => setGrouped(false)}
+              onFocus={() => setGrouped(true)}
+              onBlur={() => setGrouped(false)}
+              className="h-12 rounded-full border border-white bg-white px-6 text-black backdrop-blur-3xl duration-200 hover:border-white hover:bg-transparent"
+            >
               Start tracking for free
             </Button>
           </Link>
@@ -194,6 +202,29 @@ const icons = [
   },
 ]
 
+const BOX_CENTER = 38 // in cqw
+const ICON_SIZE = 58 // 24px glyph + 32px padding (p-4) + 2px border
+const BOX_PADDING = 10
+const BOX_SIZE = ICON_SIZE * 2 + BOX_PADDING * 2 // 136
+const SLOT = ICON_SIZE / 2 // 29, icons touch with no gap
+
+// One centered on top, two below
+const slotOffsets = [
+  { dx: 0, dy: -SLOT },
+  { dx: -SLOT, dy: SLOT },
+  { dx: SLOT, dy: SLOT },
+]
+
+const groupTarget = (index: number) => {
+  const side = index < 3 ? -1 : 1
+  const { dx, dy } = slotOffsets[index % 3]
+
+  return {
+    x: `calc(${side * BOX_CENTER}cqw + ${dx}px)`,
+    y: `${dy}px`,
+  }
+}
+
 type IconStyle = CSSProperties & {
   '--x': string
   '--y': string
@@ -208,11 +239,13 @@ type IconStyle = CSSProperties & {
 const FloatingIcon = ({
   index,
   iconIndex,
+  grouped,
   onChange,
   ...position
 }: (typeof icons)[number] & {
   index: number
   iconIndex: number
+  grouped: boolean
   onChange: (index: number) => void
 }) => {
   useEffect(() => {
@@ -230,20 +263,22 @@ const FloatingIcon = ({
   }, [index, onChange])
 
   const Icon = iconPool[iconIndex]
+  const target = groupTarget(index)
 
   return (
     <div
-      className="floating-icon bg-primary-foreground/15 absolute top-1/2 left-1/2 aspect-square rounded-xl border border-dashed border-white p-4 opacity-80 backdrop-blur-3xl"
+      className="floating-icon bg-background/10 absolute top-1/2 left-1/2 aspect-square rounded-md border border-dashed border-white p-4 opacity-80 backdrop-blur-lg"
       style={
         {
-          '--x': position.x,
-          '--y': position.y,
-          '--rotate': position.rotate,
-          '--float-x': position.floatX,
-          '--float-y': position.floatY,
-          '--float-rotate': position.floatRotate,
+          '--x': grouped ? target.x : position.x,
+          '--y': grouped ? target.y : position.y,
+          '--rotate': grouped ? '0deg' : position.rotate,
+          '--float-x': grouped ? '0px' : position.floatX,
+          '--float-y': grouped ? '0px' : position.floatY,
+          '--float-rotate': grouped ? '0deg' : position.floatRotate,
           '--duration': position.duration,
           '--delay': position.delay,
+          transitionDelay: grouped ? `${(index % 3) * 60}ms` : '0ms',
         } as IconStyle
       }
     >
@@ -252,7 +287,7 @@ const FloatingIcon = ({
   )
 }
 
-export const IconAnimations = () => {
+export const IconAnimations = ({ grouped }: { grouped: boolean }) => {
   const [visibleIcons, setVisibleIcons] = useState<number[]>(() =>
     icons.map((_, index) => index % iconPool.length)
   )
@@ -285,11 +320,38 @@ export const IconAnimations = () => {
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      {/* Square boxes that the icons group into */}
+      {([-1, 1] as const).map((side) => (
+        <div
+          key={side}
+          className="absolute top-1/2 left-1/2 border border-white bg-white/5 transition-all duration-500"
+          style={{
+            width: BOX_SIZE,
+            height: BOX_SIZE,
+            transform: `translate(calc(-50% + ${side * BOX_CENTER}cqw), -50%) scale(${grouped ? 1 : 0.85})`,
+            opacity: grouped ? 1 : 0,
+          }}
+        >
+          {[
+            '-top-[4.5px] -left-[4.5px]',
+            '-top-[4.5px] -right-[4.5px]',
+            '-bottom-[4.5px] -left-[4.5px]',
+            '-bottom-[4.5px] -right-[4.5px]',
+          ].map((position) => (
+            <span
+              key={position}
+              className={`bg-primary absolute size-2 border border-white ${position}`}
+            />
+          ))}
+        </div>
+      ))}
+
       {icons.map((icon, index) => (
         <FloatingIcon
           key={index}
           index={index}
           iconIndex={visibleIcons[index]}
+          grouped={grouped}
           onChange={changeIcon}
           {...icon}
         />

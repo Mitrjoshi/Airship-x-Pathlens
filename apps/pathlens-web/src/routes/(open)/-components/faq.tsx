@@ -80,22 +80,30 @@ export const FAQ = () => {
           </div>
 
           <div className="p-10">
-            <Accordion className="w-full">
-              {faqs.map((faq, index) => (
-                <AccordionItem key={faq.question} value={`item-${index}`}>
-                  <AccordionTrigger className="cursor-pointer text-left text-base font-medium">
-                    {faq.question}
-                  </AccordionTrigger>
-
-                  <AccordionContent className="text-muted-foreground pr-6 leading-6">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            <FaqQuestions />
           </div>
         </div>
       </DotLayout>
     </HomeLayout>
+  )
+}
+
+export const FaqQuestions = () => {
+  return (
+    <>
+      <Accordion className="w-full">
+        {faqs.map((faq, index) => (
+          <AccordionItem key={faq.question} value={`item-${index}`}>
+            <AccordionTrigger className="cursor-pointer text-left text-base font-medium">
+              {faq.question}
+            </AccordionTrigger>
+
+            <AccordionContent className="text-muted-foreground pr-6 leading-6">
+              {faq.answer}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </>
   )
 }

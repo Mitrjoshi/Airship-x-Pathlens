@@ -241,6 +241,12 @@ const sidebarProjectsItems = [
         isActive: (pathname: string) => pathname.includes('api-keys'),
       },
       {
+        label: 'Setup',
+        icon: navigationIcons.setup,
+        to: '/app/$workspaceId/$projectId/setup',
+        isActive: (pathname: string) => pathname.includes('setup'),
+      },
+      {
         label: 'Settings',
         icon: navigationIcons.settings,
         to: '/app/$workspaceId/$projectId/settings',
