@@ -617,16 +617,6 @@ export const feedback = pgTable(
         onDelete: "cascade",
       }),
 
-    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
-      onDelete: "set null",
-    }),
-
-    projectId: uuid("project_id").references(() => projects.id, {
-      onDelete: "set null",
-    }),
-
-    category: text("category").notNull(),
-
     message: text("message").notNull(),
 
     pageUrl: text("page_url"),
@@ -640,9 +630,7 @@ export const feedback = pgTable(
       .notNull(),
   },
   (table) => ({
-    userIdx: index("feedback_user_idx").on(table.userId),
-    workspaceIdx: index("feedback_workspace_idx").on(table.workspaceId),
-    projectIdx: index("feedback_project_idx").on(table.projectId),
+    userUniqueIdx: uniqueIndex("feedback_user_unique_idx").on(table.userId),
     createdIdx: index("feedback_created_idx").on(table.createdAt),
   })
 );

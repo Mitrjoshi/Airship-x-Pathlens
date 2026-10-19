@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db/client";
 import { getReplayDataModel, type ReplayData } from "./replay.model";
+import { sanitizeReplayValue } from "../lib/replay-privacy";
 
 export type SessionReplayRange = "24h" | "7d" | "30d" | "90d";
 export type SessionReplayDevice = "all" | "desktop" | "mobile" | "tablet";
@@ -285,9 +286,11 @@ function sanitizeReplayPayload(
 ): Record<string, unknown> {
   if (!payload) return {};
 
-  return Object.fromEntries(
+  const filteredPayload = Object.fromEntries(
     Object.entries(payload).filter(([key]) => REPLAY_PAYLOAD_KEYS.has(key))
   );
+
+  return sanitizeReplayValue(filteredPayload) as Record<string, unknown>;
 }
 
 export async function getSessionReplayModel(
@@ -587,9 +590,9 @@ export async function getSessionReplayDetailModel(
     type: event.type,
     occurredAt: toIso(event.occurred_at),
     elapsedMs: toNumber(event.elapsed_ms),
-    path: event.path,
-    url: event.url,
-    title: event.title,
+    path: sanitizeReplayValue(event.path, "path") as string | null,
+    url: sanitizeReplayValue(event.url, "url") as string | null,
+    title: sanitizeReplayValue(event.title, "title") as string | null,
     payload: sanitizeReplayPayload(event.payload),
   }));
 

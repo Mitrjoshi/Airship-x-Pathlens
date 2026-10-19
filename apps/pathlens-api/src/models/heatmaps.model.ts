@@ -10,8 +10,7 @@ import type {
   HeatmapsListData,
 } from "@workspace/contracts";
 import { db } from "../db/client";
-import { heatmapPageSnapshots } from "../db/schema";
-import { getReplayDataModel } from "./replay.model";
+import { getCompleteReplayDataModel } from "./replay.model";
 
 const MAX_HEATMAP_EVENTS = 20_000;
 const MAX_HOT_AREA_LABEL_LENGTH = 56;
@@ -60,26 +59,6 @@ export interface HeatmapsFilters {
   page?: number;
   pageSize?: number;
   includeDetails?: boolean;
-}
-
-export async function getHeatmapPageSnapshot(data: {
-  projectId: string;
-  domain?: string;
-  pagePath: string;
-}) {
-  const [snapshot] = await db
-    .select()
-    .from(heatmapPageSnapshots)
-    .where(
-      and(
-        eq(heatmapPageSnapshots.projectId, data.projectId),
-        eq(heatmapPageSnapshots.domain, data.domain ?? ""),
-        eq(heatmapPageSnapshots.pagePath, data.pagePath)
-      )
-    )
-    .limit(1);
-
-  return snapshot ?? null;
 }
 
 interface PageRow extends Record<string, unknown> {
@@ -491,11 +470,21 @@ async function getRepresentativeReplaySession(
       ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(page_event.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
          ${deviceFilter}
       AND replay.event_count >= 2
+      AND replay.ended_at IS NOT NULL
+      AND replay.last_sequence >= 0
       AND EXISTS (
         SELECT 1
         FROM replay_chunks replay_chunk
         WHERE replay_chunk.session_id = replay.id
           AND replay_chunk.events @> '[{"type": 2}]'::jsonb
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM generate_series(0, replay.last_sequence) expected(sequence)
+        LEFT JOIN replay_chunks complete_chunk
+          ON complete_chunk.session_id = replay.id
+          AND complete_chunk.sequence = expected.sequence
+        WHERE complete_chunk.id IS NULL
       )
     ORDER BY (
       NOT EXISTS (
@@ -699,7 +688,7 @@ export async function getHeatmapsModel(
     rangeDays
   );
   const replay = replaySession
-    ? await getReplayDataModel(
+    ? await getCompleteReplayDataModel(
         filters.workspaceId,
         filters.projectId,
         replaySession.session_id
@@ -708,11 +697,6 @@ export async function getHeatmapsModel(
   const clickAggregation = buildClickPoints(eventResult.rows, selectedPage);
   const selectedScrollSummary = scrollSummaries.get(selectedPage.path);
   const sessionCount = toNumber(selectedScrollSummary?.sessions);
-  const snapshot = await getHeatmapPageSnapshot({
-    projectId: filters.projectId,
-    domain: filters.domain,
-    pagePath: selectedPage.path,
-  });
   const pageDetail: HeatmapPageDetail = {
     ...selectedPage,
     clickPoints: clickAggregation.points,
@@ -731,12 +715,10 @@ export async function getHeatmapsModel(
     coordinateMode: clickAggregation.coordinateMode,
     replayAvailable: Boolean(replay?.available),
     screenshotUrl: null,
-    screenshotStatus:
-      (snapshot?.status as HeatmapPageDetail["screenshotStatus"] | undefined) ??
-      "pending",
-    screenshotCapturedAt: snapshot?.capturedAt?.toISOString() ?? null,
-    screenshotWidth: snapshot?.viewportWidth ?? null,
-    screenshotHeight: snapshot?.viewportHeight ?? null,
+    screenshotStatus: "pending",
+    screenshotCapturedAt: null,
+    screenshotWidth: null,
+    screenshotHeight: null,
   };
 
   return {

@@ -4,6 +4,10 @@ import type { eventWithTime } from 'rrweb'
 import type { ReactNode } from 'react'
 import { useEffect, useRef } from 'react'
 import 'rrweb/dist/style.css'
+import {
+  installReplayClickEffect,
+  installReplayCursorStyle,
+} from './replay-cursor-style'
 
 interface ReplayViewport {
   width: number
@@ -143,13 +147,21 @@ export function ReadOnlyReplayRenderer({
         skipInactive: true,
         showWarning: false,
         showDebug: false,
-        mouseTail: false,
+        mouseTail: {
+          duration: 300,
+          lineCap: 'round',
+          lineWidth: 3,
+          strokeStyle: '#41ce8f',
+        },
       })
     } catch (error) {
       console.error('[Pathlens] Unable to render read-only replay.', error)
       replayRoot.replaceChildren()
       return
     }
+
+    const removeCursorStyle = installReplayCursorStyle(replayer)
+    const removeClickEffect = installReplayClickEffect(replayer)
 
     const fit = () =>
       fitSurface(stage, surface, replayer, {
@@ -194,6 +206,8 @@ export function ReadOnlyReplayRenderer({
       attributeObserver.disconnect()
       if (frameRequest) window.cancelAnimationFrame(frameRequest)
       replayer.destroy()
+      removeClickEffect()
+      removeCursorStyle()
       replayRoot.replaceChildren()
     }
   }, [events, hasReplay, replayKey, replayHeight, replayWidth])

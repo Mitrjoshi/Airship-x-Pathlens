@@ -21,6 +21,10 @@ import { Replayer } from 'rrweb'
 import { EventType, ReplayerEvents } from 'rrweb'
 import type { eventWithTime } from 'rrweb'
 import {
+  installReplayClickEffect,
+  installReplayCursorStyle,
+} from './replay-cursor-style'
+import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CircleIcon,
@@ -50,32 +54,12 @@ type StreamStatus = 'idle' | 'connecting' | 'connected' | 'error'
 const EMPTY_REPLAY_EVENTS: ReplayEvent[] = []
 const EMPTY_SESSION_EVENTS: SessionReplayEvent[] = []
 
-function formatEventType(type: string): string {
-  return type
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
 function formatElapsed(milliseconds: number): string {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000))
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
 
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
-}
-
-function formatPayloadValue(value: unknown): string {
-  if (typeof value === 'string') return value
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value)
-  }
-
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return 'Unavailable'
-  }
 }
 
 function getEventPath(event: SessionReplayEvent | undefined): string {
@@ -207,7 +191,12 @@ export function SessionReplayPlayer({
         skipInactive: true,
         showWarning: false,
         showDebug: false,
-        mouseTail: { duration: 400 },
+        mouseTail: {
+          duration: 300,
+          lineCap: 'round',
+          lineWidth: 3,
+          strokeStyle: '#41ce8f',
+        },
       })
     } catch (error) {
       console.error('[Pathlens] Unable to initialize session replay.', error)
@@ -216,6 +205,9 @@ export function SessionReplayPlayer({
       }, 0)
       return
     }
+
+    const removeCursorStyle = installReplayCursorStyle(replayer)
+    const removeClickEffect = installReplayClickEffect(replayer)
 
     replayerRef.current = replayer
     replayer.on(ReplayerEvents.Start, () => setIsPlaying(true))
@@ -277,6 +269,8 @@ export function SessionReplayPlayer({
       attributeObserver.disconnect()
       if (frameRequest) window.cancelAnimationFrame(frameRequest)
       replayer.destroy()
+      removeClickEffect()
+      removeCursorStyle()
       replayerRef.current = null
       root.replaceChildren()
     }
@@ -431,12 +425,12 @@ export function SessionReplayPlayer({
         ref={dialogContentRef}
         className={`${isFullscreen ? 'top-0 left-0 h-screen w-screen max-w-none translate-x-0 translate-y-0 rounded-none' : 'h-[min(92vh,860px)] max-h-[calc(100vh-1rem)] w-[calc(100%-1rem)] max-w-7xl!'} flex min-w-0 flex-col gap-0 overflow-hidden p-0`}
       >
-        <DialogHeader className="border-b px-6 py-5 pr-12">
+        <DialogHeader className="border-b px-6 py-4 pr-12">
           <div className="flex flex-wrap items-center gap-2">
             <DialogTitle>Session replay</DialogTitle>
 
             {isLiveMode && (
-              <Badge className="gap-1.5" variant="destructive">
+              <Badge className="gap-1.5">
                 <RadioIcon className="size-3" />
                 Live
               </Badge>
@@ -458,8 +452,7 @@ export function SessionReplayPlayer({
         </DialogHeader>
 
         {isLoading ? (
-          <div className="grid min-h-0 flex-1 gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
-            <Skeleton className="min-h-[360px] w-full" />
+          <div className="grid min-h-0 flex-1 gap-4 p-5">
             <Skeleton className="min-h-[360px] w-full" />
           </div>
         ) : isError ? (
@@ -478,21 +471,10 @@ export function SessionReplayPlayer({
             </p>
           </div>
         ) : (
-          <div className="grid min-h-0 min-w-0 flex-1 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="grid min-h-0 min-w-0 flex-1">
             <div className="bg-muted/30 flex min-h-0 min-w-0 flex-col">
               <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden border p-2">
                 <div className="bg-background flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
-                  <div className="flex items-center gap-1 border-b px-4 py-3">
-                    <CircleIcon className="text-destructive size-2.5 fill-current" />
-                    <CircleIcon className="size-2.5 fill-current text-yellow-400" />
-                    <CircleIcon className="size-2.5 fill-current text-green-400" />
-                    <div className="text-muted-foreground bg-muted ml-3 min-w-0 flex-1 truncate rounded-md px-3 py-1.5 text-xs">
-                      {currentEvent ? getEventPath(currentEvent) : '/'}
-                    </div>
-                    {streamStatus === 'connected' && (
-                      <WifiIcon className="size-3.5 text-emerald-500" />
-                    )}
-                  </div>
                   <div
                     ref={replayRootRef}
                     className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden bg-white dark:bg-neutral-950"
@@ -583,81 +565,6 @@ export function SessionReplayPlayer({
                 </div>
               </div>
             </div>
-
-            <aside className="flex min-h-0 flex-col border-t lg:border-t-0 lg:border-l">
-              <div className="flex items-center justify-between border-b px-4 py-4">
-                <div>
-                  <p className="text-sm font-medium">Event timeline</p>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {events.length} analytics events
-                  </p>
-                </div>
-                <Badge variant="outline">
-                  {currentEvent
-                    ? formatElapsed(getEventOffset(currentEvent, replayEvents))
-                    : '0:00'}
-                </Badge>
-              </div>
-
-              <div className="min-h-0 flex-1 overflow-y-auto p-2">
-                <div className="space-y-1">
-                  {events.map((event, index) => (
-                    <Button
-                      key={event.id}
-                      type="button"
-                      variant={
-                        index === currentEventIndex ? 'outline' : 'ghost'
-                      }
-                      className={`w-full justify-start rounded-lg border p-3 text-left transition-colors`}
-                      onClick={() => {
-                        pause()
-                        setCurrentEventIndex(index)
-                        seekToEvent(event)
-                      }}
-                    >
-                      <span className="text-xs font-medium">
-                        {formatEventType(event.type)}
-                      </span>
-                      <p className="text-muted-foreground mt-1 truncate text-xs">
-                        {getEventPath(event)}
-                      </p>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {currentEvent && (
-                <div className="border-t p-4">
-                  <p className="text-muted-foreground mb-2 text-xs font-medium tracking-[0.14em] uppercase">
-                    Event details
-                  </p>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between gap-3">
-                      <span className="text-muted-foreground">Type</span>
-                      <span className="font-medium">
-                        {formatEventType(currentEvent.type)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <span className="text-muted-foreground">Path</span>
-                      <span className="max-w-40 truncate font-medium">
-                        {getEventPath(currentEvent)}
-                      </span>
-                    </div>
-                    {Object.entries(currentEvent.payload).map(
-                      ([key, value]) => (
-                        <div key={key} className="flex justify-between gap-3">
-                          <span className="text-muted-foreground">{key}</span>
-                          <span className="max-w-40 truncate text-right font-medium">
-                            {formatPayloadValue(value)}
-                          </span>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
-            </aside>
           </div>
         )}
       </DialogContent>

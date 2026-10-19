@@ -24,7 +24,6 @@ export interface PathLensConfig {
   batchSize?: number
 
   replayApiUrl: string
-  captureReplay?: boolean
   replayFlushInterval?: number
   replayBatchSize?: number
 }

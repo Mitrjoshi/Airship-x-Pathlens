@@ -315,7 +315,11 @@ function RouteComponent() {
                         className="hover:bg-card/40 cursor-pointer"
                       >
                         <TableCell>
-                          <CenterEllipsis text={item.url!} maxLength={70} />
+                          {item?.url ? (
+                            <CenterEllipsis text={item?.url} maxLength={70} />
+                          ) : (
+                            <MinusIcon />
+                          )}
                         </TableCell>
 
                         <TableCell className="w-24 text-center">
@@ -438,12 +442,12 @@ function RouteComponent() {
         </div>
       </div>
 
-      <DialogContent className="w-[95vw] max-w-4xl!">
+      <DialogContent className="h-[90vh] max-h-[90vh] w-[95vw] max-w-4xl! grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
         <DialogHeader>
           <DialogTitle>View Heatmap</DialogTitle>
         </DialogHeader>
 
-        <div className="max-h-[80vh] min-w-0 overflow-y-auto">
+        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           <HeatmapPreview heatmap={heatmap} />
         </div>
       </DialogContent>
@@ -453,7 +457,6 @@ function RouteComponent() {
 
 // keep your existing imports, plus useState if missing
 
-const MAX_DOC_HEIGHT = 20000 // canvas and iframe safety cap
 const BLOB_RADIUS = 28
 
 export const HeatmapPreview = ({
@@ -473,11 +476,9 @@ export const HeatmapPreview = ({
     heatmap?.replayViewport?.width ?? metaEvent?.data?.width ?? 1920
   const viewportHeight =
     heatmap?.replayViewport?.height ?? metaEvent?.data?.height ?? 1080
-  const renderWidth = heatmap?.screenshotWidth ?? viewportWidth
-  const screenshotHeight = heatmap?.screenshotHeight ?? null
-
   const [docHeight, setDocHeight] = useState(viewportHeight)
-  const renderHeight = screenshotHeight ?? docHeight
+  const renderWidth = viewportWidth
+  const renderHeight = docHeight
 
   // Fit the preview to the available width
   useEffect(() => {
@@ -497,10 +498,6 @@ export const HeatmapPreview = ({
   useEffect(() => {
     const container = containerRef.current
     const events = heatmap?.replayEvents as eventWithTime[] | undefined
-
-    if (heatmap?.screenshotUrl) {
-      return
-    }
 
     if (!container || !events?.length) return
 
@@ -525,7 +522,7 @@ export const HeatmapPreview = ({
       iframe.setAttribute('height', String(viewportHeight))
 
       const content = doc.documentElement.scrollHeight
-      const next = Math.min(Math.max(content, viewportHeight), MAX_DOC_HEIGHT)
+      const next = Math.max(content, viewportHeight)
 
       iframe.setAttribute('height', String(next))
       setDocHeight(next)
@@ -540,7 +537,7 @@ export const HeatmapPreview = ({
       timers.forEach(window.clearTimeout)
       replayer.destroy()
     }
-  }, [heatmap, screenshotHeight, viewportHeight])
+  }, [heatmap, viewportHeight])
 
   // Draw click blobs over the full-page render
   useEffect(() => {
@@ -596,17 +593,7 @@ export const HeatmapPreview = ({
               pointerEvents: 'none',
             }}
           >
-            {heatmap.screenshotUrl ? (
-              <img
-                src={heatmap.screenshotUrl}
-                alt={`Screenshot of ${heatmap.path}`}
-                width={renderWidth}
-                height={renderHeight}
-                style={{ display: 'block' }}
-              />
-            ) : (
-              <div ref={containerRef} />
-            )}
+            <div ref={containerRef} />
             <canvas
               ref={canvasRef}
               style={{ position: 'absolute', top: 0, left: 0 }}

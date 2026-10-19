@@ -54,7 +54,7 @@ export class PathLensTracker {
     this.analyticsInfo = getAnalyticsInfo();
     this.campaignAttribution = getCampaignAttribution(config.apiKey);
 
-    if (config.captureReplay && this.canTrackScope("replay")) {
+    if (this.canTrackScope("replay")) {
       this.replayRecorder = new ReplayRecorder({
         config,
         sessionId: this.sessionId,

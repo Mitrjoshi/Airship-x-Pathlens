@@ -158,11 +158,10 @@ function RouteComponent() {
     getProjectApiKeysOptions(projectId)
   )
 
-  if (workspaceLoading) {
-    return <ApiKeyLoading />
-  }
-
-  if (!workspace?.data.permissions.includes('project.api_keys.view')) {
+  if (
+    !(workspaceLoading || keysLoading) &&
+    !workspace?.data.permissions.includes('project.api_keys.view')
+  ) {
     return <NoPermissionView />
   }
 
@@ -178,7 +177,7 @@ function RouteComponent() {
 
       <ApiKeysTable
         data={keysData?.data ?? []}
-        isLoading={keysLoading}
+        isLoading={workspaceLoading || keysLoading}
         onCreate={() => {
           setDialog({
             type: 'create',
@@ -520,14 +519,7 @@ function ApiKeyDialog({ projectId, state, onClose }: ApiKeyDialogProps) {
   const isScript = state?.type === 'script'
 
   return (
-    <Dialog
-      open={Boolean(state)}
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose()
-        }
-      }}
-    >
+    <Dialog open={Boolean(state)} onOpenChange={onClose}>
       <DialogContent className={isScript ? 'max-w-fit!' : 'sm:max-w-lg'}>
         {state?.type === 'create' && (
           <CreateApiKeyForm

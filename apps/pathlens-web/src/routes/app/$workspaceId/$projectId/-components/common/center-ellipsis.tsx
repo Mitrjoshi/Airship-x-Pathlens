@@ -12,13 +12,13 @@ export function CenterEllipsis({
   className = '',
 }: CenterEllipsisProps) {
   const truncated = useMemo(() => {
-    if (text.length <= maxLength) return text
+    if (text?.length <= maxLength) return text
 
     const available = Math.max(2, maxLength - 3)
     const start = Math.ceil(available / 2)
     const end = Math.floor(available / 2)
 
-    return `${text.slice(0, start)}...${text.slice(-end)}`
+    return `${text?.slice(0, start)}...${text?.slice(-end)}`
   }, [text, maxLength])
 
   return (

@@ -4,6 +4,11 @@ import type { PathLensConfig } from "@workspace/contracts/tracker";
 import { postEncryptedPayload } from "./crypto";
 
 const REPLAY_CHECKOUT_INTERVAL = 60_000;
+const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+
+function redactEmail(value: string): string {
+  return value.replace(EMAIL_PATTERN, (match) => "*".repeat(match.length));
+}
 
 interface ReplayRecorderOptions {
   config: PathLensConfig;
@@ -25,9 +30,13 @@ function getDimensions() {
 }
 
 function getLocation() {
+  const location = new URL(window.location.href);
+  location.search = "";
+  location.hash = "";
+
   return {
-    url: window.location.href.slice(0, 2048),
-    path: window.location.pathname.slice(0, 2048),
+    url: redactEmail(location.toString()).slice(0, 2048),
+    path: redactEmail(location.pathname).slice(0, 2048),
   };
 }
 
@@ -57,13 +66,14 @@ export class ReplayRecorder {
   }
 
   start(): void {
-    if (!this.config.captureReplay || this.stopRecording) return;
+    if (this.stopRecording) return;
 
     this.stopRecording = record<ReplayEvent>({
       emit: (event) => this.enqueue(event),
       blockClass: "pathlens-replay-block",
       blockSelector: "[data-pathlens-block]",
       maskAllInputs: true,
+      // Sites can opt sensitive text into masking without hiding normal page copy.
       maskTextSelector: "[data-pathlens-mask]",
       inlineStylesheet: true,
       collectFonts: true,

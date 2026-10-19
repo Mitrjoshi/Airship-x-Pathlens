@@ -10,7 +10,6 @@ import { getClientIp, getGeoLocation } from "../lib/geoip";
 import { z, ZodError } from "zod";
 import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 import { normalizeProjectHostname } from "../lib/project-domain";
-import { enqueueHeatmapPageSnapshot } from "../lib/snapshot-queue";
 
 const eventsQuerySchema = z.object({
   workspace_id: z.string().min(1),
@@ -51,15 +50,7 @@ export async function ingestEvents(req: Request, res: Response) {
     const ip = getClientIp(req);
     const geo = getGeoLocation(ip);
 
-    const result = await createEvents(parsedEvents.data, ip, geo);
-
-    void Promise.all(
-      result.heatmapSnapshotIds.map((snapshotId) =>
-        enqueueHeatmapPageSnapshot(snapshotId).catch((error) => {
-          console.error("Unable to enqueue heatmap page snapshot", error);
-        })
-      )
-    );
+    await createEvents(parsedEvents.data, ip, geo);
 
     return res.sendStatus(204);
   } catch (error) {

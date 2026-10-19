@@ -15,6 +15,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import {
   CheckIcon,
   ChevronsUpDownIcon,
+  PlugIcon,
   PlusIcon,
   SearchIcon,
 } from 'lucide-react'
@@ -46,7 +47,7 @@ export const Header = () => {
 
   return (
     <header className="bg-background sticky top-0 z-10 flex h-14.25 shrink-0 items-center justify-between gap-2 border-b px-4 py-2 transition-[width,height] ease-linear">
-      <div>
+      <div className="flex items-center gap-2">
         {projectId && (
           <ProjectSwitcher
             activeProject={projectId}
@@ -55,6 +56,11 @@ export const Header = () => {
             workspaceId={workspaceId!}
           />
         )}
+
+        {/* <Button variant="outline" className="rounded-full">
+          <PlugIcon className="rotate-90" />
+          Connect
+        </Button> */}
       </div>
 
       <div className="flex shrink-0 items-center gap-2">

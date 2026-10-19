@@ -379,7 +379,6 @@ export function readConfig(): PathLensConfig {
     apiUrl: DEFAULT_API_URL,
     trackingScopes: [],
     replayApiUrl: DEFAULT_REPLAY_API_URL,
-    captureReplay: dataset.captureReplay !== "false",
     replayFlushInterval: Number(dataset.replayFlushInterval ?? 1500),
     replayBatchSize: Number(dataset.replayBatchSize ?? 100),
 

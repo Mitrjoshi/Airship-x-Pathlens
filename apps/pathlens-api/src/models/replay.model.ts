@@ -4,6 +4,10 @@ import { db } from "../db/client";
 import { replayChunks, replaySessions } from "../db/schema";
 import { getProjectByIdModel } from "./projects.model";
 import { publishReplayChunk } from "../lib/replay-live";
+import {
+  sanitizeReplayChunk,
+  sanitizeReplayEvents,
+} from "../lib/replay-privacy";
 import { assertWorkspaceUsageLimit } from "./usage.model";
 
 const REPLAY_CHUNK_LIMIT = 250;
@@ -59,7 +63,9 @@ function toNumber(value: unknown): number {
 }
 
 function getChunkEvents(value: unknown): ReplayEvent[] {
-  return Array.isArray(value) ? (value as ReplayEvent[]) : [];
+  return Array.isArray(value)
+    ? sanitizeReplayEvents(value as ReplayEvent[])
+    : [];
 }
 
 function hasRenderableReplay(events: ReplayEvent[]): boolean {
@@ -73,12 +79,13 @@ function isSessionLive(lastSeenAt: Date, endedAt: Date | null): boolean {
 export async function ingestReplayChunkModel(
   chunk: ReplayChunk
 ): Promise<void> {
-  const [project] = await getProjectByIdModel(chunk.projectId);
+  const safeChunk = sanitizeReplayChunk(chunk);
+  const [project] = await getProjectByIdModel(safeChunk.projectId);
 
   if (!project) throw new InvalidReplayProjectKeyError();
 
-  const { first, last } = getEventTimestamps(chunk.events);
-  const byteCount = Buffer.byteLength(JSON.stringify(chunk.events));
+  const { first, last } = getEventTimestamps(safeChunk.events);
+  const byteCount = Buffer.byteLength(JSON.stringify(safeChunk.events));
   const [existingSession] = await db
     .select({
       projectId: replaySessions.projectId,
@@ -86,13 +93,13 @@ export async function ingestReplayChunkModel(
       visitorId: replaySessions.visitorId,
     })
     .from(replaySessions)
-    .where(eq(replaySessions.id, chunk.sessionId));
+    .where(eq(replaySessions.id, safeChunk.sessionId));
 
   if (
     existingSession &&
     (existingSession.projectId !== project.id ||
       existingSession.workspaceId !== project.workspace_id ||
-      existingSession.visitorId !== chunk.visitorId)
+      existingSession.visitorId !== safeChunk.visitorId)
   ) {
     throw new Error("Replay session does not belong to this project.");
   }
@@ -103,27 +110,27 @@ export async function ingestReplayChunkModel(
     await transaction
       .insert(replaySessions)
       .values({
-        id: chunk.sessionId,
+        id: safeChunk.sessionId,
         projectId: project.id,
         workspaceId: project.workspace_id,
-        visitorId: chunk.visitorId,
+        visitorId: safeChunk.visitorId,
         startedAt: first,
         lastSeenAt: last,
-        screenWidth: chunk.screen?.width,
-        screenHeight: chunk.screen?.height,
-        viewportWidth: chunk.viewport?.width,
-        viewportHeight: chunk.viewport?.height,
-        url: chunk.url,
-        path: chunk.path,
+        screenWidth: safeChunk.screen?.width,
+        screenHeight: safeChunk.screen?.height,
+        viewportWidth: safeChunk.viewport?.width,
+        viewportHeight: safeChunk.viewport?.height,
+        url: safeChunk.url,
+        path: safeChunk.path,
       })
       .onConflictDoNothing();
 
     const [replayChunk] = await transaction
       .insert(replayChunks)
       .values({
-        sessionId: chunk.sessionId,
-        sequence: chunk.sequence,
-        events: chunk.events,
+        sessionId: safeChunk.sessionId,
+        sequence: safeChunk.sequence,
+        events: safeChunk.events,
         firstTimestamp: first,
         lastTimestamp: last,
         byteCount,
@@ -138,44 +145,45 @@ export async function ingestReplayChunkModel(
       .set({
         startedAt: sql`LEAST(${replaySessions.startedAt}, ${first})`,
         lastSeenAt: sql`GREATEST(${replaySessions.lastSeenAt}, ${last})`,
-        lastSequence: sql`GREATEST(${replaySessions.lastSequence}, ${chunk.sequence})`,
-        eventCount: sql`${replaySessions.eventCount} + ${chunk.events.length}`,
+        lastSequence: sql`GREATEST(${replaySessions.lastSequence}, ${safeChunk.sequence})`,
+        eventCount: sql`${replaySessions.eventCount} + ${safeChunk.events.length}`,
         byteCount: sql`${replaySessions.byteCount} + ${byteCount}`,
-        ...(chunk.screen
+        ...(safeChunk.screen
           ? {
-              screenWidth: chunk.screen.width,
-              screenHeight: chunk.screen.height,
+              screenWidth: safeChunk.screen.width,
+              screenHeight: safeChunk.screen.height,
             }
           : {}),
-        ...(chunk.viewport
+        ...(safeChunk.viewport
           ? {
-              viewportWidth: chunk.viewport.width,
-              viewportHeight: chunk.viewport.height,
+              viewportWidth: safeChunk.viewport.width,
+              viewportHeight: safeChunk.viewport.height,
             }
           : {}),
-        ...(chunk.url ? { url: chunk.url } : {}),
-        ...(chunk.path ? { path: chunk.path } : {}),
-        ...(chunk.isFinal ? { endedAt: last } : {}),
+        ...(safeChunk.url ? { url: safeChunk.url } : {}),
+        ...(safeChunk.path ? { path: safeChunk.path } : {}),
+        ...(safeChunk.isFinal ? { endedAt: last } : {}),
       })
-      .where(eq(replaySessions.id, chunk.sessionId));
+      .where(eq(replaySessions.id, safeChunk.sessionId));
 
     return true;
   });
 
   if (inserted) {
     publishReplayChunk({
-      sessionId: chunk.sessionId,
-      sequence: chunk.sequence,
-      events: chunk.events,
-      isFinal: Boolean(chunk.isFinal),
+      sessionId: safeChunk.sessionId,
+      sequence: safeChunk.sequence,
+      events: safeChunk.events,
+      isFinal: Boolean(safeChunk.isFinal),
     });
   }
 }
 
-export async function getReplayDataModel(
+async function getReplayDataModelInternal(
   workspaceId: string,
   projectId: string,
-  sessionId: string
+  sessionId: string,
+  loadAllChunks: boolean
 ): Promise<ReplayData> {
   const [session] = await db
     .select({
@@ -202,15 +210,27 @@ export async function getReplayDataModel(
     };
   }
 
-  const rows = await db
-    .select({ sequence: replayChunks.sequence, events: replayChunks.events })
-    .from(replayChunks)
-    .where(eq(replayChunks.sessionId, sessionId))
-    .orderBy(asc(replayChunks.sequence))
-    .limit(REPLAY_CHUNK_LIMIT + 1);
+  const rows = loadAllChunks
+    ? await db
+        .select({
+          sequence: replayChunks.sequence,
+          events: replayChunks.events,
+        })
+        .from(replayChunks)
+        .where(eq(replayChunks.sessionId, sessionId))
+        .orderBy(asc(replayChunks.sequence))
+    : await db
+        .select({
+          sequence: replayChunks.sequence,
+          events: replayChunks.events,
+        })
+        .from(replayChunks)
+        .where(eq(replayChunks.sessionId, sessionId))
+        .orderBy(asc(replayChunks.sequence))
+        .limit(REPLAY_CHUNK_LIMIT + 1);
   const hasMoreEvents = rows.length > REPLAY_CHUNK_LIMIT;
   const events = rows
-    .slice(0, REPLAY_CHUNK_LIMIT)
+    .slice(0, loadAllChunks ? undefined : REPLAY_CHUNK_LIMIT)
     .flatMap((row) => getChunkEvents(row.events));
 
   return {
@@ -220,6 +240,22 @@ export async function getReplayDataModel(
     lastSequence: toNumber(session.lastSequence),
     isLive: isSessionLive(session.lastSeenAt, session.endedAt),
   };
+}
+
+export function getReplayDataModel(
+  workspaceId: string,
+  projectId: string,
+  sessionId: string
+): Promise<ReplayData> {
+  return getReplayDataModelInternal(workspaceId, projectId, sessionId, false);
+}
+
+export function getCompleteReplayDataModel(
+  workspaceId: string,
+  projectId: string,
+  sessionId: string
+): Promise<ReplayData> {
+  return getReplayDataModelInternal(workspaceId, projectId, sessionId, true);
 }
 
 export async function getReplaySessionAccessModel(

@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getProjectApiKeysOptions } from '@/queries/api-keys'
 import { mask } from '@/utils/utils'
 import { toast } from 'sonner'
+import { ErrorScreen } from './-components/common/error-screen'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/setup')({
   component: RouteComponent,
@@ -85,18 +86,21 @@ function RouteComponent() {
     }
   }
 
-  if (keysLoading) {
-    return (
-      <div className="p-6">
-        <div className="space-y-10">
-          <div className="space-y-2">
-            <Skeleton className="h-7 w-24" />
-            <Skeleton className="h-4 w-full max-w-xl" />
-            <Skeleton className="h-4 w-3/4 max-w-lg" />
-          </div>
+  return (
+    <div className="p-6">
+      <div className="space-y-10">
+        <div className="space-y-1">
+          <h1 className="text-xl font-medium">Setup</h1>
 
+          <p className="text-muted-foreground text-sm">
+            Add the tracking script to your website to start collecting events
+            and uncover insights into your users' behavior.
+          </p>
+        </div>
+
+        {keysLoading ? (
           <div className="mx-auto w-fit space-y-4 pt-2">
-            <Skeleton className="h-10 w-64 max-w-full" />
+            <Skeleton className="mx-auto h-10 w-120 max-w-full rounded-full" />
 
             <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
               <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
@@ -108,8 +112,8 @@ function RouteComponent() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <Skeleton className="size-9 rounded-md" />
-                  <Skeleton className="size-9 rounded-md" />
+                  <Skeleton className="size-8 rounded-md" />
+                  <Skeleton className="size-8 rounded-md" />
                 </div>
               </div>
 
@@ -126,101 +130,64 @@ function RouteComponent() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    )
-  }
+        ) : keysError ? (
+          <ErrorScreen refetch={refetch} />
+        ) : (
+          <div className="mx-auto w-fit space-y-4 pt-2">
+            <IntegrationSelector
+              value={activeIntegration}
+              onChange={handleIntegrationChange}
+            />
 
-  if (keysError || !apiKey) {
-    return (
-      <div className="p-6">
-        <div className="space-y-1">
-          <h1 className="text-xl font-medium">Setup</h1>
-          <p className="text-muted-foreground text-sm">
-            {keysError
-              ? 'Unable to load your project API key. Please try again.'
-              : 'No API key was found for this project. Create an API key to start tracking your website.'}
-          </p>
+            <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
+              <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
+                <div className="flex min-w-0 items-center gap-1">
+                  <span className="size-3 shrink-0 rounded-full bg-red-400" />
+                  <span className="size-3 shrink-0 rounded-full bg-yellow-400" />
+                  <span className="size-3 shrink-0 rounded-full bg-green-400" />
 
-          <Button
-            type="button"
-            variant="secondary"
-            className="mt-3"
-            onClick={() => void refetch()}
-          >
-            Try again
-          </Button>
-        </div>
-      </div>
-    )
-  }
+                  <span className="text-muted-foreground ml-2 truncate text-xs">
+                    {integration.filename}
+                  </span>
+                </div>
 
-  return (
-    <div className="p-6">
-      <div className="space-y-10">
-        <div className="space-y-1">
-          <h1 className="text-xl font-medium">Setup</h1>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    title={masked ? 'Show API key' : 'Hide API key'}
+                    onClick={() => setMasked((current) => !current)}
+                  >
+                    {masked ? (
+                      <EyeIcon key="show" className="copy-icon-animate" />
+                    ) : (
+                      <EyeOffIcon key="hide" className="copy-icon-animate" />
+                    )}
+                  </Button>
 
-          <p className="text-muted-foreground text-sm">
-            Add the tracking script to your website to start collecting events
-            and uncover insights into your users' behavior.
-          </p>
-        </div>
-
-        <div className="mx-auto w-fit space-y-4 pt-2">
-          <IntegrationSelector
-            value={activeIntegration}
-            onChange={handleIntegrationChange}
-          />
-
-          <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
-            <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
-              <div className="flex min-w-0 items-center gap-1">
-                <span className="size-3 shrink-0 rounded-full bg-red-400" />
-                <span className="size-3 shrink-0 rounded-full bg-yellow-400" />
-                <span className="size-3 shrink-0 rounded-full bg-green-400" />
-
-                <span className="text-muted-foreground ml-2 truncate text-xs">
-                  {integration.filename}
-                </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    title="Copy script"
+                    onClick={handleCopy}
+                  >
+                    {copied ? (
+                      <CheckIcon key="check" className="copy-icon-animate" />
+                    ) : (
+                      <CopyIcon key="copy" className="copy-icon-animate" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-1">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  title={masked ? 'Show API key' : 'Hide API key'}
-                  onClick={() => setMasked((current) => !current)}
-                >
-                  {masked ? (
-                    <EyeIcon key="show" className="copy-icon-animate" />
-                  ) : (
-                    <EyeOffIcon key="hide" className="copy-icon-animate" />
-                  )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  title="Copy script"
-                  onClick={handleCopy}
-                >
-                  {copied ? (
-                    <CheckIcon key="check" className="copy-icon-animate" />
-                  ) : (
-                    <CopyIcon key="copy" className="copy-icon-animate" />
-                  )}
-                </Button>
+              <div className="bg-background overflow-auto">
+                <CodeBlock code={previewCode} language={integration.language} />
               </div>
-            </div>
-
-            <div className="bg-background overflow-auto">
-              <CodeBlock code={previewCode} language={integration.language} />
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

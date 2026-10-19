@@ -2,9 +2,10 @@ import type { Response } from "express";
 import { createFeedbackSchema } from "@workspace/contracts";
 import { ZodError } from "zod";
 
-import { getProjectWorkspaceIdModel } from "../models/projects.model";
-import { createFeedbackModel } from "../models/feedback.model";
-import { getWorkspaceMemberModel } from "../models/workshop.model";
+import {
+  createFeedbackModel,
+  hasFeedbackModel,
+} from "../models/feedback.model";
 import type { AuthRequest } from "../lib/jwt";
 
 function getAuthenticatedUserId(req: AuthRequest): string | null {
@@ -21,45 +22,28 @@ function getErrorMessage(error: unknown): string {
   return "Something went wrong.";
 }
 
-async function validateFeedbackContext(data: {
-  userId: string;
-  workspaceId?: string;
-  projectId?: string;
-}) {
-  let workspaceId = data.workspaceId;
+function isUniqueViolation(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505"
+  );
+}
 
-  if (data.projectId) {
-    const projectWorkspaceId = await getProjectWorkspaceIdModel(data.projectId);
+export async function getFeedbackStatus(req: AuthRequest, res: Response) {
+  const userId = getAuthenticatedUserId(req);
 
-    if (!projectWorkspaceId) {
-      return {
-        status: 400,
-        message: "The selected project was not found.",
-      };
-    }
-
-    if (workspaceId && workspaceId !== projectWorkspaceId) {
-      return {
-        status: 400,
-        message: "The project does not belong to the selected workspace.",
-      };
-    }
-
-    workspaceId = projectWorkspaceId;
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
   }
 
-  if (!workspaceId) return null;
+  const submitted = await hasFeedbackModel(userId);
 
-  const member = await getWorkspaceMemberModel(workspaceId, data.userId);
-
-  if (!member) {
-    return {
-      status: 403,
-      message: "You do not have access to this workspace.",
-    };
-  }
-
-  return null;
+  return res.json({
+    success: true,
+    data: { submitted },
+  });
 }
 
 export async function createFeedback(req: AuthRequest, res: Response) {
@@ -71,26 +55,11 @@ export async function createFeedback(req: AuthRequest, res: Response) {
 
   try {
     const payload = createFeedbackSchema.parse(req.body);
-    const contextError = await validateFeedbackContext({
-      userId,
-      workspaceId: payload.workspace_id,
-      projectId: payload.project_id,
-    });
-
-    if (contextError) {
-      return res.status(contextError.status).json({
-        success: false,
-        message: contextError.message,
-      });
-    }
 
     const entry = await createFeedbackModel({
       userId,
-      category: payload.category,
       message: payload.message,
       pageUrl: payload.page_url,
-      workspaceId: payload.workspace_id,
-      projectId: payload.project_id,
     });
 
     return res.status(201).json({
@@ -98,6 +67,13 @@ export async function createFeedback(req: AuthRequest, res: Response) {
       data: entry,
     });
   } catch (error) {
+    if (isUniqueViolation(error)) {
+      return res.status(409).json({
+        success: false,
+        message: "You have already submitted feedback.",
+      });
+    }
+
     return res.status(error instanceof ZodError ? 400 : 500).json({
       success: false,
       message: getErrorMessage(error),
