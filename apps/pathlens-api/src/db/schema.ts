@@ -579,10 +579,16 @@ export const heatmapPageSnapshots = pgTable(
     domain: text("domain").notNull(),
     pagePath: text("page_path").notNull(),
     sourceUrl: text("source_url").notNull(),
+    device: text("device").notNull().default("desktop"),
     status: text("status").notNull().default("pending"),
     storagePath: text("storage_path"),
     viewportWidth: integer("viewport_width").notNull().default(1280),
     viewportHeight: integer("viewport_height").notNull().default(900),
+    pageWidth: integer("page_width"),
+    pageHeight: integer("page_height"),
+    deviceScaleFactor: doublePrecision("device_scale_factor")
+      .notNull()
+      .default(1),
     capturedAt: timestamp("captured_at", { withTimezone: true }),
     requestedAt: timestamp("requested_at", { withTimezone: true }),
     lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
@@ -591,9 +597,9 @@ export const heatmapPageSnapshots = pgTable(
     failureCount: integer("failure_count").notNull().default(0),
   },
   (table) => ({
-    projectSourceUrlIdx: uniqueIndex(
-      "heatmap_page_snapshots_project_source_url_idx"
-    ).on(table.projectId, table.sourceUrl),
+    projectPageDeviceIdx: uniqueIndex(
+      "heatmap_page_snapshots_project_page_device_idx"
+    ).on(table.projectId, table.domain, table.pagePath, table.device),
     dueIdx: index("heatmap_page_snapshots_due_idx").on(
       table.status,
       table.nextAttemptAt,

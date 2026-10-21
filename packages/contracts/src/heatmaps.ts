@@ -2,6 +2,9 @@ import type { ReplayEvent } from './replay'
 
 export type HeatmapsRange = '24h' | '7d' | '30d' | '90d'
 export type HeatmapDevice = 'all' | 'desktop' | 'mobile' | 'tablet'
+export type HeatmapSnapshotStatus =
+  'pending' | 'processing' | 'ready' | 'stale' | 'failed'
+export type HeatmapCoordinateMode = 'document' | 'viewport'
 
 export interface HeatmapPage {
   path: string
@@ -28,6 +31,7 @@ export interface HeatmapClickPoint {
   y: number
   count: number
   intensity: number
+  coordinateMode: HeatmapCoordinateMode
 }
 
 export interface HeatmapScrollPoint {
@@ -62,6 +66,33 @@ export interface HeatmapPageDetail extends HeatmapPage {
   screenshotCapturedAt: string | null
   screenshotWidth: number | null
   screenshotHeight: number | null
+  snapshot: HeatmapSnapshot | null
+}
+
+export interface HeatmapSnapshot {
+  pathname: string
+  domain: string
+  device: HeatmapDevice
+  viewportWidth: number
+  viewportHeight: number
+  pageWidth: number | null
+  pageHeight: number | null
+  deviceScaleFactor: number
+  capturedAt: string | null
+}
+
+export function mapHeatmapPointToSnapshot(
+  point: Pick<HeatmapClickPoint, 'x' | 'y' | 'coordinateMode'>,
+  width: number,
+  height: number
+): { x: number; y: number } | null {
+  if (point.coordinateMode !== 'document') return null
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return null
+
+  return {
+    x: point.x * width,
+    y: point.y * height,
+  }
 }
 
 export interface HeatmapsPagination {

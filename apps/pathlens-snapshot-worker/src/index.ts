@@ -114,7 +114,9 @@ export async function processHeatmapSnapshot(
       targetUrl,
       Number(process.env.SNAPSHOT_SETTLE_DELAY_MS ?? defaultSettleDelayMs),
       job.viewportWidth,
-      job.viewportHeight
+      job.viewportHeight,
+      job.device,
+      job.deviceScaleFactor
     )
     const storagePath = `heatmaps/${job.workspaceId}/${job.projectId}/${job.id}.jpg`
 
@@ -123,7 +125,8 @@ export async function processHeatmapSnapshot(
       job,
       storagePath,
       screenshot.width,
-      screenshot.height
+      screenshot.height,
+      screenshot.deviceScaleFactor
     )
   } catch (error) {
     await markHeatmapSnapshotStale(job, error)

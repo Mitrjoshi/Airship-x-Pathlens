@@ -74,11 +74,24 @@ export const getHeatmapsOptions = (params: HeatmapsParams) =>
     refetchInterval: params.refetchInterval,
   })
 
-export const getHeatmapDetailsOptions = (params: HeatmapDetailsParams) =>
+export const getHeatmapDetailsOptions = (
+  params: HeatmapDetailsParams,
+  pollSnapshot = false
+) =>
   queryOptions({
     queryKey: ['HEATMAP_DETAILS', params],
     queryFn: () => getHeatmapDetails(params),
     enabled: Boolean(
       params.workspace_id && params.project_id && params.page_path
     ),
+    refetchInterval: (query) => {
+      if (!pollSnapshot) return false
+
+      const status = query.state.data?.data?.screenshotStatus
+      return status === 'pending' ||
+        status === 'processing' ||
+        status === 'stale'
+        ? 5000
+        : false
+    },
   })

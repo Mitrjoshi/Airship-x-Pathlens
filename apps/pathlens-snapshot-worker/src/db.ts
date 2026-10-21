@@ -1,7 +1,7 @@
 import 'dotenv/config'
 
 import { Pool, type PoolClient, type QueryResultRow } from 'pg'
-
+import { normalizePagePath } from '@workspace/contracts'
 const databaseUrl = process.env.DATABASE_URL
 
 if (!databaseUrl) {
@@ -33,10 +33,14 @@ export interface HeatmapSnapshotJob {
   domain: string
   pagePath: string
   sourceUrl: string
+  device: string
   status: string
   storagePath: string | null
   viewportWidth: number
   viewportHeight: number
+  pageWidth: number | null
+  pageHeight: number | null
+  deviceScaleFactor: number
   failureCount: number
 }
 
@@ -112,18 +116,38 @@ export async function ensureSnapshotTable(): Promise<void> {
       domain TEXT NOT NULL,
       page_path TEXT NOT NULL,
       source_url TEXT NOT NULL,
+      device TEXT NOT NULL DEFAULT 'desktop',
       status TEXT NOT NULL DEFAULT 'pending',
       storage_path TEXT,
       viewport_width INTEGER NOT NULL DEFAULT 1280,
       viewport_height INTEGER NOT NULL DEFAULT 900,
+      page_width INTEGER,
+      page_height INTEGER,
+      device_scale_factor DOUBLE PRECISION NOT NULL DEFAULT 1,
       captured_at TIMESTAMPTZ,
       requested_at TIMESTAMPTZ,
       last_attempt_at TIMESTAMPTZ,
       next_attempt_at TIMESTAMPTZ,
       last_error TEXT,
-      failure_count INTEGER NOT NULL DEFAULT 0,
-      UNIQUE (project_id, source_url)
+      failure_count INTEGER NOT NULL DEFAULT 0
     )
+  `)
+
+  await pool.query(`
+    ALTER TABLE heatmap_page_snapshots
+      ADD COLUMN IF NOT EXISTS device TEXT NOT NULL DEFAULT 'desktop',
+      ADD COLUMN IF NOT EXISTS page_width INTEGER,
+      ADD COLUMN IF NOT EXISTS page_height INTEGER,
+      ADD COLUMN IF NOT EXISTS device_scale_factor DOUBLE PRECISION NOT NULL DEFAULT 1
+  `)
+
+  await pool.query(`
+    DROP INDEX IF EXISTS heatmap_page_snapshots_project_source_url_idx
+  `)
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS heatmap_page_snapshots_project_page_device_idx
+      ON heatmap_page_snapshots (project_id, domain, page_path, device)
   `)
 }
 
@@ -141,13 +165,17 @@ export async function claimHeatmapSnapshot(
           project_id AS "projectId",
           workspace_id AS "workspaceId",
           domain,
-          page_path AS "pagePath",
-          source_url AS "sourceUrl",
-          status,
-          storage_path AS "storagePath",
-          viewport_width AS "viewportWidth",
-          viewport_height AS "viewportHeight",
-          failure_count AS "failureCount"
+           page_path AS "pagePath",
+           source_url AS "sourceUrl",
+           device,
+           status,
+           storage_path AS "storagePath",
+           viewport_width AS "viewportWidth",
+           viewport_height AS "viewportHeight",
+           page_width AS "pageWidth",
+           page_height AS "pageHeight",
+           device_scale_factor AS "deviceScaleFactor",
+           failure_count AS "failureCount"
         FROM heatmap_page_snapshots
         WHERE id = $1
           AND status IN ('pending', 'queued', 'stale', 'failed')
@@ -161,6 +189,8 @@ export async function claimHeatmapSnapshot(
       await client.query('COMMIT')
       return null
     }
+
+    row.pagePath = normalizePagePath(row.pagePath)
 
     await client.query(
       `
@@ -183,19 +213,21 @@ export async function claimHeatmapSnapshot(
 export async function markHeatmapSnapshotReady(
   job: HeatmapSnapshotJob,
   storagePath: string,
-  width: number,
-  height: number
+  pageWidth: number,
+  pageHeight: number,
+  deviceScaleFactor: number
 ): Promise<boolean> {
   const result = await pool.query(
     `
       UPDATE heatmap_page_snapshots
-      SET status = 'ready', storage_path = $2,
-          viewport_width = $3, viewport_height = $4, captured_at = NOW(),
-          requested_at = NULL, next_attempt_at = NULL,
-          last_error = NULL, failure_count = 0
+       SET status = 'ready', storage_path = $2,
+           page_width = $3, page_height = $4, device_scale_factor = $5,
+           captured_at = NOW(),
+           requested_at = NULL, next_attempt_at = NULL,
+           last_error = NULL, failure_count = 0
       WHERE id = $1 AND status = 'processing'
     `,
-    [job.id, storagePath, width, height]
+    [job.id, storagePath, pageWidth, pageHeight, deviceScaleFactor]
   )
 
   return result.rowCount === 1
@@ -522,8 +554,17 @@ export async function queueDueHeatmapSnapshotIds(
       WITH due AS (
         SELECT id
         FROM heatmap_page_snapshots
-        WHERE status IN ('pending', 'stale', 'failed')
+        WHERE (
+          status IN ('pending', 'stale', 'failed')
           AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
+        )
+        OR (
+          status = 'processing'
+          AND (
+            last_attempt_at IS NULL
+            OR last_attempt_at <= NOW() - INTERVAL '15 minutes'
+          )
+        )
         ORDER BY COALESCE(requested_at, next_attempt_at, captured_at, NOW())
         LIMIT $1
         FOR UPDATE SKIP LOCKED

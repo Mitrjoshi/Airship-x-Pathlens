@@ -8,57 +8,57 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "import": "./src/index.ts",
+      "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
     "./campaigns": {
       "types": "./src/campaigns.ts",
-      "import": "./src/campaigns.ts",
+      "import": "./dist/campaigns.js",
       "require": "./dist/campaigns.js"
     },
     "./chat": {
       "types": "./src/chat.ts",
-      "import": "./src/chat.ts",
+      "import": "./dist/chat.js",
       "require": "./dist/chat.js"
     },
     "./encrypted-payload": {
       "types": "./src/encrypted-payload.ts",
-      "import": "./src/encrypted-payload.ts",
+      "import": "./dist/encrypted-payload.js",
       "require": "./dist/encrypted-payload.js"
     },
     "./errors": {
       "types": "./src/errors.ts",
-      "import": "./src/errors.ts",
+      "import": "./dist/errors.js",
       "require": "./dist/errors.js"
     },
     "./events": {
       "types": "./src/events.ts",
-      "import": "./src/events.ts",
+      "import": "./dist/events.js",
       "require": "./dist/events.js"
     },
     "./heatmaps": {
       "types": "./src/heatmaps.ts",
-      "import": "./src/heatmaps.ts",
+      "import": "./dist/heatmaps.js",
       "require": "./dist/heatmaps.js"
     },
     "./replay": {
       "types": "./src/replay.ts",
-      "import": "./src/replay.ts",
+      "import": "./dist/replay.js",
       "require": "./dist/replay.js"
     },
     "./tracker": {
       "types": "./src/tracker.ts",
-      "import": "./src/tracker.ts",
+      "import": "./dist/tracker.js",
       "require": "./dist/tracker.js"
     },
     "./pathlens-events": {
       "types": "./src/pathlens-events.ts",
-      "import": "./src/pathlens-events.ts",
+      "import": "./dist/pathlens-events.js",
       "require": "./dist/pathlens-events.js"
     },
     "./user-journey": {
       "types": "./src/user-journey.ts",
-      "import": "./src/user-journey.ts",
+      "import": "./dist/user-journey.js",
       "require": "./dist/user-journey.js"
     },
     "./package.json": "./package.json"

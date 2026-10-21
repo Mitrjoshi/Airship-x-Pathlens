@@ -18,6 +18,10 @@ RUN pnpm install --frozen-lockfile
 # Verify Chromium is resolvable
 RUN pnpm --filter @pathlens/snapshot-worker exec node -p "require.resolve('@sparticuz/chromium')"
 
+# Build workspace runtime dependencies before packaging the worker. The Docker
+# context excludes checked-in dist directories.
+RUN pnpm --filter @workspace/contracts build
+
 # Build worker
 RUN pnpm --filter @pathlens/snapshot-worker build
 

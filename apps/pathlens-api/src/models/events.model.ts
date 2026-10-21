@@ -11,6 +11,7 @@ import type {
   ProjectEventCategory,
   ProjectEventDetailValue,
 } from "@workspace/contracts";
+import { normalizePagePath } from "@workspace/contracts";
 import type { GeoLocation } from "../lib/geoip";
 import { getProjectByIdModel } from "./projects.model";
 import {
@@ -430,6 +431,8 @@ export async function createEvents(
       throw new Error("Invalid event timestamp.");
     }
 
+    const path = normalizePagePath(event.path ?? event.url);
+
     const increment = workspaceIncrements.get(project.workspaceId) ?? {
       events: 0,
       pageViews: 0,
@@ -437,7 +440,7 @@ export async function createEvents(
     };
     increment.events += 1;
     if (event.type === "page_view") increment.pageViews += 1;
-    if (event.type === "page_view") increment.pagePaths.push(event.path ?? "/");
+    if (event.type === "page_view") increment.pagePaths.push(path);
     workspaceIncrements.set(project.workspaceId, increment);
 
     const attribution = getCampaignAttribution(
@@ -472,7 +475,7 @@ export async function createEvents(
       occurredAt,
 
       url: event.url,
-      path: event.path,
+      path,
       title: event.title,
       referrer: event.referrer,
       referrerDomain: getReferrerDomain(event.referrer),
@@ -502,7 +505,7 @@ export async function createEvents(
       sessionDurationMs:
         event.type === "session_end" ? event.duration : undefined,
 
-      payload: Object.fromEntries(Object.entries(event)),
+      payload: { ...event, path },
     });
   }
 

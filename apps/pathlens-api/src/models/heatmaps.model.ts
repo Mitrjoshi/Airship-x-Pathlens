@@ -1,15 +1,23 @@
 import { and, eq, sql } from "drizzle-orm";
 import type {
   HeatmapClickPoint,
+  HeatmapCoordinateMode,
   HeatmapDevice,
   HeatmapHotArea,
   HeatmapPage,
   HeatmapPageDetail,
   HeatmapScrollPoint,
+  HeatmapSnapshot,
+  HeatmapSnapshotStatus,
   HeatmapsData,
   HeatmapsListData,
 } from "@workspace/contracts";
+import { normalizePagePath } from "@workspace/contracts";
 import { db } from "../db/client";
+import { heatmapPageSnapshots, projectDomains, projects } from "../db/schema";
+import { createHeatmapSnapshotSignedUrl } from "../lib/s3";
+import { enqueueHeatmapPageSnapshot } from "../lib/snapshot-queue";
+import { normalizeProjectHostname } from "../lib/project-domain";
 import { getCompleteReplayDataModel } from "./replay.model";
 
 const MAX_HEATMAP_EVENTS = 20_000;
@@ -101,6 +109,22 @@ interface ReplaySessionRow extends Record<string, unknown> {
   session_id: string;
   viewport_width: number | string | null;
   viewport_height: number | string | null;
+}
+
+interface HeatmapSnapshotRow {
+  id: string;
+  domain: string;
+  pagePath: string;
+  device: string;
+  status: string;
+  storagePath: string | null;
+  viewportWidth: number;
+  viewportHeight: number;
+  pageWidth: number | null;
+  pageHeight: number | null;
+  deviceScaleFactor: number;
+  capturedAt: Date | string | null;
+  requestedAt: Date | string | null;
 }
 
 const RANGE_DAYS: Record<HeatmapsRange, number> = {
@@ -224,6 +248,255 @@ function getPageViewport(
       height: 720,
     }
   );
+}
+
+function normalizedPathSql(column: string) {
+  const source = sql.raw(column);
+  const withoutOrigin = sql`CASE
+    WHEN ${source} ~* '^[a-z][a-z0-9+.-]*://[^/]*'
+      THEN regexp_replace(${source}, '^[a-z][a-z0-9+.-]*://[^/]*', '')
+    WHEN ${source} ~ '^//[^/]+'
+      THEN regexp_replace(${source}, '^//[^/]+', '')
+    ELSE ${source}
+  END`;
+  const withoutQuery = sql`regexp_replace(${withoutOrigin}, '[?#].*$', '')`;
+  const withLeadingSlash = sql`CASE
+    WHEN ${withoutQuery} LIKE '/%' THEN ${withoutQuery}
+    ELSE '/' || ${withoutQuery}
+  END`;
+
+  return sql`COALESCE(
+    NULLIF(regexp_replace(${withLeadingSlash}, '/+$', ''), ''),
+    '/'
+  )`;
+}
+
+function getSnapshotViewport(
+  page: HeatmapPage,
+  device: HeatmapDevice
+): { width: number; height: number } {
+  if (page.viewport && page.viewport.width > 0 && page.viewport.height > 0) {
+    return page.viewport;
+  }
+
+  if (device === "mobile") return { width: 390, height: 844 };
+  if (device === "tablet") return { width: 1024, height: 768 };
+
+  return { width: 1440, height: 900 };
+}
+
+function getSnapshotStatus(value: string): HeatmapSnapshotStatus {
+  if (
+    value === "processing" ||
+    value === "ready" ||
+    value === "stale" ||
+    value === "failed"
+  ) {
+    return value;
+  }
+
+  return "pending";
+}
+
+function toIso(value: Date | string | null): string | null {
+  if (!value) return null;
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+async function getHeatmapSnapshot(
+  filters: HeatmapsFilters,
+  page: HeatmapPage
+): Promise<{
+  url: string | null;
+  status: HeatmapSnapshotStatus;
+  capturedAt: string | null;
+  width: number | null;
+  height: number | null;
+  snapshot: HeatmapSnapshot | null;
+}> {
+  const requestedDomain =
+    filters.domain ?? normalizeProjectHostname(page.url ?? "");
+
+  if (!requestedDomain) {
+    return {
+      url: null,
+      status: "pending",
+      capturedAt: null,
+      width: null,
+      height: null,
+      snapshot: null,
+    };
+  }
+
+  const ownedDomains = await db
+    .select({ domain: projectDomains.domain })
+    .from(projectDomains)
+    .innerJoin(projects, eq(projects.id, projectDomains.projectId))
+    .where(
+      and(
+        eq(projectDomains.projectId, filters.projectId),
+        eq(projects.workspaceId, filters.workspaceId)
+      )
+    );
+  const domainIsOwned = ownedDomains.some(
+    (row) => normalizeProjectHostname(row.domain) === requestedDomain
+  );
+
+  if (!domainIsOwned) {
+    return {
+      url: null,
+      status: "pending",
+      capturedAt: null,
+      width: null,
+      height: null,
+      snapshot: null,
+    };
+  }
+
+  const pathname = normalizePagePath(page.path);
+  const sourceUrl = new URL(pathname, `https://${requestedDomain}`).toString();
+  const viewport = getSnapshotViewport(page, filters.device);
+  const deviceScaleFactor = 1;
+  const identity = and(
+    eq(heatmapPageSnapshots.projectId, filters.projectId),
+    eq(heatmapPageSnapshots.domain, requestedDomain),
+    eq(heatmapPageSnapshots.pagePath, pathname),
+    eq(heatmapPageSnapshots.device, filters.device)
+  );
+
+  let [row] = await db
+    .select({
+      id: heatmapPageSnapshots.id,
+      domain: heatmapPageSnapshots.domain,
+      pagePath: heatmapPageSnapshots.pagePath,
+      device: heatmapPageSnapshots.device,
+      status: heatmapPageSnapshots.status,
+      storagePath: heatmapPageSnapshots.storagePath,
+      viewportWidth: heatmapPageSnapshots.viewportWidth,
+      viewportHeight: heatmapPageSnapshots.viewportHeight,
+      pageWidth: heatmapPageSnapshots.pageWidth,
+      pageHeight: heatmapPageSnapshots.pageHeight,
+      deviceScaleFactor: heatmapPageSnapshots.deviceScaleFactor,
+      capturedAt: heatmapPageSnapshots.capturedAt,
+      requestedAt: heatmapPageSnapshots.requestedAt,
+    })
+    .from(heatmapPageSnapshots)
+    .where(identity);
+
+  let shouldQueue = false;
+
+  if (!row) {
+    [row] = await db
+      .insert(heatmapPageSnapshots)
+      .values({
+        workspaceId: filters.workspaceId,
+        projectId: filters.projectId,
+        domain: requestedDomain,
+        pagePath: pathname,
+        sourceUrl,
+        device: filters.device,
+        status: "pending",
+        viewportWidth: viewport.width,
+        viewportHeight: viewport.height,
+        deviceScaleFactor,
+        requestedAt: null,
+      })
+      .onConflictDoNothing({
+        target: [
+          heatmapPageSnapshots.projectId,
+          heatmapPageSnapshots.domain,
+          heatmapPageSnapshots.pagePath,
+          heatmapPageSnapshots.device,
+        ],
+      })
+      .returning({
+        id: heatmapPageSnapshots.id,
+        domain: heatmapPageSnapshots.domain,
+        pagePath: heatmapPageSnapshots.pagePath,
+        device: heatmapPageSnapshots.device,
+        status: heatmapPageSnapshots.status,
+        storagePath: heatmapPageSnapshots.storagePath,
+        viewportWidth: heatmapPageSnapshots.viewportWidth,
+        viewportHeight: heatmapPageSnapshots.viewportHeight,
+        pageWidth: heatmapPageSnapshots.pageWidth,
+        pageHeight: heatmapPageSnapshots.pageHeight,
+        deviceScaleFactor: heatmapPageSnapshots.deviceScaleFactor,
+        capturedAt: heatmapPageSnapshots.capturedAt,
+        requestedAt: heatmapPageSnapshots.requestedAt,
+      });
+
+    if (row) shouldQueue = true;
+    else {
+      [row] = await db
+        .select({
+          id: heatmapPageSnapshots.id,
+          domain: heatmapPageSnapshots.domain,
+          pagePath: heatmapPageSnapshots.pagePath,
+          device: heatmapPageSnapshots.device,
+          status: heatmapPageSnapshots.status,
+          storagePath: heatmapPageSnapshots.storagePath,
+          viewportWidth: heatmapPageSnapshots.viewportWidth,
+          viewportHeight: heatmapPageSnapshots.viewportHeight,
+          pageWidth: heatmapPageSnapshots.pageWidth,
+          pageHeight: heatmapPageSnapshots.pageHeight,
+          deviceScaleFactor: heatmapPageSnapshots.deviceScaleFactor,
+          capturedAt: heatmapPageSnapshots.capturedAt,
+          requestedAt: heatmapPageSnapshots.requestedAt,
+        })
+        .from(heatmapPageSnapshots)
+        .where(identity);
+    }
+  }
+
+  if (!row) {
+    return {
+      url: null,
+      status: "pending",
+      capturedAt: null,
+      width: null,
+      height: null,
+      snapshot: null,
+    };
+  }
+
+  if (shouldQueue) {
+    try {
+      await enqueueHeatmapPageSnapshot(row.id);
+      await db
+        .update(heatmapPageSnapshots)
+        .set({ requestedAt: new Date() })
+        .where(eq(heatmapPageSnapshots.id, row.id));
+    } catch (error) {
+      console.error("Unable to enqueue heatmap snapshot.", error);
+    }
+  }
+
+  const status = getSnapshotStatus(row.status);
+  const url =
+    row.storagePath && (status === "ready" || status === "stale")
+      ? await createHeatmapSnapshotSignedUrl(row.storagePath)
+      : null;
+
+  return {
+    url,
+    status,
+    capturedAt: toIso(row.capturedAt),
+    width: row.pageWidth,
+    height: row.pageHeight,
+    snapshot: {
+      pathname: row.pagePath,
+      domain: row.domain,
+      device: row.device as HeatmapDevice,
+      viewportWidth: row.viewportWidth,
+      viewportHeight: row.viewportHeight,
+      pageWidth: row.pageWidth,
+      pageHeight: row.pageHeight,
+      deviceScaleFactor: row.deviceScaleFactor,
+      capturedAt: toIso(row.capturedAt),
+    },
+  };
 }
 
 function mapPage(row: PageRow): HeatmapPage {
@@ -357,7 +630,15 @@ function buildClickPoints(
   points: HeatmapClickPoint[];
   coordinateMode: "document" | "viewport" | "mixed";
 } {
-  const buckets = new Map<string, { x: number; y: number; count: number }>();
+  const buckets = new Map<
+    string,
+    {
+      x: number;
+      y: number;
+      count: number;
+      coordinateMode: HeatmapCoordinateMode;
+    }
+  >();
   let documentCoordinates = 0;
   let viewportCoordinates = 0;
 
@@ -379,7 +660,10 @@ function buildClickPoints(
     const yRatio = clamp(y / dimensions.height, 0, 1);
     const xBucket = Math.min(19, Math.floor(xRatio * 20));
     const yBucket = Math.min(19, Math.floor(yRatio * 20));
-    const key = `${xBucket}:${yBucket}`;
+    const coordinateMode: HeatmapCoordinateMode = document
+      ? "document"
+      : "viewport";
+    const key = `${coordinateMode}:${xBucket}:${yBucket}`;
     const bucket = buckets.get(key);
 
     if (bucket) {
@@ -389,6 +673,7 @@ function buildClickPoints(
         x: (xBucket + 0.5) / 20,
         y: (yBucket + 0.5) / 20,
         count: 1,
+        coordinateMode,
       });
     }
   }
@@ -465,7 +750,7 @@ async function getRepresentativeReplaySession(
     WHERE page_event.workspace_id = ${filters.workspaceId}
       AND page_event.project_id = ${filters.projectId}
       AND page_event.type = 'page_view'
-      AND COALESCE(NULLIF(page_event.path, ''), '/') = ${pagePath}
+       AND ${normalizedPathSql("page_event.path")} = ${normalizePagePath(pagePath)}
       AND page_event.occurred_at >= NOW() - make_interval(days => ${rangeDays})
       ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(page_event.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
          ${deviceFilter}
@@ -491,7 +776,8 @@ async function getRepresentativeReplaySession(
         SELECT 1
         FROM events first_page
         WHERE first_page.session_id = page_event.session_id
-           AND first_page.type = 'page_view'
+            AND first_page.type = 'page_view'
+            AND ${normalizedPathSql("first_page.path")} = ${normalizePagePath(pagePath)}
            AND first_page.occurred_at < page_event.occurred_at
            ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(first_page.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
       )
@@ -519,12 +805,13 @@ export async function getHeatmapsModel(
   const pageSize = filters.pageSize ?? 50;
   const pagePathFilter =
     filters.includeDetails && filters.pagePath
-      ? sql`AND COALESCE(NULLIF(path, ''), '/') = ${filters.pagePath}`
+      ? sql`AND ${normalizedPathSql("path")} = ${normalizePagePath(filters.pagePath)}`
       : sql``;
+  const normalizedPath = normalizedPathSql("path");
   const pageResult = await db.execute<PageRow>(sql`
     WITH page_metrics AS (
       SELECT
-        COALESCE(NULLIF(path, ''), '/') AS path,
+        ${normalizedPath} AS path,
         MAX(NULLIF(url, '')) FILTER (WHERE type = 'page_view') AS url,
         COUNT(DISTINCT visitor_id)::int AS visitors,
         COUNT(*) FILTER (WHERE type = 'page_view')::int AS views,
@@ -534,11 +821,12 @@ export async function getHeatmapsModel(
         MAX(viewport_height)::int AS viewport_height
       FROM events
       WHERE workspace_id = ${filters.workspaceId}
-        AND project_id = ${filters.projectId}
-         AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
-         ${deviceFilter}
-         ${pagePathFilter}
-       GROUP BY COALESCE(NULLIF(path, ''), '/')
+         AND project_id = ${filters.projectId}
+          AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+          ${deviceFilter}
+          ${domainFilter}
+          ${pagePathFilter}
+       GROUP BY ${normalizedPath}
       HAVING COUNT(*) FILTER (WHERE type IN ('page_view', 'click', 'scroll')) > 0
     )
     SELECT
@@ -561,7 +849,7 @@ export async function getHeatmapsModel(
             FROM events replay_page
             WHERE replay_page.session_id = replay.id
               AND replay_page.type = 'page_view'
-               AND COALESCE(NULLIF(replay_page.path, ''), '/') = page_metrics.path
+                AND ${normalizedPathSql("replay_page.path")} = page_metrics.path
                ${replayPageDeviceFilter}
                ${filters.domain ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(replay_page.url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}` : sql``}
           )
@@ -573,8 +861,8 @@ export async function getHeatmapsModel(
   `);
   const scrollSummaryResult = await db.execute<ScrollSummaryRow>(sql`
     WITH session_scroll AS (
-      SELECT
-        COALESCE(NULLIF(path, ''), '/') AS path,
+       SELECT
+         ${normalizedPath} AS path,
         session_id,
         MAX(
           CASE
@@ -590,7 +878,7 @@ export async function getHeatmapsModel(
         AND type = 'scroll'
          ${deviceFilter}
          ${domainFilter}
-      GROUP BY COALESCE(NULLIF(path, ''), '/'), session_id
+       GROUP BY ${normalizedPath}, session_id
     )
     SELECT
       path,
@@ -644,7 +932,13 @@ export async function getHeatmapsModel(
   }
 
   const selectedPage =
-    pages.find((page) => page.path === filters.pagePath) ?? pages[0];
+    (filters.pagePath
+      ? pages.find((page) => page.path === normalizePagePath(filters.pagePath))
+      : pages[0]) ?? null;
+
+  if (!selectedPage) {
+    return { pages, selectedPage: null, pagination };
+  }
   const eventResult = await db.execute<HeatmapEventRow>(sql`
     SELECT
       type,
@@ -656,7 +950,7 @@ export async function getHeatmapsModel(
     WHERE workspace_id = ${filters.workspaceId}
       AND project_id = ${filters.projectId}
       AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
-      AND COALESCE(NULLIF(path, ''), '/') = ${selectedPage.path}
+       AND ${normalizedPathSql("path")} = ${selectedPage.path}
       AND type = 'click'
       ${deviceFilter}
       ${domainFilter}
@@ -676,7 +970,7 @@ export async function getHeatmapsModel(
     WHERE workspace_id = ${filters.workspaceId}
       AND project_id = ${filters.projectId}
       AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
-      AND COALESCE(NULLIF(path, ''), '/') = ${selectedPage.path}
+       AND ${normalizedPathSql("path")} = ${selectedPage.path}
       AND type = 'scroll'
       ${deviceFilter}
       ${domainFilter}
@@ -695,6 +989,7 @@ export async function getHeatmapsModel(
       )
     : null;
   const clickAggregation = buildClickPoints(eventResult.rows, selectedPage);
+  const heatmapSnapshot = await getHeatmapSnapshot(filters, selectedPage);
   const selectedScrollSummary = scrollSummaries.get(selectedPage.path);
   const sessionCount = toNumber(selectedScrollSummary?.sessions);
   const pageDetail: HeatmapPageDetail = {
@@ -714,11 +1009,12 @@ export async function getHeatmapsModel(
         : selectedPage.viewport,
     coordinateMode: clickAggregation.coordinateMode,
     replayAvailable: Boolean(replay?.available),
-    screenshotUrl: null,
-    screenshotStatus: "pending",
-    screenshotCapturedAt: null,
-    screenshotWidth: null,
-    screenshotHeight: null,
+    screenshotUrl: heatmapSnapshot.url,
+    screenshotStatus: heatmapSnapshot.status,
+    screenshotCapturedAt: heatmapSnapshot.capturedAt,
+    screenshotWidth: heatmapSnapshot.width,
+    screenshotHeight: heatmapSnapshot.height,
+    snapshot: heatmapSnapshot.snapshot,
   };
 
   return {

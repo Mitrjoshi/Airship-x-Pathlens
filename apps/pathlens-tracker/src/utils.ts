@@ -1,5 +1,6 @@
 // src/utils.ts
 
+import { normalizePagePath } from "@workspace/contracts";
 import type {
   CampaignAttribution,
   ClientAnalyticsInfo,
@@ -151,7 +152,7 @@ export function getPageInfo() {
 
   return {
     url: location.href,
-    path: location.pathname,
+    path: normalizePagePath(location.pathname),
     title: document.title,
     faviconUrl: favicon?.href ?? new URL("/favicon.ico", location.origin).href,
   };

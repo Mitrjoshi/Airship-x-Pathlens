@@ -14,6 +14,7 @@
     "backfill:campaigns": "tsx --env-file=.env src/scripts/backfill-campaign-attribution.ts",
     "pause:expired-workspaces": "tsx --env-file=.env src/scripts/pause-expired-workspaces.ts",
     "test:geoip": "tsx --test src/lib/geoip.test.ts",
+    "test:heatmaps": "tsx --test src/lib/page-path.test.ts src/lib/heatmap-coordinates.test.ts",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio"
   },
