@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "commonjs",
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -55,6 +58,11 @@
       "types": "./src/pathlens-events.ts",
       "import": "./dist/pathlens-events.js",
       "require": "./dist/pathlens-events.js"
+    },
+    "./preview-sessions": {
+      "types": "./src/preview-sessions.ts",
+      "import": "./dist/preview-sessions.js",
+      "require": "./dist/preview-sessions.js"
     },
     "./user-journey": {
       "types": "./src/user-journey.ts",

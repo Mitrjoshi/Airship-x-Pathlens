@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../../../../apps/pathlens-heatmap-proxy-fixtures/app/dynamic-panel.tsx"],"sourcesContent":["export default function DynamicPanel() {\n  return <p data-testid=\"next-dynamic\">Next dynamic component loaded.</p>\n}\n"],"names":["DynamicPanel"],"mappings":"yEAAe,SAASA,EACtB,MAAO,CAAA,EAAA,EAAA,GAAA,EAAC,IAAA,CAAE,cAAY,wBAAe,kCACvC"}

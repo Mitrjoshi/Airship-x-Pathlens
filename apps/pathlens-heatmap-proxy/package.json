@@ -1,0 +1,34 @@
+{
+  "name": "@pathlens/heatmap-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/local.ts",
+    "build": "pnpm --filter @workspace/contracts build && tsc",
+    "typecheck": "tsc --noEmit",
+    "typecheck:e2e": "tsc -p tsconfig.e2e.json",
+    "start": "node dist/local.js",
+    "test": "node --import tsx --test src/*.test.ts",
+    "test:browser": "node --import tsx --test src/browser.e2e.ts",
+    "test:browser:js": "node --import tsx --test src/browser-js.e2e.ts",
+    "test:framework": "pnpm --filter @pathlens/heatmap-proxy-fixtures build && node --import tsx --test src/browser-framework.e2e.ts",
+    "preview:manual": "pnpm --filter @pathlens/heatmap-proxy-fixtures build && node --import tsx src/manual-preview.ts",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@babel/parser": "7.29.8",
+    "@workspace/contracts": "workspace:*",
+    "css-tree": "^3.2.1",
+    "parse5": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/css-tree": "^3.2.0",
+    "@types/aws-lambda": "^8.10.152",
+    "@types/node": "^22.15.0",
+    "playwright": "^1.62.1",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

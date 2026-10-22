@@ -8,7 +8,7 @@ import {
 } from '@/queries/heatmaps'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { DomainSwitcher } from './-components/common/domain-switcher'
 import { Separator } from '@workspace/ui/components/separator'
 import { formatNumber, getPaginationItems } from '@/utils/utils'
@@ -36,11 +36,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@workspace/ui/components/dialog'
-import {
-  mapHeatmapPointToSnapshot,
-  type HeatmapPageDetail,
-} from '@workspace/contracts'
 import { CenterEllipsis } from './-components/common/center-ellipsis'
+import { HeatmapOverlayLayer } from '@/components/common/heatmap-overlay-layer'
+import {
+  LivePreviewIframe,
+  useLivePreviewSession,
+} from '@/components/common/live-preview-iframe'
+import type { HeatmapPageDetail } from '@workspace/contracts/heatmaps'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/heatmaps')({
   component: RouteComponent,
@@ -86,6 +88,9 @@ function RouteComponent() {
   )
   const domains = domainsData?.data
   const activeDomain = domain || domains?.[0]?.domain || ''
+  const activeDomainRecord = domains?.find(
+    (item) => item.domain === activeDomain
+  )
 
   const {
     data: heatmapsData,
@@ -126,6 +131,21 @@ function RouteComponent() {
   )
   const heatmap = heatmapDetails?.data
 
+  const previewDevice: 'desktop' | 'mobile' | 'tablet' =
+    device === 'mobile' ? 'mobile' : device === 'tablet' ? 'tablet' : 'desktop'
+  const previewContext =
+    open && selectedPath && activeDomainRecord
+      ? {
+          workspaceId,
+          projectId,
+          domainId: activeDomainRecord.id,
+          pagePath: selectedPath,
+          device: previewDevice,
+          previewIntent: 'heatmap' as const,
+        }
+      : null
+  const previewState = useLivePreviewSession(previewContext)
+
   const lastUpdated = useRelativeTime(dataUpdatedAt)
 
   const totalEvents = heatmaps?.pagination?.total ?? 0
@@ -143,7 +163,11 @@ function RouteComponent() {
             <DomainSwitcher
               loading={domainsLoading}
               domain={activeDomain}
-              setDomain={setDomain}
+              setDomain={(value) => {
+                setDomain(value)
+                setPath(null)
+                setOpen(false)
+              }}
               domains={domains!}
               refetch={refetch}
             />
@@ -188,6 +212,8 @@ function RouteComponent() {
               onValueChange={(value) => {
                 if (!value) return
                 setRange(value as HeatmapsRange)
+                setPath(null)
+                setOpen(false)
                 localStorage.setItem('range', value)
               }}
             >
@@ -209,6 +235,8 @@ function RouteComponent() {
               onValueChange={(value) => {
                 if (value) {
                   setDevice(value as HeatmapDevice)
+                  setPath(null)
+                  setOpen(false)
                   localStorage.setItem('device', value)
                 }
               }}
@@ -383,6 +411,8 @@ function RouteComponent() {
                   disabled={page <= 1 || heatmapsLoading}
                   onClick={() => {
                     setPage((current) => Math.max(current - 1, 1))
+                    setPath(null)
+                    setOpen(false)
                   }}
                 >
                   Previous
@@ -410,6 +440,8 @@ function RouteComponent() {
                         disabled={heatmapsLoading}
                         onClick={() => {
                           setPage(item)
+                          setPath(null)
+                          setOpen(false)
                         }}
                       >
                         {item}
@@ -424,6 +456,8 @@ function RouteComponent() {
                   disabled={page >= totalPages || heatmapsLoading}
                   onClick={() => {
                     setPage((current) => Math.min(current + 1, totalPages))
+                    setPath(null)
+                    setOpen(false)
                   }}
                 >
                   Next
@@ -440,158 +474,54 @@ function RouteComponent() {
         </DialogHeader>
 
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-          <HeatmapPreview heatmap={heatmap} />
+          <HeatmapLiveViewer
+            heatmap={heatmap}
+            preview={previewState.session}
+            status={previewState.status}
+            error={previewState.error}
+            onExpired={() => setOpen(false)}
+            device={previewDevice}
+          />
         </div>
       </DialogContent>
     </Dialog>
   )
 }
 
-const BLOB_RADIUS = 28
-
-export const HeatmapPreview = ({
+function HeatmapLiveViewer({
   heatmap,
+  preview,
+  status,
+  error,
+  onExpired,
+  device,
 }: {
   heatmap: HeatmapPageDetail | null | undefined
-}) => {
-  const wrapperRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  const [scale, setScale] = useState(1)
-  const [failedScreenshotUrl, setFailedScreenshotUrl] = useState<string | null>(
-    null
-  )
-
-  const snapshot = heatmap?.snapshot
-  const screenshotUrl = heatmap?.screenshotUrl
-  const imageError = Boolean(
-    screenshotUrl && failedScreenshotUrl === screenshotUrl
-  )
-  const renderWidth =
-    snapshot?.pageWidth ??
-    heatmap?.screenshotWidth ??
-    snapshot?.viewportWidth ??
-    heatmap?.viewport?.width ??
-    1
-  const renderHeight =
-    snapshot?.pageHeight ??
-    heatmap?.screenshotHeight ??
-    snapshot?.viewportHeight ??
-    heatmap?.viewport?.height ??
-    1
-
-  useEffect(() => {
-    const wrapper = wrapperRef.current
-    if (!wrapper) return
-
-    const observer = new ResizeObserver(([entry]) => {
-      setScale(Math.min(entry.contentRect.width / renderWidth, 1))
-    })
-
-    observer.observe(wrapper)
-
-    return () => observer.disconnect()
-  }, [renderWidth])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const points = heatmap?.clickPoints
-    if (!canvas || !points) return
-
-    canvas.width = renderWidth
-    canvas.height = renderHeight
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    ctx.clearRect(0, 0, renderWidth, renderHeight)
-
-    for (const point of points) {
-      const mappedPoint = mapHeatmapPointToSnapshot(
-        point,
-        renderWidth,
-        renderHeight
-      )
-      if (!mappedPoint) continue
-
-      const { x, y } = mappedPoint
-      const alpha = Math.min(Math.max(point.intensity, 0), 1) * 0.6
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, BLOB_RADIUS)
-      gradient.addColorStop(0, `rgba(255, 0, 0, ${alpha})`)
-      gradient.addColorStop(1, 'rgba(255, 0, 0, 0)')
-
-      ctx.fillStyle = gradient
-      ctx.fillRect(
-        x - BLOB_RADIUS,
-        y - BLOB_RADIUS,
-        BLOB_RADIUS * 2,
-        BLOB_RADIUS * 2
-      )
-    }
-  }, [heatmap?.clickPoints, renderWidth, renderHeight])
-
-  if (!heatmap) return null
-
-  if (!screenshotUrl || imageError) {
-    const message = imageError
-      ? 'Page snapshot could not be loaded.'
-      : heatmap.screenshotStatus === 'failed'
-        ? 'Page snapshot capture failed.'
-        : 'Page snapshot is being prepared.'
-
-    return (
-      <div className="text-muted-foreground flex min-h-64 items-center justify-center p-6 text-center text-sm">
-        {message}
-      </div>
-    )
-  }
+  preview: Parameters<typeof LivePreviewIframe>[0]['preview']
+  status: Parameters<typeof LivePreviewIframe>[0]['status']
+  error: Parameters<typeof LivePreviewIframe>[0]['error']
+  onExpired: () => void
+  device: 'desktop' | 'mobile' | 'tablet'
+}) {
+  const sessionKey =
+    preview?.session_id ?? `${device}:${heatmap ? 'data' : 'empty'}`
+  const widthClass =
+    device === 'mobile'
+      ? 'mx-auto max-w-[390px]'
+      : device === 'tablet'
+        ? 'mx-auto max-w-[768px]'
+        : 'w-full'
 
   return (
-    <div className="w-full min-w-0">
-      <div ref={wrapperRef} className="w-full">
-        <div
-          style={{
-            width: renderWidth * scale,
-            height: renderHeight * scale,
-            position: 'relative',
-          }}
-        >
-          <div
-            style={{
-              width: renderWidth,
-              height: renderHeight,
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              pointerEvents: 'none',
-            }}
-          >
-            <img
-              src={screenshotUrl}
-              alt={`Rendered snapshot of ${heatmap.path}`}
-              onError={() => setFailedScreenshotUrl(screenshotUrl)}
-              style={{
-                display: 'block',
-                width: renderWidth,
-                height: renderHeight,
-                objectFit: 'fill',
-              }}
-            />
-            <canvas
-              ref={canvasRef}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: renderWidth,
-                height: renderHeight,
-              }}
-            />
-          </div>
-        </div>
-      </div>
+    <div className="relative min-h-160 w-full" data-heatmap-viewer="live">
+      <LivePreviewIframe
+        preview={preview}
+        status={status}
+        error={error}
+        onExpired={onExpired}
+        className={widthClass}
+      />
+      <HeatmapOverlayLayer sessionKey={sessionKey} hasData={Boolean(heatmap)} />
     </div>
   )
 }

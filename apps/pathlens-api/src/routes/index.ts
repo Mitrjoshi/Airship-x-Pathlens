@@ -18,6 +18,9 @@ import heatmapsRouter from "./heatmaps.route";
 import replayRouter from "./replay.route";
 import userJourneyRouter from "./user-journey.route";
 import billingRouter from "./billing.route";
+import previewSessionsRouter from "./preview-sessions.route";
+import { validatePreviewSession } from "../controllers/preview-sessions.controller";
+import { proxyAuthMiddleware } from "../middleware/proxy-auth.middleware";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
 import { getTrackingConfig } from "../controllers/tracking.controller";
 import {
@@ -39,6 +42,11 @@ router.get("/auth/github", githubLogin);
 router.get("/auth/github/callback", githubCallback);
 router.get("/auth/google", googleLogin);
 router.get("/auth/google/callback", googleCallback);
+router.post(
+  "/internal/heatmap-proxy/validate",
+  proxyAuthMiddleware,
+  validatePreviewSession
+);
 
 router.use(ApiKeyMiddleware);
 
@@ -54,6 +62,7 @@ router.use("/analytics", analyticsRouter);
 router.use("/visitors", visitorsRouter);
 router.use("/session-replay", sessionReplayRouter);
 router.use("/user-journey", userJourneyRouter);
+router.use("/heatmaps/preview-sessions", previewSessionsRouter);
 router.use("/heatmaps", heatmapsRouter);
 router.use("/funnels", funnelsRouter);
 router.use("/goals", goalsRouter);

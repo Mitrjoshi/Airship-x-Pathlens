@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,51182,t=>{"use strict";var e=t.i(40257);t.s(["default",0,function(){return(0,e.jsx)("p",{"data-testid":"next-dynamic",children:"Next dynamic component loaded."})}])}]);

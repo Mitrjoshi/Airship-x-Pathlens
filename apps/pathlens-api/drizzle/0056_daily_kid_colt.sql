@@ -1,0 +1,1 @@
+ALTER TABLE "heatmap_preview_sessions" ADD COLUMN "preview_intent" text DEFAULT 'compatibility' NOT NULL;

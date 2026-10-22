@@ -608,6 +608,50 @@ export const heatmapPageSnapshots = pgTable(
   })
 );
 
+export const heatmapPreviewSessions = pgTable(
+  "heatmap_preview_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    handleHash: text("handle_hash").notNull().unique(),
+
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+
+    projectDomainId: uuid("project_domain_id")
+      .notNull()
+      .references(() => projectDomains.id, { onDelete: "cascade" }),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    canonicalHostname: text("canonical_hostname").notNull(),
+    allowedHostnames: jsonb("allowed_hostnames").$type<string[]>().notNull(),
+    pathname: text("pathname").notNull(),
+    device: text("device").notNull(),
+    previewIntent: text("preview_intent").notNull().default("compatibility"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    supersededAt: timestamp("superseded_at", { withTimezone: true }),
+  },
+  (table) => ({
+    projectIdx: index("heatmap_preview_sessions_project_idx").on(
+      table.projectId,
+      table.projectDomainId
+    ),
+    expiryIdx: index("heatmap_preview_sessions_expiry_idx").on(table.expiresAt),
+  })
+);
+
 /* -------------------------------------------------------------------------- */
 /*                                  FEEDBACK                                  */
 /* -------------------------------------------------------------------------- */

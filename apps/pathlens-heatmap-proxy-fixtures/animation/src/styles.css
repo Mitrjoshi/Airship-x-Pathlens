@@ -1,0 +1,49 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #111827;
+}
+
+main {
+  min-height: 2600px;
+  padding: 2rem;
+  color: white;
+}
+
+.panel {
+  width: min(36rem, 90vw);
+  min-height: 8rem;
+  margin: 18rem auto 0;
+  padding: 2rem;
+  border-radius: 1rem;
+  background: #526fe8;
+  opacity: 0;
+}
+
+.scrub {
+  opacity: 1;
+}
+
+.pinned {
+  position: sticky;
+  top: 1rem;
+  margin-top: 18rem;
+  padding: 2rem;
+  background: #e879f9;
+}
+
+@supports (animation-timeline: scroll()) {
+  .pinned {
+    animation: hue linear both;
+    animation-timeline: scroll();
+  }
+}
+
+@keyframes hue {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(180deg);
+  }
+}

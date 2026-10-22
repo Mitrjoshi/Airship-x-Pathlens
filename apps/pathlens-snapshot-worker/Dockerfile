@@ -27,6 +27,8 @@ RUN pnpm --filter @pathlens/snapshot-worker build
 
 # Create production deployment
 RUN pnpm --filter @pathlens/snapshot-worker deploy --prod --legacy /out
+RUN test -f /out/node_modules/@workspace/contracts/dist/index.js
+RUN test ! -f /out/node_modules/@workspace/contracts/src/index.ts
 
 
 FROM public.ecr.aws/lambda/nodejs:22

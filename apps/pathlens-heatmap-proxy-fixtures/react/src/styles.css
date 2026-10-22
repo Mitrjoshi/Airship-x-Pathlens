@@ -1,0 +1,55 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #172033;
+  background: #f3f5f8;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  min-height: 2200px;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 1rem;
+  color: white;
+  background: #172033;
+}
+
+.hero,
+.observed {
+  max-width: 48rem;
+  margin: 3rem auto;
+  padding: 2rem;
+  border-radius: 1rem;
+  background: white;
+}
+
+.image-background {
+  width: 48px;
+  height: 48px;
+  background: url('/logo.svg') center / contain no-repeat;
+}
+
+.observed {
+  margin-top: 1000px;
+  border: 2px solid #b5c7f5;
+}
+
+.spacer {
+  height: 700px;
+}
+
+@media (max-width: 600px) {
+  .hero,
+  .observed {
+    margin-right: 1rem;
+    margin-left: 1rem;
+    padding: 1rem;
+  }
+}

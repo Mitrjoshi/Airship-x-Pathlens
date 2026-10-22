@@ -1,0 +1,24 @@
+body {
+  margin: 0;
+  color: #172033;
+  font-family: system-ui, sans-serif;
+}
+
+main {
+  min-height: 2200px;
+  padding: 2rem;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  padding: 1rem;
+  color: white;
+  background: #111827;
+}
+
+.long-section {
+  margin-top: 1100px;
+  padding: 3rem;
+  background: #e0e7ff;
+}
