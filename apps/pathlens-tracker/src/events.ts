@@ -1,6 +1,7 @@
 // src/events.ts
 
 import type { PathLensTracker } from "./tracker";
+import { COORDINATE_SCHEMA_VERSION } from "@workspace/contracts/tracker";
 import { throttle } from "./utils";
 
 const MAX_ERROR_MESSAGE_LENGTH = 2048;
@@ -153,6 +154,7 @@ function registerClicks(tracker: PathLensTracker) {
     const documentDimensions = getDocumentDimensions();
 
     tracker.track("click", {
+      coordinateSchemaVersion: COORDINATE_SCHEMA_VERSION,
       x: e.clientX,
       y: e.clientY,
       pageX: e.pageX,
@@ -215,13 +217,24 @@ function registerMouseMove(tracker: PathLensTracker) {
   document.addEventListener(
     "mousemove",
     throttle((e: MouseEvent) => {
+      const documentDimensions = getDocumentDimensions();
+
       tracker.track("mousemove", {
+        coordinateSchemaVersion: COORDINATE_SCHEMA_VERSION,
         x: e.clientX,
         y: e.clientY,
         pageX: e.pageX,
         pageY: e.pageY,
         scrollX: window.scrollX,
         scrollY: window.scrollY,
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
+        document: documentDimensions,
+        devicePixelRatio: Number.isFinite(window.devicePixelRatio)
+          ? Math.min(8, Math.max(0.1, window.devicePixelRatio))
+          : undefined,
       });
     }, 100)
   );

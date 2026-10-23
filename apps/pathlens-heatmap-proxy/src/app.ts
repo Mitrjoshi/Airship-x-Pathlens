@@ -3,11 +3,7 @@ import type {
   APIGatewayProxyStructuredResultV2,
 } from 'aws-lambda'
 import { randomUUID } from 'node:crypto'
-import {
-  normalizePagePath,
-  PREVIEW_PROTOCOL_VERSION,
-  PREVIEW_SCROLL_MESSAGE,
-} from '@workspace/contracts'
+import { normalizePagePath } from '@workspace/contracts'
 import type { PreviewSessionClaims } from '@workspace/contracts'
 import type { SessionAuthorizationService } from './authorization.js'
 import { rewriteCss } from './rewrite-css.js'
@@ -15,6 +11,7 @@ import { rewriteHtml } from './rewrite-html.js'
 import { rewriteJavaScript } from './rewrite-javascript.js'
 import { STORAGE_COMPATIBILITY_SCRIPT } from './storage-compatibility.js'
 import { createRoutingCompatibilityScript } from './routing-compatibility.js'
+import { createMeasurementControllerScript } from './measurement-controller.js'
 import { isBlockedPreviewTrackingUrl } from './tracking-policy.js'
 import { RewriteError } from './rewrite-url.js'
 import {
@@ -296,7 +293,12 @@ export function createProxyApp({
       }
 
       if (context.path.endsWith('/runtime/scroll-controller.js')) {
-        if (session.previewIntent !== 'heatmap' || !fetchRuntime) {
+        if (
+          session.previewIntent !== 'heatmap' ||
+          !fetchRuntime ||
+          fetchRuntime.config.javascriptExecutionPolicy !==
+            'isolated-script-runtime'
+        ) {
           return errorResponse(
             404,
             'NOT_FOUND',
@@ -305,7 +307,10 @@ export function createProxyApp({
           )
         }
         const body = Buffer.from(
-          `window.addEventListener('message',function(event){var data=event.data;if(event.source!==window.parent||!data||data.version!==${PREVIEW_PROTOCOL_VERSION}||data.type!=='${PREVIEW_SCROLL_MESSAGE}'||!Number.isFinite(data.delta))return;window.scrollBy(0,data.delta);});`,
+          createMeasurementControllerScript(
+            session.sessionId,
+            fetchRuntime.config.embeddingOrigin ?? null
+          ),
           'utf8'
         )
         return binary(

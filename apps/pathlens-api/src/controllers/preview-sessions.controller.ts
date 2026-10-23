@@ -10,7 +10,6 @@ import {
   supersedePreviewSessionModel,
   validatePreviewSessionModel,
 } from "../models/preview-sessions.model";
-import { normalizePagePath } from "@workspace/contracts";
 
 function proxyOrigin(): string {
   return (
@@ -40,11 +39,9 @@ export async function createPreviewSession(
     const session = await createPreviewSessionModel({
       workspaceId: parsed.data.workspace_id,
       projectId: parsed.data.project_id,
-      domainId: parsed.data.domain_id,
+      heatmapId: parsed.data.heatmap_id,
       userId,
-      pathname: normalizePagePath(parsed.data.page_path),
       device: parsed.data.device,
-      previewIntent: parsed.data.preview_intent,
     });
 
     if (!session) {

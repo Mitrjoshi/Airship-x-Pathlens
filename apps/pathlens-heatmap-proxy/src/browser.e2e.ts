@@ -70,7 +70,7 @@ function fixtureBody(
   if (path === '/contact') {
     return {
       contentType: 'text/html',
-      body: `<html><head><link rel="stylesheet" href="/assets/site.css"><script src="/assets/app.js"></script></head><body style="min-height: 2200px"><h1>${hostname === 'example.com' ? 'Example Contact' : 'Other Contact'}</h1><div class="hero">Hero</div><img id="logo" src="/assets/logo.svg"><img id="responsive" srcset="/assets/logo.svg 1x, /assets/logo@2x.svg 2x"><form action="/submit"><button id="submit">Submit</button></form><button id="inline" onclick="document.body.dataset.inlineRan='true'">Inline</button><a id="external" href="https://evil.example.test/next">External</a><a id="download" download href="/assets/logo.svg">Download</a></body></html>`,
+      body: `<html><head><link rel="stylesheet" href="/assets/site.css"><script src="/assets/app.js"></script></head><body style="min-height: 2200px"><h1>${hostname === 'example.com' ? 'Example Contact' : 'Other Contact'}</h1><div class="hero">Hero</div><img id="logo" src="/assets/logo.svg"><img id="responsive" srcset="/assets/logo.svg 1x, /assets/logo@2x.svg 2x"><img id="unauthorized-image" src="https://evil.example.test/image.svg"><form action="/submit"><button id="submit">Submit</button></form><button id="inline" onclick="document.body.dataset.inlineRan='true'">Inline</button><a id="external" href="https://evil.example.test/next">External</a><a id="download" download href="/assets/logo.svg">Download</a></body></html>`,
     }
   }
   if (path === '/assets/site.css') {
@@ -270,6 +270,10 @@ test('loads an isolated non-executable live preview with static resources', asyn
   )
   assert.equal(await frame.locator('form').count(), 0)
   assert.equal(
+    await frame.locator('#unauthorized-image').getAttribute('src'),
+    null
+  )
+  assert.equal(
     await frame.evaluate(() => document.body.dataset.scriptRan ?? ''),
     ''
   )
@@ -339,6 +343,17 @@ test('loads an isolated non-executable live preview with static resources', asyn
   assert.ok(frame)
   await frame.waitForSelector('h1')
   assert.equal(await frame.locator('h1').textContent(), 'Other Contact')
+  assert.equal(
+    await frame.locator('#logo').evaluate((element) => {
+      const image = element as HTMLImageElement
+      return image.complete && image.naturalWidth > 0
+    }),
+    true
+  )
+  assert.equal(
+    (await frame.locator('#logo').getAttribute('src'))?.includes('/resource'),
+    true
+  )
   assert.equal(await frame.locator('h1').textContent(), 'Other Contact')
   await page.setViewportSize({ width: 390, height: 844 })
   assert.ok(
@@ -358,4 +373,5 @@ test('loads an isolated non-executable live preview with static resources', asyn
     (await frame.locator('body').textContent()) ?? '',
     /SESSION_EXPIRED/
   )
+  assert.equal(await frame.locator('img').count(), 0)
 })

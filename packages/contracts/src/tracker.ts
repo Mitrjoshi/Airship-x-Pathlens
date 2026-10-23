@@ -38,6 +38,8 @@ export interface CampaignAttribution {
 
 export type DeviceType = 'desktop' | 'mobile' | 'tablet' | 'unknown'
 
+export const COORDINATE_SCHEMA_VERSION = 1
+
 export interface ClientAnalyticsInfo {
   device: DeviceType
   browser: string
@@ -111,6 +113,8 @@ export interface BaseEvent {
 }
 
 export interface ClickEvent {
+  coordinateSchemaVersion?: number
+
   x: number
   y: number
 
@@ -119,6 +123,11 @@ export interface ClickEvent {
 
   scrollX: number
   scrollY: number
+
+  viewport: {
+    width: number
+    height: number
+  }
 
   document: {
     width: number
@@ -155,6 +164,8 @@ export interface ScrollEvent {
 }
 
 export interface MouseMoveEvent {
+  coordinateSchemaVersion?: number
+
   x: number
 
   y: number
@@ -164,6 +175,18 @@ export interface MouseMoveEvent {
 
   scrollX: number
   scrollY: number
+
+  viewport: {
+    width: number
+    height: number
+  }
+
+  document: {
+    width: number
+    height: number
+  }
+
+  devicePixelRatio?: number
 }
 
 export interface ResizeEvent {

@@ -1,16 +1,24 @@
 import { z } from 'zod'
+import type { HeatmapDevice } from './heatmaps'
 
 export const previewDeviceSchema = z.enum(['desktop', 'mobile', 'tablet'])
+export const heatmapPreviewDeviceSchema = z.enum([
+  'all',
+  'desktop',
+  'mobile',
+  'tablet',
+  'unknown',
+])
 export const previewIntentSchema = z.enum(['compatibility', 'heatmap'])
 
-export const createPreviewSessionRequestSchema = z.object({
-  workspace_id: z.uuid(),
-  project_id: z.uuid(),
-  domain_id: z.uuid(),
-  page_path: z.string().trim().min(1).max(2048),
-  device: previewDeviceSchema,
-  preview_intent: previewIntentSchema.default('compatibility'),
-})
+export const createPreviewSessionRequestSchema = z
+  .object({
+    workspace_id: z.uuid(),
+    project_id: z.uuid(),
+    heatmap_id: z.uuid(),
+    device: heatmapPreviewDeviceSchema,
+  })
+  .strict()
 
 export const previewSessionClaimsSchema = z.object({
   sessionId: z.string().uuid(),
@@ -32,9 +40,11 @@ export const validatePreviewSessionRequestSchema = z.object({
   handle: z.string().min(32).max(128),
 })
 
-export const revokePreviewSessionRequestSchema = z.object({
-  session_id: z.string().uuid(),
-})
+export const revokePreviewSessionRequestSchema = z
+  .object({
+    session_id: z.string().uuid(),
+  })
+  .strict()
 
 export const resourceAuthorizationRequestSchema = z.object({
   scheme: z.string().min(1),
@@ -52,10 +62,8 @@ export const resourceAuthorizationResultSchema = z.object({
 export interface CreatePreviewSessionRequest {
   workspace_id: string
   project_id: string
-  domain_id: string
-  page_path: string
-  device: z.infer<typeof previewDeviceSchema>
-  preview_intent: PreviewIntent
+  heatmap_id: string
+  device: HeatmapDevice
 }
 
 export type PreviewDevice = z.infer<typeof previewDeviceSchema>

@@ -206,6 +206,7 @@ test('supports HEAD and static resource content types without exposing unsafe he
     'image/jpeg',
     'image/webp',
     'image/avif',
+    'image/gif',
     'font/woff2',
   ]) {
     const result = await fetchUpstream(

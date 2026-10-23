@@ -21,6 +21,58 @@ export interface RewriteContext {
   depth: number
 }
 
+function scopedResourcePath(context: RewriteContext): string {
+  return `/v1/session/${encodeURIComponent(context.handle)}/resource`
+}
+
+function preserveScopedResourceUrl(
+  rawValue: string,
+  baseUrl: string,
+  context: RewriteContext
+): string | null {
+  let target: URL
+  try {
+    target = new URL(rawValue.trim(), baseUrl)
+  } catch {
+    return null
+  }
+
+  if (target.origin !== context.proxyOrigin) return null
+
+  const resourcePathPattern = /^\/v1\/session\/[^/]+\/resource$/
+  if (!resourcePathPattern.test(target.pathname)) return null
+
+  if (target.pathname !== scopedResourcePath(context)) {
+    throw new RewriteError(
+      'RESOURCE_SESSION_NOT_ALLOWED',
+      'The resource URL belongs to another preview session.'
+    )
+  }
+
+  const encodedTarget = target.searchParams.get('t')
+  const depth = target.searchParams.get('depth')
+  if (
+    !encodedTarget ||
+    depth === null ||
+    !/^\d+$/.test(depth) ||
+    Number(depth) > context.config.maxCssImportDepth + 1
+  ) {
+    throw new RewriteError(
+      'RESOURCE_URL_INVALID',
+      'The scoped resource URL is missing valid target metadata.'
+    )
+  }
+
+  if (target.href.length > context.config.maxResourceUrlLength) {
+    throw new RewriteError(
+      'RESOURCE_URL_TOO_LONG',
+      'The scoped resource URL is too long.'
+    )
+  }
+
+  return target.href
+}
+
 function unsupportedScheme(value: string): boolean {
   return /^(?:javascript|data|blob|file|vbscript):/i.test(value.trim())
 }
@@ -67,6 +119,9 @@ export function createScopedResourceUrl(
   context: RewriteContext,
   depth = context.depth
 ): string | null {
+  const preserved = preserveScopedResourceUrl(rawValue, baseUrl, context)
+  if (preserved) return preserved
+
   const target = resolveReference(rawValue, baseUrl)
   if (!target) return null
 
@@ -92,7 +147,7 @@ export function createScopedResourceUrl(
   }
 
   const proxy = new URL(context.proxyOrigin)
-  proxy.pathname = `/v1/session/${encodeURIComponent(context.handle)}/resource`
+  proxy.pathname = scopedResourcePath(context)
   proxy.search = `?t=${Buffer.from(target.href).toString('base64url')}&depth=${depth}`
   const result = proxy.toString()
   if (result.length > context.config.maxResourceUrlLength) {

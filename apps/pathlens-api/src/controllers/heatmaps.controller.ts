@@ -9,24 +9,33 @@ import {
 import { normalizeProjectHostname } from "../lib/project-domain";
 
 const heatmapsQuerySchema = z.object({
-  workspace_id: z.string().min(1),
-  project_id: z.string().min(1),
+  workspace_id: z.string().uuid(),
+  project_id: z.string().uuid(),
   range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
-  device: z.enum(["all", "desktop", "mobile", "tablet"]).default("all"),
+  device: z
+    .enum(["all", "desktop", "mobile", "tablet", "unknown"])
+    .default("all"),
   page_path: z.string().trim().max(2048).optional(),
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(50),
   domain: z.string().trim().max(2048).optional(),
 });
 
-const heatmapDetailsQuerySchema = z.object({
-  workspace_id: z.string().min(1),
-  project_id: z.string().min(1),
-  range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
-  device: z.enum(["all", "desktop", "mobile", "tablet"]).default("all"),
-  page_path: z.string().trim().min(1).max(2048),
-  domain: z.string().trim().max(2048).optional(),
-});
+const heatmapDetailsQuerySchema = z
+  .object({
+    workspace_id: z.string().uuid(),
+    project_id: z.string().uuid(),
+    heatmap_id: z.string().uuid().optional(),
+    range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
+    device: z
+      .enum(["all", "desktop", "mobile", "tablet", "unknown"])
+      .default("all"),
+    page_path: z.string().trim().min(1).max(2048).optional(),
+    domain: z.string().trim().max(2048).optional(),
+  })
+  .refine((value) => value.heatmap_id || value.page_path, {
+    message: "A heatmap ID or page path is required.",
+  });
 
 export async function getHeatmaps(req: Request, res: Response) {
   try {
@@ -72,6 +81,7 @@ export async function getHeatmapDetails(req: Request, res: Response) {
       range: query.range as HeatmapsRange,
       device: query.device as HeatmapDevice,
       pagePath: query.page_path,
+      heatmapId: query.heatmap_id,
       domain: query.domain
         ? (normalizeProjectHostname(query.domain) ?? "")
         : undefined,

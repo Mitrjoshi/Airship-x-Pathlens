@@ -58,6 +58,8 @@ export const incomingEventSchema = z
         height: optionalDimension,
       })
       .optional(),
+    coordinateSchemaVersion: z.number().int().positive().optional(),
+    devicePixelRatio: optionalDimension,
     duration: z.number().finite().nonnegative().optional(),
     elementKey: z.string().max(256).optional(),
   })

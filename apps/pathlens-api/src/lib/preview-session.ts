@@ -4,11 +4,25 @@ import {
   randomBytes,
   timingSafeEqual,
 } from "node:crypto";
-import type { PreviewSessionClaims } from "@workspace/contracts";
+import type {
+  HeatmapDevice,
+  PreviewDevice,
+  PreviewSessionClaims,
+} from "@workspace/contracts";
 import { normalizeProjectHostname } from "./project-domain";
 
 export const PREVIEW_SESSION_TTL_MS = 10 * 60 * 1000;
 export const PROXY_AUTH_MAX_CLOCK_SKEW_SECONDS = 300;
+
+export function resolveHeatmapPreviewDevice(
+  device: HeatmapDevice
+): PreviewDevice {
+  return device === "mobile"
+    ? "mobile"
+    : device === "tablet"
+      ? "tablet"
+      : "desktop";
+}
 
 export function createPreviewSessionHandle(): string {
   return randomBytes(32).toString("base64url");

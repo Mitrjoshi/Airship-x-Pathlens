@@ -151,6 +151,44 @@ test('authorized placeholder is domain and path scoped', async () => {
   assert.equal(calls, 3)
 })
 
+test('nested preview paths are fetched and rewritten as one authorized pathname', async () => {
+  const nestedClaims = { ...claims, pathname: '/work/pathlens' }
+  let requestedUrl = ''
+  const app = createProxyApp({
+    authorization: { validate: async () => nestedClaims },
+    fetchRuntime: {
+      config: fetchConfig,
+      transport: {
+        lookup: (_hostname, _options, callback) =>
+          callback(null, [{ address: '93.184.216.34', family: 4 }]),
+        request: (options: RequestOptions, callback) => {
+          requestedUrl = `https://${options.hostname}${options.path}`
+          const request = new TestRequest()
+          callback(
+            upstreamResponse(
+              '<!doctype html><link rel="stylesheet" href="./assets/site.css">',
+              'text/html'
+            )
+          )
+          return request
+        },
+      },
+    },
+  })
+
+  const result = await app(event('/v1/session/session/page/work/pathlens'))
+  assert.equal(result.statusCode, 200)
+  assert.equal(requestedUrl, 'https://example.com/work/pathlens')
+
+  const html = Buffer.from(result.body ?? '', 'base64').toString('utf8')
+  assert.match(html, /v1\/session\/session\/resource/)
+  assert.match(html, /resource\?t=/)
+
+  const sibling = await app(event('/v1/session/session/page/work/other'))
+  assert.equal(sibling.statusCode, 403)
+  assert.equal(body(sibling).error.code, 'PATH_NOT_ALLOWED')
+})
+
 test('unsafe methods are rejected before placeholder handling', async () => {
   const app = createProxyApp({
     authorization: { validate: async () => claims },
@@ -255,6 +293,43 @@ test('authorized resource route returns bounded binary content and rejects an un
   assert.equal(denied.statusCode, 403)
 })
 
+test('resource URLs stop working after the preview session expires', async () => {
+  let activeSession: typeof claims | null = claims
+  const app = createProxyApp({
+    authorization: { validate: async () => activeSession },
+    fetchRuntime: {
+      config: fetchConfig,
+      transport: {
+        lookup: (_hostname, _options, callback) =>
+          callback(null, [{ address: '93.184.216.34', family: 4 }]),
+        request: (_options: RequestOptions, callback) => {
+          const request = new TestRequest()
+          callback(upstreamResponse(Buffer.from([1, 2, 3]), 'image/gif'))
+          return request
+        },
+      },
+    },
+  })
+  const target = Buffer.from('https://example.com/image.gif').toString(
+    'base64url'
+  )
+  const path = '/v1/session/session/resource'
+  assert.equal(
+    (await app(event(path, 'GET', `t=${target}&depth=0`))).statusCode,
+    200
+  )
+  activeSession = null
+  assert.equal(
+    (await app(event(path, 'GET', `t=${target}&depth=0`))).statusCode,
+    401
+  )
+  activeSession = claims
+  assert.equal(
+    (await app(event(path, 'GET', 't=not-valid-base64&depth=0'))).statusCode,
+    400
+  )
+})
+
 test('preview resource route blocks Pathlens tracker collection targets', async () => {
   let upstreamCalls = 0
   const app = createProxyApp({
@@ -284,7 +359,7 @@ test('preview resource route blocks Pathlens tracker collection targets', async 
   assert.equal(upstreamCalls, 0)
 })
 
-test('heatmap runtime scroll bridge requires the protocol version', async () => {
+test('heatmap runtime bridge is disabled in static-only mode', async () => {
   const app = createProxyApp({
     authorization: {
       validate: async () => ({ ...claims, previewIntent: 'heatmap' as const }),
@@ -295,8 +370,29 @@ test('heatmap runtime scroll bridge requires the protocol version', async () => 
   const result = await app(
     event('/v1/session/session/runtime/scroll-controller.js')
   )
+  assert.equal(result.statusCode, 404)
+})
+
+test('heatmap runtime bridge contains the versioned measurement handshake', async () => {
+  const app = createProxyApp({
+    authorization: {
+      validate: async () => ({ ...claims, previewIntent: 'heatmap' as const }),
+    },
+    fetchRuntime: {
+      config: {
+        ...fetchConfig,
+        javascriptExecutionPolicy: 'isolated-script-runtime',
+      },
+    },
+  })
+
+  const result = await app(
+    event('/v1/session/session/runtime/scroll-controller.js')
+  )
   assert.equal(result.statusCode, 200)
   const script = Buffer.from(result.body ?? '', 'base64').toString('utf8')
-  assert.match(script, /data\.version!==1/)
-  assert.match(script, /data\.type!=='PATHLENS_SCROLL'/)
+  assert.match(script, /PATHLENS_MEASURE_REQUEST/)
+  assert.match(script, /PATHLENS_MEASURE_STATE/)
+  assert.match(script, /event\.source !== window\.parent/)
+  assert.match(script, /MAX_SCROLL_DELTA/)
 })

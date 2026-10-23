@@ -10,6 +10,7 @@ import {
   RewriteError,
   type RewriteContext,
 } from './rewrite-url.js'
+import { parseSrcset } from './rewrite-srcset.js'
 
 interface HtmlAttribute {
   name: string
@@ -177,19 +178,20 @@ function rewriteSrcset(
   baseUrl: string,
   context: RewriteContext
 ): string {
-  return value
-    .split(',')
+  return parseSrcset(value)
     .map((candidate) => {
-      const parts = candidate.trim().split(/\s+/)
-      const source = parts.shift() ?? ''
       try {
-        const rewritten = createScopedResourceUrl(source, baseUrl, context)
+        const rewritten = createScopedResourceUrl(
+          candidate.source,
+          baseUrl,
+          context
+        )
         if (!rewritten)
           throw new RewriteError(
             'SRCSET_BLOCKED',
             'The srcset reference is blocked.'
           )
-        return [rewritten, ...parts].join(' ')
+        return [rewritten, ...candidate.descriptors].join(' ')
       } catch (error) {
         if (error instanceof RewriteError && error.code === 'REFERENCE_LIMIT')
           throw error

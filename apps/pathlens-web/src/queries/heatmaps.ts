@@ -82,7 +82,9 @@ export const getHeatmapDetailsOptions = (
     queryKey: ['HEATMAP_DETAILS', params],
     queryFn: () => getHeatmapDetails(params),
     enabled: Boolean(
-      params.workspace_id && params.project_id && params.page_path
+      params.workspace_id &&
+      params.project_id &&
+      (params.page_path || params.heatmap_id)
     ),
     refetchInterval: (query) => {
       if (!pollSnapshot) return false

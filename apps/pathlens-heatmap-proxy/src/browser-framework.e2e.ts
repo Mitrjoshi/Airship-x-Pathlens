@@ -27,7 +27,8 @@ const hosts: Record<FixtureName, string> = {
 
 function claimsFor(
   name: FixtureName,
-  previewIntent: 'compatibility' | 'heatmap' = 'compatibility'
+  previewIntent: 'compatibility' | 'heatmap' = 'compatibility',
+  pathname = '/contact'
 ): PreviewSessionClaims {
   return {
     sessionId: `00000000-0000-4000-8000-${name === 'react' ? '000000000021' : name === 'next' ? '000000000022' : '000000000023'}`,
@@ -37,7 +38,7 @@ function claimsFor(
     userId: '00000000-0000-4000-8000-000000000029',
     canonicalHostname: hosts[name],
     allowedHostnames: [hosts[name]],
-    pathname: '/contact',
+    pathname,
     device: 'desktop',
     createdAt: '2026-10-22T10:00:00.000Z',
     expiresAt: '2099-10-22T10:10:00.000Z',
@@ -81,12 +82,14 @@ function response(body: string | Buffer, type: string): IncomingMessage {
 function fixturePath(name: FixtureName, requestPath: string): string {
   const path = requestPath.split('?', 1)[0] ?? '/'
   if (name === 'react') {
-    return join(
-      fixtureRoot,
-      'dist',
-      'react',
-      path === '/contact' ? 'index.html' : path.slice(1)
-    )
+    const relativePath = path.startsWith('/assets/')
+      ? path.slice(1)
+      : path === '/logo.svg' ||
+          path.startsWith('/skills/') ||
+          path.startsWith('/images/')
+        ? 'logo.svg'
+        : 'index.html'
+    return join(fixtureRoot, 'dist', 'react', relativePath)
   }
   if (name === 'next') {
     return join(
@@ -184,7 +187,7 @@ async function openFixture(
   const parent = createServer((_request, reply) => {
     reply.setHeader('content-type', 'text/html; charset=utf-8')
     reply.end(
-      `<style>body{margin:0}.stage{position:relative;width:100vw;height:100vh}iframe{width:100%;height:100%;border:0}#shield{position:absolute;inset:0;z-index:1;background:transparent}</style><div class="stage"><iframe id="preview" src="${config.publicOrigin}/v1/session/${name}/page/contact" sandbox="allow-scripts" referrerpolicy="no-referrer" allow=""></iframe><div id="shield"${previewIntent === 'heatmap' ? '' : ' hidden'}></div></div><script>const shield=document.querySelector('#shield'),frame=document.querySelector('#preview');let touchY=null;function stop(event){event.preventDefault();event.stopPropagation()}function scrollByDelta(delta){if(!Number.isFinite(delta)||delta===0)return;frame.contentWindow.postMessage({version:1,type:'PATHLENS_SCROLL',delta},'*')}shield.addEventListener('click',stop);shield.addEventListener('pointerdown',stop);shield.addEventListener('wheel',(event)=>{stop(event);scrollByDelta(event.deltaY)},{passive:false});shield.addEventListener('touchstart',(event)=>{stop(event);touchY=event.touches[0]?.clientY??null},{passive:false});shield.addEventListener('touchmove',(event)=>{stop(event);const current=event.touches[0]?.clientY;if(touchY===null||current===undefined)return;scrollByDelta(touchY-current);touchY=current},{passive:false});</script>`
+      `<style>body{margin:0}.stage{position:relative;width:100vw;height:100vh}iframe{width:100%;height:100%;border:0}#shield{position:absolute;inset:0;z-index:1;background:transparent}</style><div class="stage"><iframe id="preview" src="${config.publicOrigin}/v1/session/${name}/page${sessions[name]?.pathname ?? '/contact'}" sandbox="allow-scripts" referrerpolicy="no-referrer" allow=""></iframe><div id="shield"${previewIntent === 'heatmap' ? '' : ' hidden'}></div></div><script>const shield=document.querySelector('#shield'),frame=document.querySelector('#preview'),nonce='0123456789abcdef0123456789abcdef',sessionId=${JSON.stringify(sessions[name]?.sessionId ?? '')},requestId='framework-request';let touchY=null;function stop(event){event.preventDefault();event.stopPropagation()}function send(type,extra){frame.contentWindow.postMessage({version:1,type,sessionId,nonce,...extra},'*')}frame.addEventListener('load',()=>send('PATHLENS_MEASURE_REQUEST',{requestId}));function scrollByDelta(delta){if(!Number.isFinite(delta)||delta===0)return;send('PATHLENS_SCROLL',{delta})}shield.addEventListener('click',stop);shield.addEventListener('pointerdown',stop);shield.addEventListener('wheel',(event)=>{stop(event);scrollByDelta(event.deltaY)},{passive:false});shield.addEventListener('touchstart',(event)=>{stop(event);touchY=event.touches[0]?.clientY??null},{passive:false});shield.addEventListener('touchmove',(event)=>{stop(event);const current=event.touches[0]?.clientY;if(touchY===null||current===undefined)return;scrollByDelta(touchY-current);touchY=current},{passive:false});</script>`
     )
   })
   const proxy = createServer(async (request, reply) => {
@@ -377,6 +380,10 @@ test('renders the production React/Vite fixture through the isolated proxy', asy
   await frame.waitForSelector('img[alt="Picture logo"]')
   await frame.waitForSelector('[data-testid="background-image"]')
   await frame.waitForSelector('[data-testid="runtime-image"]')
+  await frame.waitForSelector('[data-testid="dynamic-source"]', {
+    state: 'attached',
+  })
+  await frame.locator('[data-testid="lazy-image"]').scrollIntoViewIfNeeded()
   await result.page.waitForTimeout(50)
   const imageState = await frame.locator('img').evaluateAll((images) =>
     images.map((image) => ({
@@ -386,6 +393,7 @@ test('renders the production React/Vite fixture through the isolated proxy', asy
       naturalHeight: image.naturalHeight,
       currentSrc: image.currentSrc,
       attr: image.getAttribute('src'),
+      srcset: image.getAttribute('srcset'),
     }))
   )
   assert.equal(
@@ -401,6 +409,44 @@ test('renders the production React/Vite fixture through the isolated proxy', asy
   )
   assert.ok(
     imageState.every((image) => image.currentSrc.includes('/v1/session/'))
+  )
+  assert.equal(
+    await frame.locator('[data-testid="data-images"] img').count(),
+    3
+  )
+  assert.equal(
+    await frame
+      .locator('[data-testid="data-images"] img')
+      .evaluateAll((images) =>
+        images.every(
+          (image) =>
+            image.complete &&
+            image.naturalWidth > 0 &&
+            image.currentSrc.includes('/v1/session/')
+        )
+      ),
+    true,
+    JSON.stringify(imageState)
+  )
+  assert.ok(
+    await frame
+      .locator('picture source')
+      .first()
+      .getAttribute('srcset')
+      .then((value) => value?.includes('/v1/session/') ?? false)
+  )
+  assert.ok(
+    await frame
+      .locator('[data-testid="dynamic-source"]')
+      .getAttribute('srcset')
+      .then((value) => value?.includes('/v1/session/') ?? false)
+  )
+  assert.equal(
+    await frame.locator('[alt="Dynamic picture image"]').evaluate((element) => {
+      const image = element as HTMLImageElement
+      return image.complete && image.naturalWidth > 0
+    }),
+    true
   )
   assert.match(
     await frame
@@ -423,6 +469,41 @@ test('renders the production React/Vite fixture through the isolated proxy', asy
       .evaluate((element) => element.getBoundingClientRect().width <= 390)
   )
   assert.deepEqual(result.pageErrors, [])
+})
+
+test('renders a nested React/Vite route with destructured image props', async (t) => {
+  assertFixtureExists('react')
+  const sessions = {
+    react: claimsFor('react', 'compatibility', '/work/pathlens'),
+  }
+  const config = makeConfig('http://127.0.0.1:0', 'http://127.0.0.1:0')
+  const result = await openFixture('react', config, sessions)
+  t.after(async () => {
+    await result.browser.close()
+    await new Promise<void>((resolve) => result.proxy.close(() => resolve()))
+    await new Promise<void>((resolve) => result.parent.close(() => resolve()))
+  })
+
+  await result.frame.waitForSelector('h1')
+  await result.frame.waitForSelector('[data-testid="lazy-loaded"]')
+  await result.frame.waitForSelector('[data-testid="destructured-image"]')
+  assert.equal(await result.frame.locator('h1').textContent(), 'React mounted')
+  assert.equal(
+    await result.frame
+      .locator('[data-testid="destructured-image"]')
+      .evaluate((element) => {
+        const image = element as HTMLImageElement
+        return image.complete && image.naturalWidth > 0
+      }),
+    true
+  )
+  assert.deepEqual(result.pageErrors, [])
+  assert.deepEqual(result.consoleErrors, [])
+
+  const sibling = await fetch(
+    `${config.publicOrigin}/v1/session/react/page/work/other`
+  )
+  assert.equal(sibling.status, 403)
 })
 
 test('preview storage is isolated across domains and from the dashboard', async (t) => {
@@ -529,6 +610,147 @@ test('heatmap mode blocks React controls but preserves controlled scrolling', as
   })
 
   await result.frame.waitForSelector('button')
+  await result.page.evaluate(() => {
+    const iframe = document.querySelector(
+      '#preview'
+    ) as HTMLIFrameElement | null
+    window.addEventListener('message', (event) => {
+      const data = event.data
+      if (
+        event.source === iframe?.contentWindow &&
+        data?.type === 'PATHLENS_MEASURE_STATE' &&
+        data?.nonce === '0123456789abcdef0123456789abcdef' &&
+        data?.requestId === 'framework-request'
+      ) {
+        document.body.dataset.measurement = JSON.stringify(data)
+      }
+    })
+    iframe?.contentWindow?.postMessage(
+      {
+        version: 1,
+        type: 'PATHLENS_MEASURE_REQUEST',
+        sessionId: '00000000-0000-4000-8000-000000000021',
+        nonce: 'wrong-wrong-wrong-wrong',
+        requestId: 'wrong-request',
+      },
+      '*'
+    )
+    iframe?.contentWindow?.postMessage(
+      {
+        version: 1,
+        type: 'PATHLENS_MEASURE_REQUEST',
+        sessionId: '00000000-0000-4000-8000-000000000021',
+        nonce: '0123456789abcdef0123456789abcdef',
+        requestId: 'framework-request',
+      },
+      '*'
+    )
+  })
+  await result.page.waitForFunction(
+    () => document.body.dataset.measurement !== undefined
+  )
+  const measurement = JSON.parse(
+    await result.page.locator('body').getAttribute('data-measurement')
+  ) as {
+    viewportWidth: number
+    viewportHeight: number
+    documentHeight: number
+    maxScrollY: number
+    scrollY: number
+  }
+  assert.ok(measurement.viewportWidth > 0)
+  assert.ok(measurement.viewportHeight > 0)
+  assert.ok(measurement.documentHeight >= measurement.viewportHeight)
+  assert.ok(measurement.maxScrollY >= 0)
+  assert.ok(measurement.scrollY >= 0)
+
+  const initialFrameBox = await result.page.locator('#preview').boundingBox()
+  assert.ok(initialFrameBox)
+  assert.equal(Math.round(initialFrameBox.width), measurement.viewportWidth)
+  assert.equal(Math.round(initialFrameBox.height), measurement.viewportHeight)
+  assert.equal(await result.frame.evaluate(() => window.scrollY), 0)
+
+  const sendScroll = async (delta: number) => {
+    await result.page.evaluate((value) => {
+      const iframe = document.querySelector('#preview') as HTMLIFrameElement
+      iframe.contentWindow?.postMessage(
+        {
+          version: 1,
+          type: 'PATHLENS_SCROLL',
+          sessionId: '00000000-0000-4000-8000-000000000021',
+          nonce: '0123456789abcdef0123456789abcdef',
+          delta: value,
+        },
+        '*'
+      )
+    }, delta)
+  }
+
+  await sendScroll(400)
+  await result.frame.waitForFunction(() => window.scrollY > 0)
+  await result.page.waitForFunction(
+    () => JSON.parse(document.body.dataset.measurement ?? '{}').scrollY > 0
+  )
+  const middleMeasurement = JSON.parse(
+    await result.page.locator('body').getAttribute('data-measurement')
+  ) as { scrollY: number; maxScrollY: number }
+  assert.ok(middleMeasurement.scrollY > 0)
+  assert.ok(middleMeasurement.scrollY < middleMeasurement.maxScrollY)
+
+  await sendScroll(2_000)
+  await sendScroll(2_000)
+  await result.frame.waitForFunction(() => window.scrollY > 0)
+  await result.frame.evaluate(() =>
+    window.scrollTo(0, document.documentElement.scrollHeight)
+  )
+  await result.page.waitForFunction(() => {
+    const data = JSON.parse(document.body.dataset.measurement ?? '{}')
+    return data.scrollY === data.maxScrollY
+  })
+  const bottomMeasurement = JSON.parse(
+    await result.page.locator('body').getAttribute('data-measurement')
+  ) as { scrollY: number; maxScrollY: number }
+  assert.equal(bottomMeasurement.scrollY, bottomMeasurement.maxScrollY)
+
+  await result.frame.evaluate(() => window.scrollTo(0, 0))
+  await result.frame.waitForFunction(() => window.scrollY === 0)
+
+  const initialDocumentHeight = measurement.documentHeight
+  await result.frame.evaluate(() => {
+    const spacer = document.createElement('div')
+    spacer.style.height = '1200px'
+    spacer.dataset.verificationSpacer = 'true'
+    document.body.append(spacer)
+  })
+  await result.page.waitForFunction(
+    (height) =>
+      JSON.parse(document.body.dataset.measurement ?? '{}').documentHeight >
+      height,
+    initialDocumentHeight
+  )
+
+  for (const width of [390, 768, 1280]) {
+    await result.page.evaluate((value) => {
+      const iframe = document.querySelector('#preview') as HTMLIFrameElement
+      iframe.style.width = `${value}px`
+      iframe.style.margin = '0 auto'
+    }, width)
+    await result.page.waitForFunction(
+      (expectedWidth) =>
+        Math.round(
+          JSON.parse(document.body.dataset.measurement ?? '{}').viewportWidth
+        ) === expectedWidth,
+      width
+    )
+    const frameBox = await result.page.locator('#preview').boundingBox()
+    assert.ok(frameBox)
+    const resizedMeasurement = JSON.parse(
+      await result.page.locator('body').getAttribute('data-measurement')
+    ) as { viewportWidth: number; viewportHeight: number }
+    assert.equal(Math.round(frameBox.width), resizedMeasurement.viewportWidth)
+    assert.equal(Math.round(frameBox.height), resizedMeasurement.viewportHeight)
+  }
+
   const frameBox = await result.page.locator('#preview').boundingBox()
   assert.ok(frameBox)
   const button = await result.frame

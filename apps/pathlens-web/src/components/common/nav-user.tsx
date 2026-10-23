@@ -50,10 +50,10 @@ export function NavUser({ user }: { user: NavUserData }) {
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="my-2 w-50"
+        className="w-50"
         side="bottom"
         align="end"
-        sideOffset={4}
+        sideOffset={8}
       >
         <DropdownMenuGroup>
           <DropdownMenuLabel className="p-0 font-normal">

@@ -102,9 +102,9 @@ function RouteComponent() {
   return (
     <div>
       <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-0 items-center gap-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             aria-label="Back to goals"
             onClick={() =>

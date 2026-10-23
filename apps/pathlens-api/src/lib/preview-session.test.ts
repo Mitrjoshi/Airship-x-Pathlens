@@ -6,7 +6,9 @@ import {
   createProxyAuthSignature,
   getAllowedPreviewHostnames,
   verifyProxyAuthSignature,
+  resolveHeatmapPreviewDevice,
 } from "./preview-session";
+import { createPreviewSessionRequestSchema } from "@workspace/contracts";
 
 const claims = {
   sessionId: "00000000-0000-4000-8000-000000000001",
@@ -78,6 +80,42 @@ test("proxy authorization signatures expire and reject tampering", () => {
       secret,
       now + 301_000
     ),
+    false
+  );
+});
+
+test("heatmap preview requests use the persisted ID and supported device filters", () => {
+  const base = {
+    workspace_id: "00000000-0000-4000-8000-000000000002",
+    project_id: "00000000-0000-4000-8000-000000000003",
+    heatmap_id: "00000000-0000-4000-8000-000000000004",
+  };
+
+  for (const device of [
+    "all",
+    "desktop",
+    "mobile",
+    "tablet",
+    "unknown",
+  ] as const) {
+    assert.equal(
+      createPreviewSessionRequestSchema.safeParse({ ...base, device }).success,
+      true
+    );
+  }
+
+  assert.equal(resolveHeatmapPreviewDevice("all"), "desktop");
+  assert.equal(resolveHeatmapPreviewDevice("unknown"), "desktop");
+  assert.equal(resolveHeatmapPreviewDevice("mobile"), "mobile");
+  assert.equal(resolveHeatmapPreviewDevice("tablet"), "tablet");
+  assert.equal(
+    createPreviewSessionRequestSchema.safeParse({
+      ...base,
+      device: "desktop",
+      domain_id: "00000000-0000-4000-8000-000000000005",
+      page_path: "/work",
+      preview_intent: "heatmap",
+    }).success,
     false
   );
 });

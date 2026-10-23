@@ -1,9 +1,9 @@
 import { and, eq, sql } from "drizzle-orm";
 import type {
-  HeatmapClickPoint,
-  HeatmapCoordinateMode,
   HeatmapDevice,
+  HeatmapClickSampleCoverage,
   HeatmapHotArea,
+  HeatmapMovementCoverage,
   HeatmapPage,
   HeatmapPageDetail,
   HeatmapScrollPoint,
@@ -11,16 +11,22 @@ import type {
   HeatmapSnapshotStatus,
   HeatmapsData,
   HeatmapsListData,
-} from "@workspace/contracts";
+} from "@workspace/contracts/heatmaps";
 import { normalizePagePath } from "@workspace/contracts";
 import { db } from "../db/client";
 import { heatmapPageSnapshots, projectDomains, projects } from "../db/schema";
 import { createHeatmapSnapshotSignedUrl } from "../lib/s3";
 import { enqueueHeatmapPageSnapshot } from "../lib/snapshot-queue";
 import { normalizeProjectHostname } from "../lib/project-domain";
+import {
+  aggregateClickHeatmap,
+  aggregateMovementHeatmap,
+  collectClickSamples,
+} from "../lib/heatmap-aggregation";
+import { aggregateScrollGroups } from "../lib/scroll-aggregation";
 import { getCompleteReplayDataModel } from "./replay.model";
 
-const MAX_HEATMAP_EVENTS = 20_000;
+export const MAX_HEATMAP_EVENTS = 20_000;
 const MAX_HOT_AREA_LABEL_LENGTH = 56;
 const MAX_HOT_AREA_LABEL_WORDS = 8;
 const STRUCTURAL_HOT_AREA_TAGS = new Set([
@@ -67,6 +73,35 @@ export interface HeatmapsFilters {
   page?: number;
   pageSize?: number;
   includeDetails?: boolean;
+  heatmapId?: string;
+}
+
+export function buildClickSampleCoverage(
+  totalEvents: number,
+  returnedEvents: number,
+  eligibleEvents: number
+): HeatmapClickSampleCoverage {
+  return {
+    limit: MAX_HEATMAP_EVENTS,
+    totalEvents: Math.max(0, totalEvents),
+    returnedEvents: Math.min(MAX_HEATMAP_EVENTS, Math.max(0, returnedEvents)),
+    eligibleEvents: Math.max(0, eligibleEvents),
+    truncated: totalEvents > MAX_HEATMAP_EVENTS,
+  };
+}
+
+export function buildMovementCoverage(
+  totalEvents: number,
+  returnedEvents: number,
+  eligibleEvents: number
+): HeatmapMovementCoverage {
+  return {
+    limit: MAX_HEATMAP_EVENTS,
+    totalEvents: Math.max(0, totalEvents),
+    returnedEvents: Math.min(MAX_HEATMAP_EVENTS, Math.max(0, returnedEvents)),
+    eligibleEvents: Math.max(0, eligibleEvents),
+    truncated: totalEvents > MAX_HEATMAP_EVENTS,
+  };
 }
 
 interface PageRow extends Record<string, unknown> {
@@ -82,12 +117,28 @@ interface PageRow extends Record<string, unknown> {
   total: number | string | null;
 }
 
+interface HeatmapIdentity {
+  id: string;
+  workspaceId: string;
+  projectId: string;
+  domainId: string;
+  domain: string;
+  pagePath: string;
+  device: HeatmapDevice;
+}
+
+export interface HeatmapIdentityCandidate {
+  id: string;
+  device: HeatmapDevice;
+}
+
 interface HeatmapEventRow extends Record<string, unknown> {
-  type: string;
+  type: "click" | "mousemove";
   session_id: string;
   payload: Record<string, unknown> | null;
   viewport_width: number | string | null;
   viewport_height: number | string | null;
+  total_count?: number | string | null;
 }
 
 interface ScrollSummaryRow extends Record<string, unknown> {
@@ -102,6 +153,9 @@ interface ScrollSummaryRow extends Record<string, unknown> {
 }
 
 interface ScrollSessionRow extends Record<string, unknown> {
+  session_id: string;
+  device: string | null;
+  payloads: Record<string, unknown>[] | null;
   max_scroll: number | string | null;
 }
 
@@ -271,6 +325,30 @@ function normalizedPathSql(column: string) {
   )`;
 }
 
+function normalizedDeviceSql(column: string) {
+  return sql`LOWER(COALESCE(NULLIF(TRIM(${sql.raw(column)}), ''), 'unknown'))`;
+}
+
+export function applyHeatmapIdentityToFilters(
+  filters: HeatmapsFilters,
+  identity: Pick<HeatmapIdentity, "domain" | "pagePath">
+): HeatmapsFilters {
+  return {
+    ...filters,
+    domain: identity.domain,
+    pagePath: identity.pagePath,
+  };
+}
+
+export function selectHeatmapIdentityId(
+  candidates: readonly HeatmapIdentityCandidate[],
+  device: HeatmapDevice
+): string | null {
+  return (
+    candidates.find((candidate) => candidate.device === device)?.id ?? null
+  );
+}
+
 function getSnapshotViewport(
   page: HeatmapPage,
   device: HeatmapDevice
@@ -357,9 +435,24 @@ async function getHeatmapSnapshot(
 
   const pathname = normalizePagePath(page.path);
   const sourceUrl = new URL(pathname, `https://${requestedDomain}`).toString();
+
+  // All-devices data has no single snapshot geometry. It must use validated
+  // geometry groups rather than creating a synthetic all-device snapshot.
+  if (filters.device === "all") {
+    return {
+      url: null,
+      status: "pending",
+      capturedAt: null,
+      width: null,
+      height: null,
+      snapshot: null,
+    };
+  }
+
   const viewport = getSnapshotViewport(page, filters.device);
   const deviceScaleFactor = 1;
   const identity = and(
+    eq(heatmapPageSnapshots.workspaceId, filters.workspaceId),
     eq(heatmapPageSnapshots.projectId, filters.projectId),
     eq(heatmapPageSnapshots.domain, requestedDomain),
     eq(heatmapPageSnapshots.pagePath, pathname),
@@ -486,6 +579,7 @@ async function getHeatmapSnapshot(
     width: row.pageWidth,
     height: row.pageHeight,
     snapshot: {
+      id: row.id,
       pathname: row.pagePath,
       domain: row.domain,
       device: row.device as HeatmapDevice,
@@ -499,11 +593,48 @@ async function getHeatmapSnapshot(
   };
 }
 
+async function getPersistedHeatmapPageId(
+  filters: HeatmapsFilters,
+  page: HeatmapPage
+): Promise<string | null> {
+  const requestedDomain =
+    filters.domain ?? normalizeProjectHostname(page.url ?? "");
+
+  if (!requestedDomain) return null;
+
+  const pathname = normalizePagePath(page.path);
+  const rows = await db
+    .select({
+      id: heatmapPageSnapshots.id,
+      device: heatmapPageSnapshots.device,
+    })
+    .from(heatmapPageSnapshots)
+    .innerJoin(projects, eq(projects.id, heatmapPageSnapshots.projectId))
+    .where(
+      and(
+        eq(heatmapPageSnapshots.workspaceId, filters.workspaceId),
+        eq(heatmapPageSnapshots.projectId, filters.projectId),
+        eq(projects.workspaceId, filters.workspaceId),
+        eq(heatmapPageSnapshots.domain, requestedDomain),
+        eq(heatmapPageSnapshots.pagePath, pathname)
+      )
+    );
+
+  return selectHeatmapIdentityId(
+    rows.map((row) => ({
+      id: row.id,
+      device: row.device as HeatmapDevice,
+    })),
+    filters.device
+  );
+}
+
 function mapPage(row: PageRow): HeatmapPage {
   const width = toNumber(row.viewport_width);
   const height = toNumber(row.viewport_height);
 
   return {
+    id: "",
     path: row.path?.trim() || "/",
     url: row.url?.trim() || null,
     visitors: toNumber(row.visitors),
@@ -623,82 +754,6 @@ function buildHotAreas(
   }));
 }
 
-function buildClickPoints(
-  rows: HeatmapEventRow[],
-  page: HeatmapPage
-): {
-  points: HeatmapClickPoint[];
-  coordinateMode: "document" | "viewport" | "mixed";
-} {
-  const buckets = new Map<
-    string,
-    {
-      x: number;
-      y: number;
-      count: number;
-      coordinateMode: HeatmapCoordinateMode;
-    }
-  >();
-  let documentCoordinates = 0;
-  let viewportCoordinates = 0;
-
-  for (const row of rows) {
-    if (row.type !== "click") continue;
-
-    const document = getPayloadDocument(row.payload);
-    const x = getPayloadNumber(row.payload, document ? "pageX" : "x");
-    const y = getPayloadNumber(row.payload, document ? "pageY" : "y");
-
-    if (x === null || y === null) continue;
-
-    const dimensions = document ?? getPageViewport(page, row);
-
-    if (document) documentCoordinates += 1;
-    else viewportCoordinates += 1;
-
-    const xRatio = clamp(x / dimensions.width, 0, 1);
-    const yRatio = clamp(y / dimensions.height, 0, 1);
-    const xBucket = Math.min(19, Math.floor(xRatio * 20));
-    const yBucket = Math.min(19, Math.floor(yRatio * 20));
-    const coordinateMode: HeatmapCoordinateMode = document
-      ? "document"
-      : "viewport";
-    const key = `${coordinateMode}:${xBucket}:${yBucket}`;
-    const bucket = buckets.get(key);
-
-    if (bucket) {
-      bucket.count += 1;
-    } else {
-      buckets.set(key, {
-        x: (xBucket + 0.5) / 20,
-        y: (yBucket + 0.5) / 20,
-        count: 1,
-        coordinateMode,
-      });
-    }
-  }
-
-  const maxCount = Math.max(
-    ...Array.from(buckets.values()).map((item) => item.count),
-    1
-  );
-
-  return {
-    points: Array.from(buckets.values())
-      .map((point) => ({
-        ...point,
-        intensity: Math.min(1, point.count / maxCount),
-      }))
-      .sort((left, right) => right.count - left.count),
-    coordinateMode:
-      documentCoordinates > 0 && viewportCoordinates > 0
-        ? "mixed"
-        : documentCoordinates > 0
-          ? "document"
-          : "viewport",
-  };
-}
-
 function buildScrollPoints(
   rows: ScrollSessionRow[],
   totalSessions: number
@@ -735,7 +790,7 @@ async function getRepresentativeReplaySession(
 ): Promise<ReplaySessionRow | null> {
   const deviceFilter =
     filters.device !== "all"
-      ? sql`AND page_event.device = ${filters.device}`
+      ? sql`AND ${normalizedDeviceSql("page_event.device")} = ${filters.device}`
       : sql``;
   const result = await db.execute<ReplaySessionRow>(sql`
     SELECT
@@ -793,10 +848,12 @@ export async function getHeatmapsModel(
 ): Promise<HeatmapsData> {
   const rangeDays = RANGE_DAYS[filters.range];
   const deviceFilter =
-    filters.device !== "all" ? sql`AND device = ${filters.device}` : sql``;
+    filters.device !== "all"
+      ? sql`AND ${normalizedDeviceSql("device")} = ${filters.device}`
+      : sql``;
   const replayPageDeviceFilter =
     filters.device !== "all"
-      ? sql`AND replay_page.device = ${filters.device}`
+      ? sql`AND ${normalizedDeviceSql("replay_page.device")} = ${filters.device}`
       : sql``;
   const domainFilter = filters.domain
     ? sql`AND regexp_replace(regexp_replace(regexp_replace(lower(split_part(split_part(coalesce(url, ''), '://', 2), '/', 1)), ':[0-9]+$', ''), '^www\\.', ''), '\\.$', '') = ${filters.domain}`
@@ -896,22 +953,32 @@ export async function getHeatmapsModel(
   const scrollSummaries = new Map(
     scrollSummaryResult.rows.map((row) => [row.path ?? "/", row])
   );
-  const pages = pageResult.rows.map((row) => {
-    const page = mapPage(row);
-    const summary = scrollSummaries.get(page.path);
-    const sessions = toNumber(summary?.sessions);
+  const pages = await Promise.all(
+    pageResult.rows.map(async (row) => {
+      const page = mapPage(row);
+      const summary = scrollSummaries.get(page.path);
+      const sessions = toNumber(summary?.sessions);
+      const snapshot = await getHeatmapSnapshot(filters, page);
+      const persistedId =
+        snapshot.snapshot?.id ??
+        (await getPersistedHeatmapPageId(filters, page));
 
-    return {
-      ...page,
-      averageScroll: toNumber(summary?.average_scroll),
-      maxScroll: toNumber(summary?.max_scroll),
-      reach25: sessions > 0 ? (toNumber(summary?.reach25) / sessions) * 100 : 0,
-      reach50: sessions > 0 ? (toNumber(summary?.reach50) / sessions) * 100 : 0,
-      reach75: sessions > 0 ? (toNumber(summary?.reach75) / sessions) * 100 : 0,
-      reach100:
-        sessions > 0 ? (toNumber(summary?.reach100) / sessions) * 100 : 0,
-    };
-  });
+      return {
+        ...page,
+        id: persistedId ?? "",
+        averageScroll: toNumber(summary?.average_scroll),
+        maxScroll: toNumber(summary?.max_scroll),
+        reach25:
+          sessions > 0 ? (toNumber(summary?.reach25) / sessions) * 100 : 0,
+        reach50:
+          sessions > 0 ? (toNumber(summary?.reach50) / sessions) * 100 : 0,
+        reach75:
+          sessions > 0 ? (toNumber(summary?.reach75) / sessions) * 100 : 0,
+        reach100:
+          sessions > 0 ? (toNumber(summary?.reach100) / sessions) * 100 : 0,
+      };
+    })
+  );
 
   const total = toNumber(pageResult.rows[0]?.total);
   const totalPages = Math.ceil(total / pageSize);
@@ -939,19 +1006,39 @@ export async function getHeatmapsModel(
   if (!selectedPage) {
     return { pages, selectedPage: null, pagination };
   }
-  const eventResult = await db.execute<HeatmapEventRow>(sql`
+  const clickEventResult = await db.execute<HeatmapEventRow>(sql`
     SELECT
       type,
       session_id,
       payload,
       viewport_width,
-      viewport_height
+      viewport_height,
+      COUNT(*) OVER()::int AS total_count
     FROM events
     WHERE workspace_id = ${filters.workspaceId}
       AND project_id = ${filters.projectId}
       AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
        AND ${normalizedPathSql("path")} = ${selectedPage.path}
-      AND type = 'click'
+       AND type = 'click'
+      ${deviceFilter}
+      ${domainFilter}
+    ORDER BY md5(concat_ws('|', session_id, occurred_at::text, payload::text))
+    LIMIT ${MAX_HEATMAP_EVENTS + 1};
+  `);
+  const movementEventResult = await db.execute<HeatmapEventRow>(sql`
+    SELECT
+      type,
+      session_id,
+      payload,
+      viewport_width,
+      viewport_height,
+      COUNT(*) OVER()::int AS total_count
+    FROM events
+    WHERE workspace_id = ${filters.workspaceId}
+      AND project_id = ${filters.projectId}
+      AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+       AND ${normalizedPathSql("path")} = ${selectedPage.path}
+       AND type = 'mousemove'
       ${deviceFilter}
       ${domainFilter}
     ORDER BY occurred_at ASC
@@ -959,6 +1046,9 @@ export async function getHeatmapsModel(
   `);
   const selectedScrollResult = await db.execute<ScrollSessionRow>(sql`
     SELECT
+      session_id,
+      device,
+      ARRAY_AGG(payload) AS payloads,
       MAX(
         CASE
           WHEN payload->>'percentage' ~ '^-?[0-9]+([.][0-9]+)?$'
@@ -974,7 +1064,7 @@ export async function getHeatmapsModel(
       AND type = 'scroll'
       ${deviceFilter}
       ${domainFilter}
-    GROUP BY session_id;
+    GROUP BY session_id, device;
   `);
   const replaySession = await getRepresentativeReplaySession(
     filters,
@@ -988,15 +1078,60 @@ export async function getHeatmapsModel(
         replaySession.session_id
       )
     : null;
-  const clickAggregation = buildClickPoints(eventResult.rows, selectedPage);
+  const fallbackViewport = getPageViewport(selectedPage, {
+    payload: null,
+  } as HeatmapEventRow);
+  const clickRows = clickEventResult.rows.slice(0, MAX_HEATMAP_EVENTS);
+  const clickTotalEvents = toNumber(
+    clickEventResult.rows[0]?.total_count ?? clickEventResult.rows.length
+  );
+  const clickAggregation = aggregateClickHeatmap(clickRows, fallbackViewport);
+  const clickSamples = collectClickSamples(clickRows, fallbackViewport);
+  const clickSampleCoverage = buildClickSampleCoverage(
+    clickTotalEvents,
+    clickRows.length,
+    clickSamples.eligibleEventCount
+  );
+  const movementAggregation = aggregateMovementHeatmap(
+    movementEventResult.rows,
+    fallbackViewport
+  );
+  const movementTotalEvents = toNumber(
+    movementEventResult.rows[0]?.total_count ?? movementEventResult.rows.length
+  );
+  const movementEligibleEvents = movementAggregation.groups.reduce(
+    (total, group) => total + group.sampleCount,
+    0
+  );
+  const movementCoverage = buildMovementCoverage(
+    movementTotalEvents,
+    movementEventResult.rows.length,
+    movementEligibleEvents
+  );
   const heatmapSnapshot = await getHeatmapSnapshot(filters, selectedPage);
   const selectedScrollSummary = scrollSummaries.get(selectedPage.path);
   const sessionCount = toNumber(selectedScrollSummary?.sessions);
   const pageDetail: HeatmapPageDetail = {
     ...selectedPage,
     clickPoints: clickAggregation.points,
-    hotAreas: buildHotAreas(eventResult.rows, selectedPage),
+    clickGroups: clickAggregation.groups,
+    clickSamples: clickSamples.groups,
+    clickSampleCoverage,
+    movementPoints: movementAggregation.points,
+    movementGroups: movementAggregation.groups,
+    movementCoordinateMode: movementAggregation.coordinateMode,
+    movementCoverage,
+    hotAreas: buildHotAreas(clickRows, selectedPage),
     scrollPoints: buildScrollPoints(selectedScrollResult.rows, sessionCount),
+    scrollGroups: aggregateScrollGroups(
+      selectedScrollResult.rows.flatMap((row) =>
+        (row.payloads ?? []).map((payload) => ({
+          sessionId: row.session_id,
+          device: row.device,
+          payload,
+        }))
+      )
+    ),
     replayEvents: replay?.events ?? [],
     replayViewport:
       replaySession &&
@@ -1038,9 +1173,77 @@ export async function getHeatmapsListModel(
   };
 }
 
+export async function getHeatmapIdentityModel(
+  heatmapId: string,
+  workspaceId: string,
+  projectId: string
+): Promise<HeatmapIdentity | null> {
+  const [row] = await db
+    .select({
+      id: heatmapPageSnapshots.id,
+      workspaceId: heatmapPageSnapshots.workspaceId,
+      projectId: heatmapPageSnapshots.projectId,
+      domain: heatmapPageSnapshots.domain,
+      pagePath: heatmapPageSnapshots.pagePath,
+      device: heatmapPageSnapshots.device,
+    })
+    .from(heatmapPageSnapshots)
+    .innerJoin(projects, eq(projects.id, heatmapPageSnapshots.projectId))
+    .where(
+      and(
+        eq(heatmapPageSnapshots.id, heatmapId),
+        eq(heatmapPageSnapshots.workspaceId, workspaceId),
+        eq(heatmapPageSnapshots.projectId, projectId),
+        eq(projects.workspaceId, workspaceId)
+      )
+    );
+
+  if (!row) return null;
+
+  const domains = await db
+    .select({ id: projectDomains.id, domain: projectDomains.domain })
+    .from(projectDomains)
+    .innerJoin(projects, eq(projects.id, projectDomains.projectId))
+    .where(
+      and(
+        eq(projectDomains.projectId, projectId),
+        eq(projects.workspaceId, workspaceId)
+      )
+    );
+  const domain = domains.find(
+    (item) =>
+      normalizeProjectHostname(item.domain) ===
+      normalizeProjectHostname(row.domain)
+  );
+
+  if (!domain) return null;
+
+  return {
+    id: row.id,
+    workspaceId: row.workspaceId,
+    projectId: row.projectId,
+    domainId: domain.id,
+    domain: normalizeProjectHostname(domain.domain) ?? domain.domain,
+    pagePath: normalizePagePath(row.pagePath),
+    device: row.device as HeatmapDevice,
+  };
+}
+
 export async function getHeatmapDetailsModel(
   filters: HeatmapsFilters
 ): Promise<HeatmapPageDetail | null> {
+  if (filters.heatmapId) {
+    const identity = await getHeatmapIdentityModel(
+      filters.heatmapId,
+      filters.workspaceId,
+      filters.projectId
+    );
+
+    if (!identity) return null;
+
+    filters = applyHeatmapIdentityToFilters(filters, identity);
+  }
+
   const data = await getHeatmapsModel({
     ...filters,
     includeDetails: true,

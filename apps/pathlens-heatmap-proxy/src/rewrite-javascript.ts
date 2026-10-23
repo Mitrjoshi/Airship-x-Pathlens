@@ -4,6 +4,7 @@ import {
   RewriteError,
   type RewriteContext,
 } from './rewrite-url.js'
+import { parseSrcset } from './rewrite-srcset.js'
 
 interface AstNode {
   type: string
@@ -146,13 +147,10 @@ function rewriteSrcsetReference(
   value: string,
   options: RewriteJavaScriptOptions
 ): string {
-  return value
-    .split(',')
+  return parseSrcset(value)
     .map((candidate) => {
-      const parts = candidate.trim().split(/\s+/)
-      const source = parts.shift() ?? ''
-      const rewritten = rewriteReference(source, options)
-      return [rewritten, ...parts].join(' ')
+      const rewritten = rewriteReference(candidate.source, options)
+      return [rewritten, ...candidate.descriptors].join(' ')
     })
     .join(', ')
 }
@@ -203,13 +201,16 @@ function runtimeImageHelper(options: RewriteJavaScriptOptions): string {
       ],
     },
   ]
-  return `const __pathlensImageResolver__=(value)=>{let u;try{u=new URL(String(value??''),${JSON.stringify(options.baseUrl)})}catch{return''}if(u.protocol!=='http:'&&u.protocol!=='https:')return'';if(u.username||u.password||u.port)return'';const h=u.hostname.toLowerCase().replace(/^www\\./,'').replace(/\\.$/,'');const allowed=${JSON.stringify(hosts)}.includes(h)||${JSON.stringify(externalOrigins)}.includes(u.origin);if(!allowed)return'';if(${JSON.stringify(blockedTracking)}.some((item)=>item.origin===u.origin&&item.paths.includes(u.pathname)))return'';const t=u.href;return ${JSON.stringify(`${options.context.proxyOrigin}/v1/session/${encodeURIComponent(options.context.handle)}/resource?t=`)}+btoa(t).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')+'&depth=1'};const __pathlensImage=__pathlensImageResolver__;const __pathlensImageSrcset=(value)=>String(value??'').split(',').map((candidate)=>{const parts=candidate.trim().split(/\\s+/);const source=__pathlensImageResolver__(parts.shift()??'');return[source,...parts].join(' ')}).join(', ');`
+  const scopedPath = `/v1/session/${encodeURIComponent(options.context.handle)}/resource`
+  const runtimeSrcsetParser = `const __pathlensSplitSrcset__=(value)=>{const result=[];let i=0;value=String(value??'');while(i<value.length){while(i<value.length&&/\\s/.test(value[i]))i++;if(i>=value.length)break;let start=i;while(i<value.length&&!/\\s/.test(value[i]))i++;let source=value.slice(start,i);if(source.endsWith(',')){source=source.slice(0,-1);if(source)result.push([source,[]]);continue}while(i<value.length&&/\\s/.test(value[i]))i++;start=i;while(i<value.length&&value[i]!==',')i++;const text=value.slice(start,i).trim();const descriptors=text?text.split(/\\s+/):[];if(!descriptors.every((item)=>/^(?:\\d+(?:\\.\\d+)?w|\\d+(?:\\.\\d+)?x)$/.test(item))){result.push([source,[]]);if(value[i]===',')i++;continue}result.push([source,descriptors]);if(value[i]===',')i++}return result};`
+  return `${runtimeSrcsetParser}const __pathlensImageResolver__=(value)=>{let u;try{u=new URL(String(value??''),${JSON.stringify(options.baseUrl)})}catch{return''}if(u.origin===${JSON.stringify(options.context.proxyOrigin)}&&u.pathname===${JSON.stringify(scopedPath)}&&u.searchParams.has('t')&&u.searchParams.has('depth'))return u.href;if(u.protocol!=='http:'&&u.protocol!=='https:')return'';if(u.username||u.password||u.port)return'';const h=u.hostname.toLowerCase().replace(/^www\\./,'').replace(/\\.$/,'');const allowed=${JSON.stringify(hosts)}.includes(h)||${JSON.stringify(externalOrigins)}.includes(u.origin);if(!allowed)return'';if(${JSON.stringify(blockedTracking)}.some((item)=>item.origin===u.origin&&item.paths.includes(u.pathname)))return'';const t=u.href;return ${JSON.stringify(`${options.context.proxyOrigin}/v1/session/${encodeURIComponent(options.context.handle)}/resource?t=`)}+btoa(t).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')+'&depth=1'};const __pathlensImage=__pathlensImageResolver__;const __pathlensImageSrcset=(value)=>__pathlensSplitSrcset__(value).map((candidate)=>{const source=__pathlensImageResolver__(candidate[0]);return[source,...candidate[1]].join(' ')}).join(', ');`
 }
 
 function visit(
   node: AstNode,
   options: RewriteJavaScriptOptions,
-  replacements: Replacement[]
+  replacements: Replacement[],
+  parentType?: string
 ): void {
   const rewriteLiteral = (literal: AstNode, value: string): void => {
     try {
@@ -363,31 +364,47 @@ function visit(
 
   if (
     node.type === 'AssignmentExpression' &&
-    memberProperty(node.left, 'src') &&
+    (memberProperty(node.left, 'src') ||
+      memberProperty(node.left, 'srcset') ||
+      memberProperty(node.left, 'srcSet')) &&
     staticString(node.right)
   ) {
     const staticValue = staticString(node.right)
-    if (staticValue) rewriteLiteral(staticValue.node, staticValue.value)
+    if (staticValue) {
+      if (memberProperty(node.left, 'src'))
+        rewriteLiteral(staticValue.node, staticValue.value)
+      else
+        addReplacement(
+          replacements,
+          staticValue.node,
+          JSON.stringify(rewriteSrcsetReference(staticValue.value, options))
+        )
+    }
   } else if (
     node.type === 'AssignmentExpression' &&
-    memberProperty(node.left, 'src') &&
+    (memberProperty(node.left, 'src') ||
+      memberProperty(node.left, 'srcset') ||
+      memberProperty(node.left, 'srcSet')) &&
     isNode(node.right)
   ) {
-    markRuntimeImageReference(node.right, options, replacements)
+    markRuntimeImageReference(
+      node.right,
+      options,
+      replacements,
+      !memberProperty(node.left, 'src')
+    )
   }
 
-  if (objectProperty(node, 'src')) {
+  const isObjectPatternProperty = parentType === 'ObjectPattern'
+
+  if (!isObjectPatternProperty && objectProperty(node, 'src')) {
     const staticValue = staticString(node.value)
     if (staticValue) rewriteLiteral(staticValue.node, staticValue.value)
-    else if (
-      !isNode(node.value) ||
-      (node.value.type !== 'Identifier' &&
-        node.value.type !== 'MemberExpression')
-    )
+    else if (isNode(node.value))
       markRuntimeImageReference(node.value as AstNode, options, replacements)
   }
 
-  if (objectProperty(node, 'image')) {
+  if (!isObjectPatternProperty && objectProperty(node, 'image')) {
     const staticValue = staticString(node.value)
     if (staticValue) rewriteLiteral(staticValue.node, staticValue.value)
   }
@@ -412,7 +429,10 @@ function visit(
     }
   }
 
-  if (objectProperty(node, 'srcset') || objectProperty(node, 'srcSet')) {
+  if (
+    !isObjectPatternProperty &&
+    (objectProperty(node, 'srcset') || objectProperty(node, 'srcSet'))
+  ) {
     const staticValue = staticString(node.value)
     if (staticValue) {
       addReplacement(
@@ -430,10 +450,10 @@ function visit(
   }
 
   for (const value of Object.values(node)) {
-    if (isNode(value)) visit(value, options, replacements)
+    if (isNode(value)) visit(value, options, replacements, node.type)
     else if (Array.isArray(value)) {
       for (const item of value)
-        if (isNode(item)) visit(item, options, replacements)
+        if (isNode(item)) visit(item, options, replacements, node.type)
     }
   }
 }
@@ -473,6 +493,10 @@ export function rewriteJavaScript(options: RewriteJavaScriptOptions): string {
   }
   return rewriteOptions.runtimeImageHelperNeeded
     ? `${runtimeImageHelper(rewriteOptions)}`
+        .replaceAll(
+          'const __pathlensSplitSrcset__=',
+          'var __pathlensSplitSrcset__='
+        )
         .replaceAll(
           'const __pathlensImageResolver__=',
           'var __pathlensImageResolver__='

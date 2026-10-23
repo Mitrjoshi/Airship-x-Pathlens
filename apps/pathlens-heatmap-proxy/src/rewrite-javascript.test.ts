@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { parse } from '@babel/parser'
 import type { ProxyConfig } from './config.js'
 import { rewriteJavaScript } from './rewrite-javascript.js'
 import { RewriteError, type RewriteContext } from './rewrite-url.js'
@@ -128,6 +129,22 @@ test('rewrites static src object properties used by compiled UI frameworks', () 
   assert.doesNotMatch(output, /src: ['"]\/logo\.svg/)
 })
 
+test('does not rewrite image-looking binding properties in destructuring patterns', () => {
+  const source =
+    "const { src: image, srcSet = '/fallback.png' } = props; ({ src: image } = nextProps); const propsForImage = { src: image };"
+  const output = rewriteJavaScript({
+    source,
+    baseUrl: 'https://example.com/assets/app.js',
+    context: context(),
+  })
+
+  assert.doesNotThrow(() =>
+    parse(output, { sourceType: 'unambiguous', plugins: ['jsx'] })
+  )
+  assert.match(output, /const \{ src: image, srcSet = '\/fallback\.png' \}/)
+  assert.match(output, /propsForImage = \{ src: __pathlensImage\(image\) \}/)
+})
+
 test('rewrites JavaScript-created srcset and srcSet values', () => {
   const output = rewriteJavaScript({
     source:
@@ -142,6 +159,36 @@ test('rewrites JavaScript-created srcset and srcSet values', () => {
     3
   )
   assert.doesNotMatch(output, /srcset['"]?,['"]?\/?logo\.svg/)
+})
+
+test('rewrites direct dynamic srcset assignments and comma URLs', () => {
+  const output = rewriteJavaScript({
+    source:
+      "const image=new Image(); image.srcset='/images/banner,wide.webp 1x, /images/banner@2x.webp 2x'; const value=getSrcset(); image.srcSet=value;",
+    baseUrl: 'https://example.com/assets/app.js',
+    context: context(),
+  })
+
+  assert.match(output, /__pathlensImageSrcset/)
+  assert.match(output, /image\.srcSet=__pathlensImageSrcset\(value\)/)
+  assert.ok(
+    (output.match(/v1\/session\/opaque-session-handle\/resource/g) ?? [])
+      .length >= 2
+  )
+})
+
+test('preserves an already-scoped static JavaScript image URL', () => {
+  const first = rewriteJavaScript({
+    source: "const props={src:'/images/banner.png'}",
+    baseUrl: 'https://example.com/assets/app.js',
+    context: context(),
+  })
+  const second = rewriteJavaScript({
+    source: first,
+    baseUrl: 'https://example.com/assets/app.js',
+    context: context(),
+  })
+  assert.equal(second, first)
 })
 
 test('rewrites dynamic React image props through the authorized resolver', () => {

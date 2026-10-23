@@ -171,6 +171,63 @@ test('allows only explicitly configured external static origins', () => {
   )
 })
 
+test('preserves scoped resource URLs across repeated HTML and CSS rewriting', () => {
+  const htmlOptions = {
+    session,
+    handle: 'opaque-session-handle',
+    proxyOrigin: config.publicOrigin,
+    pageUrl: 'https://example.com/contact',
+    config,
+  }
+  const firstHtml = rewriteHtml('<img src="/images/banner.png">', htmlOptions)
+  const secondHtml = rewriteHtml(firstHtml, htmlOptions)
+  assert.equal(secondHtml, firstHtml)
+
+  const cssOptions = {
+    baseUrl: 'https://example.com/assets/site.css',
+    context: context(),
+    config,
+    depth: 0,
+  }
+  const firstCss = rewriteCss(
+    'body{background:url("/images/banner.png")}',
+    cssOptions
+  )
+  const secondCss = rewriteCss(firstCss, cssOptions)
+  assert.equal(secondCss, firstCss)
+})
+
+test('rejects a scoped resource URL belonging to another session', () => {
+  const otherSessionUrl = `${config.publicOrigin}/v1/session/other-session/resource?t=${Buffer.from('https://example.com/image.png').toString('base64url')}&depth=0`
+  const output = rewriteHtml(`<img src="${otherSessionUrl}">`, {
+    session,
+    handle: 'opaque-session-handle',
+    proxyOrigin: config.publicOrigin,
+    pageUrl: 'https://example.com/contact',
+    config,
+  })
+  assert.match(output, /data-pathlens-blocked-resource="src"/)
+  assert.doesNotMatch(output, /other-session\/resource/)
+})
+
+test('keeps legitimate commas inside srcset URLs', () => {
+  const output = rewriteHtml(
+    '<img srcset="/images/banner,wide.webp 1x, /images/banner@2x.webp 2x">',
+    {
+      session,
+      handle: 'opaque-session-handle',
+      proxyOrigin: config.publicOrigin,
+      pageUrl: 'https://example.com/contact',
+      config,
+    }
+  )
+  assert.equal(
+    (output.match(/v1\/session\/opaque-session-handle\/resource/g) ?? [])
+      .length,
+    2
+  )
+})
+
 test('rewrites the controlled nested fixture site', () => {
   const fixture = readFileSync(
     new URL('../test-fixtures/site/index.html', import.meta.url),

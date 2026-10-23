@@ -1,12 +1,31 @@
 import type { ReplayEvent } from './replay'
 
 export type HeatmapsRange = '24h' | '7d' | '30d' | '90d'
-export type HeatmapDevice = 'all' | 'desktop' | 'mobile' | 'tablet'
+export type HeatmapDevice = 'all' | 'desktop' | 'mobile' | 'tablet' | 'unknown'
 export type HeatmapSnapshotStatus =
   'pending' | 'processing' | 'ready' | 'stale' | 'failed'
 export type HeatmapCoordinateMode = 'document' | 'viewport'
+export type HeatmapCoordinateAlignment =
+  'document-compatible' | 'viewport-only' | 'legacy-unknown'
+
+export interface HeatmapSourceDimensions {
+  width: number
+  height: number
+}
+
+export interface HeatmapCoordinateGroup {
+  groupId: string
+  coordinateSchemaVersion: number | null
+  coordinateMode: HeatmapCoordinateMode
+  sourceViewport: HeatmapSourceDimensions | null
+  sourceDocument: HeatmapSourceDimensions | null
+  sampleCount: number
+  alignment: HeatmapCoordinateAlignment
+  safeForDocumentOverlay: boolean
+}
 
 export interface HeatmapPage {
+  id: string
   path: string
   url: string | null
   visitors: number
@@ -34,10 +53,68 @@ export interface HeatmapClickPoint {
   coordinateMode: HeatmapCoordinateMode
 }
 
+export interface HeatmapClickGroup extends HeatmapCoordinateGroup {
+  points: HeatmapClickPoint[]
+}
+
+export interface HeatmapClickSample {
+  x: number
+  y: number
+  weight: number
+  coordinateMode: HeatmapCoordinateMode
+}
+
+export interface HeatmapClickSampleGroup extends HeatmapCoordinateGroup {
+  samples: HeatmapClickSample[]
+}
+
+export interface HeatmapClickSampleCoverage {
+  limit: number
+  totalEvents: number
+  returnedEvents: number
+  eligibleEvents: number
+  truncated: boolean
+}
+
+export interface HeatmapMovementCoverage {
+  limit: number
+  totalEvents: number
+  returnedEvents: number
+  eligibleEvents: number
+  truncated: boolean
+}
+
+export interface HeatmapMovementPoint {
+  x: number
+  y: number
+  count: number
+  intensity: number
+  coordinateMode: HeatmapCoordinateMode
+}
+
+export interface HeatmapMovementGroup extends HeatmapCoordinateGroup {
+  points: HeatmapMovementPoint[]
+}
+
 export interface HeatmapScrollPoint {
   percentage: number
   count: number
   intensity: number
+}
+
+export interface HeatmapScrollGroup {
+  groupId: string
+  device: Exclude<HeatmapDevice, 'all'>
+  coordinateSchemaVersion: number | null
+  sourceViewport: HeatmapSourceDimensions | null
+  sourceDocument: HeatmapSourceDimensions | null
+  sessionCount: number
+  maximumReachPercent: number | null
+  coordinateMode: 'document'
+  alignment:
+    'document-compatible' | 'geometry-unavailable' | 'geometry-inconsistent'
+  safeForDocumentOverlay: boolean
+  reachPoints: HeatmapScrollPoint[]
 }
 
 export interface HeatmapHotArea {
@@ -53,8 +130,16 @@ export interface HeatmapHotArea {
 
 export interface HeatmapPageDetail extends HeatmapPage {
   clickPoints: HeatmapClickPoint[]
+  clickGroups?: HeatmapClickGroup[]
+  clickSamples?: HeatmapClickSampleGroup[]
+  clickSampleCoverage?: HeatmapClickSampleCoverage
+  movementPoints?: HeatmapMovementPoint[]
+  movementGroups?: HeatmapMovementGroup[]
+  movementCoordinateMode?: HeatmapCoordinateMode | 'mixed'
+  movementCoverage?: HeatmapMovementCoverage
   hotAreas: HeatmapHotArea[]
   scrollPoints: HeatmapScrollPoint[]
+  scrollGroups?: HeatmapScrollGroup[]
   replayEvents: ReplayEvent[]
   replayViewport: {
     width: number
@@ -70,6 +155,7 @@ export interface HeatmapPageDetail extends HeatmapPage {
 }
 
 export interface HeatmapSnapshot {
+  id: string
   pathname: string
   domain: string
   device: HeatmapDevice
@@ -147,5 +233,6 @@ export interface HeatmapDetailsParams {
   domain?: string
   range: HeatmapsRange
   device?: HeatmapDevice
-  page_path: string | null
+  page_path?: string | null
+  heatmap_id?: string
 }

@@ -72,7 +72,7 @@ function RouteComponent() {
           activeWorkspace={workspaceId!}
           projectId={projectId}
         />
-        <SidebarInset>
+        <SidebarInset className="min-w-0">
           <Header />
           <Outlet />
         </SidebarInset>

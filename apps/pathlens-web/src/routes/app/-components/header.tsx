@@ -15,7 +15,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import {
   CheckIcon,
   ChevronsUpDownIcon,
-  PlugIcon,
+  ArrowDownToLineIcon,
   PlusIcon,
   SearchIcon,
 } from 'lucide-react'
@@ -57,10 +57,12 @@ export const Header = () => {
           />
         )}
 
-        {/* <Button variant="outline" className="rounded-full">
-          <PlugIcon className="rotate-90" />
-          Connect
-        </Button> */}
+        <Separator orientation="vertical" />
+
+        <Button variant="ghost" disabled={projectsLoading}>
+          <CheckIcon />
+          Check Installation
+        </Button>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
