@@ -53,7 +53,6 @@ export const Route = createFileRoute('/app/$workspaceId/$projectId/errors')({
 })
 
 const deviceLabels = [
-  { value: 'all', label: 'All devices' },
   { value: 'desktop', label: 'Desktop' },
   { value: 'mobile', label: 'Mobile' },
   { value: 'tablet', label: 'Tablet' },
@@ -90,7 +89,7 @@ function RouteComponent() {
     (rangeLocal || '7d') as ErrorsRange
   )
   const [device, setDevice] = useState<ErrorsDevice>(
-    (deviceLocal || 'all') as ErrorsDevice
+    (deviceLocal || 'desktop') as ErrorsDevice
   )
   const [browser, setBrowser] = useState('all')
   const [page, setPage] = useState(1)

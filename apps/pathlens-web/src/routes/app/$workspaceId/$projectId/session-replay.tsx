@@ -10,7 +10,7 @@ import {
   type SessionReplayRange,
 } from '@/queries/session-replay'
 import { Separator } from '@workspace/ui/components/separator'
-import { formatDate, getPaginationItems } from '@/utils/utils'
+import { formatDate, formatNumber, getPaginationItems } from '@/utils/utils'
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import { Button } from '@workspace/ui/components/button'
 import { PauseIcon, PlayIcon, RefreshCcwIcon, SearchIcon } from 'lucide-react'
@@ -55,7 +55,6 @@ const rangeLabels = [
 ]
 
 const deviceLabels = [
-  { value: 'all', label: 'All devices' },
   { value: 'desktop', label: 'Desktop' },
   { value: 'mobile', label: 'Mobile' },
   { value: 'tablet', label: 'Tablet' },
@@ -72,7 +71,7 @@ function RouteComponent() {
     (rangeLocal || '7d') as SessionReplayRange
   )
   const [device, setDevice] = useState<SessionReplayDevice>(
-    (deviceLocal || 'all') as SessionReplayDevice
+    (deviceLocal || 'desktop') as SessionReplayDevice
   )
   const [liveMode, setLiveMode] = useState(false)
   const [page, setPage] = useState(1)
@@ -373,7 +372,7 @@ function RouteComponent() {
                           </TableCell>
 
                           <TableCell className="w-32 text-center whitespace-nowrap">
-                            {item.eventCount}
+                            {formatNumber(item.eventCount)}
                           </TableCell>
 
                           <TableCell className="w-32 text-center whitespace-nowrap">

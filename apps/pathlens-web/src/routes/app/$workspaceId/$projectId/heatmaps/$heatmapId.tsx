@@ -43,7 +43,7 @@ import {
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import { getProjectDomainsOptions } from '@/queries/domains'
 import { ButtonGroup } from '@workspace/ui/components/button-group'
-import { capitalizeFirstLetter } from '@/utils/utils'
+import { capitalizeFirstLetter, formatNumber } from '@/utils/utils'
 
 const rangeLabels = [
   { value: '24h', label: 'Last 24 hours' },
@@ -53,7 +53,6 @@ const rangeLabels = [
 ]
 
 const deviceLabels = [
-  { value: 'all', label: 'All devices' },
   { value: 'desktop', label: 'Desktop' },
   { value: 'mobile', label: 'Mobile' },
   { value: 'tablet', label: 'Tablet' },
@@ -77,7 +76,7 @@ function RouteComponent() {
     (rangeLocal || '7d') as HeatmapsRange
   )
   const [device, setDevice] = useState<HeatmapDevice>(
-    (deviceLocal || 'all') as HeatmapDevice
+    (deviceLocal || 'desktop') as HeatmapDevice
   )
   const [heatmapType, setHeatmapType] = useState<HeatmapOverlayType>('click')
   const [domain, setDomain] = useState('')
@@ -89,7 +88,6 @@ function RouteComponent() {
     dataUpdatedAt,
     refetch,
     isRefetching,
-    isError,
   } = useQuery(
     getHeatmapDetailsOptions({
       project_id: projectId,

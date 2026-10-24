@@ -49,7 +49,6 @@ const rangeLabels = [
 ]
 
 const deviceLabels = [
-  { value: 'all', label: 'All devices' },
   { value: 'desktop', label: 'Desktop' },
   { value: 'mobile', label: 'Mobile' },
   { value: 'tablet', label: 'Tablet' },
@@ -69,7 +68,7 @@ function RouteComponent() {
     (rangeLocal || '7d') as HeatmapsRange
   )
   const [device, setDevice] = useState<HeatmapDevice>(
-    (deviceLocal || 'all') as HeatmapDevice
+    (deviceLocal || 'desktop') as HeatmapDevice
   )
   const [liveMode, setLiveMode] = useState(false)
   const [page, setPage] = useState(1)
@@ -234,7 +233,7 @@ function RouteComponent() {
                 ? [...Array(PAGE_SIZE)].map((_, index) => (
                     <TableRow key={index}>
                       <TableCell>
-                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-5 w-32" />
                       </TableCell>
 
                       <TableCell className="w-24">

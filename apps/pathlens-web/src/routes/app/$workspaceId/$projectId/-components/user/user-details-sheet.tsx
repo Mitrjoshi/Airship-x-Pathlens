@@ -35,6 +35,7 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import { ArrowUpRightIcon, ExternalLinkIcon } from 'lucide-react'
 import { useNavigate, useRouteContext } from '@tanstack/react-router'
 import { cn } from '@workspace/ui'
+import { PermissionProfileSheet } from '../../../-components/permission-profile-sheet'
 
 export const UserDetailsSheet = ({
   userId,
@@ -165,19 +166,9 @@ export const UserDetailsSheet = ({
                     }
                   )}
                 />
-                <UserDetailRow
-                  onClick={() => {
-                    navigate({
-                      to: '/app/$workspaceId/permissions/$permissionId',
-                      params: {
-                        workspaceId: workspaceId,
-                        permissionId: userData.permissionProfileId!,
-                      },
-                    })
-                  }}
-
-                  label="Permission Profile"
-                  value={userData.permissionProfileName!}
+                <PermissionProfileSheet
+                  permission_id={userData.permissionProfileId!}
+                  workspace_id={workspaceId}
                 />
               </div>
               <Separator />

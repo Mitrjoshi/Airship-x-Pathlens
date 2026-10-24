@@ -80,7 +80,6 @@ export const Route = createFileRoute('/app/$workspaceId/$projectId/events')({
 })
 
 const deviceLabels = [
-  { value: 'all', label: 'All devices' },
   { value: 'desktop', label: 'Desktop' },
   { value: 'mobile', label: 'Mobile' },
   { value: 'tablet', label: 'Tablet' },
@@ -353,7 +352,7 @@ function RouteComponent() {
     (rangeLocal || '7d') as AnalyticsRange
   )
   const [device, setDevice] = useState<EventsDevice>(
-    (deviceLocal || 'all') as EventsDevice
+    (deviceLocal || 'desktop') as EventsDevice
   )
   const [liveMode, setLiveMode] = useState(false)
   const [page, setPage] = useState(1)

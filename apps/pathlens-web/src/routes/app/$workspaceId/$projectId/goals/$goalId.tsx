@@ -55,7 +55,6 @@ const rangeLabels = [
 ]
 
 const deviceLabels = [
-  { value: 'all', label: 'All devices' },
   { value: 'desktop', label: 'Desktop' },
   { value: 'mobile', label: 'Mobile' },
   { value: 'tablet', label: 'Tablet' },
@@ -73,7 +72,7 @@ function RouteComponent() {
   const { workspaceId, projectId, goalId } = Route.useParams()
   const navigate = useNavigate()
   const [range, setRange] = useState<GoalRange>('7d')
-  const [device, setDevice] = useState<GoalDashboardDevice>('all')
+  const [device, setDevice] = useState<GoalDashboardDevice>('desktop')
   const [domain, setDomain] = useState('')
 
   const { data: domainsData, isLoading: domainsLoading } = useQuery(

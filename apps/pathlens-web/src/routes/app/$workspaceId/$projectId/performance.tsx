@@ -149,7 +149,6 @@ const getMetricStatus = (
 }
 
 const deviceLabels = [
-  { value: 'all', label: 'All devices' },
   { value: 'desktop', label: 'Desktop' },
   { value: 'mobile', label: 'Mobile' },
   { value: 'tablet', label: 'Tablet' },
@@ -196,7 +195,7 @@ function RouteComponent() {
     (rangeLocal || '7d') as PerformanceRange
   )
   const [device, setDevice] = useState<PerformanceDevice>(
-    (deviceLocal || 'all') as PerformanceDevice
+    (deviceLocal || 'desktop') as PerformanceDevice
   )
   const [domain, setDomain] = useState('')
 

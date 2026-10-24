@@ -249,7 +249,7 @@ export const VisitorsWorldMap = ({ locations }: VisitorsWorldMapProps) => {
               duration: 0.12,
               ease: 'easeOut',
             }}
-            className="bg-card/95 text-card-foreground pointer-events-none absolute z-50 min-w-36 rounded-md border px-3 py-2 shadow-lg backdrop-blur-xl"
+            className="bg-card/95 text-card-foreground pointer-events-none absolute z-50 min-w-36 border-2 border-dashed px-3 py-2 shadow-lg backdrop-blur-xl"
             style={{
               left: tooltip.x,
               top: tooltip.y,

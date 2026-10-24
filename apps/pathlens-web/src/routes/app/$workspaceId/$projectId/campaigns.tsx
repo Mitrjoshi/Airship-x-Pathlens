@@ -42,7 +42,6 @@ import {
 } from '@workspace/ui/components/card'
 
 const deviceLabels = [
-  { value: 'all', label: 'All devices' },
   { value: 'desktop', label: 'Desktop' },
   { value: 'mobile', label: 'Mobile' },
   { value: 'tablet', label: 'Tablet' },
@@ -72,7 +71,7 @@ function RouteComponent() {
     (rangeLocal || '7d') as CampaignRange
   )
   const [device, setDevice] = useState<CampaignDevice>(
-    (deviceLocal || 'all') as CampaignDevice
+    (deviceLocal || 'desktop') as CampaignDevice
   )
 
   const [liveMode, setLiveMode] = useState(false)
