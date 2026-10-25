@@ -249,20 +249,20 @@ export const VisitorsWorldMap = ({ locations }: VisitorsWorldMapProps) => {
               duration: 0.12,
               ease: 'easeOut',
             }}
-            className="bg-card/95 text-card-foreground pointer-events-none absolute z-50 min-w-36 border-2 border-dashed px-3 py-2 shadow-lg backdrop-blur-xl"
+            className="bg-card/95 text-card-foreground pointer-events-none absolute z-50 min-w-36 border-2 border-dashed shadow-lg backdrop-blur-xl"
             style={{
               left: tooltip.x,
               top: tooltip.y,
             }}
           >
-            <p className="max-w-44 truncate text-sm font-semibold">
+            <p className="max-w-44 truncate p-2 text-sm font-semibold">
               {tooltip.name}
             </p>
 
-            <div className="border-border mt-2 flex items-center justify-between gap-6 border-t pt-2">
+            <div className="border-border flex items-center justify-between border-t p-2">
               <span className="text-muted-foreground text-xs">Visitors</span>
 
-              <span className="text-xs font-semibold tabular-nums">
+              <span className="text-xs font-semibold">
                 {formatNumber(tooltip.visitors)}
               </span>
             </div>

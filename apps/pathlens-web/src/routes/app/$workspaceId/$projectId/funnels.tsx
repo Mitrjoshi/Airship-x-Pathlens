@@ -673,7 +673,6 @@ function RouteComponent() {
 
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem>View</DropdownMenuItem>
 
                           <DropdownMenuSeparator />
 
@@ -775,7 +774,7 @@ function RouteComponent() {
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter>
+          <DialogFooter className="py-2">
             <DialogClose
               disabled={deleteFunnelPending}
               onClick={() => setSelectedFunnel(null)}

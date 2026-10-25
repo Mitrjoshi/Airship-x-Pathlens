@@ -44,6 +44,7 @@ import { useRelativeTime } from '@/hooks/use-relative-time'
 import { getProjectDomainsOptions } from '@/queries/domains'
 import { ButtonGroup } from '@workspace/ui/components/button-group'
 import { capitalizeFirstLetter, formatNumber } from '@/utils/utils'
+import { Skeleton } from '@workspace/ui/components/skeleton'
 
 const rangeLabels = [
   { value: '24h', label: 'Last 24 hours' },
@@ -157,7 +158,7 @@ function RouteComponent() {
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-muted-foreground text-sm">
-              Last updated {lastUpdated ? lastUpdated : '-'}
+              Last updated {lastUpdated}
             </p>
           </div>
         </div>
@@ -252,57 +253,66 @@ function RouteComponent() {
         </div>
       </div>
 
-      <div
-        className="relative h-[calc(100dvh-106px)] w-full p-6"
-        data-heatmap-viewer="live"
-      >
-        <HeatmapLiveViewer
-          heatmap={heatmap}
-          preview={previewState.session}
-          status={previewState.status}
-          onRetry={previewState.retry}
-          error={
-            previewState.error ?? (heatmapLoading ? 'Loading heatmap...' : null)
-          }
-          device={previewDevice}
-          range={range}
-          overlayViewport={
-            heatmapType === 'scroll' && heatmap?.scrollGroups
-              ? (getScrollGroupOverlayViewport(
-                  heatmap.scrollGroups,
-                  previewDevice
-                ) ??
-                getPreviewViewportForDevice(
-                  heatmap?.clickGroups ?? [],
-                  previewDevice
-                ))
-              : heatmapType === 'scroll' && scrollSource
-                ? scrollSource.viewport
-                : heatmapType === 'movement'
-                  ? getPreviewViewportForDevice(
-                      heatmap?.movementGroups ?? [],
-                      previewDevice
-                    )
-                  : getRepresentativeClickOverlayViewport(
-                      heatmap?.clickSamples ?? heatmap?.clickGroups ?? [],
-                      previewDevice
-                    )
-          }
-          heatmapType={heatmapType}
-          scrollSource={
-            visualizationReady && !heatmap?.scrollGroups ? scrollSource : null
-          }
-          scrollGroups={visualizationReady ? heatmap?.scrollGroups : undefined}
-          heatmapDataReady={visualizationReady}
-          // heatmapEmpty={
-          //   !heatmapLoading &&
-          //   !heatmapFetching &&
-          //   !isError &&
-          //   heatmapDetails?.success === true &&
-          //   !heatmap
-          // }
-        />
-      </div>
+      {heatmapLoading ? (
+        <div className="relative flex h-[calc(100dvh-106px)] w-full items-center justify-center p-6">
+          <p className="text-muted-foreground shimmer">Loading Preview...</p>
+        </div>
+      ) : (
+        <div
+          className="relative h-[calc(100dvh-106px)] w-full p-6"
+          data-heatmap-viewer="live"
+        >
+          <HeatmapLiveViewer
+            heatmap={heatmap}
+            preview={previewState.session}
+            status={previewState.status}
+            onRetry={previewState.retry}
+            error={
+              previewState.error ??
+              (heatmapLoading ? 'Loading heatmap...' : null)
+            }
+            device={previewDevice}
+            range={range}
+            overlayViewport={
+              heatmapType === 'scroll' && heatmap?.scrollGroups
+                ? (getScrollGroupOverlayViewport(
+                    heatmap.scrollGroups,
+                    previewDevice
+                  ) ??
+                  getPreviewViewportForDevice(
+                    heatmap?.clickGroups ?? [],
+                    previewDevice
+                  ))
+                : heatmapType === 'scroll' && scrollSource
+                  ? scrollSource.viewport
+                  : heatmapType === 'movement'
+                    ? getPreviewViewportForDevice(
+                        heatmap?.movementGroups ?? [],
+                        previewDevice
+                      )
+                    : getRepresentativeClickOverlayViewport(
+                        heatmap?.clickSamples ?? heatmap?.clickGroups ?? [],
+                        previewDevice
+                      )
+            }
+            heatmapType={heatmapType}
+            scrollSource={
+              visualizationReady && !heatmap?.scrollGroups ? scrollSource : null
+            }
+            scrollGroups={
+              visualizationReady ? heatmap?.scrollGroups : undefined
+            }
+            heatmapDataReady={visualizationReady}
+            // heatmapEmpty={
+            //   !heatmapLoading &&
+            //   !heatmapFetching &&
+            //   !isError &&
+            //   heatmapDetails?.success === true &&
+            //   !heatmap
+            // }
+          />
+        </div>
+      )}
     </div>
   )
 }
