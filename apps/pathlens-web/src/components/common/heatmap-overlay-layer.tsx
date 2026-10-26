@@ -1,5 +1,7 @@
 import type {
   HeatmapClickGroup,
+  HeatmapClickAnchorDefinition,
+  HeatmapClickSample,
   HeatmapClickPoint,
   HeatmapClickSampleGroup,
   HeatmapMovementGroup,
@@ -8,12 +10,14 @@ import type {
   HeatmapScrollGroup,
   HeatmapScrollPoint,
   PreviewMeasurementState,
+  PreviewAnchorResolution,
 } from '@workspace/contracts'
 import { useEffect, useRef, useState } from 'react'
 
 const DIMENSION_TOLERANCE_RATIO = 0.12
 const DIMENSION_TOLERANCE_PX = 96
 const MAX_HOTSPOT_RADIUS = 52
+const MAX_REQUESTED_ANCHORS = 256
 
 interface Dimensions {
   width: number
@@ -33,6 +37,23 @@ export interface ClickOverlayViewport {
 export interface ClickGroupOverlayDecision {
   compatible: boolean
   reason: string
+}
+
+export interface ClickAnchorSelection {
+  requestedAnchorIds: string[]
+  referencedAnchorCount: number
+  eligibleAnchorCount: number
+  omittedAnchorCount: number
+}
+
+export interface ClickProjectionDiagnostics {
+  anchoredSamples: number
+  legacySamples: number
+  unresolvedAnchorSamples: number
+  missingAnchorSamples: number
+  ambiguousAnchorSamples: number
+  omittedAnchorSamples: number
+  geometryIncompatibleSamples: number
 }
 
 export type HeatmapOverlayType = 'click' | 'movement' | 'scroll'
@@ -61,6 +82,87 @@ function validDimensions(value: Dimensions | null): value is Dimensions {
     value.width > 0 &&
     value.height > 0
   )
+}
+
+function validRelativePosition(value: number | undefined): value is number {
+  return (
+    value !== undefined && Number.isFinite(value) && value >= 0 && value <= 1
+  )
+}
+
+function isPositioningAnchor(
+  definition: HeatmapClickAnchorDefinition
+): boolean {
+  return (
+    definition.positionMode === 'fixed' ||
+    definition.positionMode === 'sticky' ||
+    definition.effectivePositionMode === 'fixed' ||
+    definition.effectivePositionMode === 'sticky'
+  )
+}
+
+function isEligibleClickSampleGroup(
+  group: HeatmapClickSampleGroup,
+  viewport: ClickOverlayViewport
+): boolean {
+  return (
+    group.coordinateMode === 'document' &&
+    group.alignment === 'document-compatible' &&
+    group.safeForDocumentOverlay &&
+    group.sourceViewport?.width === viewport.width &&
+    group.sourceViewport?.height === viewport.height &&
+    validDimensions(group.sourceDocument)
+  )
+}
+
+export function selectClickAnchorIds(
+  sampleGroups: readonly HeatmapClickSampleGroup[],
+  definitions: readonly HeatmapClickAnchorDefinition[],
+  viewport: ClickOverlayViewport,
+  maximum = MAX_REQUESTED_ANCHORS
+): ClickAnchorSelection {
+  const definitionMap = new Map(
+    definitions.map((definition) => [definition.anchorId, definition])
+  )
+  const sampleCounts = new Map<string, number>()
+
+  for (const group of sampleGroups) {
+    if (!isEligibleClickSampleGroup(group, viewport)) continue
+    for (const sample of group.samples) {
+      if (
+        !sample.anchorId ||
+        !validRelativePosition(sample.relativeX) ||
+        !validRelativePosition(sample.relativeY) ||
+        !definitionMap.has(sample.anchorId)
+      ) {
+        continue
+      }
+      sampleCounts.set(
+        sample.anchorId,
+        (sampleCounts.get(sample.anchorId) ?? 0) + 1
+      )
+    }
+  }
+
+  const ordered = Array.from(sampleCounts.keys()).sort((left, right) => {
+    const leftDefinition = definitionMap.get(left)!
+    const rightDefinition = definitionMap.get(right)!
+    const leftPriority = isPositioningAnchor(leftDefinition) ? 0 : 1
+    const rightPriority = isPositioningAnchor(rightDefinition) ? 0 : 1
+    return (
+      leftPriority - rightPriority ||
+      (sampleCounts.get(right) ?? 0) - (sampleCounts.get(left) ?? 0) ||
+      left.localeCompare(right)
+    )
+  })
+  const requestedAnchorIds = ordered.slice(0, maximum)
+
+  return {
+    requestedAnchorIds,
+    referencedAnchorCount: ordered.length,
+    eligibleAnchorCount: ordered.length,
+    omittedAnchorCount: Math.max(0, ordered.length - requestedAnchorIds.length),
+  }
 }
 
 export function getClickOverlayViewport(
@@ -387,6 +489,112 @@ export function projectClickPoint(
   }
 }
 
+function validAnchorResolution(
+  resolution: PreviewAnchorResolution | undefined,
+  definition: HeatmapClickAnchorDefinition,
+  measurement: PreviewMeasurementState
+): resolution is PreviewAnchorResolution & {
+  status: 'matched'
+  rect: NonNullable<PreviewAnchorResolution['rect']>
+} {
+  if (
+    !resolution ||
+    resolution.status !== 'matched' ||
+    !resolution.rect ||
+    !validDimensions({
+      width: resolution.rect.width,
+      height: resolution.rect.height,
+    }) ||
+    resolution.rect.width <= 0 ||
+    resolution.rect.height <= 0 ||
+    resolution.rect.left < -measurement.viewportWidth ||
+    resolution.rect.top < -measurement.viewportHeight ||
+    resolution.rect.left > measurement.viewportWidth ||
+    resolution.rect.top > measurement.viewportHeight
+  ) {
+    return false
+  }
+  if (resolution.positionMode !== definition.positionMode) return false
+  if (
+    definition.effectivePositionMode &&
+    resolution.effectivePositionMode !== definition.effectivePositionMode
+  ) {
+    return false
+  }
+  return true
+}
+
+export function projectClickSample(
+  sample: HeatmapClickSample,
+  measurement: PreviewMeasurementState,
+  display: Dimensions,
+  definitions: ReadonlyMap<string, HeatmapClickAnchorDefinition>,
+  resolutions: ReadonlyMap<string, PreviewAnchorResolution>
+): {
+  projection: ClickHotspotProjection | null
+  mode: 'anchored' | 'document' | 'excluded'
+  reason?: string
+} {
+  if (!sample.anchorId) {
+    return {
+      projection: projectClickPoint(sample, measurement, display),
+      mode: 'document',
+    }
+  }
+
+  const definition = definitions.get(sample.anchorId)
+  if (!definition) {
+    return {
+      projection: null,
+      mode: 'excluded',
+      reason: 'anchor-definition-unavailable',
+    }
+  }
+  const requiresAnchor =
+    isPositioningAnchor(definition) || definition.scrollAncestors.length > 0
+  const resolution = resolutions.get(sample.anchorId)
+
+  if (
+    validRelativePosition(sample.relativeX) &&
+    validRelativePosition(sample.relativeY)
+  ) {
+    if (validAnchorResolution(resolution, definition, measurement)) {
+      return {
+        projection: {
+          x:
+            ((resolution.rect.left + sample.relativeX * resolution.rect.width) /
+              measurement.viewportWidth) *
+            display.width,
+          y:
+            ((resolution.rect.top + sample.relativeY * resolution.rect.height) /
+              measurement.viewportHeight) *
+            display.height,
+        },
+        mode: 'anchored',
+      }
+    }
+  }
+
+  if (requiresAnchor) {
+    return {
+      projection: null,
+      mode: 'excluded',
+      reason:
+        resolution?.status === 'ambiguous'
+          ? 'anchor-ambiguous'
+          : resolution?.status === 'missing'
+            ? 'anchor-missing'
+            : 'anchor-unresolved',
+    }
+  }
+
+  return {
+    projection: projectClickPoint(sample, measurement, display),
+    mode: 'document',
+    reason: 'anchor-fallback-document',
+  }
+}
+
 export function projectScrollDepth(
   point: HeatmapScrollPoint,
   measurement: PreviewMeasurementState,
@@ -498,11 +706,15 @@ function drawClickDensity(
   measurement: PreviewMeasurementState,
   width: number,
   height: number,
-  devicePixelRatio: number
+  devicePixelRatio: number,
+  definitions: ReadonlyMap<string, HeatmapClickAnchorDefinition>,
+  resolutions: ReadonlyMap<string, PreviewAnchorResolution>,
+  anchorSelection: ClickAnchorSelection | null
 ): {
   compatibleGroups: number
   drawnPoints: number
   rejectionReasons: Record<string, number>
+  diagnostics: ClickProjectionDiagnostics
 } {
   const backingWidth = Math.max(1, Math.round(width * devicePixelRatio))
   const backingHeight = Math.max(1, Math.round(height * devicePixelRatio))
@@ -511,7 +723,20 @@ function drawClickDensity(
   densityCanvas.height = backingHeight
   const densityContext = densityCanvas.getContext('2d')
   if (!densityContext) {
-    return { compatibleGroups: 0, drawnPoints: 0, rejectionReasons: {} }
+    return {
+      compatibleGroups: 0,
+      drawnPoints: 0,
+      rejectionReasons: {},
+      diagnostics: {
+        anchoredSamples: 0,
+        legacySamples: 0,
+        unresolvedAnchorSamples: 0,
+        missingAnchorSamples: 0,
+        ambiguousAnchorSamples: 0,
+        omittedAnchorSamples: 0,
+        geometryIncompatibleSamples: 0,
+      },
+    }
   }
 
   const radius =
@@ -524,14 +749,27 @@ function drawClickDensity(
   const rejectionReasons: Record<string, number> = {}
   let compatibleGroups = 0
   let drawnPoints = 0
+  const diagnostics: ClickProjectionDiagnostics = {
+    anchoredSamples: 0,
+    legacySamples: 0,
+    unresolvedAnchorSamples: 0,
+    missingAnchorSamples: 0,
+    ambiguousAnchorSamples: 0,
+    omittedAnchorSamples: 0,
+    geometryIncompatibleSamples: 0,
+  }
   densityContext.globalCompositeOperation = 'lighter'
 
   const orderedGroups = [...sampleGroups].sort((left, right) =>
     left.groupId.localeCompare(right.groupId)
   )
+  const requestedAnchorIds = anchorSelection
+    ? new Set(anchorSelection.requestedAnchorIds)
+    : null
   for (const group of orderedGroups) {
     const decision = getClickGroupOverlayDecision(group, measurement)
     if (!decision.compatible) {
+      diagnostics.geometryIncompatibleSamples += group.samples.length
       rejectionReasons[decision.reason] =
         (rejectionReasons[decision.reason] ?? 0) + 1
       continue
@@ -545,10 +783,36 @@ function drawClickDensity(
         left.coordinateMode.localeCompare(right.coordinateMode)
     )
     for (const sample of samples) {
-      const projection = projectClickPoint(sample, measurement, {
-        width,
-        height,
-      })
+      if (
+        sample.anchorId &&
+        requestedAnchorIds &&
+        !requestedAnchorIds.has(sample.anchorId)
+      ) {
+        diagnostics.omittedAnchorSamples += 1
+      }
+      const projected = projectClickSample(
+        sample,
+        measurement,
+        {
+          width,
+          height,
+        },
+        definitions,
+        resolutions
+      )
+      if (projected.mode === 'anchored') diagnostics.anchoredSamples += 1
+      else if (projected.mode === 'document') {
+        if (!sample.anchorId) diagnostics.legacySamples += 1
+      } else {
+        diagnostics.unresolvedAnchorSamples += 1
+        if (projected.reason === 'anchor-missing') {
+          diagnostics.missingAnchorSamples += 1
+        }
+        if (projected.reason === 'anchor-ambiguous') {
+          diagnostics.ambiguousAnchorSamples += 1
+        }
+      }
+      const projection = projected.projection
       if (
         !projection ||
         projection.x < -radius / devicePixelRatio ||
@@ -586,7 +850,7 @@ function drawClickDensity(
     maximumAlpha = Math.max(maximumAlpha, density.data[index] ?? 0)
   }
   if (maximumAlpha === 0) {
-    return { compatibleGroups, drawnPoints, rejectionReasons }
+    return { compatibleGroups, drawnPoints, rejectionReasons, diagnostics }
   }
 
   const output = context.createImageData(backingWidth, backingHeight)
@@ -606,7 +870,7 @@ function drawClickDensity(
   context.setTransform(1, 0, 0, 1, 0, 0)
   context.putImageData(output, 0, 0)
   context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0)
-  return { compatibleGroups, drawnPoints, rejectionReasons }
+  return { compatibleGroups, drawnPoints, rejectionReasons, diagnostics }
 }
 
 function drawScrollRegions(
@@ -643,6 +907,9 @@ function drawScrollRegions(
 interface HeatmapOverlayLayerProps {
   clickGroups: readonly HeatmapClickGroup[]
   clickSampleGroups?: readonly HeatmapClickSampleGroup[]
+  anchorDefinitions?: readonly HeatmapClickAnchorDefinition[]
+  anchorResolutions?: readonly PreviewAnchorResolution[] | null
+  anchorSelection?: ClickAnchorSelection | null
   movementGroups?: readonly HeatmapMovementGroup[]
   scrollPoints?: readonly HeatmapScrollPoint[]
   scrollGroups?: readonly HeatmapScrollGroup[]
@@ -655,6 +922,9 @@ interface HeatmapOverlayLayerProps {
 export function HeatmapOverlayLayer({
   clickGroups,
   clickSampleGroups,
+  anchorDefinitions = [],
+  anchorResolutions = null,
+  anchorSelection = null,
   movementGroups = [],
   scrollGroups,
   scrollSource = null,
@@ -726,6 +996,15 @@ export function HeatmapOverlayLayer({
       canvas.dataset.overlayMeasurementReady = String(
         Boolean(measurement && measurement.layoutVersion > 0)
       )
+      canvas.dataset.overlayAnchoredSamples = '0'
+      canvas.dataset.overlayLegacySamples = '0'
+      canvas.dataset.overlayUnresolvedAnchorSamples = '0'
+      canvas.dataset.overlayMissingAnchorSamples = '0'
+      canvas.dataset.overlayAmbiguousAnchorSamples = '0'
+      canvas.dataset.overlayOmittedAnchorSamples = String(
+        anchorSelection?.omittedAnchorCount ?? 0
+      )
+      canvas.dataset.overlayGeometryIncompatibleSamples = '0'
 
       if (!measurement || measurement.layoutVersion <= 0) {
         canvas.dataset.overlayRejectionReasons = JSON.stringify({
@@ -801,13 +1080,28 @@ export function HeatmapOverlayLayer({
       }
 
       if (heatmapType === 'click' && clickSampleGroups) {
+        const definitionMap = new Map(
+          anchorDefinitions.map((definition) => [
+            definition.anchorId,
+            definition,
+          ])
+        )
+        const resolutionMap = new Map(
+          (anchorResolutions ?? []).map((resolution) => [
+            resolution.anchorId,
+            resolution,
+          ])
+        )
         const density = drawClickDensity(
           context,
           clickSampleGroups,
           measurement,
           width,
           height,
-          devicePixelRatio
+          devicePixelRatio,
+          definitionMap,
+          resolutionMap,
+          anchorSelection
         )
         canvas.dataset.overlayCompatibleGroups = String(
           density.compatibleGroups
@@ -816,6 +1110,27 @@ export function HeatmapOverlayLayer({
         canvas.dataset.overlayBandCount = '0'
         canvas.dataset.overlayRejectionReasons = JSON.stringify(
           density.rejectionReasons
+        )
+        canvas.dataset.overlayAnchoredSamples = String(
+          density.diagnostics.anchoredSamples
+        )
+        canvas.dataset.overlayLegacySamples = String(
+          density.diagnostics.legacySamples
+        )
+        canvas.dataset.overlayUnresolvedAnchorSamples = String(
+          density.diagnostics.unresolvedAnchorSamples
+        )
+        canvas.dataset.overlayMissingAnchorSamples = String(
+          density.diagnostics.missingAnchorSamples
+        )
+        canvas.dataset.overlayAmbiguousAnchorSamples = String(
+          density.diagnostics.ambiguousAnchorSamples
+        )
+        canvas.dataset.overlayOmittedAnchorSamples = String(
+          density.diagnostics.omittedAnchorSamples
+        )
+        canvas.dataset.overlayGeometryIncompatibleSamples = String(
+          density.diagnostics.geometryIncompatibleSamples
         )
         return
       }
@@ -868,6 +1183,9 @@ export function HeatmapOverlayLayer({
   }, [
     groups,
     clickSampleGroups,
+    anchorDefinitions,
+    anchorResolutions,
+    anchorSelection,
     heatmapType,
     measurement,
     scrollGroups,
@@ -897,6 +1215,13 @@ export function HeatmapOverlayLayer({
         data-overlay-live-viewport=""
         data-overlay-live-document=""
         data-overlay-live-scroll=""
+        data-overlay-anchored-samples="0"
+        data-overlay-legacy-samples="0"
+        data-overlay-unresolved-anchor-samples="0"
+        data-overlay-missing-anchor-samples="0"
+        data-overlay-ambiguous-anchor-samples="0"
+        data-overlay-omitted-anchor-samples="0"
+        data-overlay-geometry-incompatible-samples="0"
         data-overlay-source-viewport=""
         data-overlay-source-document=""
         data-overlay-source-provenance=""

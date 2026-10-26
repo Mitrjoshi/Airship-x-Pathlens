@@ -3,14 +3,16 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { test } from 'node:test'
 import { createServer } from 'vite'
+import { hashClickAnchorFingerprint } from '@workspace/contracts'
 
 const require = createRequire(import.meta.url)
 const {
   chromium,
 } = require('../../pathlens-heatmap-proxy/node_modules/playwright')
 const webRoot = resolve(import.meta.dirname, '..')
+const fixtureAnchorId = hashClickAnchorFingerprint('explicit:fixture-target')
 
-const childHtml = `<!doctype html><style>body{margin:0;width:1920px;height:2700px}@media(max-width:600px){body{width:390px;height:1600px}}@media(min-width:601px) and (max-width:1100px){body{width:1024px;height:2000px}}</style><body><script>
+const childHtml = `<!doctype html><style>body{margin:0;width:1920px;height:2700px}#fixture-target{position:fixed;right:20px;top:30px;width:120px;height:40px}@media(max-width:600px){body{width:390px;height:1600px}}@media(min-width:601px) and (max-width:1100px){body{width:1024px;height:2000px}}</style><body><a id="fixture-target" data-pathlens-anchor="fixture-target">Target</a><script>
 document.body.dataset.responsiveLayout = innerWidth < 600 ? 'mobile' : innerWidth < 1100 ? 'tablet' : 'desktop'
 setTimeout(() => {
   let layoutVersion = 0
@@ -20,7 +22,8 @@ setTimeout(() => {
     if (!request) return
     const documentWidth = Math.max(innerWidth, document.documentElement.scrollWidth)
     const documentHeight = Math.max(innerHeight, document.documentElement.scrollHeight)
-    const measurement = { version: 1, type: 'PATHLENS_MEASURE_STATE', sessionId: request.sessionId, nonce: request.nonce, requestId: request.requestId, viewportWidth: innerWidth, viewportHeight: innerHeight, documentWidth, documentHeight, scrollX: 0, scrollY: window.scrollY, maxScrollX: Math.max(0, documentWidth - innerWidth), maxScrollY: Math.max(0, documentHeight - innerHeight), layoutVersion: ++layoutVersion }
+     const anchorResolutions = request.anchorIds?.map((anchorId) => { const target = document.querySelector('[data-pathlens-anchor="fixture-target"]'); const rect = target?.getBoundingClientRect(); return anchorId === '${fixtureAnchorId}' && rect ? { anchorId, status: 'matched', rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height }, positionMode: 'fixed' } : { anchorId, status: 'missing' } })
+     const measurement = { version: 1, type: 'PATHLENS_MEASURE_STATE', sessionId: request.sessionId, nonce: request.nonce, requestId: request.requestId, viewportWidth: innerWidth, viewportHeight: innerHeight, documentWidth, documentHeight, scrollX: 0, scrollY: window.scrollY, maxScrollX: Math.max(0, documentWidth - innerWidth), maxScrollY: Math.max(0, documentHeight - innerHeight), layoutVersion: ++layoutVersion, ...(anchorResolutions ? { anchorResolutions } : {}) }
     event.source.postMessage({ ...measurement, nonce: 'forged-nonce-0123456789' }, '*')
     event.source.postMessage({ ...measurement, requestId: 'stale-request-id' }, '*')
     event.source.postMessage(measurement, '*')
@@ -83,6 +86,12 @@ test('mounts LivePreviewIframe handshake after a delayed child listener', async 
       document
         .querySelector('canvas')
         ?.getAttribute('data-overlay-drawn-points') === '3'
+  )
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('[data-anchor-resolution]')
+        ?.getAttribute('data-anchor-resolution') === 'matched'
   )
   assert.ok(
     (await page.evaluate(

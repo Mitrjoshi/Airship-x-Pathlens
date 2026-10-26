@@ -111,6 +111,7 @@ function makeConfig(parentOrigin: string, proxyOrigin: string): ProxyConfig {
     javascriptExecutionPolicy: 'isolated-script-runtime',
     port: 0,
     publicOrigin: proxyOrigin,
+    publicBasePath: '',
     dashboardOrigin: parentOrigin,
     apiOrigin: 'http://127.0.0.1:9',
     authorizationUrl: 'http://127.0.0.1:9/validate',

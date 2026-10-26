@@ -26,6 +26,7 @@ const config: ProxyConfig = {
   javascriptExecutionPolicy: 'static-only',
   port: 8082,
   publicOrigin: 'https://proxy.example.test',
+  publicBasePath: '',
   authorizationUrl: 'https://api.example.test/validate',
   sharedSecret: 'test-secret',
   authorizationTimeoutMs: 100,
@@ -109,6 +110,49 @@ test('injects the controlled scroll bridge for heatmap previews', () => {
   assert.ok(
     output.indexOf('runtime/storage-compatibility.js') <
       output.indexOf('runtime/scroll-controller.js')
+  )
+})
+
+test('includes an AWS stage base path on HTML, runtime, CSS, and resource URLs', () => {
+  const awsConfig = { ...config, publicBasePath: '/dev' }
+  const output = rewriteHtml(
+    '<!doctype html><html><head><link rel="stylesheet" href="/site.css"><script type="module" src="/module.js"></script></head><body><img src="/image.png"></body></html>',
+    {
+      session: { ...session, previewIntent: 'heatmap' },
+      handle: 'opaque-session-handle',
+      proxyOrigin: config.publicOrigin,
+      pageUrl: 'https://example.com/',
+      config: awsConfig,
+      allowExternalScripts: true,
+      previewIntent: 'heatmap',
+    }
+  )
+
+  assert.match(
+    output,
+    /https:\/\/proxy\.example\.test\/dev\/v1\/session\/opaque-session-handle\/resource/
+  )
+  assert.match(
+    output,
+    /https:\/\/proxy\.example\.test\/dev\/v1\/session\/opaque-session-handle\/runtime\//
+  )
+  assert.doesNotMatch(output, /proxy\.example\.test\/dev\/dev\//)
+  const scopedOutput = rewriteHtml('<img src="/image.png">', {
+    session: { ...session, previewIntent: 'heatmap' },
+    handle: 'opaque-session-handle',
+    proxyOrigin: config.publicOrigin,
+    pageUrl: 'https://example.com/',
+    config: awsConfig,
+  })
+  assert.equal(
+    rewriteHtml(scopedOutput, {
+      session,
+      handle: 'opaque-session-handle',
+      proxyOrigin: config.publicOrigin,
+      pageUrl: 'https://example.com/',
+      config: awsConfig,
+    }),
+    scopedOutput
   )
 })
 

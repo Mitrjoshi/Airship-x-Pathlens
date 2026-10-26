@@ -25,6 +25,7 @@ const config: ProxyConfig = {
   javascriptExecutionPolicy: 'isolated-script-runtime',
   port: 8082,
   publicOrigin: 'https://proxy.example.test',
+  publicBasePath: '',
   authorizationUrl: 'https://api.example.test/validate',
   sharedSecret: 'test-secret',
   authorizationTimeoutMs: 100,

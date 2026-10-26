@@ -16,6 +16,10 @@ import {
   PREVIEW_SESSION_TTL_MS,
   resolveHeatmapPreviewDevice,
 } from "../lib/preview-session";
+import {
+  classifyPreviewSessionValidation,
+  type PreviewSessionValidationCategory,
+} from "../lib/preview-session-validation";
 
 export interface CreatedPreviewSession {
   handle: string;
@@ -124,7 +128,8 @@ export async function createPreviewSessionModel(input: {
 }
 
 export async function validatePreviewSessionModel(
-  handle: string
+  handle: string,
+  onDiagnostic?: (category: PreviewSessionValidationCategory) => void
 ): Promise<PreviewSessionClaims | null> {
   const [row] = await db
     .select({
@@ -156,26 +161,36 @@ export async function validatePreviewSessionModel(
       eq(heatmapPreviewSessions.handleHash, hashPreviewSessionHandle(handle))
     );
 
-  if (!row || row.revokedAt || row.supersededAt) return null;
-  if (row.expiresAt.getTime() <= Date.now()) return null;
-  if (row.currentProjectId !== row.projectId) return null;
-  if (row.currentWorkspaceId !== row.workspaceId) return null;
-
-  const currentDomain = getAllowedPreviewHostnames(row.currentDomain);
-
-  if (
-    currentDomain.canonicalHostname !== row.canonicalHostname ||
-    currentDomain.allowedHostnames.some(
-      (hostname) => !row.allowedHostnames.includes(hostname)
-    )
-  ) {
+  if (!row) {
+    onDiagnostic?.("missing_session");
     return null;
   }
 
-  return toClaims({
+  const currentDomain = getAllowedPreviewHostnames(row.currentDomain);
+  const category = classifyPreviewSessionValidation({
+    exists: true,
+    revokedAt: row.revokedAt,
+    supersededAt: row.supersededAt,
+    expiresAt: row.expiresAt,
+    projectMatches: row.currentProjectId === row.projectId,
+    workspaceMatches: row.currentWorkspaceId === row.workspaceId,
+    domainMatches:
+      currentDomain.canonicalHostname === row.canonicalHostname &&
+      !currentDomain.allowedHostnames.some(
+        (hostname) => !row.allowedHostnames.includes(hostname)
+      ),
+  });
+  if (category !== "successfully_validated") {
+    onDiagnostic?.(category);
+    return null;
+  }
+
+  const claims = toClaims({
     ...row,
     allowedHostnames: currentDomain.allowedHostnames,
   });
+  onDiagnostic?.("successfully_validated");
+  return claims;
 }
 
 export async function getPreviewSessionAuthorizationModel(

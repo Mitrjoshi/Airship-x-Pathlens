@@ -1,4 +1,5 @@
 import type {
+  HeatmapClickAnchorDefinition,
   HeatmapClickGroup,
   HeatmapClickSample,
   HeatmapClickSampleGroup,
@@ -9,8 +10,13 @@ import type {
   HeatmapMovementPoint,
   HeatmapSourceDimensions,
 } from "@workspace/contracts";
+import { clickElementAnchorSchema } from "@workspace/contracts/events";
 
 const CLICK_GRID_SIZE = 20;
+// Overflow keeps coordinate samples available while omitting unbounded anchor
+// definitions from the response; coverage reports the omission explicitly.
+const MAX_ANCHOR_DEFINITIONS = 2_048;
+const MAX_ANCHOR_METADATA_BYTES = 1_000_000;
 export const MOVEMENT_GRID_SIZE = 40;
 
 export interface HeatmapAggregationEvent {
@@ -339,9 +345,30 @@ export function collectClickSamples(
 ): {
   groups: HeatmapClickSampleGroup[];
   eligibleEventCount: number;
+  anchorDefinitions: HeatmapClickAnchorDefinition[];
+  anchorDiagnostics: {
+    anchorCapableEvents: number;
+    legacyEvents: number;
+    missingAnchorEvents: number;
+    invalidAnchorEvents: number;
+    uniqueAnchors: number;
+    conflictingAnchorIdentities: number;
+    anchorDefinitionsReturned: number;
+    anchorDefinitionsTruncated: boolean;
+    anchorMetadataBytes: number;
+  };
 } {
   const groups = new Map<string, HeatmapClickSampleGroup>();
+  const anchorDefinitions = new Map<string, HeatmapClickAnchorDefinition>();
+  const conflictingAnchorIds = new Set<string>();
+  const seenAnchorIds = new Set<string>();
   let eligibleEventCount = 0;
+  let anchorCapableEvents = 0;
+  let legacyEvents = 0;
+  let missingAnchorEvents = 0;
+  let invalidAnchorEvents = 0;
+  let anchorDefinitionsTruncated = false;
+  let anchorMetadataBytes = 0;
 
   for (const row of rows) {
     if (row.type !== "click") continue;
@@ -366,15 +393,106 @@ export function collectClickSamples(
         samples: [],
       } satisfies HeatmapClickSampleGroup);
 
+    const rawAnchor = row.payload?.elementAnchor;
+    let anchor = null;
+
+    if (rawAnchor === undefined || rawAnchor === null) {
+      legacyEvents += 1;
+      missingAnchorEvents += 1;
+    } else {
+      const parsedAnchor = clickElementAnchorSchema.safeParse(rawAnchor);
+
+      if (!parsedAnchor.success) {
+        invalidAnchorEvents += 1;
+      } else {
+        anchorCapableEvents += 1;
+        anchor = parsedAnchor.data;
+        seenAnchorIds.add(anchor.anchorId);
+
+        const definition: HeatmapClickAnchorDefinition = {
+          anchorId: anchor.anchorId,
+          positionMode: anchor.positionMode,
+          ...(anchor.effectivePositionMode
+            ? { effectivePositionMode: anchor.effectivePositionMode }
+            : {}),
+          ...(anchor.positioningAncestorDepth !== undefined
+            ? { positioningAncestorDepth: anchor.positioningAncestorDepth }
+            : {}),
+          ...(anchor.positioningAncestorAnchorId
+            ? {
+                positioningAncestorAnchorId: anchor.positioningAncestorAnchorId,
+              }
+            : {}),
+          transformedAncestor: anchor.transformedAncestor,
+          ...(anchor.stickyInset ? { stickyInset: anchor.stickyInset } : {}),
+          scrollAncestors: anchor.scrollAncestors,
+        };
+        const serializedDefinition = JSON.stringify(definition);
+        const existingDefinition = anchorDefinitions.get(anchor.anchorId);
+
+        if (
+          existingDefinition &&
+          JSON.stringify(existingDefinition) !== serializedDefinition
+        ) {
+          // Keep the click sample, but reject the ambiguous anchor identity
+          // from the response rather than choosing one definition.
+          conflictingAnchorIds.add(anchor.anchorId);
+        } else if (
+          !existingDefinition &&
+          !conflictingAnchorIds.has(anchor.anchorId)
+        ) {
+          const nextBytes = anchorMetadataBytes + serializedDefinition.length;
+
+          if (
+            anchorDefinitions.size >= MAX_ANCHOR_DEFINITIONS ||
+            nextBytes > MAX_ANCHOR_METADATA_BYTES
+          ) {
+            anchorDefinitionsTruncated = true;
+          } else {
+            anchorDefinitions.set(anchor.anchorId, definition);
+            anchorMetadataBytes = nextBytes;
+          }
+        }
+      }
+    }
+
     group.sampleCount += weight;
     group.samples.push({
       x: point.x,
       y: point.y,
       weight,
       coordinateMode: point.coordinateMode,
+      ...(anchor &&
+      anchorDefinitions.has(anchor.anchorId) &&
+      !conflictingAnchorIds.has(anchor.anchorId)
+        ? {
+            anchorId: anchor.anchorId,
+            relativeX: anchor.relativeX,
+            relativeY: anchor.relativeY,
+            capturedRect: anchor.capturedRect,
+          }
+        : {}),
     } satisfies HeatmapClickSample);
     groups.set(groupId, group);
     eligibleEventCount += 1;
+  }
+
+  const conflictingCount = conflictingAnchorIds.size;
+  if (conflictingCount > 0) {
+    for (const group of groups.values()) {
+      group.samples = group.samples.map((sample) => {
+        if (!sample.anchorId || !conflictingAnchorIds.has(sample.anchorId)) {
+          return sample;
+        }
+
+        return {
+          x: sample.x,
+          y: sample.y,
+          weight: sample.weight,
+          coordinateMode: sample.coordinateMode,
+        };
+      });
+    }
   }
 
   return {
@@ -391,6 +509,22 @@ export function collectClickSamples(
       }))
       .sort((left, right) => left.groupId.localeCompare(right.groupId)),
     eligibleEventCount,
+    anchorDefinitions: Array.from(anchorDefinitions.values()).filter(
+      (definition) => !conflictingAnchorIds.has(definition.anchorId)
+    ),
+    anchorDiagnostics: {
+      anchorCapableEvents,
+      legacyEvents,
+      missingAnchorEvents,
+      invalidAnchorEvents,
+      uniqueAnchors: seenAnchorIds.size,
+      conflictingAnchorIdentities: conflictingCount,
+      anchorDefinitionsReturned: Array.from(anchorDefinitions.values()).filter(
+        (definition) => !conflictingAnchorIds.has(definition.anchorId)
+      ).length,
+      anchorDefinitionsTruncated,
+      anchorMetadataBytes,
+    },
   };
 }
 

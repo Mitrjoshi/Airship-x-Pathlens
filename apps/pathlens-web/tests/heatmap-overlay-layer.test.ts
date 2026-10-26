@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type {
   HeatmapClickGroup,
+  HeatmapClickSampleGroup,
+  HeatmapClickAnchorDefinition,
   HeatmapScrollPoint,
   PreviewMeasurementState,
 } from '@workspace/contracts'
@@ -12,6 +14,8 @@ import {
   getRepresentativeClickOverlayViewport,
   isClickGroupOverlayCompatible,
   projectClickPoint,
+  projectClickSample,
+  selectClickAnchorIds,
   getScrollOverlayDecision,
   getScrollGroupOverlayViewport,
   getSnapshotScrollOverlayDimensions,
@@ -46,6 +50,15 @@ function group(overrides: Partial<HeatmapClickGroup> = {}): HeatmapClickGroup {
   }
 }
 
+function sampleGroup(
+  samples: HeatmapClickSampleGroup['samples']
+): HeatmapClickSampleGroup {
+  return {
+    ...group(),
+    samples,
+  }
+}
+
 test('projects normalized document coordinates through scroll and CSS scale', () => {
   const projection = projectClickPoint(
     { x: 0.5, y: 0.5, coordinateMode: 'document' },
@@ -54,6 +67,150 @@ test('projects normalized document coordinates through scroll and CSS scale', ()
   )
 
   assert.deepEqual(projection, { x: 200, y: 250 })
+})
+
+test('projects anchored samples from live viewport rectangles without reapplying scroll', () => {
+  const definition: HeatmapClickAnchorDefinition = {
+    anchorId: 'fnv1a32-anchor001',
+    positionMode: 'static',
+    effectivePositionMode: 'sticky',
+    transformedAncestor: false,
+    scrollAncestors: [],
+  }
+  const sample = {
+    x: 0.5,
+    y: 0.5,
+    weight: 1,
+    coordinateMode: 'document' as const,
+    anchorId: definition.anchorId,
+    relativeX: 0.25,
+    relativeY: 0.5,
+  }
+  const result = projectClickSample(
+    sample,
+    measurement,
+    { width: 500, height: 250 },
+    new Map([[definition.anchorId, definition]]),
+    new Map([
+      [
+        definition.anchorId,
+        {
+          anchorId: definition.anchorId,
+          status: 'matched' as const,
+          rect: { left: 100, top: 20, width: 200, height: 40 },
+          positionMode: 'static' as const,
+          effectivePositionMode: 'sticky' as const,
+        },
+      ],
+    ])
+  )
+
+  assert.deepEqual(result, {
+    projection: { x: 75, y: 20 },
+    mode: 'anchored',
+  })
+})
+
+test('prioritizes positioning anchors, then sample count, then anchor ID', () => {
+  const definitions = [
+    {
+      anchorId: 'fnv1a32-normal01',
+      positionMode: 'static' as const,
+      transformedAncestor: false,
+      scrollAncestors: [],
+    },
+    {
+      anchorId: 'fnv1a32-fixed001',
+      positionMode: 'static' as const,
+      effectivePositionMode: 'fixed' as const,
+      transformedAncestor: false,
+      scrollAncestors: [],
+    },
+  ]
+  const result = selectClickAnchorIds(
+    [
+      sampleGroup([
+        {
+          x: 0.1,
+          y: 0.1,
+          weight: 1,
+          coordinateMode: 'document',
+          anchorId: definitions[0]!.anchorId,
+          relativeX: 0.5,
+          relativeY: 0.5,
+        },
+        {
+          x: 0.2,
+          y: 0.2,
+          weight: 1,
+          coordinateMode: 'document',
+          anchorId: definitions[1]!.anchorId,
+          relativeX: 0.5,
+          relativeY: 0.5,
+        },
+      ]),
+    ],
+    definitions,
+    { width: 1000, height: 500 }
+  )
+
+  assert.deepEqual(result.requestedAnchorIds, [
+    definitions[1]!.anchorId,
+    definitions[0]!.anchorId,
+  ])
+})
+
+test('excludes unresolved fixed and nested-scroll samples but falls back for normal samples', () => {
+  const fixed: HeatmapClickAnchorDefinition = {
+    anchorId: 'fnv1a32-fixed001',
+    positionMode: 'fixed',
+    transformedAncestor: false,
+    scrollAncestors: [],
+  }
+  const normal: HeatmapClickAnchorDefinition = {
+    anchorId: 'fnv1a32-normal01',
+    positionMode: 'static',
+    transformedAncestor: false,
+    scrollAncestors: [],
+  }
+  const fixedSample = {
+    x: 0.2,
+    y: 0.2,
+    weight: 1,
+    coordinateMode: 'document' as const,
+    anchorId: fixed.anchorId,
+    relativeX: 0.5,
+    relativeY: 0.5,
+  }
+  const normalSample = { ...fixedSample, anchorId: normal.anchorId }
+  const definitions = new Map([
+    [fixed.anchorId, fixed],
+    [normal.anchorId, normal],
+  ])
+  const resolutions = new Map([
+    [fixed.anchorId, { anchorId: fixed.anchorId, status: 'missing' as const }],
+  ])
+
+  assert.equal(
+    projectClickSample(
+      fixedSample,
+      measurement,
+      { width: 500, height: 250 },
+      definitions,
+      resolutions
+    ).mode,
+    'excluded'
+  )
+  assert.equal(
+    projectClickSample(
+      normalSample,
+      measurement,
+      { width: 500, height: 250 },
+      definitions,
+      resolutions
+    ).mode,
+    'document'
+  )
 })
 
 test('projects horizontal scroll without applying device pixel ratio', () => {

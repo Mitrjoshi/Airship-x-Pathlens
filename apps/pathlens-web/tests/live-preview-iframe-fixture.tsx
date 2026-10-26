@@ -7,6 +7,7 @@ import type {
   HeatmapScrollPoint,
   PreviewMeasurementState,
 } from '@workspace/contracts'
+import { hashClickAnchorFingerprint } from '@workspace/contracts'
 import { HeatmapOverlayLayer } from '../src/components/common/heatmap-overlay-layer'
 import { LivePreviewIframe } from '../src/components/common/live-preview-iframe'
 import '../src/index.css'
@@ -23,6 +24,7 @@ const preview = {
   preview_intent: 'heatmap' as const,
   protocol_version: 1 as const,
 }
+const fixtureAnchorId = hashClickAnchorFingerprint('explicit:fixture-target')
 
 const clickGroups: HeatmapClickGroup[] = [
   {
@@ -112,6 +114,9 @@ const scrollSource = {
 function Fixture() {
   const [measurement, setMeasurement] =
     useState<PreviewMeasurementState | null>(null)
+  const [anchorResolutions, setAnchorResolutions] = useState<
+    PreviewMeasurementState['anchorResolutions'] | null
+  >(null)
   const [mounted, setMounted] = useState(true)
   const [heatmapType, setHeatmapType] = useState<
     'click' | 'movement' | 'scroll'
@@ -179,6 +184,8 @@ function Fixture() {
               : { width: 1920, height: 911 }
         }
         onMeasurementChange={setMeasurement}
+        anchorIds={[fixtureAnchorId]}
+        onAnchorResolutionChange={setAnchorResolutions}
         overlay={
           <HeatmapOverlayLayer
             clickGroups={clickGroups}
@@ -191,6 +198,9 @@ function Fixture() {
             sessionKey={preview.session_id}
           />
         }
+      />
+      <output
+        data-anchor-resolution={anchorResolutions?.[0]?.status ?? 'pending'}
       />
     </div>
   )

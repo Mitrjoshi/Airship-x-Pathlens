@@ -115,6 +115,7 @@ function config(): ProxyConfig {
     javascriptExecutionPolicy: 'isolated-script-runtime',
     port: 0,
     publicOrigin: 'http://127.0.0.1:0',
+    publicBasePath: '',
     dashboardOrigin: 'http://127.0.0.1:0',
     apiOrigin: 'http://127.0.0.1:9',
     authorizationUrl: 'http://127.0.0.1:9/validate',

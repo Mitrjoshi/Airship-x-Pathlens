@@ -29,6 +29,18 @@ const claims: PreviewSessionClaims = {
   previewIntent: 'compatibility' as const,
 }
 
+function anchorId(fingerprint: string): string {
+  let hash = 2166136261
+  for (let index = 0; index < fingerprint.length; index += 1) {
+    hash ^= fingerprint.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return `fnv1a32-${(hash >>> 0).toString(16).padStart(8, '0')}`
+}
+
+const stickyAnchorId = anchorId('explicit:sticky-contact')
+const fixedAnchorId = anchorId('explicit:fixed-contact')
+
 class FixtureRequest extends EventEmitter implements RequestLike {
   setTimeout() {
     return this
@@ -55,7 +67,7 @@ function fixture(path: string): { body: string | Buffer; contentType: string } {
   if (path === '/contact') {
     return {
       contentType: 'text/html',
-      body: `<html><head><link rel="modulepreload" href="/assets/nested.js?chunk=1"><style>.reveal{margin-top:1100px;opacity:0;transition:opacity 100ms linear}.sticky{position:sticky;top:0}.fixed{position:fixed;bottom:0}</style><script defer src="/assets/app.js"></script><script type="module" src="/assets/module.js"></script><script src="https://evil.example.test/evil.js"></script></head><body><header class="sticky">Sticky</header><main><h1 id="status">waiting</h1><p id="module">module-waiting</p><div id="app" data-ssr="server">SSR shell</div><section id="reveal" class="reveal">Reveal</section><div class="fixed">Fixed</div><button id="button" onclick="document.body.dataset.inline='ran'">Button</button></main></body></html>`,
+      body: `<html><head><link rel="modulepreload" href="/assets/nested.js?chunk=1"><style>.reveal{margin-top:1100px;opacity:0;transition:opacity 100ms linear}.sticky{position:sticky;top:0}.fixed{position:fixed;bottom:0}.nested{height:120px;overflow:auto}.nested-content{height:500px;padding-top:180px}.transformed{transform:translateZ(0)}</style><script defer src="/assets/app.js"></script><script type="module" src="/assets/module.js"></script><script src="https://evil.example.test/evil.js"></script></head><body><header class="sticky">Sticky <a data-pathlens-anchor="sticky-contact">Contact</a></header><main><h1 id="status">waiting</h1><p id="module">module-waiting</p><div id="app" data-ssr="server">SSR shell</div><section id="reveal" class="reveal">Reveal</section><div class="fixed"><a data-pathlens-anchor="fixed-contact">Fixed contact</a></div><div class="nested"><div class="nested-content"><button data-pathlens-anchor="nested-target">Nested</button></div></div><div class="transformed"><button data-pathlens-anchor="transformed-target">Transformed</button></div><button id="button" onclick="document.body.dataset.inline='ran'">Button</button></main></body></html>`,
     }
   }
   if (path === '/assets/app.js') {
@@ -105,6 +117,7 @@ function makeConfig(parentOrigin: string, proxyOrigin: string): ProxyConfig {
     javascriptExecutionPolicy: 'isolated-script-runtime',
     port: 0,
     publicOrigin: proxyOrigin,
+    publicBasePath: '',
     dashboardOrigin: parentOrigin,
     apiOrigin: 'http://127.0.0.1:9',
     authorizationUrl: 'http://127.0.0.1:9/validate',
@@ -171,7 +184,7 @@ test('runs only the explicitly enabled isolated script subset', async (t) => {
   const parent = createServer((_request, reply) => {
     reply.setHeader('content-type', 'text/html; charset=utf-8')
     reply.end(
-      `<iframe id="preview" src="${proxyOrigin}/v1/session/session-one/page/contact" sandbox="allow-scripts" referrerpolicy="no-referrer" allow=""></iframe>`
+      `<iframe id="preview" src="${proxyOrigin}/v1/session/session-one/page/contact" sandbox="allow-scripts" referrerpolicy="no-referrer" allow=""></iframe><script>const frame=document.querySelector('#preview');const ids=${JSON.stringify([stickyAnchorId, fixedAnchorId])};window.addEventListener('message',(event)=>{if(event.source===frame.contentWindow&&event.data?.type==='PATHLENS_MEASURE_STATE'){document.body.dataset.anchorState=JSON.stringify(event.data);document.body.dataset.anchorRequestIds=(document.body.dataset.anchorRequestIds??'')+','+event.data.requestId}});frame.addEventListener('load',()=>{const base={version:1,type:'PATHLENS_MEASURE_REQUEST',sessionId:${JSON.stringify(claims.sessionId)},nonce:'0123456789abcdef0123456789abcdef'};frame.contentWindow.postMessage({...base,requestId:'invalid-anchor-request',anchorIds:Array(257).fill(ids[0])},'*');frame.contentWindow.postMessage({...base,requestId:'anchor-request',anchorIds:ids},'*')});</script>`
     )
   })
   const parentPort = await listen(parent)
@@ -183,7 +196,10 @@ test('runs only the explicitly enabled isolated script subset', async (t) => {
     const url = new URL(request.url ?? '/', runtimeConfig.publicOrigin)
     const result = await createProxyApp({
       authorization: {
-        validate: async (handle) => (handle === 'session-one' ? claims : null),
+        validate: async (handle) =>
+          handle === 'session-one'
+            ? { ...claims, previewIntent: 'heatmap' as const }
+            : null,
       },
       fetchRuntime: {
         config: runtimeConfig,
@@ -260,6 +276,57 @@ test('runs only the explicitly enabled isolated script subset', async (t) => {
     'true'
   )
   assert.equal(await frame.locator('#app').textContent(), 'hydrated')
+  await page.waitForFunction(() => {
+    const state = JSON.parse(document.body.dataset.anchorState ?? '{}')
+    return state.anchorResolutions?.every(
+      (item: { status: string }) => item.status === 'matched'
+    )
+  })
+  const anchorState = await page.evaluate(() =>
+    JSON.parse(document.body.dataset.anchorState ?? '{}')
+  )
+  assert.equal(
+    await page.evaluate(
+      () => document.body.dataset.anchorRequestIds?.includes('invalid') ?? false
+    ),
+    false
+  )
+  assert.deepEqual(
+    anchorState.anchorResolutions.map(
+      (item: { anchorId: string; status: string }) => ({
+        anchorId: item.anchorId,
+        status: item.status,
+      })
+    ),
+    [
+      { anchorId: stickyAnchorId, status: 'matched' },
+      { anchorId: fixedAnchorId, status: 'matched' },
+    ]
+  )
+  const initialRects = await frame.evaluate(() =>
+    ['sticky-contact', 'fixed-contact'].map((value) => {
+      const element = document.querySelector(
+        `[data-pathlens-anchor="${value}"]`
+      )
+      const rect = element?.getBoundingClientRect()
+      return rect
+        ? {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+          }
+        : null
+    })
+  )
+  assert.deepEqual(
+    anchorState.anchorResolutions.map(
+      (item: {
+        rect?: { left: number; top: number; width: number; height: number }
+      }) => item.rect
+    ),
+    initialRects
+  )
   assert.equal(
     await frame.evaluate(() => document.body.dataset.parentAccess),
     'blocked'
@@ -293,11 +360,37 @@ test('runs only the explicitly enabled isolated script subset', async (t) => {
   await frame.evaluate(() =>
     window.scrollTo(0, document.documentElement.scrollHeight)
   )
-  await frame.waitForFunction(
-    () =>
-      document.querySelector('#reveal')?.getAttribute('data-visible') === 'true'
+  await frame.waitForFunction(() => window.scrollY > 0)
+  await page.waitForFunction(() => {
+    const state = JSON.parse(document.body.dataset.anchorState ?? '{}')
+    return state.anchorResolutions?.length === 2
+  })
+  const scrolledState = await page.evaluate(() =>
+    JSON.parse(document.body.dataset.anchorState ?? '{}')
   )
-  assert.ok(await frame.evaluate(() => window.scrollY > 0))
+  const scrolledRects = await frame.evaluate(() =>
+    ['sticky-contact', 'fixed-contact'].map((value) => {
+      const rect = document
+        .querySelector(`[data-pathlens-anchor="${value}"]`)
+        ?.getBoundingClientRect()
+      return rect
+        ? {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+          }
+        : null
+    })
+  )
+  assert.deepEqual(
+    scrolledState.anchorResolutions.map(
+      (item: {
+        rect?: { left: number; top: number; width: number; height: number }
+      }) => item.rect
+    ),
+    scrolledRects
+  )
   await frame.evaluate(() => history.back())
   await frame.waitForFunction(() => document.body.dataset.popstate === 'true')
   assert.equal(

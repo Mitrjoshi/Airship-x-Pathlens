@@ -38,6 +38,14 @@ export interface CampaignAttribution {
 
 export type DeviceType = 'desktop' | 'mobile' | 'tablet' | 'unknown'
 
+export type {
+  ClickElementAnchor,
+  ClickElementPositionMode,
+  ClickElementRect,
+  ClickElementScrollAncestor,
+  ClickElementStickyInset,
+} from './element-anchor'
+
 export const COORDINATE_SCHEMA_VERSION = 1
 
 export interface ClientAnalyticsInfo {
@@ -145,6 +153,8 @@ export interface ClickEvent {
   buttonText?: string
 
   elementKey?: string
+
+  elementAnchor?: import('./element-anchor').ClickElementAnchor
 }
 
 export interface ScrollEvent {

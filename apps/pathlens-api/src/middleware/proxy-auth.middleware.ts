@@ -1,6 +1,29 @@
 import type { NextFunction, Request, Response } from "express";
+import { randomUUID } from "node:crypto";
 import { validatePreviewSessionRequestSchema } from "@workspace/contracts";
-import { verifyProxyAuthSignature } from "../lib/preview-session";
+import {
+  hashPreviewSessionHandle,
+  verifyProxyAuthSignature,
+} from "../lib/preview-session";
+
+function requestId(req: Request): string {
+  return req.header("x-pathlens-proxy-request-id") || randomUUID();
+}
+
+function logProxyAuth(
+  category: "invalid_hmac" | "hmac_valid",
+  req: Request,
+  handle?: string
+): void {
+  console.info({
+    event: "preview_proxy_authentication",
+    category,
+    request_id: requestId(req),
+    ...(handle
+      ? { handle_fingerprint: hashPreviewSessionHandle(handle).slice(0, 16) }
+      : {}),
+  });
+}
 
 export function proxyAuthMiddleware(
   req: Request,
@@ -13,6 +36,11 @@ export function proxyAuthMiddleware(
   const parsed = validatePreviewSessionRequestSchema.safeParse(req.body);
 
   if (!secret || !timestamp || !signature || !parsed.success) {
+    logProxyAuth(
+      "invalid_hmac",
+      req,
+      parsed.success ? parsed.data.handle : undefined
+    );
     return res.status(401).json({
       success: false,
       error: {
@@ -26,6 +54,7 @@ export function proxyAuthMiddleware(
   if (
     !verifyProxyAuthSignature(timestamp, parsed.data.handle, signature, secret)
   ) {
+    logProxyAuth("invalid_hmac", req, parsed.data.handle);
     return res.status(401).json({
       success: false,
       error: {
@@ -36,6 +65,7 @@ export function proxyAuthMiddleware(
     });
   }
 
+  logProxyAuth("hmac_valid", req, parsed.data.handle);
   req.body = parsed.data;
   next();
 }

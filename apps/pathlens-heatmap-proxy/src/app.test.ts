@@ -7,6 +7,7 @@ import type {
   APIGatewayProxyStructuredResultV2,
 } from 'aws-lambda'
 import { createProxyApp } from './app.js'
+import { normalizeGatewayEvent } from './gateway-event.js'
 import { authorizeResourceRequest } from './resource-authorization.js'
 import type { ProxyConfig } from './config.js'
 import type { IncomingMessage } from 'node:http'
@@ -61,10 +62,45 @@ function event(
   }
 }
 
+function restEvent(
+  path: string,
+  method = 'GET',
+  queryStringParameters?: Record<string, string>,
+  multiValueQueryStringParameters?: Record<string, string[]>
+) {
+  return {
+    httpMethod: method,
+    path: `/dev${path}`,
+    headers: {},
+    multiValueHeaders: {},
+    queryStringParameters: queryStringParameters ?? null,
+    multiValueQueryStringParameters: multiValueQueryStringParameters ?? null,
+    requestContext: {
+      accountId: 'test',
+      apiId: 'test',
+      domainName: 'test.execute-api.test',
+      domainPrefix: 'test',
+      extendedRequestId: 'extended-request-id',
+      httpMethod: method,
+      path: `/dev${path}`,
+      protocol: 'HTTP/1.1',
+      requestId: 'request-id-v1',
+      requestTime: '22/Oct/2026:10:00:00 +0000',
+      requestTimeEpoch: Date.now(),
+      resourceId: 'test',
+      resourcePath: '/{proxy+}',
+      stage: 'dev',
+    },
+    body: null,
+    isBase64Encoded: false,
+  }
+}
+
 const fetchConfig: ProxyConfig = {
   javascriptExecutionPolicy: 'static-only',
   port: 8082,
   publicOrigin: 'https://proxy.example.test',
+  publicBasePath: '',
   authorizationUrl: 'https://api.example.test/validate',
   sharedSecret: 'test-secret',
   authorizationTimeoutMs: 100,
@@ -126,6 +162,55 @@ test('proxy health does not require external authorization', async () => {
   const result = await app(event('/health/live'))
   assert.equal(result.statusCode, 200)
   assert.deepEqual(body(result), { status: 'ok' })
+})
+
+test('REST API v1 stage is removed before health and session routing', async () => {
+  const app = createProxyApp({
+    authorization: { validate: async () => claims },
+  })
+
+  const live = await app(restEvent('/health/live'))
+  assert.equal(live.statusCode, 200)
+
+  const ready = await app(restEvent('/health/ready'))
+  assert.equal(ready.statusCode, 200)
+
+  const preview = await app(restEvent('/v1/session/session/page/contact'))
+  assert.equal(preview.statusCode, 501)
+})
+
+test('REST API v1 query parameters preserve repeated values', () => {
+  const normalized = normalizeGatewayEvent(
+    restEvent(
+      '/v1/session/session/resource',
+      'GET',
+      { t: 'target' },
+      { depth: ['0', '1'] }
+    )
+  )
+  assert.equal(normalized.path, '/v1/session/session/resource')
+  assert.equal(normalized.rawQueryString, 't=target&depth=0&depth=1')
+})
+
+test('malformed gateway events return a controlled client error', async () => {
+  const app = createProxyApp({
+    authorization: { validate: async () => claims },
+  })
+
+  const missingMethod = await app({
+    version: '2.0',
+    rawPath: '/health/live',
+    rawQueryString: '',
+    requestContext: { requestId: 'bad' },
+  })
+  assert.equal(missingMethod.statusCode, 400)
+  assert.equal(body(missingMethod).error.code, 'INVALID_REQUEST')
+
+  const malformedContext = await app({
+    httpMethod: 'GET',
+    path: '/dev/health/live',
+  })
+  assert.equal(malformedContext.statusCode, 400)
 })
 
 test('authorized placeholder is domain and path scoped', async () => {
@@ -279,6 +364,7 @@ test('authorized resource route returns bounded binary content and rejects an un
   )
   assert.equal(result.statusCode, 200)
   assert.equal(result.isBase64Encoded, true)
+  assert.equal(result.headers?.['access-control-allow-origin'], '*')
   assert.deepEqual(
     Buffer.from(result.body ?? '', 'base64'),
     Buffer.from([1, 2, 3])
@@ -291,6 +377,52 @@ test('authorized resource route returns bounded binary content and rejects an un
     event('/v1/session/session/resource', 'GET', `t=${external}&depth=0`)
   )
   assert.equal(denied.statusCode, 403)
+})
+
+test('REST v1 and HTTP v2 authorized JavaScript resources preserve CORS and binary responses', async () => {
+  const javascriptConfig = {
+    ...fetchConfig,
+    javascriptExecutionPolicy: 'isolated-script-runtime' as const,
+  }
+  const app = createProxyApp({
+    authorization: { validate: async () => claims },
+    fetchRuntime: {
+      config: javascriptConfig,
+      transport: {
+        lookup: (_hostname, _options, callback) =>
+          callback(null, [{ address: '93.184.216.34', family: 4 }]),
+        request: (_options: RequestOptions, callback) => {
+          const request = new TestRequest()
+          callback(
+            upstreamResponse('export const loaded = true', 'text/javascript')
+          )
+          return request
+        },
+      },
+    },
+  })
+  const target = Buffer.from('https://example.com/module.js').toString(
+    'base64url'
+  )
+  const query = `t=${target}&depth=0`
+
+  for (const request of [
+    restEvent('/v1/session/session/resource', 'GET', {
+      t: target,
+      depth: '0',
+    }),
+    event('/v1/session/session/resource', 'GET', query),
+  ]) {
+    const result = await app(request)
+    assert.equal(result.statusCode, 200)
+    assert.equal(result.headers?.['content-type'], 'text/javascript')
+    assert.equal(result.headers?.['access-control-allow-origin'], '*')
+    assert.equal(result.isBase64Encoded, true)
+    assert.match(
+      Buffer.from(result.body ?? '', 'base64').toString('utf8'),
+      /loaded/
+    )
+  }
 })
 
 test('resource URLs stop working after the preview session expires', async () => {
@@ -314,20 +446,17 @@ test('resource URLs stop working after the preview session expires', async () =>
     'base64url'
   )
   const path = '/v1/session/session/resource'
-  assert.equal(
-    (await app(event(path, 'GET', `t=${target}&depth=0`))).statusCode,
-    200
-  )
+  const active = await app(event(path, 'GET', `t=${target}&depth=0`))
+  assert.equal(active.statusCode, 200)
+  assert.equal(active.headers?.['access-control-allow-origin'], '*')
   activeSession = null
-  assert.equal(
-    (await app(event(path, 'GET', `t=${target}&depth=0`))).statusCode,
-    401
-  )
+  const expired = await app(event(path, 'GET', `t=${target}&depth=0`))
+  assert.equal(expired.statusCode, 401)
+  assert.equal(expired.headers?.['access-control-allow-origin'], '*')
   activeSession = claims
-  assert.equal(
-    (await app(event(path, 'GET', 't=not-valid-base64&depth=0'))).statusCode,
-    400
-  )
+  const invalid = await app(event(path, 'GET', 't=not-valid-base64&depth=0'))
+  assert.equal(invalid.statusCode, 400)
+  assert.equal(invalid.headers?.['access-control-allow-origin'], '*')
 })
 
 test('preview resource route blocks Pathlens tracker collection targets', async () => {

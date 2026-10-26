@@ -5,11 +5,13 @@ import { HeatmapCompletenessWarning } from '../src/components/common/heatmap-com
 import '../src/index.css'
 import type {
   HeatmapClickGroup,
+  HeatmapClickAnchorDefinition,
   HeatmapClickSampleGroup,
   HeatmapMovementGroup,
   HeatmapScrollGroup,
   HeatmapScrollPoint,
   PreviewMeasurementState,
+  PreviewAnchorResolution,
 } from '@workspace/contracts'
 
 const baseMeasurement: PreviewMeasurementState = {
@@ -23,6 +25,24 @@ const baseMeasurement: PreviewMeasurementState = {
   maxScrollY: 1789,
   layoutVersion: 1,
 }
+
+const fixtureAnchorId = 'fnv1a32-fixture01'
+const fixtureAnchorDefinitions: HeatmapClickAnchorDefinition[] = [
+  {
+    anchorId: fixtureAnchorId,
+    positionMode: 'static',
+    transformedAncestor: false,
+    scrollAncestors: [],
+  },
+]
+const fixtureAnchorResolutions: PreviewAnchorResolution[] = [
+  {
+    anchorId: fixtureAnchorId,
+    status: 'matched',
+    rect: { left: 300, top: 180, width: 120, height: 44 },
+    positionMode: 'static',
+  },
+]
 
 const clickGroups: HeatmapClickGroup[] = [
   {
@@ -104,7 +124,15 @@ const clickSampleGroups: HeatmapClickSampleGroup[] = [
     alignment: 'document-compatible',
     safeForDocumentOverlay: true,
     samples: [
-      { x: 0.175, y: 0.075, weight: 1, coordinateMode: 'document' },
+      {
+        x: 0.175,
+        y: 0.075,
+        weight: 1,
+        coordinateMode: 'document',
+        anchorId: fixtureAnchorId,
+        relativeX: 0.3,
+        relativeY: 0.5,
+      },
       ...Array.from({ length: 10 }, () => ({
         x: 0.225,
         y: 0.175,
@@ -376,6 +404,14 @@ function Fixture() {
           <HeatmapOverlayLayer
             clickGroups={clickGroups}
             clickSampleGroups={renderedClickSampleGroups}
+            anchorDefinitions={fixtureAnchorDefinitions}
+            anchorResolutions={fixtureAnchorResolutions}
+            anchorSelection={{
+              requestedAnchorIds: [fixtureAnchorId],
+              referencedAnchorCount: 1,
+              eligibleAnchorCount: 1,
+              omittedAnchorCount: 0,
+            }}
             movementGroups={movementGroups}
             heatmapType={heatmapType}
             scrollPoints={scrollPoints}

@@ -2,6 +2,7 @@ export interface ProxyConfig {
   javascriptExecutionPolicy: 'static-only' | 'isolated-script-runtime'
   port: number
   publicOrigin: string
+  publicBasePath: string
   authorizationUrl: string
   sharedSecret: string | null
   authorizationTimeoutMs: number
@@ -53,6 +54,33 @@ function readOrigin(name: string, fallback: string): string {
   return origin.origin
 }
 
+export function normalizePublicBasePath(value: string | undefined): string {
+  const trimmed = value?.trim() ?? ''
+  const normalized = trimmed.replace(/\/$/, '')
+  if (!normalized) return ''
+  if (
+    !normalized.startsWith('/') ||
+    normalized.includes('?') ||
+    normalized.includes('#')
+  ) {
+    throw new Error(
+      'HEATMAP_PROXY_PUBLIC_BASE_PATH must be an absolute path without query or fragment.'
+    )
+  }
+  const segments = normalized.split('/')
+  if (
+    segments.some(
+      (segment, index) =>
+        (index > 0 && !segment) || segment === '.' || segment === '..'
+    )
+  ) {
+    throw new Error(
+      'HEATMAP_PROXY_PUBLIC_BASE_PATH must contain only non-empty path segments.'
+    )
+  }
+  return normalized
+}
+
 export function loadConfig(): ProxyConfig {
   const publicOrigin = readOrigin(
     'HEATMAP_PROXY_PUBLIC_ORIGIN',
@@ -102,6 +130,9 @@ export function loadConfig(): ProxyConfig {
       javascriptExecutionPolicy as ProxyConfig['javascriptExecutionPolicy'],
     port: readInteger('PORT', 8082),
     publicOrigin,
+    publicBasePath: normalizePublicBasePath(
+      process.env.HEATMAP_PROXY_PUBLIC_BASE_PATH
+    ),
     authorizationUrl:
       process.env.HEATMAP_PROXY_AUTHORIZATION_URL ??
       'http://localhost:8080/api/internal/heatmap-proxy/validate',

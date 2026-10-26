@@ -1,7 +1,4 @@
-import type {
-  APIGatewayProxyEventV2,
-  APIGatewayProxyStructuredResultV2,
-} from 'aws-lambda'
+import type { APIGatewayProxyStructuredResultV2 } from 'aws-lambda'
 import { randomUUID } from 'node:crypto'
 import { normalizePagePath } from '@workspace/contracts'
 import type { PreviewSessionClaims } from '@workspace/contracts'
@@ -19,17 +16,18 @@ import {
   UpstreamSecurityError,
   type FetchRuntime,
 } from './upstream-fetch.js'
+import {
+  InvalidGatewayEventError,
+  normalizeGatewayEvent,
+  type NormalizedGatewayRequest,
+} from './gateway-event.js'
 
 export interface ProxyAppDependencies {
   authorization: SessionAuthorizationService
   fetchRuntime?: FetchRuntime
 }
 
-interface RouteContext {
-  method: string
-  path: string
-  requestId: string
-}
+type RouteContext = NormalizedGatewayRequest
 
 function json(
   statusCode: number,
@@ -45,6 +43,7 @@ function json(
       'referrer-policy': 'no-referrer',
       'x-request-id': requestId,
     },
+    isBase64Encoded: false,
     body: JSON.stringify(body),
   }
 }
@@ -71,9 +70,7 @@ function browserHeaders(
       'accelerometer=(), camera=(), geolocation=(), microphone=(), payment=(), usb=()',
     'cross-origin-resource-policy':
       resource && runtimeScripts ? 'cross-origin' : 'same-origin',
-    ...(resource && runtimeScripts
-      ? { 'access-control-allow-origin': '*' }
-      : {}),
+    ...(resource ? { 'access-control-allow-origin': '*' } : {}),
     'cross-origin-opener-policy': 'same-origin',
     ...(page && !embeddingOrigin ? { 'x-frame-options': 'DENY' } : {}),
     'x-request-id': requestId,
@@ -120,9 +117,10 @@ function errorResponse(
   code: string,
   message: string,
   requestId: string,
-  retryable = false
+  retryable = false,
+  resource = false
 ): APIGatewayProxyStructuredResultV2 {
-  return json(
+  const result = json(
     statusCode,
     {
       success: false,
@@ -130,14 +128,13 @@ function errorResponse(
     },
     requestId
   )
-}
-
-function getContext(event: APIGatewayProxyEventV2): RouteContext {
-  return {
-    method: event.requestContext.http.method.toUpperCase(),
-    path: event.rawPath || '/',
-    requestId: event.requestContext.requestId || randomUUID(),
+  if (resource) {
+    result.headers = {
+      ...result.headers,
+      'access-control-allow-origin': '*',
+    }
   }
+  return result
 }
 
 function getSessionHandle(path: string): string | null {
@@ -160,11 +157,8 @@ function getPagePath(path: string): string | null {
   }
 }
 
-function queryValue(
-  event: APIGatewayProxyEventV2,
-  name: string
-): string | null {
-  return new URLSearchParams(event.rawQueryString || '').get(name)
+function queryValue(context: RouteContext, name: string): string | null {
+  return new URLSearchParams(context.rawQueryString).get(name)
 }
 
 function pageUrl(session: PreviewSessionClaims): string {
@@ -229,9 +223,41 @@ export function createProxyApp({
   fetchRuntime,
 }: ProxyAppDependencies) {
   return async function handle(
-    event: APIGatewayProxyEventV2
+    event: unknown
   ): Promise<APIGatewayProxyStructuredResultV2> {
-    const context = getContext(event)
+    let context: RouteContext
+    try {
+      context = normalizeGatewayEvent(event)
+    } catch (error) {
+      const requestId = randomUUID()
+      return errorResponse(
+        400,
+        'INVALID_REQUEST',
+        error instanceof InvalidGatewayEventError
+          ? error.message
+          : 'The gateway request is invalid.',
+        requestId
+      )
+    }
+
+    const resourceRequest =
+      /^\/v1\/session\/[^/]+\/(?:resource|runtime\/)/.test(context.path)
+    const resourceError = (
+      statusCode: number,
+      code: string,
+      message: string,
+      retryableOrRequestId: boolean | string = false
+    ) =>
+      errorResponse(
+        statusCode,
+        code,
+        message,
+        context.requestId,
+        typeof retryableOrRequestId === 'boolean'
+          ? retryableOrRequestId
+          : false,
+        resourceRequest
+      )
 
     try {
       if (context.path === '/health/live' && context.method === 'GET') {
@@ -274,14 +300,20 @@ export function createProxyApp({
         )
       }
 
-      const session = await authorization.validate(handle)
+      const session = await authorization.validate(handle, context.requestId)
       if (!session) {
-        return errorResponse(
-          401,
-          'SESSION_EXPIRED',
-          'Preview session is missing, expired, revoked, or stale.',
-          context.requestId
-        )
+        return resourceRequest
+          ? resourceError(
+              401,
+              'SESSION_EXPIRED',
+              'Preview session is missing, expired, revoked, or stale.'
+            )
+          : errorResponse(
+              401,
+              'SESSION_EXPIRED',
+              'Preview session is missing, expired, revoked, or stale.',
+              context.requestId
+            )
       }
 
       if (context.path.endsWith('/status')) {
@@ -481,32 +513,32 @@ export function createProxyApp({
 
       if (context.path.includes('/resource')) {
         if (!fetchRuntime) {
-          return errorResponse(
+          return resourceError(
             501,
             'PROXY_NOT_IMPLEMENTED',
             'Resource fetching is disabled.',
             context.requestId
           )
         }
-        const encodedTarget = queryValue(event, 't')
+        const encodedTarget = queryValue(context, 't')
         if (
           !encodedTarget ||
           encodedTarget.length > fetchRuntime.config.maxResourceUrlLength
         ) {
-          return errorResponse(
+          return resourceError(
             400,
             'RESOURCE_URL_INVALID',
             'The resource URL is invalid.',
             context.requestId
           )
         }
-        const depth = Number(queryValue(event, 'depth') ?? 0)
+        const depth = Number(queryValue(context, 'depth') ?? 0)
         if (
           !Number.isSafeInteger(depth) ||
           depth < 0 ||
           depth > fetchRuntime.config.maxCssImportDepth + 1
         ) {
-          return errorResponse(
+          return resourceError(
             413,
             'RESOURCE_DEPTH_LIMIT',
             'The resource nesting limit was exceeded.',
@@ -516,7 +548,7 @@ export function createProxyApp({
         try {
           const resourceTarget = decodeResourceTarget(encodedTarget)
           if (isBlockedPreviewTrackingUrl(resourceTarget)) {
-            return errorResponse(
+            return resourceError(
               403,
               'TRACKING_DISABLED',
               'Pathlens tracking resources are disabled in previews.',
@@ -537,7 +569,7 @@ export function createProxyApp({
             (upstream.contentType === 'application/javascript' ||
               upstream.contentType === 'text/javascript')
           ) {
-            return errorResponse(
+            return resourceError(
               403,
               'SCRIPT_DISABLED',
               'Active scripts are disabled in Step 4B.',
@@ -623,7 +655,7 @@ export function createProxyApp({
           )
         } catch (error) {
           const failure = transformError(error)
-          return errorResponse(
+          return resourceError(
             failure.status,
             failure.code,
             failure.message,

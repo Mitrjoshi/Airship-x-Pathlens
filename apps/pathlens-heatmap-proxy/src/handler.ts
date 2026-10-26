@@ -1,7 +1,8 @@
-import type { APIGatewayProxyHandlerV2 } from 'aws-lambda'
+import type { Handler } from 'aws-lambda'
 import { ApiSessionAuthorizationService } from './authorization.js'
 import { createProxyApp } from './app.js'
 import { loadConfig } from './config.js'
+import { normalizeGatewayEvent } from './gateway-event.js'
 
 const config = loadConfig()
 const app = createProxyApp({
@@ -9,10 +10,15 @@ const app = createProxyApp({
   fetchRuntime: { config },
 })
 
-export const handler: APIGatewayProxyHandlerV2 = async (event) => {
+export const handler: Handler = async (event) => {
   const result = await app(event)
 
-  return event.requestContext.http.method.toUpperCase() === 'HEAD'
-    ? { ...result, body: undefined }
-    : result
+  let isHead = false
+  try {
+    isHead = normalizeGatewayEvent(event).method === 'HEAD'
+  } catch {
+    return result
+  }
+
+  return isHead ? { ...result, body: undefined } : result
 }

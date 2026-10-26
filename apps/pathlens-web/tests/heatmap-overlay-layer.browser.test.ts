@@ -77,10 +77,14 @@ test('mounts click hotspots on a scaled matching viewport and suppresses incompa
       liveViewport: element.getAttribute('data-overlay-live-viewport'),
       liveDocument: element.getAttribute('data-overlay-live-document'),
       rejectionReasons: element.getAttribute('data-overlay-rejection-reasons'),
+      anchoredSamples: element.getAttribute('data-overlay-anchored-samples'),
+      legacySamples: element.getAttribute('data-overlay-legacy-samples'),
     }
   })
 
   assert.ok(state.maxAlpha > 0, JSON.stringify(state))
+  assert.equal(state.anchoredSamples, '1')
+  assert.equal(state.legacySamples, '13')
   assert.equal(
     state.centerPixels.every((alpha) => alpha > 0),
     true,

@@ -1,4 +1,5 @@
-import type { Response } from "express";
+import type { Request, Response } from "express";
+import { randomUUID } from "node:crypto";
 import {
   createPreviewSessionRequestSchema,
   revokePreviewSessionRequestSchema,
@@ -10,11 +11,67 @@ import {
   supersedePreviewSessionModel,
   validatePreviewSessionModel,
 } from "../models/preview-sessions.model";
+import { hashPreviewSessionHandle } from "../lib/preview-session";
+
+function correlationId(req: Request): string {
+  return (
+    req.header("x-pathlens-proxy-request-id") ||
+    req.header("x-request-id") ||
+    randomUUID()
+  );
+}
+
+function logPreviewDiagnostic(
+  category: string,
+  fields: {
+    requestId: string;
+    sessionId?: string;
+    handle?: string;
+  }
+): void {
+  console.info({
+    event: "preview_session_diagnostic",
+    category,
+    request_id: fields.requestId,
+    ...(fields.sessionId ? { session_id: fields.sessionId } : {}),
+    ...(fields.handle
+      ? {
+          handle_fingerprint: hashPreviewSessionHandle(fields.handle).slice(
+            0,
+            16
+          ),
+        }
+      : {}),
+  });
+}
 
 function proxyOrigin(): string {
   return (
     process.env.HEATMAP_PROXY_PUBLIC_ORIGIN?.trim() || "http://localhost:8082"
   ).replace(/\/$/, "");
+}
+
+function proxyBasePath(): string {
+  const value = (
+    process.env.HEATMAP_PROXY_PUBLIC_BASE_PATH?.trim() || ""
+  ).replace(/\/$/, "");
+  if (!value) return "";
+  if (
+    !value.startsWith("/") ||
+    value.includes("?") ||
+    value.includes("#") ||
+    value
+      .split("/")
+      .some(
+        (segment, index) =>
+          (index > 0 && !segment) || segment === "." || segment === ".."
+      )
+  ) {
+    throw new Error(
+      "HEATMAP_PROXY_PUBLIC_BASE_PATH must contain only non-empty path segments."
+    );
+  }
+  return value;
 }
 
 export async function createPreviewSession(
@@ -51,11 +108,16 @@ export async function createPreviewSession(
       });
     }
 
+    logPreviewDiagnostic("session_created", {
+      requestId: correlationId(req),
+      sessionId: session.claims.sessionId,
+    });
+
     return res.status(201).json({
       success: true,
       data: {
         session_id: session.claims.sessionId,
-        iframe_url: `${proxyOrigin()}/v1/session/${session.handle}/page${session.claims.pathname}`,
+        iframe_url: `${proxyOrigin()}${proxyBasePath()}/v1/session/${encodeURIComponent(session.handle)}/page${session.claims.pathname}`,
         expires_at: session.claims.expiresAt,
         project_id: session.claims.projectId,
         domain_id: session.claims.projectDomainId,
@@ -98,6 +160,11 @@ export async function revokePreviewSession(
     userId,
   });
 
+  logPreviewDiagnostic(revoked ? "session_revoked" : "revoke_not_applied", {
+    requestId: correlationId(req),
+    sessionId: parsed.data.session_id,
+  });
+
   return res.status(200).json({
     success: true,
     data: { session_id: parsed.data.session_id, revoked },
@@ -127,6 +194,14 @@ export async function supersedePreviewSession(
     userId,
   });
 
+  logPreviewDiagnostic(
+    superseded ? "session_superseded" : "supersede_not_applied",
+    {
+      requestId: correlationId(req),
+      sessionId: parsed.data.session_id,
+    }
+  );
+
   return res.status(200).json({
     success: true,
     data: { session_id: parsed.data.session_id, revoked: superseded },
@@ -134,7 +209,20 @@ export async function supersedePreviewSession(
 }
 
 export async function validatePreviewSession(req: any, res: Response) {
-  const session = await validatePreviewSessionModel(req.body.handle);
+  const requestId = correlationId(req);
+  let validationCategory = "missing_session";
+  const session = await validatePreviewSessionModel(
+    req.body.handle,
+    (category) => {
+      validationCategory = category;
+    }
+  );
+
+  logPreviewDiagnostic(validationCategory, {
+    requestId,
+    sessionId: session?.sessionId,
+    handle: req.body.handle,
+  });
 
   if (!session) {
     return res.status(401).json({

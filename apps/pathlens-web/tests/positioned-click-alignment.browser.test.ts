@@ -22,6 +22,10 @@ const positionedChildHtml = `<!doctype html>
   body { position: relative; font: 20px sans-serif; }
   button { width: 220px; height: 54px; }
   #normal { margin: 100px 0 0 100px; }
+  #sticky-header { position: sticky; top: 0; z-index: 5; height: 72px; background: #fff; }
+  #sticky-header nav { display: flex; gap: 24px; padding: 18px 40px; }
+  #sticky-header a, #fixed-header a { display: inline-block; width: 120px; height: 36px; }
+  #fixed-header { position: fixed; left: 40px; top: 90px; z-index: 6; }
   #absolute { position: absolute; left: 420px; top: 520px; }
   #fixed { position: fixed; right: 80px; top: 120px; }
   #sticky { position: sticky; top: 180px; margin: 900px 0 0 900px; }
@@ -30,6 +34,8 @@ const positionedChildHtml = `<!doctype html>
   #nested-spacer { height: 500px; }
   #nested-button { margin-left: 80px; }
 </style></head><body>
+  <header id="sticky-header"><nav><a id="sticky-work">Work</a><a id="sticky-contact">Contact</a></nav></header>
+  <div id="fixed-header"><a id="fixed-contact">Fixed contact</a></div>
   <button id="normal">normal</button>
   <button id="absolute">absolute</button>
   <button id="fixed">fixed</button>
@@ -67,7 +73,12 @@ const positionedChildHtml = `<!doctype html>
       if (event.data.type === 'PATHLENS_MEASURE_REQUEST') measure(event.data)
       if (event.data.type === 'PATHLENS_SCROLL') { scrollBy(0, event.data.delta); measure(event.data) }
     })
-    addEventListener('click', () => setTimeout(report, 0))
+   addEventListener('click', (event) => {
+     if (event.target instanceof Element && event.target.closest('a')) {
+       event.preventDefault()
+     }
+     setTimeout(report, 0)
+   })
     addEventListener('scroll', () => { report(); if (activeRequest) measure(activeRequest) })
     setTimeout(report, 300)
   </script>
@@ -160,6 +171,8 @@ test('diagnoses positioned click alignment through the tracker and live overlay 
   await clickTarget('sticky')
   await clickTarget('transformed')
   await clickTarget('nested-button')
+  await clickTarget('sticky-contact')
+  await clickTarget('fixed-contact')
   await page.waitForFunction(
     () =>
       Number(
@@ -173,7 +186,51 @@ test('diagnoses positioned click alignment through the tracker and live overlay 
     measurement: document.querySelector('canvas')?.dataset.overlayLiveScroll,
   }))
   assert.equal(initial.measurement, '0x0')
-  assert.equal((initial.clicks as unknown[]).length, 6)
+  assert.equal((initial.clicks as unknown[]).length, 8)
+
+  const initialStickyClicks = (
+    initial.clicks as Array<{
+      id: string
+      pageX: number
+      pageY: number
+      elementAnchor?: {
+        anchorId?: string
+        positionMode?: string
+        effectivePositionMode?: string
+        positioningAncestorDepth?: number
+        relativeX?: number
+        relativeY?: number
+      }
+    }>
+  ).filter((click) => click.id === 'sticky-contact')
+  const initialFixedClicks = (
+    initial.clicks as Array<{
+      id: string
+      elementAnchor?: {
+        effectivePositionMode?: string
+        positioningAncestorDepth?: number
+      }
+    }>
+  ).filter((click) => click.id === 'fixed-contact')
+  assert.equal(initialStickyClicks.length, 1)
+  assert.equal(initialFixedClicks.length, 1)
+  assert.equal(initialStickyClicks[0]?.elementAnchor?.positionMode, 'static')
+  assert.equal(
+    initialStickyClicks[0]?.elementAnchor?.effectivePositionMode,
+    'sticky'
+  )
+  assert.equal(
+    initialStickyClicks[0]?.elementAnchor?.positioningAncestorDepth,
+    2
+  )
+  assert.equal(
+    initialFixedClicks[0]?.elementAnchor?.effectivePositionMode,
+    'fixed'
+  )
+  assert.equal(
+    initialFixedClicks[0]?.elementAnchor?.positioningAncestorDepth,
+    1
+  )
 
   await frame.evaluate(() => window.scrollTo(0, 700))
   await page.waitForFunction(
@@ -273,6 +330,53 @@ test('diagnoses positioned click alignment through the tracker and live overlay 
       stickyProjectedY -
         (stickyAfterScroll.y + stickyAfterScroll.height / 2) * scale
     ) > 10
+  )
+
+  await clickTarget('sticky-contact')
+  await page.waitForFunction(
+    () =>
+      (
+        (window as Window & { __positionedClicks?: Array<{ id: string }> })
+          .__positionedClicks ?? []
+      ).filter((click) => click.id === 'sticky-contact').length >= 2
+  )
+  const stickyClicksAfterScroll = await page.evaluate(() =>
+    (
+      (
+        window as Window & {
+          __positionedClicks?: Array<{
+            id: string
+            pageX: number
+            pageY: number
+            elementAnchor?: {
+              anchorId?: string
+              relativeX?: number
+              relativeY?: number
+              effectivePositionMode?: string
+            }
+          }>
+        }
+      ).__positionedClicks ?? []
+    ).filter((click) => click.id === 'sticky-contact')
+  )
+  assert.equal(stickyClicksAfterScroll.length, 2)
+  assert.equal(
+    stickyClicksAfterScroll[0]?.elementAnchor?.anchorId,
+    stickyClicksAfterScroll[1]?.elementAnchor?.anchorId
+  )
+  assert.equal(
+    stickyClicksAfterScroll[1]?.elementAnchor?.effectivePositionMode,
+    'sticky'
+  )
+  assert.ok(
+    Math.abs(
+      (stickyClicksAfterScroll[1]?.elementAnchor?.relativeX ?? -1) - 0.5
+    ) < 0.01
+  )
+  assert.ok(
+    Math.abs(
+      (stickyClicksAfterScroll[1]?.elementAnchor?.relativeY ?? -1) - 0.5
+    ) < 0.01
   )
 
   await frame.evaluate(() => {

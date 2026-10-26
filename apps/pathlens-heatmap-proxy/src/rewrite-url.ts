@@ -21,8 +21,11 @@ export interface RewriteContext {
   depth: number
 }
 
-function scopedResourcePath(context: RewriteContext): string {
-  return `/v1/session/${encodeURIComponent(context.handle)}/resource`
+export function publicSessionPath(
+  context: Pick<RewriteContext, 'config' | 'handle'>,
+  suffix: string
+): string {
+  return `${context.config.publicBasePath}/v1/session/${encodeURIComponent(context.handle)}${suffix}`
 }
 
 function preserveScopedResourceUrl(
@@ -39,10 +42,16 @@ function preserveScopedResourceUrl(
 
   if (target.origin !== context.proxyOrigin) return null
 
-  const resourcePathPattern = /^\/v1\/session\/[^/]+\/resource$/
-  if (!resourcePathPattern.test(target.pathname)) return null
+  const resourcePrefix = `${context.config.publicBasePath}/v1/session/`
+  const resourceParts = target.pathname.slice(resourcePrefix.length).split('/')
+  if (
+    !target.pathname.startsWith(resourcePrefix) ||
+    resourceParts.length !== 2 ||
+    resourceParts[1] !== 'resource'
+  )
+    return null
 
-  if (target.pathname !== scopedResourcePath(context)) {
+  if (target.pathname !== publicSessionPath(context, '/resource')) {
     throw new RewriteError(
       'RESOURCE_SESSION_NOT_ALLOWED',
       'The resource URL belongs to another preview session.'
@@ -147,7 +156,7 @@ export function createScopedResourceUrl(
   }
 
   const proxy = new URL(context.proxyOrigin)
-  proxy.pathname = scopedResourcePath(context)
+  proxy.pathname = publicSessionPath(context, '/resource')
   proxy.search = `?t=${Buffer.from(target.href).toString('base64url')}&depth=${depth}`
   const result = proxy.toString()
   if (result.length > context.config.maxResourceUrlLength) {

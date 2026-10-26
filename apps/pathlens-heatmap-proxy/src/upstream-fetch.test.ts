@@ -34,6 +34,7 @@ const config: ProxyConfig = {
   javascriptExecutionPolicy: 'static-only',
   port: 8082,
   publicOrigin: 'http://localhost:8082',
+  publicBasePath: '',
   authorizationUrl: 'http://localhost:8080/validate',
   sharedSecret: 'test-secret',
   authorizationTimeoutMs: 100,

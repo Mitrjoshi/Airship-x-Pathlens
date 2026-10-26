@@ -1,6 +1,7 @@
 import { parse, type ParserPlugin } from '@babel/parser'
 import {
   createScopedResourceUrl,
+  publicSessionPath,
   RewriteError,
   type RewriteContext,
 } from './rewrite-url.js'
@@ -38,7 +39,7 @@ function rewriteViteModulePreloadHelper(
   if (!match) return source
 
   const [, helperName, argumentName] = match
-  const resourcePrefix = `${options.context.proxyOrigin}/v1/session/${encodeURIComponent(options.context.handle)}/resource?t=`
+  const resourcePrefix = `${options.context.proxyOrigin}${publicSessionPath(options.context, '/resource')}?t=`
   const replacement = `${helperName}=function(${argumentName}){const t=new URL('/'+String(${argumentName}).replace(/^\\/+/,''),${JSON.stringify(options.baseUrl)}).href;return ${JSON.stringify(resourcePrefix)}+btoa(t).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')+'&depth=0'}`
   return source.replace(helperPattern, replacement)
 }
@@ -201,9 +202,9 @@ function runtimeImageHelper(options: RewriteJavaScriptOptions): string {
       ],
     },
   ]
-  const scopedPath = `/v1/session/${encodeURIComponent(options.context.handle)}/resource`
+  const scopedPath = publicSessionPath(options.context, '/resource')
   const runtimeSrcsetParser = `const __pathlensSplitSrcset__=(value)=>{const result=[];let i=0;value=String(value??'');while(i<value.length){while(i<value.length&&/\\s/.test(value[i]))i++;if(i>=value.length)break;let start=i;while(i<value.length&&!/\\s/.test(value[i]))i++;let source=value.slice(start,i);if(source.endsWith(',')){source=source.slice(0,-1);if(source)result.push([source,[]]);continue}while(i<value.length&&/\\s/.test(value[i]))i++;start=i;while(i<value.length&&value[i]!==',')i++;const text=value.slice(start,i).trim();const descriptors=text?text.split(/\\s+/):[];if(!descriptors.every((item)=>/^(?:\\d+(?:\\.\\d+)?w|\\d+(?:\\.\\d+)?x)$/.test(item))){result.push([source,[]]);if(value[i]===',')i++;continue}result.push([source,descriptors]);if(value[i]===',')i++}return result};`
-  return `${runtimeSrcsetParser}const __pathlensImageResolver__=(value)=>{let u;try{u=new URL(String(value??''),${JSON.stringify(options.baseUrl)})}catch{return''}if(u.origin===${JSON.stringify(options.context.proxyOrigin)}&&u.pathname===${JSON.stringify(scopedPath)}&&u.searchParams.has('t')&&u.searchParams.has('depth'))return u.href;if(u.protocol!=='http:'&&u.protocol!=='https:')return'';if(u.username||u.password||u.port)return'';const h=u.hostname.toLowerCase().replace(/^www\\./,'').replace(/\\.$/,'');const allowed=${JSON.stringify(hosts)}.includes(h)||${JSON.stringify(externalOrigins)}.includes(u.origin);if(!allowed)return'';if(${JSON.stringify(blockedTracking)}.some((item)=>item.origin===u.origin&&item.paths.includes(u.pathname)))return'';const t=u.href;return ${JSON.stringify(`${options.context.proxyOrigin}/v1/session/${encodeURIComponent(options.context.handle)}/resource?t=`)}+btoa(t).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')+'&depth=1'};const __pathlensImage=__pathlensImageResolver__;const __pathlensImageSrcset=(value)=>__pathlensSplitSrcset__(value).map((candidate)=>{const source=__pathlensImageResolver__(candidate[0]);return[source,...candidate[1]].join(' ')}).join(', ');`
+  return `${runtimeSrcsetParser}const __pathlensImageResolver__=(value)=>{let u;try{u=new URL(String(value??''),${JSON.stringify(options.baseUrl)})}catch{return''}if(u.origin===${JSON.stringify(options.context.proxyOrigin)}&&u.pathname===${JSON.stringify(scopedPath)}&&u.searchParams.has('t')&&u.searchParams.has('depth'))return u.href;if(u.protocol!=='http:'&&u.protocol!=='https:')return'';if(u.username||u.password||u.port)return'';const h=u.hostname.toLowerCase().replace(/^www\\./,'').replace(/\\.$/,'');const allowed=${JSON.stringify(hosts)}.includes(h)||${JSON.stringify(externalOrigins)}.includes(u.origin);if(!allowed)return'';if(${JSON.stringify(blockedTracking)}.some((item)=>item.origin===u.origin&&item.paths.includes(u.pathname)))return'';const t=u.href;return ${JSON.stringify(`${options.context.proxyOrigin}${publicSessionPath(options.context, '/resource')}?t=`)}+btoa(t).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')+'&depth=1'};const __pathlensImage=__pathlensImageResolver__;const __pathlensImageSrcset=(value)=>__pathlensSplitSrcset__(value).map((candidate)=>{const source=__pathlensImageResolver__(candidate[0]);return[source,...candidate[1]].join(' ')}).join(', ');`
 }
 
 function visit(

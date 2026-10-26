@@ -4,12 +4,16 @@ import {
   getScrollGroupOverlayViewport,
   getSnapshotScrollOverlayDimensions,
   getSharedOverlayDimensions,
+  selectClickAnchorIds,
   HeatmapOverlayLayer,
   type HeatmapOverlayType,
   type PreviewDevice,
   type ScrollOverlayDimensions,
 } from '@/components/common/heatmap-overlay-layer'
-import type { PreviewMeasurementState } from '@workspace/contracts'
+import type {
+  PreviewAnchorResolution,
+  PreviewMeasurementState,
+} from '@workspace/contracts'
 import {
   LivePreviewIframe,
   useLivePreviewSession,
@@ -24,14 +28,8 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { DomainSwitcher } from '../-components/common/domain-switcher'
 import { Separator } from '@workspace/ui/components/separator'
-import {
-  ArrowLeftIcon,
-  CheckIcon,
-  InfoIcon,
-  RefreshCcwIcon,
-} from 'lucide-react'
+import { ArrowLeftIcon, CheckIcon, RefreshCcwIcon } from 'lucide-react'
 import { Button } from '@workspace/ui/components/button'
 import {
   Select,
@@ -41,10 +39,8 @@ import {
   SelectValue,
 } from '@workspace/ui/components/select'
 import { useRelativeTime } from '@/hooks/use-relative-time'
-import { getProjectDomainsOptions } from '@/queries/domains'
 import { ButtonGroup } from '@workspace/ui/components/button-group'
-import { capitalizeFirstLetter, formatNumber } from '@/utils/utils'
-import { Skeleton } from '@workspace/ui/components/skeleton'
+import { capitalizeFirstLetter } from '@/utils/utils'
 
 const rangeLabels = [
   { value: '24h', label: 'Last 24 hours' },
@@ -80,7 +76,6 @@ function RouteComponent() {
     (deviceLocal || 'desktop') as HeatmapDevice
   )
   const [heatmapType, setHeatmapType] = useState<HeatmapOverlayType>('click')
-  const [domain, setDomain] = useState('')
 
   const {
     data: heatmapDetails,
@@ -99,11 +94,6 @@ function RouteComponent() {
     })
   )
 
-  const { data: domainsData, isLoading: domainsLoading } = useQuery(
-    getProjectDomainsOptions(projectId)
-  )
-  const domains = domainsData?.data
-  const activeDomain = domain || domains?.[0]?.domain || ''
   const heatmap = heatmapDetails?.data
   const heatmapDataReady = Boolean(
     heatmap && !heatmapLoading && !heatmapFetching
@@ -123,6 +113,17 @@ function RouteComponent() {
   const previewReadyForDevice =
     previewState.session?.device === toPreviewDevice(device)
   const visualizationReady = heatmapDataReady && previewReadyForDevice
+  const clickAnchorSelection =
+    heatmapType === 'click' && heatmap?.clickSamples
+      ? selectClickAnchorIds(
+          heatmap.clickSamples,
+          heatmap.anchorDefinitions ?? [],
+          getRepresentativeClickOverlayViewport(
+            heatmap.clickSamples,
+            previewDevice
+          )
+        )
+      : null
 
   return (
     <div className="max-w-full min-w-0">
@@ -142,7 +143,7 @@ function RouteComponent() {
             <ArrowLeftIcon />
           </Button>
 
-          <Separator orientation="vertical" />
+          {/* <Separator orientation="vertical" />
 
           <DomainSwitcher
             loading={domainsLoading}
@@ -152,7 +153,7 @@ function RouteComponent() {
             }}
             domains={domains!}
             refetch={refetch}
-          />
+          /> */}
 
           <Separator orientation="vertical" />
 
@@ -295,6 +296,7 @@ function RouteComponent() {
                         previewDevice
                       )
             }
+            anchorSelection={clickAnchorSelection}
             heatmapType={heatmapType}
             scrollSource={
               visualizationReady && !heatmap?.scrollGroups ? scrollSource : null
@@ -360,6 +362,7 @@ function HeatmapLiveViewer({
   scrollGroups,
   heatmapDataReady,
   overlayViewport,
+  anchorSelection,
 }: {
   heatmap: HeatmapPageDetail | null | undefined
   preview: Parameters<typeof LivePreviewIframe>[0]['preview']
@@ -373,9 +376,13 @@ function HeatmapLiveViewer({
   scrollGroups: HeatmapPageDetail['scrollGroups']
   heatmapDataReady: boolean
   overlayViewport: { width: number; height: number } | null
+  anchorSelection: ReturnType<typeof selectClickAnchorIds> | null
 }) {
   const [measurement, setMeasurement] =
     useState<PreviewMeasurementState | null>(null)
+  const [anchorResolutions, setAnchorResolutions] = useState<
+    PreviewAnchorResolution[] | null
+  >(null)
   const [measurementSessionKey, setMeasurementSessionKey] = useState('')
   const sessionKey = `${preview?.session_id ?? 'no-session'}:${heatmap?.id ?? 'empty'}:${device}:${range}:${overlayViewport?.width ?? 'native'}x${overlayViewport?.height ?? 'native'}`
   const widthClass =
@@ -395,6 +402,12 @@ function HeatmapLiveViewer({
     setMeasurementSessionKey(next ? sessionKey : '')
   }
 
+  const handleAnchorResolutionChange = (
+    next: PreviewAnchorResolution[] | null
+  ) => {
+    setAnchorResolutions(next)
+  }
+
   return (
     <>
       <LivePreviewIframe
@@ -405,6 +418,8 @@ function HeatmapLiveViewer({
         className={widthClass}
         virtualViewport={overlayViewport}
         onMeasurementChange={handleMeasurementChange}
+        anchorIds={anchorSelection?.requestedAnchorIds ?? []}
+        onAnchorResolutionChange={handleAnchorResolutionChange}
         overlay={
           <>
             <HeatmapOverlayLayer
@@ -413,6 +428,11 @@ function HeatmapLiveViewer({
               clickSampleGroups={
                 heatmapDataReady ? heatmap?.clickSamples : undefined
               }
+              anchorDefinitions={
+                heatmapDataReady ? heatmap?.anchorDefinitions : undefined
+              }
+              anchorResolutions={anchorResolutions}
+              anchorSelection={anchorSelection}
               movementGroups={
                 heatmapDataReady ? (heatmap?.movementGroups ?? []) : []
               }

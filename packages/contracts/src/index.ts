@@ -1,5 +1,6 @@
 export * from './events'
 export * from './encrypted-payload'
+export * from './element-anchor'
 export * from './errors'
 export * from './campaigns'
 export * from './chat'

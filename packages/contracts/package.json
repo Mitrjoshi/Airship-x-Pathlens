@@ -29,6 +29,11 @@
       "import": "./dist/encrypted-payload.js",
       "require": "./dist/encrypted-payload.js"
     },
+    "./element-anchor": {
+      "types": "./src/element-anchor.ts",
+      "import": "./dist/element-anchor.js",
+      "require": "./dist/element-anchor.js"
+    },
     "./errors": {
       "types": "./src/errors.ts",
       "import": "./dist/errors.js",

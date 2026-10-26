@@ -5,6 +5,10 @@ import {
   aggregateMovementHeatmap,
   collectClickSamples,
 } from "./heatmap-aggregation";
+import {
+  clickElementAnchorSchema,
+  incomingEventSchema,
+} from "@workspace/contracts/events";
 
 const fallbackViewport = { width: 1000, height: 800 };
 
@@ -341,4 +345,217 @@ test("rejects unsafe individual click coordinates instead of clamping them", () 
   assert.equal(result.eligibleEventCount, 1);
   assert.equal(result.groups[0]?.sampleCount, 3);
   assert.equal(result.groups[0]?.samples[0]?.weight, 3);
+});
+
+test("propagates and deduplicates valid element anchors without merging samples", () => {
+  const anchor = {
+    schemaVersion: 1 as const,
+    anchorId: "fnv1a32-header",
+    positionMode: "static" as const,
+    effectivePositionMode: "sticky" as const,
+    positioningAncestorDepth: 2,
+    positioningAncestorAnchorId: "fnv1a32-sticky",
+    relativeX: 0.25,
+    relativeY: 0.75,
+    capturedRect: { left: 10, top: 20, width: 100, height: 40 },
+    transformedAncestor: false,
+    stickyInset: { top: 0 },
+    scrollAncestors: [],
+  };
+  const result = collectClickSamples(
+    [
+      {
+        type: "click",
+        payload: {
+          x: 100,
+          y: 80,
+          viewport: fallbackViewport,
+          elementAnchor: anchor,
+        },
+      },
+      {
+        type: "click",
+        payload: {
+          x: 120,
+          y: 100,
+          viewport: fallbackViewport,
+          elementAnchor: { ...anchor, relativeX: 0.75, relativeY: 0.25 },
+        },
+      },
+    ],
+    fallbackViewport
+  );
+
+  assert.equal(result.groups[0]?.samples.length, 2);
+  assert.equal(result.anchorDefinitions.length, 1);
+  assert.deepEqual(
+    result.groups[0]?.samples.map((sample) => [
+      sample.anchorId,
+      sample.relativeX,
+      sample.relativeY,
+    ]),
+    [
+      ["fnv1a32-header", 0.25, 0.75],
+      ["fnv1a32-header", 0.75, 0.25],
+    ]
+  );
+  assert.deepEqual(
+    {
+      ...result.anchorDiagnostics,
+      anchorMetadataBytes: result.anchorDiagnostics.anchorMetadataBytes > 0,
+    },
+    {
+      anchorCapableEvents: 2,
+      legacyEvents: 0,
+      missingAnchorEvents: 0,
+      invalidAnchorEvents: 0,
+      uniqueAnchors: 1,
+      conflictingAnchorIdentities: 0,
+      anchorDefinitionsReturned: 1,
+      anchorDefinitionsTruncated: false,
+      anchorMetadataBytes: true,
+    }
+  );
+});
+
+test("rejects invalid and conflicting persisted anchors without losing click samples", () => {
+  const baseAnchor = {
+    schemaVersion: 1 as const,
+    anchorId: "fnv1a32-conflict",
+    positionMode: "static" as const,
+    relativeX: 0.5,
+    relativeY: 0.5,
+    capturedRect: { left: 0, top: 0, width: 20, height: 20 },
+    transformedAncestor: false,
+    scrollAncestors: [],
+  };
+  const result = collectClickSamples(
+    [
+      {
+        type: "click",
+        payload: {
+          x: 100,
+          y: 80,
+          viewport: fallbackViewport,
+          elementAnchor: baseAnchor,
+        },
+      },
+      {
+        type: "click",
+        payload: {
+          x: 120,
+          y: 100,
+          viewport: fallbackViewport,
+          elementAnchor: { ...baseAnchor, positionMode: "fixed" },
+        },
+      },
+      {
+        type: "click",
+        payload: {
+          x: 140,
+          y: 120,
+          viewport: fallbackViewport,
+          elementAnchor: { ...baseAnchor, privateSelector: "secret" },
+        },
+      },
+      {
+        type: "click",
+        payload: { x: 160, y: 140, viewport: fallbackViewport },
+      },
+    ],
+    fallbackViewport
+  );
+
+  assert.equal(result.groups[0]?.samples.length, 4);
+  assert.equal(
+    result.groups[0]?.samples.every((sample) => !sample.anchorId),
+    true
+  );
+  assert.equal(result.anchorDefinitions.length, 0);
+  assert.equal(result.anchorDiagnostics.invalidAnchorEvents, 1);
+  assert.equal(result.anchorDiagnostics.missingAnchorEvents, 1);
+  assert.equal(result.anchorDiagnostics.conflictingAnchorIdentities, 1);
+});
+
+test("strictly validates anchor metadata and rejects unknown or oversized fields", () => {
+  const validAnchor = {
+    schemaVersion: 1,
+    anchorId: "fnv1a32-valid",
+    positionMode: "static",
+    relativeX: 0.5,
+    relativeY: 0.5,
+    capturedRect: { left: 0, top: 0, width: 20, height: 20 },
+    transformedAncestor: false,
+    scrollAncestors: [],
+  };
+
+  assert.equal(clickElementAnchorSchema.safeParse(validAnchor).success, true);
+  assert.equal(
+    clickElementAnchorSchema.safeParse({
+      ...validAnchor,
+      selector: "#private-selector",
+    }).success,
+    false
+  );
+  assert.equal(
+    clickElementAnchorSchema.safeParse({
+      ...validAnchor,
+      relativeX: 2,
+    }).success,
+    false
+  );
+
+  const legacyEvent = {
+    projectId: "project",
+    visitorId: "visitor",
+    sessionId: "session",
+    type: "click",
+    timestamp: "2026-01-01T00:00:00.000Z",
+    x: 100,
+    y: 80,
+  };
+  assert.equal(incomingEventSchema.safeParse(legacyEvent).success, true);
+  assert.equal(
+    incomingEventSchema.safeParse({
+      ...legacyEvent,
+      elementAnchor: validAnchor,
+    }).success,
+    true
+  );
+  assert.equal(
+    incomingEventSchema.safeParse({
+      ...legacyEvent,
+      elementAnchor: { ...validAnchor, selector: "#private-selector" },
+    }).success,
+    false
+  );
+});
+
+test("bounds anchor definition output without dropping individual samples", () => {
+  const result = collectClickSamples(
+    Array.from({ length: 2_049 }, (_, index) => ({
+      type: "click" as const,
+      payload: {
+        x: 100,
+        y: 80,
+        viewport: fallbackViewport,
+        elementAnchor: {
+          schemaVersion: 1 as const,
+          anchorId: `fnv1a32-${index}`,
+          positionMode: "static" as const,
+          relativeX: 0.5,
+          relativeY: 0.5,
+          capturedRect: { left: 0, top: 0, width: 20, height: 20 },
+          transformedAncestor: false,
+          scrollAncestors: [],
+        },
+      },
+    })),
+    fallbackViewport
+  );
+
+  assert.equal(result.groups[0]?.samples.length, 2_049);
+  assert.equal(result.anchorDefinitions.length, 2_048);
+  assert.equal(result.anchorDiagnostics.uniqueAnchors, 2_049);
+  assert.equal(result.anchorDiagnostics.anchorDefinitionsTruncated, true);
 });

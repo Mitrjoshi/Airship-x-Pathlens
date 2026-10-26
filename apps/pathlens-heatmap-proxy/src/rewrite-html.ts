@@ -7,6 +7,7 @@ import {
   assertTransformBudget,
   createScopedResourceUrl,
   resolveReference,
+  publicSessionPath,
   RewriteError,
   type RewriteContext,
 } from './rewrite-url.js'
@@ -92,7 +93,8 @@ function setText(element: HtmlElement, value: string): void {
 function appendScrollController(
   document: HtmlNode,
   proxyOrigin: string,
-  handle: string
+  handle: string,
+  config: ProxyConfig
 ): void {
   const visit = (node: HtmlNode): boolean => {
     if (node.tagName?.toLowerCase() === 'head') {
@@ -103,7 +105,7 @@ function appendScrollController(
         attrs: [
           {
             name: 'src',
-            value: `${proxyOrigin}/v1/session/${encodeURIComponent(handle)}/runtime/scroll-controller.js`,
+            value: `${proxyOrigin}${publicSessionPath({ config, handle }, '/runtime/scroll-controller.js')}`,
           },
         ],
         childNodes: [],
@@ -120,7 +122,8 @@ function appendScrollController(
 function prependStorageCompatibility(
   document: HtmlNode,
   proxyOrigin: string,
-  handle: string
+  handle: string,
+  config: ProxyConfig
 ): void {
   const visit = (node: HtmlNode): boolean => {
     if (node.tagName?.toLowerCase() === 'head') {
@@ -131,7 +134,7 @@ function prependStorageCompatibility(
         attrs: [
           {
             name: 'src',
-            value: `${proxyOrigin}/v1/session/${encodeURIComponent(handle)}/runtime/storage-compatibility.js`,
+            value: `${proxyOrigin}${publicSessionPath({ config, handle }, '/runtime/storage-compatibility.js')}`,
           },
         ],
         childNodes: [],
@@ -148,7 +151,8 @@ function prependStorageCompatibility(
 function prependRoutingCompatibility(
   document: HtmlNode,
   proxyOrigin: string,
-  handle: string
+  handle: string,
+  config: ProxyConfig
 ): void {
   const visit = (node: HtmlNode): boolean => {
     if (node.tagName?.toLowerCase() === 'head') {
@@ -159,7 +163,7 @@ function prependRoutingCompatibility(
         attrs: [
           {
             name: 'src',
-            value: `${proxyOrigin}/v1/session/${encodeURIComponent(handle)}/runtime/routing-compatibility.js`,
+            value: `${proxyOrigin}${publicSessionPath({ config, handle }, '/runtime/routing-compatibility.js')}`,
           },
         ],
         childNodes: [],
@@ -420,11 +424,26 @@ export function rewriteHtml(html: string, options: HtmlRewriteOptions): string {
     options.allowExternalScripts ?? false
   )
   if (options.allowExternalScripts) {
-    prependStorageCompatibility(root, options.proxyOrigin, options.handle)
-    prependRoutingCompatibility(root, options.proxyOrigin, options.handle)
+    prependStorageCompatibility(
+      root,
+      options.proxyOrigin,
+      options.handle,
+      options.config
+    )
+    prependRoutingCompatibility(
+      root,
+      options.proxyOrigin,
+      options.handle,
+      options.config
+    )
   }
   if (options.previewIntent === 'heatmap' && options.allowExternalScripts) {
-    appendScrollController(root, options.proxyOrigin, options.handle)
+    appendScrollController(
+      root,
+      options.proxyOrigin,
+      options.handle,
+      options.config
+    )
   }
   const output = serialize(document)
   if (Buffer.byteLength(output, 'utf8') > options.config.maxRewrittenBytes) {

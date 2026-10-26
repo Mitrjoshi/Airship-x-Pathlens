@@ -1,4 +1,10 @@
 import type { ReplayEvent } from './replay'
+import type {
+  ClickElementRect,
+  ClickElementScrollAncestor,
+  ClickElementStickyInset,
+  ClickElementPositionMode,
+} from './element-anchor'
 
 export type HeatmapsRange = '24h' | '7d' | '30d' | '90d'
 export type HeatmapDevice = 'all' | 'desktop' | 'mobile' | 'tablet' | 'unknown'
@@ -62,6 +68,21 @@ export interface HeatmapClickSample {
   y: number
   weight: number
   coordinateMode: HeatmapCoordinateMode
+  anchorId?: string
+  relativeX?: number
+  relativeY?: number
+  capturedRect?: ClickElementRect
+}
+
+export interface HeatmapClickAnchorDefinition {
+  anchorId: string
+  positionMode: ClickElementPositionMode
+  effectivePositionMode?: ClickElementPositionMode
+  positioningAncestorDepth?: number
+  positioningAncestorAnchorId?: string
+  transformedAncestor: boolean
+  stickyInset?: ClickElementStickyInset
+  scrollAncestors: ClickElementScrollAncestor[]
 }
 
 export interface HeatmapClickSampleGroup extends HeatmapCoordinateGroup {
@@ -74,6 +95,15 @@ export interface HeatmapClickSampleCoverage {
   returnedEvents: number
   eligibleEvents: number
   truncated: boolean
+  anchorCapableEvents?: number
+  legacyEvents?: number
+  missingAnchorEvents?: number
+  invalidAnchorEvents?: number
+  uniqueAnchors?: number
+  conflictingAnchorIdentities?: number
+  anchorDefinitionsReturned?: number
+  anchorDefinitionsTruncated?: boolean
+  anchorMetadataBytes?: number
 }
 
 export interface HeatmapMovementCoverage {
@@ -132,6 +162,7 @@ export interface HeatmapPageDetail extends HeatmapPage {
   clickPoints: HeatmapClickPoint[]
   clickGroups?: HeatmapClickGroup[]
   clickSamples?: HeatmapClickSampleGroup[]
+  anchorDefinitions?: HeatmapClickAnchorDefinition[]
   clickSampleCoverage?: HeatmapClickSampleCoverage
   movementPoints?: HeatmapMovementPoint[]
   movementGroups?: HeatmapMovementGroup[]

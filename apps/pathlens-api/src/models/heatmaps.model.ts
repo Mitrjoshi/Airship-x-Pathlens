@@ -79,7 +79,18 @@ export interface HeatmapsFilters {
 export function buildClickSampleCoverage(
   totalEvents: number,
   returnedEvents: number,
-  eligibleEvents: number
+  eligibleEvents: number,
+  diagnostics?: {
+    anchorCapableEvents: number;
+    legacyEvents: number;
+    missingAnchorEvents: number;
+    invalidAnchorEvents: number;
+    uniqueAnchors: number;
+    conflictingAnchorIdentities: number;
+    anchorDefinitionsReturned: number;
+    anchorDefinitionsTruncated: boolean;
+    anchorMetadataBytes: number;
+  }
 ): HeatmapClickSampleCoverage {
   return {
     limit: MAX_HEATMAP_EVENTS,
@@ -87,6 +98,7 @@ export function buildClickSampleCoverage(
     returnedEvents: Math.min(MAX_HEATMAP_EVENTS, Math.max(0, returnedEvents)),
     eligibleEvents: Math.max(0, eligibleEvents),
     truncated: totalEvents > MAX_HEATMAP_EVENTS,
+    ...(diagnostics ?? {}),
   };
 }
 
@@ -1090,7 +1102,8 @@ export async function getHeatmapsModel(
   const clickSampleCoverage = buildClickSampleCoverage(
     clickTotalEvents,
     clickRows.length,
-    clickSamples.eligibleEventCount
+    clickSamples.eligibleEventCount,
+    clickSamples.anchorDiagnostics
   );
   const movementAggregation = aggregateMovementHeatmap(
     movementEventResult.rows,
@@ -1116,6 +1129,7 @@ export async function getHeatmapsModel(
     clickPoints: clickAggregation.points,
     clickGroups: clickAggregation.groups,
     clickSamples: clickSamples.groups,
+    anchorDefinitions: clickSamples.anchorDefinitions,
     clickSampleCoverage,
     movementPoints: movementAggregation.points,
     movementGroups: movementAggregation.groups,

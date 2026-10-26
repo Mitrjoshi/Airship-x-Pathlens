@@ -1,10 +1,13 @@
 import type {
   CreatePreviewSessionResponse,
   HeatmapDevice,
+  PreviewAnchorResolution,
   PreviewMeasurementState,
 } from '@workspace/contracts'
 import {
+  isPreviewAnchorId,
   isPreviewMeasureStateMessage,
+  MAX_PREVIEW_ANCHOR_IDS,
   PREVIEW_MEASURE_REQUEST_MESSAGE,
   PREVIEW_PROTOCOL_VERSION,
   PREVIEW_SCROLL_MESSAGE,
@@ -16,6 +19,7 @@ import {
   createPreviewSession,
   revokePreviewSession,
 } from '@/queries/preview-sessions'
+import { Button } from '@workspace/ui/components/button'
 
 export interface LivePreviewContext {
   workspaceId: string
@@ -36,14 +40,28 @@ export interface LivePreviewState {
 function isAuthorizedPreviewUrl(value: string): boolean {
   const configuredOrigin = import.meta.env.VITE_HEATMAP_PROXY_ORIGIN?.trim()
   if (!configuredOrigin) return false
+
   try {
     const configured = new URL(configuredOrigin)
     const candidate = new URL(value)
-    return (
+
+    const isTrustedOrigin =
+      (configured.protocol === 'https:' ||
+        (configured.protocol === 'http:' &&
+          configured.hostname === 'localhost')) &&
       candidate.origin === configured.origin &&
-      candidate.pathname.startsWith('/v1/session/') &&
       !candidate.username &&
       !candidate.password
+
+    const isValidSessionPath =
+      candidate.pathname.startsWith('/v1/session/') ||
+      candidate.pathname.startsWith('/dev/v1/session/')
+
+    return (
+      isTrustedOrigin &&
+      isValidSessionPath &&
+      !candidate.search &&
+      !candidate.hash
     )
   } catch {
     return false
@@ -60,6 +78,21 @@ function usesIsolatedScriptRuntime(): boolean {
 const MAX_MEASUREMENT_DIMENSION = 10_000_000
 const MAX_SCROLL_DELTA = 2_000
 const MEASUREMENT_RETRY_DELAYS = [0, 100, 300, 700] as const
+
+function normalizeAnchorIds(
+  values: readonly string[] | undefined
+): string[] | null {
+  if (values === undefined) return []
+  if (values.length > MAX_PREVIEW_ANCHOR_IDS) return null
+
+  const unique = new Set<string>()
+  for (const value of values) {
+    if (!isPreviewAnchorId(value) || unique.has(value)) return null
+    unique.add(value)
+  }
+
+  return Array.from(unique)
+}
 
 function debugMeasurement(stage: string, details?: Record<string, unknown>) {
   if (import.meta.env.DEV) {
@@ -264,6 +297,10 @@ export interface LivePreviewIframeProps {
   onRetry?: () => void
   onExpired?: () => void
   onMeasurementChange?: (measurement: PreviewMeasurementState | null) => void
+  anchorIds?: readonly string[]
+  onAnchorResolutionChange?: (
+    resolutions: PreviewAnchorResolution[] | null
+  ) => void
   overlay?: ReactNode
   virtualViewport?: { width: number; height: number } | null
   className?: string
@@ -276,6 +313,8 @@ export function LivePreviewIframe({
   onRetry,
   onExpired,
   onMeasurementChange,
+  anchorIds,
+  onAnchorResolutionChange,
   overlay,
   virtualViewport = null,
   className,
@@ -294,6 +333,8 @@ export function LivePreviewIframe({
   const retryTimersRef = useRef<number[]>([])
   const retryGenerationRef = useRef<number | null>(null)
   const measurementRef = useRef<PreviewMeasurementState | null>(null)
+  const requestedAnchorIdsRef = useRef<string[]>([])
+  const anchorIdsKey = anchorIds?.join(',') ?? ''
   const contextKey = preview
     ? `${preview.project_id}:${preview.domain_id}:${preview.pathname}:${preview.device}:${preview.preview_intent}:${preview.session_id}`
     : 'empty'
@@ -322,6 +363,8 @@ export function LivePreviewIframe({
     }
     const requestId = requestIdRef.current ?? createRequestId()
     requestIdRef.current = requestId
+    const requestedAnchorIds = normalizeAnchorIds(anchorIds)
+    requestedAnchorIdsRef.current = requestedAnchorIds ?? []
     iframeRef.current?.contentWindow?.postMessage(
       {
         version: PREVIEW_PROTOCOL_VERSION,
@@ -329,6 +372,9 @@ export function LivePreviewIframe({
         sessionId: preview.session_id,
         nonce,
         requestId,
+        ...(requestedAnchorIds && requestedAnchorIds.length > 0
+          ? { anchorIds: requestedAnchorIds }
+          : {}),
       },
       '*'
     )
@@ -373,6 +419,7 @@ export function LivePreviewIframe({
     measurementRef.current = null
     setMeasurement(null)
     onMeasurementChange?.(null)
+    onAnchorResolutionChange?.(null)
     setMeasurementTimedOut(false)
     requestMeasurement(0, generationRef.current)
   }
@@ -412,6 +459,7 @@ export function LivePreviewIframe({
     })
     nonceRef.current = usesIsolatedScriptRuntime() ? createPreviewNonce() : null
     requestIdRef.current = null
+    requestedAnchorIdsRef.current = []
     sequenceRef.current = 0
     loadedRef.current = false
     acceptedRef.current = false
@@ -419,8 +467,9 @@ export function LivePreviewIframe({
     measurementRef.current = null
     setMeasurement(null)
     onMeasurementChange?.(null)
+    onAnchorResolutionChange?.(null)
     return () => clearMeasurementRetries()
-  }, [contextKey, preview?.iframe_url, viewportKey])
+  }, [anchorIdsKey, contextKey, preview?.iframe_url, viewportKey])
 
   useEffect(() => {
     const container = containerRef.current
@@ -498,6 +547,21 @@ export function LivePreviewIframe({
         })
         return
       }
+      const requestedIds = requestedAnchorIdsRef.current
+      const resolutions = nextMeasurement.anchorResolutions
+      if (
+        requestedIds.length > 0 &&
+        (!resolutions ||
+          resolutions.length !== requestedIds.length ||
+          resolutions.some(
+            (resolution, index) => resolution.anchorId !== requestedIds[index]
+          ))
+      ) {
+        debugMeasurement('measurement-response-rejected', {
+          reason: 'invalid-anchor-resolutions',
+        })
+        return
+      }
       sequenceRef.current = nextMeasurement.layoutVersion
       acceptedRef.current = true
       clearMeasurementRetries()
@@ -512,6 +576,9 @@ export function LivePreviewIframe({
       measurementRef.current = nextMeasurement
       debugMeasurement('measurement-propagated')
       onMeasurementChange?.(nextMeasurement)
+      if (requestedIds.length > 0) {
+        onAnchorResolutionChange?.(resolutions ?? null)
+      }
       setMeasurement(nextMeasurement)
     }
 
@@ -522,7 +589,14 @@ export function LivePreviewIframe({
       window.removeEventListener('message', handleMessage)
       clearMeasurementRetries()
     }
-  }, [isHeatmapPreview, onMeasurementChange, preview, status])
+  }, [
+    anchorIdsKey,
+    isHeatmapPreview,
+    onAnchorResolutionChange,
+    onMeasurementChange,
+    preview,
+    status,
+  ])
 
   useEffect(() => {
     const shield = shieldRef.current
@@ -656,6 +730,8 @@ export function LivePreviewIframe({
     )
   }
 
+  if (!preview) return null
+
   return (
     <div
       ref={containerRef}
@@ -727,13 +803,9 @@ export function LivePreviewIframe({
         {measurementTimedOut ? (
           <div className="bg-background absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-md border px-3 py-2 text-sm shadow-sm">
             <span>Unable to measure this preview.</span>
-            <button
-              type="button"
-              className="rounded-md border px-2 py-1"
-              onClick={retryMeasurement}
-            >
-              Retry measurement
-            </button>
+            <Button variant="outline" onClick={retryMeasurement}>
+              Retry
+            </Button>
           </div>
         ) : null}
       </div>
