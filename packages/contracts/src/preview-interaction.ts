@@ -2,6 +2,7 @@ import type {
   ClickElementPositionMode,
   ClickElementRect,
 } from './element-anchor'
+import type { RegionAnchorKind } from './region-anchor'
 import {
   MAX_CLICK_ELEMENT_ANCHOR_DEPTH,
   MAX_CLICK_ELEMENT_ANCHOR_DIMENSION,
@@ -16,6 +17,8 @@ export const PREVIEW_MEASURE_STATE_MESSAGE = 'PATHLENS_MEASURE_STATE' as const
 export const MAX_PREVIEW_ANCHOR_IDS = 256
 export const MAX_PREVIEW_ANCHOR_ID_LENGTH = 64
 export const MAX_PREVIEW_ANCHOR_RESPONSE_BYTES = 256 * 1024
+export const MAX_PREVIEW_REGION_IDS = 256
+export const MAX_PREVIEW_REGION_ID_LENGTH = 64
 
 export type PreviewAnchorResolutionStatus = 'matched' | 'missing' | 'ambiguous'
 
@@ -29,6 +32,15 @@ export interface PreviewAnchorResolution {
   positioningAncestorAnchorId?: string
 }
 
+export interface PreviewRegionResolution {
+  regionId: string
+  status: PreviewAnchorResolutionStatus
+  rect?: ClickElementRect
+  positionMode?: ClickElementPositionMode
+  regionKind?: RegionAnchorKind
+  structuralFingerprint?: string
+}
+
 export interface PreviewMeasurementState {
   viewportWidth: number
   viewportHeight: number
@@ -40,6 +52,7 @@ export interface PreviewMeasurementState {
   maxScrollY: number
   layoutVersion: number
   anchorResolutions?: PreviewAnchorResolution[]
+  regionResolutions?: PreviewRegionResolution[]
 }
 
 export interface PreviewMeasureRequest {
@@ -49,6 +62,7 @@ export interface PreviewMeasureRequest {
   nonce: string
   requestId: string
   anchorIds?: string[]
+  regionIds?: string[]
 }
 
 export interface PreviewMeasureStateMessage extends PreviewMeasurementState {
@@ -73,6 +87,15 @@ export function isPreviewAnchorId(value: unknown): value is string {
     value.length > 0 &&
     value.length <= MAX_PREVIEW_ANCHOR_ID_LENGTH &&
     value.length <= MAX_CLICK_ELEMENT_ANCHOR_ID_LENGTH &&
+    /^fnv1a32-[0-9a-f]{8}$/.test(value)
+  )
+}
+
+export function isPreviewRegionId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= MAX_PREVIEW_REGION_ID_LENGTH &&
     /^fnv1a32-[0-9a-f]{8}$/.test(value)
   )
 }
@@ -171,12 +194,62 @@ function isPreviewAnchorResolution(
   return true
 }
 
-export function isPreviewMeasureStateMessage(
+function isPreviewRegionResolution(
+  value: unknown
+): value is PreviewRegionResolution {
+  if (!value || typeof value !== 'object') return false
+  const resolution = value as Record<string, unknown>
+  const allowedKeys = new Set([
+    'regionId',
+    'status',
+    'rect',
+    'positionMode',
+    'regionKind',
+    'structuralFingerprint',
+  ])
+  if (
+    Object.keys(resolution).some((key) => !allowedKeys.has(key)) ||
+    !isPreviewRegionId(resolution.regionId) ||
+    (resolution.status !== 'matched' &&
+      resolution.status !== 'missing' &&
+      resolution.status !== 'ambiguous')
+  ) {
+    return false
+  }
+  if (
+    resolution.regionKind !== undefined &&
+    resolution.regionKind !== 'explicit' &&
+    resolution.regionKind !== 'semantic' &&
+    resolution.regionKind !== 'structural'
+  ) {
+    return false
+  }
+  if (
+    resolution.structuralFingerprint !== undefined &&
+    (typeof resolution.structuralFingerprint !== 'string' ||
+      resolution.structuralFingerprint.length === 0 ||
+      resolution.structuralFingerprint.length > 512)
+  ) {
+    return false
+  }
+  if (
+    resolution.status === 'matched' &&
+    (!isAnchorRect(resolution.rect) || !isPositionMode(resolution.positionMode))
+  ) {
+    return false
+  }
+  return (
+    resolution.positionMode === undefined ||
+    isPositionMode(resolution.positionMode)
+  )
+}
+
+export function isPreviewBaseMeasureStateMessage(
   value: unknown
 ): value is PreviewMeasureStateMessage {
   if (!value || typeof value !== 'object') return false
 
-  const message = value as Record<string, unknown>
+  const message = value as unknown as Record<string, unknown>
   if (
     message.version !== PREVIEW_PROTOCOL_VERSION ||
     message.type !== PREVIEW_MEASURE_STATE_MESSAGE ||
@@ -187,6 +260,30 @@ export function isPreviewMeasureStateMessage(
     return false
   }
 
+  const numericFields = [
+    'viewportWidth',
+    'viewportHeight',
+    'documentWidth',
+    'documentHeight',
+    'scrollX',
+    'scrollY',
+    'maxScrollX',
+    'maxScrollY',
+    'layoutVersion',
+  ]
+
+  return numericFields.every((field) => {
+    const number = message[field]
+    return typeof number === 'number' && Number.isFinite(number)
+  })
+}
+
+export function isPreviewMeasureStateMessage(
+  value: unknown
+): value is PreviewMeasureStateMessage {
+  if (!isPreviewBaseMeasureStateMessage(value)) return false
+
+  const message = value as unknown as Record<string, unknown>
   if (message.anchorResolutions !== undefined) {
     let serializedResolutions: string
     try {
@@ -212,20 +309,29 @@ export function isPreviewMeasureStateMessage(
     }
   }
 
-  const numericFields = [
-    'viewportWidth',
-    'viewportHeight',
-    'documentWidth',
-    'documentHeight',
-    'scrollX',
-    'scrollY',
-    'maxScrollX',
-    'maxScrollY',
-    'layoutVersion',
-  ]
+  if (message.regionResolutions !== undefined) {
+    let serializedResolutions: string
+    try {
+      serializedResolutions = JSON.stringify(message.regionResolutions)
+    } catch {
+      return false
+    }
+    if (
+      !Array.isArray(message.regionResolutions) ||
+      message.regionResolutions.length > MAX_PREVIEW_REGION_IDS ||
+      new Set(
+        message.regionResolutions.map((resolution) =>
+          resolution && typeof resolution === 'object'
+            ? (resolution as Record<string, unknown>).regionId
+            : undefined
+        )
+      ).size !== message.regionResolutions.length ||
+      !message.regionResolutions.every(isPreviewRegionResolution) ||
+      serializedResolutions.length > MAX_PREVIEW_ANCHOR_RESPONSE_BYTES
+    ) {
+      return false
+    }
+  }
 
-  return numericFields.every((field) => {
-    const number = message[field]
-    return typeof number === 'number' && Number.isFinite(number)
-  })
+  return true
 }

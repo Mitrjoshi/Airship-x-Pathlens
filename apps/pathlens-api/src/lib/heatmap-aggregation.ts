@@ -4,13 +4,17 @@ import type {
   HeatmapClickSample,
   HeatmapClickSampleGroup,
   HeatmapClickPoint,
+  HeatmapClickRegionDefinition,
   HeatmapCoordinateAlignment,
   HeatmapCoordinateMode,
   HeatmapMovementGroup,
   HeatmapMovementPoint,
   HeatmapSourceDimensions,
 } from "@workspace/contracts";
-import { clickElementAnchorSchema } from "@workspace/contracts/events";
+import {
+  clickElementAnchorSchema,
+  clickRegionAnchorSchema,
+} from "@workspace/contracts/events";
 
 const CLICK_GRID_SIZE = 20;
 // Overflow keeps coordinate samples available while omitting unbounded anchor
@@ -346,6 +350,7 @@ export function collectClickSamples(
   groups: HeatmapClickSampleGroup[];
   eligibleEventCount: number;
   anchorDefinitions: HeatmapClickAnchorDefinition[];
+  regionDefinitions: HeatmapClickRegionDefinition[];
   anchorDiagnostics: {
     anchorCapableEvents: number;
     legacyEvents: number;
@@ -360,6 +365,7 @@ export function collectClickSamples(
 } {
   const groups = new Map<string, HeatmapClickSampleGroup>();
   const anchorDefinitions = new Map<string, HeatmapClickAnchorDefinition>();
+  const regionDefinitions = new Map<string, HeatmapClickRegionDefinition>();
   const conflictingAnchorIds = new Set<string>();
   const seenAnchorIds = new Set<string>();
   let eligibleEventCount = 0;
@@ -394,7 +400,9 @@ export function collectClickSamples(
       } satisfies HeatmapClickSampleGroup);
 
     const rawAnchor = row.payload?.elementAnchor;
+    const rawRegionAnchor = row.payload?.regionAnchor;
     let anchor = null;
+    let regionAnchor = null;
 
     if (rawAnchor === undefined || rawAnchor === null) {
       legacyEvents += 1;
@@ -456,6 +464,23 @@ export function collectClickSamples(
       }
     }
 
+    if (rawRegionAnchor !== undefined && rawRegionAnchor !== null) {
+      const parsedRegion = clickRegionAnchorSchema.safeParse(rawRegionAnchor);
+      if (parsedRegion.success) {
+        regionAnchor = parsedRegion.data;
+        regionDefinitions.set(regionAnchor.regionId, {
+          regionId: regionAnchor.regionId,
+          schemaVersion: regionAnchor.schemaVersion,
+          ...(regionAnchor.regionKind
+            ? { regionKind: regionAnchor.regionKind }
+            : {}),
+          ...(regionAnchor.structuralFingerprint
+            ? { structuralFingerprint: regionAnchor.structuralFingerprint }
+            : {}),
+        });
+      }
+    }
+
     group.sampleCount += weight;
     group.samples.push({
       x: point.x,
@@ -472,6 +497,7 @@ export function collectClickSamples(
             capturedRect: anchor.capturedRect,
           }
         : {}),
+      ...(regionAnchor ? { regionAnchor } : {}),
     } satisfies HeatmapClickSample);
     groups.set(groupId, group);
     eligibleEventCount += 1;
@@ -490,6 +516,7 @@ export function collectClickSamples(
           y: sample.y,
           weight: sample.weight,
           coordinateMode: sample.coordinateMode,
+          ...(sample.regionAnchor ? { regionAnchor: sample.regionAnchor } : {}),
         };
       });
     }
@@ -512,6 +539,7 @@ export function collectClickSamples(
     anchorDefinitions: Array.from(anchorDefinitions.values()).filter(
       (definition) => !conflictingAnchorIds.has(definition.anchorId)
     ),
+    regionDefinitions: Array.from(regionDefinitions.values()),
     anchorDiagnostics: {
       anchorCapableEvents,
       legacyEvents,

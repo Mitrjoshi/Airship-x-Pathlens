@@ -4,6 +4,7 @@ export const MAX_CLICK_ELEMENT_ANCHOR_ID_LENGTH = 64
 export const MAX_CLICK_ELEMENT_ANCHOR_DEPTH = 8
 export const MAX_CLICK_ELEMENT_SCROLL_ANCESTORS = 4
 export const MAX_CLICK_ELEMENT_ANCHOR_DIMENSION = 10_000_000
+export const CLICK_TEXT_ANCHOR_BUCKETS = 32
 
 export type ClickElementPositionMode =
   'static' | 'absolute' | 'fixed' | 'sticky'
@@ -40,6 +41,8 @@ export interface ClickElementAnchor {
   relativeX: number
   relativeY: number
   capturedRect: ClickElementRect
+  textNodeIndex?: number
+  textOffsetBucket?: number
   transformedAncestor: boolean
   stickyInset?: ClickElementStickyInset
   scrollAncestors: ClickElementScrollAncestor[]

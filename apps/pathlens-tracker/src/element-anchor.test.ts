@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { hashClickAnchorFingerprint } from "@workspace/contracts/element-anchor";
 import { createClickElementAnchor } from "./element-anchor";
+import { createClickRegionAnchor } from "./region-anchor";
 
 interface FakeStyle {
   position: string;
@@ -12,6 +13,7 @@ interface FakeStyle {
   right: string;
   bottom: string;
   left: string;
+  display?: string;
 }
 
 class FakeElement {
@@ -53,6 +55,12 @@ class FakeElement {
       if (
         selector.includes("[data-pathlens-block]") &&
         current.getAttribute("data-pathlens-block") !== null
+      ) {
+        return current;
+      }
+      if (
+        selector.includes("[data-pathlens-region]") &&
+        current.getAttribute("data-pathlens-region") !== null
       ) {
         return current;
       }
@@ -130,6 +138,217 @@ test("preserves the click offset inside a normal element", () => {
   assert.equal(anchor.relativeY, 0.25);
   assert.equal(anchor.positionMode, "static");
   assert.equal(anchor.transformedAncestor, false);
+});
+
+test("captures an explicit privacy-safe region anchor", () => {
+  installWindow();
+  const region = new FakeElement(
+    "SECTION",
+    rect(100, 200, 400, 200),
+    {
+      position: "static",
+      transform: "none",
+      overflowX: "visible",
+      overflowY: "visible",
+      top: "auto",
+      right: "auto",
+      bottom: "auto",
+      left: "auto",
+    },
+    { "data-pathlens-region": "hero" }
+  );
+  const target = new FakeElement("DIV", rect(120, 220, 40, 40), region.style);
+  region.append(target);
+
+  const anchor = createClickRegionAnchor(
+    target as unknown as HTMLElement,
+    200,
+    300
+  );
+
+  assert.ok(anchor);
+  assert.equal(anchor.relativeX, 0.25);
+  assert.equal(anchor.relativeY, 0.5);
+  assert.equal(anchor.capturedRect.width, 400);
+});
+
+test("discovers the nearest semantic region without an explicit attribute", () => {
+  installWindow();
+  const main = new FakeElement("MAIN", rect(0, 0, 1000, 800), {
+    position: "static",
+    transform: "none",
+    overflowX: "visible",
+    overflowY: "visible",
+    top: "auto",
+    right: "auto",
+    bottom: "auto",
+    left: "auto",
+  });
+  const target = new FakeElement("BUTTON", rect(100, 100, 100, 40), main.style);
+  main.append(target);
+  const anchor = createClickRegionAnchor(
+    target as unknown as HTMLElement,
+    125,
+    120
+  );
+
+  assert.ok(anchor);
+  assert.equal(anchor.regionKind, "semantic");
+  assert.match(anchor.structuralFingerprint ?? "", /main:/);
+});
+
+test("recognizes all supported semantic landmarks and prefers nested regions", () => {
+  installWindow();
+  for (const tagName of [
+    "HEADER",
+    "FOOTER",
+    "SECTION",
+    "ARTICLE",
+    "ASIDE",
+    "NAV",
+  ]) {
+    const region = new FakeElement(tagName, rect(0, 0, 800, 400), {
+      position: "static",
+      transform: "none",
+      overflowX: "visible",
+      overflowY: "visible",
+      top: "auto",
+      right: "auto",
+      bottom: "auto",
+      left: "auto",
+    });
+    const target = new FakeElement("A", rect(20, 20, 100, 30), region.style);
+    region.append(target);
+    const anchor = createClickRegionAnchor(
+      target as unknown as HTMLElement,
+      40,
+      30
+    );
+    assert.ok(anchor);
+    assert.equal(anchor.regionKind, "semantic");
+    assert.match(
+      anchor.structuralFingerprint ?? "",
+      new RegExp(`${tagName.toLowerCase()}:`)
+    );
+  }
+
+  const outer = new FakeElement("SECTION", rect(0, 0, 800, 600), {
+    position: "static",
+    transform: "none",
+    overflowX: "visible",
+    overflowY: "visible",
+    top: "auto",
+    right: "auto",
+    bottom: "auto",
+    left: "auto",
+  });
+  const inner = new FakeElement("ARTICLE", rect(20, 20, 500, 300), outer.style);
+  const target = new FakeElement("BUTTON", rect(40, 40, 100, 30), inner.style);
+  outer.append(inner);
+  inner.append(target);
+  const nested = createClickRegionAnchor(
+    target as unknown as HTMLElement,
+    50,
+    50
+  );
+  assert.ok(nested);
+  assert.match(nested.structuralFingerprint ?? "", /article:/);
+  assert.match(nested.structuralFingerprint ?? "", /article:0$/);
+});
+
+test("discovers structural containers but never promotes body", () => {
+  installWindow();
+  const html = new FakeElement("HTML", rect(0, 0, 1000, 1200), {
+    position: "static",
+    transform: "none",
+    overflowX: "visible",
+    overflowY: "visible",
+    top: "auto",
+    right: "auto",
+    bottom: "auto",
+    left: "auto",
+  });
+  const body = new FakeElement("BODY", rect(0, 0, 1000, 1200), html.style);
+  const container = new FakeElement("DIV", rect(40, 40, 900, 600), body.style);
+  const first = new FakeElement("DIV", rect(40, 40, 400, 200), body.style);
+  const second = new FakeElement("DIV", rect(500, 40, 400, 200), body.style);
+  const target = new FakeElement("SPAN", rect(80, 80, 40, 20), body.style);
+  html.append(body);
+  body.append(container);
+  container.append(first).append(second).append(target);
+
+  const anchor = createClickRegionAnchor(
+    target as unknown as HTMLElement,
+    90,
+    90
+  );
+  assert.ok(anchor);
+  assert.equal(anchor.regionKind, "structural");
+  const lastSegment = anchor.structuralFingerprint?.split("/").slice(-1)[0];
+  assert.notEqual(lastSegment?.split(":")[0], "body");
+
+  const bodyTarget = new FakeElement("SPAN", rect(10, 900, 20, 20), body.style);
+  body.append(bodyTarget);
+  assert.equal(
+    createClickRegionAnchor(bodyTarget as unknown as HTMLElement, 15, 910),
+    null
+  );
+});
+
+test("excludes hidden, zero-size, and sensitive automatic regions", () => {
+  installWindow();
+  const hidden = new FakeElement("SECTION", rect(0, 0, 600, 300), {
+    position: "static",
+    transform: "none",
+    overflowX: "visible",
+    overflowY: "visible",
+    top: "auto",
+    right: "auto",
+    bottom: "auto",
+    left: "auto",
+    display: "none",
+  });
+  const hiddenTarget = new FakeElement(
+    "BUTTON",
+    rect(20, 20, 80, 30),
+    hidden.style
+  );
+  hidden.append(hiddenTarget);
+  assert.equal(
+    createClickRegionAnchor(hiddenTarget as unknown as HTMLElement, 30, 30),
+    null
+  );
+
+  const zero = new FakeElement("SECTION", rect(0, 0, 0, 0), hidden.style);
+  const zeroTarget = new FakeElement(
+    "BUTTON",
+    rect(0, 0, 20, 20),
+    hidden.style
+  );
+  zero.append(zeroTarget);
+  assert.equal(
+    createClickRegionAnchor(zeroTarget as unknown as HTMLElement, 1, 1),
+    null
+  );
+
+  const sensitive = new FakeElement(
+    "SECTION",
+    rect(0, 0, 600, 300),
+    hidden.style,
+    {
+      "data-pathlens-mask": "",
+    }
+  );
+  const sensitiveTarget = new FakeElement(
+    "BUTTON",
+    rect(20, 20, 80, 30),
+    hidden.style
+  );
+  sensitive.append(sensitiveTarget);
+  assert.equal(
+    createClickRegionAnchor(sensitiveTarget as unknown as HTMLElement, 30, 30),
+    null
+  );
 });
 
 test("classifies absolute elements without changing their click offset", () => {

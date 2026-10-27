@@ -17,7 +17,13 @@ export function createMeasurementControllerScript(
    const MAX_ANCHOR_ID_LENGTH = 64;
    const MAX_ANCHOR_DEPTH = 8;
    const MAX_ANCHOR_DIMENSION = 10000000;
-   const MAX_ANCHOR_RESPONSE_BYTES = 262144;
+    const MAX_ANCHOR_RESPONSE_BYTES = 262144;
+    const MAX_REGION_IDS = 256;
+    const MAX_REGION_ID_LENGTH = 64;
+     const MAX_REGION_DEPTH = 8;
+     const TEXT_ANCHOR_BUCKETS = 32;
+    const SEMANTIC_TAGS = new Set(['main', 'header', 'footer', 'section', 'article', 'aside', 'nav']);
+    const REGION_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
    const MAX_DOM_CANDIDATES = 10000;
    const ANCHOR_ID_PATTERN = /^fnv1a32-[0-9a-f]{8}$/;
    const EXPLICIT_ANCHOR_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
@@ -32,7 +38,8 @@ export function createMeasurementControllerScript(
   let lastSentAt = 0;
   let requestTimes = [];
    let scrollTimes = [];
-   let activeAnchorIds = null;
+    let activeAnchorIds = null;
+    let activeRegionIds = null;
 
   function debug(stage, reason) {
     if (DEBUG && typeof console !== 'undefined' && typeof console.debug === 'function') {
@@ -125,15 +132,109 @@ export function createMeasurementControllerScript(
      return segments.join('/');
    }
 
-   function getAnchorId(element) {
-     const explicit = element.getAttribute('data-pathlens-anchor');
-     const fingerprint = explicit && EXPLICIT_ANCHOR_PATTERN.test(explicit)
-       ? 'explicit:' + explicit
-       : getElementPath(element);
-     if (!fingerprint) return null;
-     const anchorId = hashFingerprint(fingerprint);
-     return anchorId.length <= MAX_ANCHOR_ID_LENGTH ? anchorId : null;
-   }
+     function getElementFingerprint(element) {
+      const explicit = element.getAttribute('data-pathlens-anchor');
+      return explicit && EXPLICIT_ANCHOR_PATTERN.test(explicit)
+        ? 'explicit:' + explicit
+        : getElementPath(element);
+     }
+
+     function getAnchorId(element, suffix) {
+      const fingerprint = getElementFingerprint(element);
+      if (!fingerprint) return null;
+      const anchorId = hashFingerprint(fingerprint + (suffix || ''));
+      return anchorId.length <= MAX_ANCHOR_ID_LENGTH ? anchorId : null;
+     }
+
+     function getTextAnchorCandidates(element) {
+       const fingerprint = getElementFingerprint(element);
+       if (!fingerprint) return [];
+       const candidates = [];
+       const textNodes = Array.from(element.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE);
+       for (let nodeIndex = 0; nodeIndex < textNodes.length && candidates.length < TEXT_ANCHOR_BUCKETS * 16; nodeIndex += 1) {
+         const node = textNodes[nodeIndex];
+         if (node.parentElement && !isSensitiveElement(node.parentElement)) {
+           const length = node.textContent ? node.textContent.length : 0;
+           for (let bucket = 0; bucket < TEXT_ANCHOR_BUCKETS && length > 0; bucket += 1) {
+             const offset = Math.min(length - 1, Math.floor((bucket / TEXT_ANCHOR_BUCKETS) * length));
+             const range = document.createRange();
+             range.setStart(node, offset);
+             range.setEnd(node, Math.min(length, offset + 1));
+             const rect = range.getBoundingClientRect();
+             if (rect.width > 0 && rect.height > 0 && finite(rect.left) && finite(rect.top)) {
+               const anchorId = getAnchorId(element, '|text:' + nodeIndex + ':' + bucket);
+               if (anchorId) candidates.push({ anchorId, element, rect });
+             }
+           }
+         }
+       }
+       return candidates;
+     }
+
+     function getAnchorCandidates(element) {
+       const anchorId = getAnchorId(element);
+       const candidates = anchorId ? [{ anchorId, element, rect: null }] : [];
+       return candidates.concat(getTextAnchorCandidates(element));
+     }
+
+    function structuralPath(element) {
+      const segments = [];
+      let current = element;
+      while (current) {
+        if (segments.length >= MAX_REGION_DEPTH) return null;
+        const tagName = current.tagName.toLowerCase();
+        const parent = current.parentElement;
+        const siblings = parent
+          ? Array.from(parent.children).filter((candidate) => candidate.tagName.toLowerCase() === tagName)
+          : [];
+        segments.unshift(tagName + ':' + Math.max(0, siblings.indexOf(current)));
+        current = parent;
+      }
+      return segments.join('/');
+    }
+
+    function visibleRegion(element) {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' &&
+        finite(rect.width) && finite(rect.height) && rect.width >= 64 && rect.height >= 32 &&
+        rect.width <= MAX_ANCHOR_DIMENSION && rect.height <= MAX_ANCHOR_DIMENSION;
+    }
+
+    function automaticRegion(element) {
+      let current = element;
+      let depth = 0;
+      while (current && depth < MAX_REGION_DEPTH) {
+        if (SEMANTIC_TAGS.has(current.tagName.toLowerCase()) && visibleRegion(current)) {
+          const fingerprint = structuralPath(current);
+          if (fingerprint) return { element: current, kind: 'semantic', fingerprint };
+        }
+        current = current.parentElement;
+        depth += 1;
+      }
+      current = element;
+      depth = 0;
+      while (current && depth < MAX_REGION_DEPTH) {
+        if (current.tagName.toLowerCase() === 'div' && current.children.length >= 2 && visibleRegion(current)) {
+          const fingerprint = structuralPath(current);
+          if (fingerprint) return { element: current, kind: 'structural', fingerprint };
+        }
+        current = current.parentElement;
+        depth += 1;
+      }
+      return null;
+    }
+
+    function getRegionDescriptor(element) {
+      const value = element.getAttribute('data-pathlens-region');
+      if (value && REGION_ID_PATTERN.test(value.trim())) {
+        const fingerprint = 'explicit-region:' + value.trim();
+        return { id: hashFingerprint(fingerprint), kind: 'explicit', fingerprint };
+      }
+      const candidate = automaticRegion(element);
+      if (!candidate || candidate.element !== element) return null;
+      return { id: hashFingerprint(candidate.fingerprint), kind: candidate.kind, fingerprint: candidate.fingerprint };
+    }
 
    function isSensitiveElement(element) {
      return Boolean(element.closest(SENSITIVE_SELECTOR));
@@ -171,16 +272,21 @@ export function createMeasurementControllerScript(
      return candidates;
    }
 
-   function resolveAnchors() {
+    function resolveAnchors() {
      if (!activeAnchorIds) return undefined;
      const wanted = new Set(activeAnchorIds);
      const matches = new Map();
-     for (const element of getCandidates()) {
-       const anchorId = getAnchorId(element);
-       if (!anchorId || !wanted.has(anchorId)) continue;
-       const list = matches.get(anchorId) || [];
-       if (list.length < 2) list.push(element);
-       matches.set(anchorId, list);
+      let candidateCount = 0;
+      for (const element of getCandidates()) {
+        for (const candidate of getAnchorCandidates(element)) {
+          if (candidateCount >= MAX_DOM_CANDIDATES) break;
+          candidateCount += 1;
+          if (!wanted.has(candidate.anchorId)) continue;
+          const list = matches.get(candidate.anchorId) || [];
+          if (list.length < 2) list.push(candidate);
+          matches.set(candidate.anchorId, list);
+        }
+        if (candidateCount >= MAX_DOM_CANDIDATES) break;
      }
 
      return activeAnchorIds.map((anchorId) => {
@@ -208,24 +314,89 @@ export function createMeasurementControllerScript(
          result.positioningAncestorAnchorId = positioningAncestor.anchorId;
        }
        return result;
-     });
-   }
+      });
+    }
 
-   function boundedAnchorResolutions() {
-     const resolutions = resolveAnchors();
-     if (!resolutions) return undefined;
+    function resolveRegions() {
+      if (!activeRegionIds) return undefined;
+      const wanted = new Set(activeRegionIds);
+      const matches = new Map();
+      for (const element of getCandidates()) {
+        const descriptor = getRegionDescriptor(element);
+         if (!descriptor || !wanted.has(descriptor.id)) continue;
+         const list = matches.get(descriptor.id) || [];
+        if (list.length < 2) list.push(element);
+         matches.set(descriptor.id, list);
+      }
+      return activeRegionIds.map((regionId) => {
+        const matching = matches.get(regionId) || [];
+        if (matching.length === 0) return { regionId, status: 'missing' };
+        if (matching.length !== 1) return { regionId, status: 'ambiguous' };
+        const candidate = matching[0];
+        const element = candidate.element;
+        const rect = candidate.rect || element.getBoundingClientRect();
+        if (!Number.isFinite(rect.left) || !Number.isFinite(rect.top) ||
+            !Number.isFinite(rect.width) || !Number.isFinite(rect.height) ||
+            rect.width <= 0 || rect.height <= 0 ||
+            rect.width > MAX_ANCHOR_DIMENSION || rect.height > MAX_ANCHOR_DIMENSION) {
+          return { regionId, status: 'missing' };
+        }
+        return {
+          regionId,
+          status: 'matched',
+          rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+           positionMode: getPositionMode(element),
+           regionKind: getRegionDescriptor(element).kind,
+           structuralFingerprint: getRegionDescriptor(element).fingerprint,
+        };
+      });
+    }
+
+    function boundedAnchorResolutions() {
+      let resolutions;
+      try {
+        resolutions = resolveAnchors();
+      } catch {
+        debug('anchor-resolution-error', 'controller-failure');
+        return activeAnchorIds
+          ? activeAnchorIds.map((anchorId) => ({ anchorId, status: 'missing' }))
+          : undefined;
+      }
+      if (!resolutions) return undefined;
      try {
        if (JSON.stringify(resolutions).length <= MAX_ANCHOR_RESPONSE_BYTES) {
          return resolutions;
        }
      } catch {}
-     return resolutions.map((resolution) => ({
+      return resolutions.map((resolution) => ({
        anchorId: resolution.anchorId,
        status: 'missing',
-     }));
-   }
+      }));
+    }
 
-   function validAnchorRequest(anchorIds) {
+    function boundedRegionResolutions() {
+       let resolutions;
+       try {
+         resolutions = resolveRegions();
+       } catch {
+         debug('region-resolution-error', 'controller-failure');
+         return activeRegionIds
+           ? activeRegionIds.map((regionId) => ({ regionId, status: 'missing' }))
+           : undefined;
+       }
+       if (!resolutions) return undefined;
+      try {
+        if (JSON.stringify(resolutions).length <= MAX_ANCHOR_RESPONSE_BYTES) {
+          return resolutions;
+        }
+      } catch {}
+      return resolutions.map((resolution) => ({
+        regionId: resolution.regionId,
+        status: 'missing',
+      }));
+    }
+
+    function validAnchorRequest(anchorIds) {
      if (anchorIds === undefined) return true;
      if (!Array.isArray(anchorIds) || anchorIds.length > MAX_ANCHOR_IDS) return false;
      const seen = new Set();
@@ -235,8 +406,21 @@ export function createMeasurementControllerScript(
            seen.has(anchorId)) return false;
        seen.add(anchorId);
      }
-     return JSON.stringify(anchorIds).length <= 16384;
-   }
+      return JSON.stringify(anchorIds).length <= 16384;
+    }
+
+    function validRegionRequest(regionIds) {
+      if (regionIds === undefined) return true;
+      if (!Array.isArray(regionIds) || regionIds.length > MAX_REGION_IDS) return false;
+      const seen = new Set();
+      for (const regionId of regionIds) {
+        if (typeof regionId !== 'string' || regionId.length === 0 ||
+            regionId.length > MAX_REGION_ID_LENGTH || !ANCHOR_ID_PATTERN.test(regionId) ||
+            seen.has(regionId)) return false;
+        seen.add(regionId);
+      }
+      return JSON.stringify(regionIds).length <= 16384;
+    }
 
   function sendMeasurement() {
     frame = 0;
@@ -254,9 +438,10 @@ export function createMeasurementControllerScript(
       sessionId: SESSION_ID,
       nonce,
        requestId,
-       ...dimensions(),
-       layoutVersion: sequence,
-       anchorResolutions: boundedAnchorResolutions(),
+        ...dimensions(),
+        layoutVersion: sequence,
+        anchorResolutions: boundedAnchorResolutions(),
+        regionResolutions: boundedRegionResolutions(),
      }, '*');
     debug('measurement-response-sent');
   }
@@ -298,14 +483,19 @@ export function createMeasurementControllerScript(
         debug('measurement-request-rejected', 'invalid-request-id');
          return;
        }
-       if (!validAnchorRequest(data.anchorIds)) {
-         debug('measurement-request-rejected', 'invalid-anchor-request');
-         return;
-       }
+        if (!validAnchorRequest(data.anchorIds)) {
+          debug('measurement-request-rejected', 'invalid-anchor-request');
+          return;
+        }
+        if (!validRegionRequest(data.regionIds)) {
+          debug('measurement-request-rejected', 'invalid-region-request');
+          return;
+        }
        debug('measurement-request-received');
        nonce = data.nonce;
        requestId = data.requestId;
-       activeAnchorIds = data.anchorIds === undefined ? null : data.anchorIds.slice();
+        activeAnchorIds = data.anchorIds === undefined ? null : data.anchorIds.slice();
+        activeRegionIds = data.regionIds === undefined ? null : data.regionIds.slice();
        scheduleMeasurement();
       return;
     }

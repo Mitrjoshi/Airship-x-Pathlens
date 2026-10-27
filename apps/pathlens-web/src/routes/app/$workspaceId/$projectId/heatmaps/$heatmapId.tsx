@@ -1,18 +1,21 @@
 import {
   getPreviewViewportForDevice,
-  getRepresentativeClickOverlayViewport,
-  getScrollGroupOverlayViewport,
+  getHeatmapPreviewViewport,
   getSnapshotScrollOverlayDimensions,
   getSharedOverlayDimensions,
   selectClickAnchorIds,
+  selectClickRegionIds,
   HeatmapOverlayLayer,
   type HeatmapOverlayType,
   type PreviewDevice,
   type ScrollOverlayDimensions,
 } from '@/components/common/heatmap-overlay-layer'
 import type {
+  HeatmapClickSampleCoverage,
+  HeatmapMovementCoverage,
   PreviewAnchorResolution,
   PreviewMeasurementState,
+  PreviewRegionResolution,
 } from '@workspace/contracts'
 import {
   LivePreviewIframe,
@@ -27,7 +30,7 @@ import {
 } from '@/queries/heatmaps'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Separator } from '@workspace/ui/components/separator'
 import { ArrowLeftIcon, CheckIcon, RefreshCcwIcon } from 'lucide-react'
 import { Button } from '@workspace/ui/components/button'
@@ -40,7 +43,15 @@ import {
 } from '@workspace/ui/components/select'
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import { ButtonGroup } from '@workspace/ui/components/button-group'
-import { capitalizeFirstLetter } from '@/utils/utils'
+import { capitalizeFirstLetter, formatNumber } from '@/utils/utils'
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/card'
+import { Badge } from '@workspace/ui/components/badge'
+import { Skeleton } from '@workspace/ui/components/skeleton'
 
 const rangeLabels = [
   { value: '24h', label: 'Last 24 hours' },
@@ -53,8 +64,9 @@ const deviceLabels = [
   { value: 'desktop', label: 'Desktop' },
   { value: 'mobile', label: 'Mobile' },
   { value: 'tablet', label: 'Tablet' },
-  { value: 'unknown', label: 'Unknown' },
 ]
+
+const maxCount = 100
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/heatmaps/$heatmapId'
@@ -80,7 +92,6 @@ function RouteComponent() {
   const {
     data: heatmapDetails,
     isLoading: heatmapLoading,
-    isFetching: heatmapFetching,
     dataUpdatedAt,
     refetch,
     isRefetching,
@@ -95,9 +106,7 @@ function RouteComponent() {
   )
 
   const heatmap = heatmapDetails?.data
-  const heatmapDataReady = Boolean(
-    heatmap && !heatmapLoading && !heatmapFetching
-  )
+  const heatmapDataReady = Boolean(heatmap && !heatmapLoading)
 
   const lastUpdated = useRelativeTime(dataUpdatedAt)
 
@@ -113,22 +122,50 @@ function RouteComponent() {
   const previewReadyForDevice =
     previewState.session?.device === toPreviewDevice(device)
   const visualizationReady = heatmapDataReady && previewReadyForDevice
+  const heatmapViewport = getHeatmapPreviewViewport(previewDevice)
   const clickAnchorSelection =
     heatmapType === 'click' && heatmap?.clickSamples
       ? selectClickAnchorIds(
           heatmap.clickSamples,
           heatmap.anchorDefinitions ?? [],
-          getRepresentativeClickOverlayViewport(
-            heatmap.clickSamples,
-            previewDevice
-          )
+          heatmapViewport
         )
       : null
+  const clickRegionSelection =
+    heatmapType === 'click' && heatmap?.clickSamples
+      ? selectClickRegionIds(
+          heatmap.clickSamples,
+          heatmap.regionDefinitions ?? []
+        )
+      : null
+
+  const analytics = [
+    {
+      title: 'Visitors',
+      label: formatNumber(heatmap?.visitors) ?? 0,
+    },
+    {
+      title: 'Page Views',
+      label: formatNumber(heatmap?.views) ?? 0,
+    },
+    {
+      title: 'Clicks',
+      label: formatNumber(heatmap?.clicks) ?? 0,
+    },
+    {
+      title: 'Avg. Scroll',
+      label: `${heatmap?.averageScroll.toFixed(0) ?? 0}%`,
+    },
+  ]
+
+  const hotAreas = [...(heatmap?.hotAreas ?? [])].sort(
+    (a, b) => b.count - a.count
+  )
 
   return (
     <div className="max-w-full min-w-0">
       <div className="bg-background sticky top-14.25 z-10 flex max-w-full min-w-0 flex-wrap items-center justify-between gap-2 border-b p-4 py-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <Button
             variant="outline"
             size="icon"
@@ -254,67 +291,180 @@ function RouteComponent() {
         </div>
       </div>
 
-      {heatmapLoading ? (
-        <div className="relative flex h-[calc(100dvh-106px)] w-full items-center justify-center p-6">
-          <p className="text-muted-foreground shimmer">Loading Preview...</p>
+      <div className="grid h-[calc(100dvh-106px)] grid-cols-[1fr_350px] gap-6 p-6">
+        {heatmapLoading ? (
+          <div className="relative flex h-full w-full items-center justify-center overflow-hidden! p-6">
+            <p className="text-muted-foreground shimmer">Loading Preview...</p>
+          </div>
+        ) : (
+          <div
+            className="relative h-[calc(100dvh-206px)] w-full overflow-hidden"
+            data-heatmap-viewer="live"
+          >
+            <HeatmapLiveViewer
+              heatmap={heatmap}
+              preview={previewState.session}
+              status={previewState.status}
+              onRetry={previewState.retry}
+              error={
+                previewState.error ??
+                (heatmapLoading ? 'Loading heatmap...' : null)
+              }
+              device={previewDevice}
+              overlayViewport={heatmapViewport}
+              anchorSelection={clickAnchorSelection}
+              regionSelection={clickRegionSelection}
+              heatmapType={heatmapType}
+              scrollSource={
+                visualizationReady && !heatmap?.scrollGroups
+                  ? scrollSource
+                  : null
+              }
+              scrollGroups={
+                visualizationReady
+                  ? heatmap?.scrollGroups?.filter(
+                      (group) => group.device === previewDevice
+                    )
+                  : undefined
+              }
+              heatmapDataReady={visualizationReady}
+              clickCoverage={
+                visualizationReady ? heatmap?.clickSampleCoverage : undefined
+              }
+              movementCoverage={
+                visualizationReady ? heatmap?.movementCoverage : undefined
+              }
+              emptyStateMessage={
+                visualizationReady
+                  ? getHeatmapEmptyStateMessage(
+                      heatmap,
+                      heatmapType,
+                      previewDevice
+                    )
+                  : null
+              }
+              // heatmapEmpty={
+              //   !heatmapLoading &&
+              //   !heatmapFetching &&
+              //   !isError &&
+              //   heatmapDetails?.success === true &&
+              //   !heatmap
+              // }
+            />
+          </div>
+        )}
+
+        <div className="h-full space-y-4 overflow-auto border-l px-4">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold">Analytics</p>
+
+            <div className="grid grid-cols-2 gap-2">
+              {analytics.map((item) => {
+                return (
+                  <Card
+                    key={item.title}
+                    className="bg-card/30 gap-0 rounded-none border-2 border-dashed p-3 shadow-none"
+                  >
+                    <CardHeader className="p-0">
+                      <CardDescription className="text-xs">
+                        {item.title}
+                      </CardDescription>
+
+                      <CardTitle className="text-2xl font-semibold tracking-tight tabular-nums">
+                        {heatmapLoading ? (
+                          <Skeleton className="h-8 w-12" />
+                        ) : (
+                          item.label
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                )
+              })}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Hot Areas</h3>
+              {!heatmapLoading && (
+                <span className="text-muted-foreground text-xs">
+                  {hotAreas.length} areas
+                </span>
+              )}
+            </div>
+
+            {heatmapLoading ? (
+              <div className="divide-border divide-y">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <div key={index} className="space-y-2 py-3">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-5 w-5 shrink-0" />
+
+                      <div className="flex flex-1 items-center gap-2">
+                        <Skeleton className="h-5 w-16" />
+                        <Skeleton className="h-5 w-28" />
+                      </div>
+
+                      <Skeleton className="h-5 w-8 shrink-0" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : hotAreas.length > 0 ? (
+              <div className="divide-border divide-y">
+                {hotAreas.map((item, index) => {
+                  const [type, ...parts] = item.key.split(':')
+                  const label = parts.join(':') || type
+                  const percentage = (item.count / maxCount) * 100
+
+                  return (
+                    <div key={item.key} className="space-y-2 py-3">
+                      <div className="flex items-start gap-3">
+                        <span className="text-muted-foreground w-5 shrink-0 pt-1 text-xs tabular-nums">
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="wrap-break text-sm leading-6">
+                            <Badge
+                              variant="secondary"
+                              className="mr-1 inline-flex align-middle text-xs"
+                            >
+                              {capitalizeFirstLetter(type)}
+                            </Badge>{' '}
+                            <span>{label}</span>
+                          </div>
+                        </div>
+
+                        <span className="shrink-0 text-sm font-semibold tabular-nums">
+                          {item.count.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="bg-muted ml-8 h-1 overflow-hidden rounded-full">
+                        <div
+                          className="bg-primary/70 h-full rounded-full transition-[width] duration-300"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="border-2 border-dashed p-6 text-center">
+                <p className="text-sm font-medium">No hot areas yet</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Areas will appear once activity is recorded.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      ) : (
-        <div
-          className="relative h-[calc(100dvh-106px)] w-full p-6"
-          data-heatmap-viewer="live"
-        >
-          <HeatmapLiveViewer
-            heatmap={heatmap}
-            preview={previewState.session}
-            status={previewState.status}
-            onRetry={previewState.retry}
-            error={
-              previewState.error ??
-              (heatmapLoading ? 'Loading heatmap...' : null)
-            }
-            device={previewDevice}
-            range={range}
-            overlayViewport={
-              heatmapType === 'scroll' && heatmap?.scrollGroups
-                ? (getScrollGroupOverlayViewport(
-                    heatmap.scrollGroups,
-                    previewDevice
-                  ) ??
-                  getPreviewViewportForDevice(
-                    heatmap?.clickGroups ?? [],
-                    previewDevice
-                  ))
-                : heatmapType === 'scroll' && scrollSource
-                  ? scrollSource.viewport
-                  : heatmapType === 'movement'
-                    ? getPreviewViewportForDevice(
-                        heatmap?.movementGroups ?? [],
-                        previewDevice
-                      )
-                    : getRepresentativeClickOverlayViewport(
-                        heatmap?.clickSamples ?? heatmap?.clickGroups ?? [],
-                        previewDevice
-                      )
-            }
-            anchorSelection={clickAnchorSelection}
-            heatmapType={heatmapType}
-            scrollSource={
-              visualizationReady && !heatmap?.scrollGroups ? scrollSource : null
-            }
-            scrollGroups={
-              visualizationReady ? heatmap?.scrollGroups : undefined
-            }
-            heatmapDataReady={visualizationReady}
-            // heatmapEmpty={
-            //   !heatmapLoading &&
-            //   !heatmapFetching &&
-            //   !isError &&
-            //   heatmapDetails?.success === true &&
-            //   !heatmap
-            // }
-          />
-        </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -349,6 +499,70 @@ function getScrollSourceDimensions(
   return getSnapshotScrollOverlayDimensions(heatmap?.snapshot ?? null, device)
 }
 
+function hasUsablePoint(point: { x: number; y: number }, weight: number) {
+  return (
+    Number.isFinite(point.x) &&
+    Number.isFinite(point.y) &&
+    point.x >= 0 &&
+    point.x <= 1 &&
+    point.y >= 0 &&
+    point.y <= 1 &&
+    Number.isFinite(weight) &&
+    weight > 0
+  )
+}
+
+function getHeatmapEmptyStateMessage(
+  heatmap: HeatmapPageDetail | null | undefined,
+  type: HeatmapOverlayType,
+  device: PreviewDevice
+) {
+  if (!heatmap) return null
+
+  if (type === 'click') {
+    const hasSamples = (heatmap.clickSamples ?? []).some((group) =>
+      group.samples.some((sample) => hasUsablePoint(sample, sample.weight))
+    )
+    const hasGroups = (heatmap.clickGroups ?? []).some((group) =>
+      group.points.some((point) => hasUsablePoint(point, point.count))
+    )
+    const hasLegacyPoints = heatmap.clickPoints.some((point) =>
+      hasUsablePoint(point, point.count)
+    )
+    return hasSamples || hasGroups || hasLegacyPoints
+      ? null
+      : 'No click data available for the selected filters.'
+  }
+
+  if (type === 'movement') {
+    const hasGroups = (heatmap.movementGroups ?? []).some((group) =>
+      group.points.some((point) => hasUsablePoint(point, point.count))
+    )
+    const hasLegacyPoints = (heatmap.movementPoints ?? []).some((point) =>
+      hasUsablePoint(point, point.count)
+    )
+    return hasGroups || hasLegacyPoints
+      ? null
+      : 'No movement data available for the selected filters.'
+  }
+
+  const hasScrollObservations = (heatmap.scrollGroups ?? []).some(
+    (group) =>
+      group.device === device &&
+      group.sessionCount > 0 &&
+      group.reachPoints.some(
+        (point) =>
+          Number.isFinite(point.percentage) &&
+          point.percentage >= 0 &&
+          point.percentage <= 100 &&
+          point.count > 0
+      )
+  )
+  return hasScrollObservations
+    ? null
+    : 'No scroll data available for the selected filters.'
+}
+
 function HeatmapLiveViewer({
   heatmap,
   preview,
@@ -356,13 +570,16 @@ function HeatmapLiveViewer({
   error,
   onRetry,
   device,
-  range,
   heatmapType,
   scrollSource,
   scrollGroups,
   heatmapDataReady,
   overlayViewport,
   anchorSelection,
+  regionSelection,
+  emptyStateMessage,
+  clickCoverage,
+  movementCoverage,
 }: {
   heatmap: HeatmapPageDetail | null | undefined
   preview: Parameters<typeof LivePreviewIframe>[0]['preview']
@@ -370,32 +587,33 @@ function HeatmapLiveViewer({
   error: Parameters<typeof LivePreviewIframe>[0]['error']
   onRetry: Parameters<typeof LivePreviewIframe>[0]['onRetry']
   device: 'desktop' | 'mobile' | 'tablet'
-  range: HeatmapsRange
   heatmapType: HeatmapOverlayType
   scrollSource: ScrollOverlayDimensions | null
   scrollGroups: HeatmapPageDetail['scrollGroups']
   heatmapDataReady: boolean
   overlayViewport: { width: number; height: number } | null
   anchorSelection: ReturnType<typeof selectClickAnchorIds> | null
+  regionSelection: ReturnType<typeof selectClickRegionIds> | null
+  emptyStateMessage: string | null
+  clickCoverage: HeatmapClickSampleCoverage | undefined
+  movementCoverage: HeatmapMovementCoverage | undefined
 }) {
   const [measurement, setMeasurement] =
     useState<PreviewMeasurementState | null>(null)
   const [anchorResolutions, setAnchorResolutions] = useState<
     PreviewAnchorResolution[] | null
   >(null)
+  const [regionResolutions, setRegionResolutions] = useState<
+    PreviewRegionResolution[] | null
+  >(null)
   const [measurementSessionKey, setMeasurementSessionKey] = useState('')
-  const sessionKey = `${preview?.session_id ?? 'no-session'}:${heatmap?.id ?? 'empty'}:${device}:${range}:${overlayViewport?.width ?? 'native'}x${overlayViewport?.height ?? 'native'}`
+  const sessionKey = `${preview?.session_id ?? 'no-session'}:${device}`
   const widthClass =
     device === 'mobile'
       ? 'mx-auto max-w-[390px]'
       : device === 'tablet'
         ? 'mx-auto max-w-[768px]'
         : 'w-full'
-
-  useEffect(() => {
-    setMeasurement(null)
-    setMeasurementSessionKey('')
-  }, [sessionKey])
 
   const handleMeasurementChange = (next: PreviewMeasurementState | null) => {
     setMeasurement(next)
@@ -420,6 +638,8 @@ function HeatmapLiveViewer({
         onMeasurementChange={handleMeasurementChange}
         anchorIds={anchorSelection?.requestedAnchorIds ?? []}
         onAnchorResolutionChange={handleAnchorResolutionChange}
+        regionIds={regionSelection?.requestedRegionIds ?? []}
+        onRegionResolutionChange={setRegionResolutions}
         overlay={
           <>
             <HeatmapOverlayLayer
@@ -433,6 +653,7 @@ function HeatmapLiveViewer({
               }
               anchorResolutions={anchorResolutions}
               anchorSelection={anchorSelection}
+              regionResolutions={regionResolutions}
               movementGroups={
                 heatmapDataReady ? (heatmap?.movementGroups ?? []) : []
               }
@@ -445,6 +666,9 @@ function HeatmapLiveViewer({
               measurement={
                 measurementSessionKey === sessionKey ? measurement : null
               }
+              emptyStateMessage={emptyStateMessage}
+              clickCoverage={clickCoverage}
+              movementCoverage={movementCoverage}
             />
           </>
         }

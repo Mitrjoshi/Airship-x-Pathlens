@@ -3,11 +3,15 @@ import type {
   HeatmapDevice,
   PreviewAnchorResolution,
   PreviewMeasurementState,
+  PreviewRegionResolution,
 } from '@workspace/contracts'
 import {
   isPreviewAnchorId,
+  isPreviewRegionId,
   isPreviewMeasureStateMessage,
+  isPreviewBaseMeasureStateMessage,
   MAX_PREVIEW_ANCHOR_IDS,
+  MAX_PREVIEW_REGION_IDS,
   PREVIEW_MEASURE_REQUEST_MESSAGE,
   PREVIEW_PROTOCOL_VERSION,
   PREVIEW_SCROLL_MESSAGE,
@@ -88,6 +92,21 @@ function normalizeAnchorIds(
   const unique = new Set<string>()
   for (const value of values) {
     if (!isPreviewAnchorId(value) || unique.has(value)) return null
+    unique.add(value)
+  }
+
+  return Array.from(unique)
+}
+
+function normalizeRegionIds(
+  values: readonly string[] | undefined
+): string[] | null {
+  if (values === undefined) return []
+  if (values.length > MAX_PREVIEW_REGION_IDS) return null
+
+  const unique = new Set<string>()
+  for (const value of values) {
+    if (!isPreviewRegionId(value) || unique.has(value)) return null
     unique.add(value)
   }
 
@@ -301,6 +320,10 @@ export interface LivePreviewIframeProps {
   onAnchorResolutionChange?: (
     resolutions: PreviewAnchorResolution[] | null
   ) => void
+  regionIds?: readonly string[]
+  onRegionResolutionChange?: (
+    resolutions: PreviewRegionResolution[] | null
+  ) => void
   overlay?: ReactNode
   virtualViewport?: { width: number; height: number } | null
   className?: string
@@ -315,6 +338,8 @@ export function LivePreviewIframe({
   onMeasurementChange,
   anchorIds,
   onAnchorResolutionChange,
+  regionIds,
+  onRegionResolutionChange,
   overlay,
   virtualViewport = null,
   className,
@@ -334,10 +359,15 @@ export function LivePreviewIframe({
   const retryGenerationRef = useRef<number | null>(null)
   const measurementRef = useRef<PreviewMeasurementState | null>(null)
   const requestedAnchorIdsRef = useRef<string[]>([])
+  const requestedRegionIdsRef = useRef<string[]>([])
   const anchorIdsKey = anchorIds?.join(',') ?? ''
+  const regionIdsKey = regionIds?.join(',') ?? ''
   const contextKey = preview
     ? `${preview.project_id}:${preview.domain_id}:${preview.pathname}:${preview.device}:${preview.preview_intent}:${preview.session_id}`
     : 'empty'
+  const previewSessionId = preview?.session_id
+  const previewIframeUrl = preview?.iframe_url
+  const previewIntent = preview?.preview_intent
   const isExpired = status === 'expired'
   const isHeatmapPreview = preview?.preview_intent === 'heatmap'
 
@@ -364,7 +394,9 @@ export function LivePreviewIframe({
     const requestId = requestIdRef.current ?? createRequestId()
     requestIdRef.current = requestId
     const requestedAnchorIds = normalizeAnchorIds(anchorIds)
+    const requestedRegionIds = normalizeRegionIds(regionIds)
     requestedAnchorIdsRef.current = requestedAnchorIds ?? []
+    requestedRegionIdsRef.current = requestedRegionIds ?? []
     iframeRef.current?.contentWindow?.postMessage(
       {
         version: PREVIEW_PROTOCOL_VERSION,
@@ -374,6 +406,9 @@ export function LivePreviewIframe({
         requestId,
         ...(requestedAnchorIds && requestedAnchorIds.length > 0
           ? { anchorIds: requestedAnchorIds }
+          : {}),
+        ...(requestedRegionIds && requestedRegionIds.length > 0
+          ? { regionIds: requestedRegionIds }
           : {}),
       },
       '*'
@@ -460,6 +495,7 @@ export function LivePreviewIframe({
     nonceRef.current = usesIsolatedScriptRuntime() ? createPreviewNonce() : null
     requestIdRef.current = null
     requestedAnchorIdsRef.current = []
+    requestedRegionIdsRef.current = []
     sequenceRef.current = 0
     loadedRef.current = false
     acceptedRef.current = false
@@ -468,8 +504,9 @@ export function LivePreviewIframe({
     setMeasurement(null)
     onMeasurementChange?.(null)
     onAnchorResolutionChange?.(null)
+    onRegionResolutionChange?.(null)
     return () => clearMeasurementRetries()
-  }, [anchorIdsKey, contextKey, preview?.iframe_url, viewportKey])
+  }, [contextKey, preview?.iframe_url, viewportKey])
 
   useEffect(() => {
     const container = containerRef.current
@@ -487,9 +524,10 @@ export function LivePreviewIframe({
 
   useEffect(() => {
     if (
-      !preview ||
+      !previewSessionId ||
+      !previewIframeUrl ||
       status !== 'ready' ||
-      !isHeatmapPreview ||
+      previewIntent !== 'heatmap' ||
       !usesIsolatedScriptRuntime()
     ) {
       setMeasurement(null)
@@ -498,7 +536,7 @@ export function LivePreviewIframe({
     }
 
     const generation = generationRef.current
-    const expectedOrigin = new URL(preview.iframe_url).origin
+    const expectedOrigin = new URL(previewIframeUrl!).origin
     const handleMessage = (event: MessageEvent<unknown>) => {
       if (generation !== generationRef.current) {
         debugMeasurement('measurement-response-rejected', {
@@ -518,18 +556,24 @@ export function LivePreviewIframe({
         })
         return
       }
-      if (!isPreviewMeasureStateMessage(event.data)) return
+      const completeMessage = isPreviewMeasureStateMessage(event.data)
+      if (!completeMessage && !isPreviewBaseMeasureStateMessage(event.data)) {
+        debugMeasurement('measurement-response-rejected', {
+          reason: 'invalid-base-measurement',
+        })
+        return
+      }
 
       const message = event.data
       if (
-        message.sessionId !== preview.session_id ||
+        message.sessionId !== previewSessionId ||
         message.nonce !== nonceRef.current ||
         message.requestId !== requestIdRef.current ||
         message.layoutVersion <= sequenceRef.current
       ) {
         debugMeasurement('measurement-response-rejected', {
           reason:
-            message.sessionId !== preview.session_id
+            message.sessionId !== previewSessionId
               ? 'session-mismatch'
               : message.nonce !== nonceRef.current
                 ? 'nonce-mismatch'
@@ -548,17 +592,53 @@ export function LivePreviewIframe({
         return
       }
       const requestedIds = requestedAnchorIdsRef.current
-      const resolutions = nextMeasurement.anchorResolutions
+      const resolutions = completeMessage
+        ? nextMeasurement.anchorResolutions
+        : undefined
+      if (!completeMessage && nextMeasurement.anchorResolutions !== undefined) {
+        debugMeasurement('optional-anchor-resolutions-rejected')
+      }
+      const safeResolutions =
+        resolutions ??
+        requestedIds.map((anchorId) => ({
+          anchorId,
+          status: 'missing' as const,
+        }))
       if (
         requestedIds.length > 0 &&
-        (!resolutions ||
-          resolutions.length !== requestedIds.length ||
-          resolutions.some(
+        (safeResolutions.length !== requestedIds.length ||
+          safeResolutions.some(
             (resolution, index) => resolution.anchorId !== requestedIds[index]
           ))
       ) {
         debugMeasurement('measurement-response-rejected', {
           reason: 'invalid-anchor-resolutions',
+        })
+        return
+      }
+      const requestedRegionIds = requestedRegionIdsRef.current
+      const regionResolutions = completeMessage
+        ? nextMeasurement.regionResolutions
+        : undefined
+      if (!completeMessage && nextMeasurement.regionResolutions !== undefined) {
+        debugMeasurement('optional-region-resolutions-rejected')
+      }
+      const safeRegionResolutions =
+        regionResolutions ??
+        requestedRegionIds.map((regionId) => ({
+          regionId,
+          status: 'missing' as const,
+        }))
+      if (
+        requestedRegionIds.length > 0 &&
+        (safeRegionResolutions.length !== requestedRegionIds.length ||
+          safeRegionResolutions.some(
+            (resolution, index) =>
+              resolution.regionId !== requestedRegionIds[index]
+          ))
+      ) {
+        debugMeasurement('measurement-response-rejected', {
+          reason: 'invalid-region-resolutions',
         })
         return
       }
@@ -577,13 +657,24 @@ export function LivePreviewIframe({
       debugMeasurement('measurement-propagated')
       onMeasurementChange?.(nextMeasurement)
       if (requestedIds.length > 0) {
-        onAnchorResolutionChange?.(resolutions ?? null)
+        onAnchorResolutionChange?.(safeResolutions)
+      }
+      if (requestedRegionIds.length > 0) {
+        onRegionResolutionChange?.(safeRegionResolutions)
       }
       setMeasurement(nextMeasurement)
     }
 
     window.addEventListener('message', handleMessage)
-    if (loadedRef.current) requestMeasurement(0, generation)
+    if (loadedRef.current) {
+      if (anchorIdsKey || regionIdsKey) {
+        acceptedRef.current = false
+        requestIdRef.current = createRequestId()
+        requestMeasurement(0, generation)
+      } else if (!acceptedRef.current) {
+        requestMeasurement(0, generation)
+      }
+    }
 
     return () => {
       window.removeEventListener('message', handleMessage)
@@ -591,10 +682,14 @@ export function LivePreviewIframe({
     }
   }, [
     anchorIdsKey,
-    isHeatmapPreview,
+    contextKey,
+    previewIframeUrl,
+    previewIntent,
+    previewSessionId,
     onAnchorResolutionChange,
     onMeasurementChange,
-    preview,
+    onRegionResolutionChange,
+    regionIdsKey,
     status,
   ])
 

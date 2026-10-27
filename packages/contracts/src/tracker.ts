@@ -45,6 +45,7 @@ export type {
   ClickElementScrollAncestor,
   ClickElementStickyInset,
 } from './element-anchor'
+export type { ClickRegionAnchor } from './region-anchor'
 
 export const COORDINATE_SCHEMA_VERSION = 1
 
@@ -155,6 +156,7 @@ export interface ClickEvent {
   elementKey?: string
 
   elementAnchor?: import('./element-anchor').ClickElementAnchor
+  regionAnchor?: import('./region-anchor').ClickRegionAnchor
 }
 
 export interface ScrollEvent {

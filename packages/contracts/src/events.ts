@@ -6,7 +6,15 @@ import {
   MAX_CLICK_ELEMENT_ANCHOR_DIMENSION,
   MAX_CLICK_ELEMENT_ANCHOR_ID_LENGTH,
   MAX_CLICK_ELEMENT_SCROLL_ANCESTORS,
+  CLICK_TEXT_ANCHOR_BUCKETS,
 } from './element-anchor'
+import {
+  MAX_REGION_ANCHOR_BYTES,
+  MAX_REGION_DIMENSION,
+  MAX_REGION_ID_LENGTH,
+  MAX_REGION_FINGERPRINT_LENGTH,
+  REGION_ANCHOR_SCHEMA_VERSION,
+} from './region-anchor'
 
 const optionalText = z.string().max(2048).nullable().optional()
 const optionalStack = z.string().max(16384).nullable().optional()
@@ -45,6 +53,13 @@ export const clickElementAnchorSchema = z
     relativeX: z.number().finite().min(0).max(1),
     relativeY: z.number().finite().min(0).max(1),
     capturedRect: clickElementRectSchema,
+    textNodeIndex: z.number().int().min(0).max(1024).optional(),
+    textOffsetBucket: z
+      .number()
+      .int()
+      .min(0)
+      .max(CLICK_TEXT_ANCHOR_BUCKETS - 1)
+      .optional(),
     transformedAncestor: z.boolean(),
     stickyInset: z
       .object({
@@ -81,6 +96,39 @@ export const clickElementAnchorSchema = z
       context.addIssue({
         code: 'custom',
         message: 'Click element anchor metadata is too large.',
+      })
+    }
+  })
+
+export const clickRegionAnchorSchema = z
+  .object({
+    schemaVersion: z.literal(REGION_ANCHOR_SCHEMA_VERSION),
+    regionId: z
+      .string()
+      .regex(/^fnv1a32-[0-9a-f]{8}$/)
+      .max(MAX_REGION_ID_LENGTH),
+    regionKind: z.enum(['explicit', 'semantic', 'structural']).optional(),
+    structuralFingerprint: z
+      .string()
+      .min(1)
+      .max(MAX_REGION_FINGERPRINT_LENGTH)
+      .optional(),
+    positionMode: z.enum(['static', 'absolute', 'fixed', 'sticky']),
+    relativeX: z.number().finite().min(0).max(1),
+    relativeY: z.number().finite().min(0).max(1),
+    capturedRect: z.object({
+      left: z.number().finite(),
+      top: z.number().finite(),
+      width: z.number().finite().positive().max(MAX_REGION_DIMENSION),
+      height: z.number().finite().positive().max(MAX_REGION_DIMENSION),
+    }),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (JSON.stringify(value).length > MAX_REGION_ANCHOR_BYTES) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Click region anchor metadata is too large.',
       })
     }
   })
@@ -144,6 +192,7 @@ export const incomingEventSchema = z
     duration: z.number().finite().nonnegative().optional(),
     elementKey: z.string().max(256).optional(),
     elementAnchor: clickElementAnchorSchema.optional(),
+    regionAnchor: clickRegionAnchorSchema.optional(),
   })
   .passthrough()
 

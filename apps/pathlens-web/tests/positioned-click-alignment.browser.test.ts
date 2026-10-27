@@ -94,12 +94,12 @@ test('diagnoses positioned click alignment through the tracker and live overlay 
         'isolated-script-runtime'
       ),
     },
-    server: { host: '127.0.0.1', port: 0 },
+    server: { host: 'localhost', port: 0 },
   })
   await server.listen()
   const address = server.httpServer?.address()
   assert.ok(address && typeof address === 'object')
-  const origin = `http://127.0.0.1:${address.port}`
+  const origin = `http://localhost:${address.port}`
   const browser = await chromium.launch({ headless: true })
   const page = await browser.newPage({ viewport: { width: 960, height: 600 } })
   const consoleErrors: string[] = []

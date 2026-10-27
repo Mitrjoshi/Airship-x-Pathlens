@@ -7,6 +7,7 @@ import type {
 } from "@workspace/contracts/tracker";
 import {
   CLICK_ELEMENT_ANCHOR_SCHEMA_VERSION,
+  CLICK_TEXT_ANCHOR_BUCKETS,
   hashClickAnchorFingerprint,
   MAX_CLICK_ELEMENT_ANCHOR_BYTES,
   MAX_CLICK_ELEMENT_ANCHOR_DEPTH,
@@ -59,18 +60,96 @@ function getElementPath(element: Element): string | null {
   return segments.join("/");
 }
 
-function getAnchorId(element: Element): string | null {
+function getElementFingerprint(element: Element): string | null {
   const explicit = element.getAttribute("data-pathlens-anchor");
-  const fingerprint =
-    explicit && EXPLICIT_ANCHOR_PATTERN.test(explicit)
-      ? `explicit:${explicit}`
-      : getElementPath(element);
+  return explicit && EXPLICIT_ANCHOR_PATTERN.test(explicit)
+    ? `explicit:${explicit}`
+    : getElementPath(element);
+}
+
+function getAnchorId(element: Element, suffix = ""): string | null {
+  const fingerprint = getElementFingerprint(element);
 
   if (!fingerprint) return null;
 
-  const anchorId = hashClickAnchorFingerprint(fingerprint);
+  const anchorId = hashClickAnchorFingerprint(`${fingerprint}${suffix}`);
   return anchorId.length <= MAX_CLICK_ELEMENT_ANCHOR_ID_LENGTH
     ? anchorId
+    : null;
+}
+
+interface TextAnchorPoint {
+  nodeIndex: number;
+  offsetBucket: number;
+  rect: ClickElementRect;
+}
+
+function getTextAnchorPoint(
+  element: HTMLElement,
+  clientX: number,
+  clientY: number
+): TextAnchorPoint | null {
+  if (["a", "button"].includes(element.tagName.toLowerCase())) return null;
+  if (typeof document === "undefined") return null;
+
+  const dom = document as Document & {
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    caretPositionFromPoint?: (
+      x: number,
+      y: number
+    ) => { offsetNode: Node; offset: number } | null;
+  };
+  let node: Node | null = null;
+  let offset = 0;
+  const range = dom.caretRangeFromPoint?.(clientX, clientY);
+  if (range) {
+    node = range.startContainer;
+    offset = range.startOffset;
+  } else {
+    const position = dom.caretPositionFromPoint?.(clientX, clientY);
+    if (position) {
+      node = position.offsetNode;
+      offset = position.offset;
+    }
+  }
+  if (!node || node.nodeType !== Node.TEXT_NODE || !element.contains(node)) {
+    return null;
+  }
+
+  const textNodes = Array.from(element.childNodes).filter(
+    (candidate) => candidate.nodeType === Node.TEXT_NODE
+  );
+  const nodeIndex = textNodes.indexOf(node as ChildNode);
+  if (nodeIndex < 0) return null;
+
+  const textLength = node.textContent?.length ?? 0;
+  if (textLength <= 0) return null;
+  const safeOffset = Math.min(textLength - 1, Math.max(0, offset));
+  const offsetBucket = Math.min(
+    CLICK_TEXT_ANCHOR_BUCKETS - 1,
+    Math.floor((safeOffset / textLength) * CLICK_TEXT_ANCHOR_BUCKETS)
+  );
+  const textRange = document.createRange();
+  textRange.setStart(node, safeOffset);
+  textRange.setEnd(node, Math.min(textLength, safeOffset + 1));
+  const rect = textRange.getBoundingClientRect();
+  const capturedRect: ClickElementRect = {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+  };
+  if (
+    !validRect(capturedRect) ||
+    clientX < capturedRect.left ||
+    clientX > capturedRect.left + capturedRect.width ||
+    clientY < capturedRect.top ||
+    clientY > capturedRect.top + capturedRect.height
+  ) {
+    return null;
+  }
+  return validRect(capturedRect)
+    ? { nodeIndex, offsetBucket, rect: capturedRect }
     : null;
 }
 
@@ -212,6 +291,14 @@ export function createClickElementAnchor(
     return null;
   }
 
+  const textPoint = getTextAnchorPoint(element, clientX, clientY);
+  const interactiveElement = ["a", "button"].includes(
+    element.tagName.toLowerCase()
+  );
+  if (!interactiveElement && element.textContent?.trim() && !textPoint) {
+    return null;
+  }
+
   const rect = element.getBoundingClientRect();
   const capturedRect: ClickElementRect = {
     left: rect.left,
@@ -238,18 +325,32 @@ export function createClickElementAnchor(
   const scrollAncestors = getScrollAncestors(element);
   if (!anchorId || !scrollAncestors) return null;
 
+  const textAnchorId = textPoint
+    ? getAnchorId(
+        element,
+        `|text:${textPoint.nodeIndex}:${textPoint.offsetBucket}`
+      )
+    : null;
   const positionMode = getPositionMode(element);
   const positioningAncestor = getPositioningAncestor(element);
   const anchor: ClickElementAnchor = {
     schemaVersion: CLICK_ELEMENT_ANCHOR_SCHEMA_VERSION,
-    anchorId,
+    anchorId: textAnchorId ?? anchorId,
     positionMode,
-    relativeX,
-    relativeY,
-    capturedRect,
+    relativeX: textPoint
+      ? (clientX - textPoint.rect.left) / textPoint.rect.width
+      : relativeX,
+    relativeY: textPoint
+      ? (clientY - textPoint.rect.top) / textPoint.rect.height
+      : relativeY,
+    capturedRect: textPoint?.rect ?? capturedRect,
     transformedAncestor: hasTransformedAncestor(element),
     scrollAncestors,
   };
+  if (textPoint && textAnchorId) {
+    anchor.textNodeIndex = textPoint.nodeIndex;
+    anchor.textOffsetBucket = textPoint.offsetBucket;
+  }
   if (positioningAncestor) {
     anchor.effectivePositionMode = positioningAncestor.mode;
     anchor.positioningAncestorDepth = positioningAncestor.depth;

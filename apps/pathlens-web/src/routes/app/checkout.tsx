@@ -50,9 +50,7 @@ function RouteComponent() {
       eyebrow="Checkout cancelled"
       title={
         <>
-          Something went
-          <br />
-          <span className="text-muted-foreground">wrong.</span>
+          Payment <span className="text-muted-foreground">failed.</span>
         </>
       }
       description="Your checkout session was cancelled and you haven’t been charged. Nothing was lost. You can pick up right where you left off."

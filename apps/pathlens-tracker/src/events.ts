@@ -4,6 +4,7 @@ import type { PathLensTracker } from "./tracker";
 import { COORDINATE_SCHEMA_VERSION } from "@workspace/contracts/tracker";
 import { throttle } from "./utils";
 import { createClickElementAnchor } from "./element-anchor";
+import { createClickRegionAnchor } from "./region-anchor";
 
 const MAX_ERROR_MESSAGE_LENGTH = 2048;
 const MAX_ERROR_STACK_LENGTH = 16384;
@@ -154,6 +155,7 @@ function registerClicks(tracker: PathLensTracker) {
     const button = el.closest("button");
     const documentDimensions = getDocumentDimensions();
     const elementAnchor = createClickElementAnchor(el, e.clientX, e.clientY);
+    const regionAnchor = createClickRegionAnchor(el, e.clientX, e.clientY);
 
     tracker.track("click", {
       coordinateSchemaVersion: COORDINATE_SCHEMA_VERSION,
@@ -174,6 +176,7 @@ function registerClicks(tracker: PathLensTracker) {
       text: getSafeClickText(el),
       ...(button ? { buttonText: getNormalizedButtonText(button) } : {}),
       ...(elementAnchor ? { elementAnchor } : {}),
+      ...(regionAnchor ? { regionAnchor } : {}),
       elementKey: getElementKey(
         el,
         button,

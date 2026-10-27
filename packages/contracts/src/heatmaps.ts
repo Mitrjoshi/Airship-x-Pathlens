@@ -5,6 +5,7 @@ import type {
   ClickElementStickyInset,
   ClickElementPositionMode,
 } from './element-anchor'
+import type { ClickRegionAnchor, RegionAnchorKind } from './region-anchor'
 
 export type HeatmapsRange = '24h' | '7d' | '30d' | '90d'
 export type HeatmapDevice = 'all' | 'desktop' | 'mobile' | 'tablet' | 'unknown'
@@ -72,6 +73,7 @@ export interface HeatmapClickSample {
   relativeX?: number
   relativeY?: number
   capturedRect?: ClickElementRect
+  regionAnchor?: ClickRegionAnchor
 }
 
 export interface HeatmapClickAnchorDefinition {
@@ -83,6 +85,13 @@ export interface HeatmapClickAnchorDefinition {
   transformedAncestor: boolean
   stickyInset?: ClickElementStickyInset
   scrollAncestors: ClickElementScrollAncestor[]
+}
+
+export interface HeatmapClickRegionDefinition {
+  regionId: string
+  schemaVersion: 1
+  regionKind?: RegionAnchorKind
+  structuralFingerprint?: string
 }
 
 export interface HeatmapClickSampleGroup extends HeatmapCoordinateGroup {
@@ -163,6 +172,7 @@ export interface HeatmapPageDetail extends HeatmapPage {
   clickGroups?: HeatmapClickGroup[]
   clickSamples?: HeatmapClickSampleGroup[]
   anchorDefinitions?: HeatmapClickAnchorDefinition[]
+  regionDefinitions?: HeatmapClickRegionDefinition[]
   clickSampleCoverage?: HeatmapClickSampleCoverage
   movementPoints?: HeatmapMovementPoint[]
   movementGroups?: HeatmapMovementGroup[]

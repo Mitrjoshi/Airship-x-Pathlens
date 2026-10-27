@@ -7,6 +7,7 @@ import {
 } from "./heatmap-aggregation";
 import {
   clickElementAnchorSchema,
+  clickRegionAnchorSchema,
   incomingEventSchema,
 } from "@workspace/contracts/events";
 
@@ -416,6 +417,37 @@ test("propagates and deduplicates valid element anchors without merging samples"
       anchorMetadataBytes: true,
     }
   );
+});
+
+test("preserves explicit region anchors alongside element anchors", () => {
+  const regionAnchor = {
+    schemaVersion: 1 as const,
+    regionId: "fnv1a32-a1b2c3d4",
+    positionMode: "static" as const,
+    relativeX: 0.25,
+    relativeY: 0.75,
+    capturedRect: { left: 0, top: 0, width: 800, height: 400 },
+  };
+  const result = collectClickSamples(
+    [
+      {
+        type: "click",
+        payload: {
+          x: 100,
+          y: 80,
+          viewport: fallbackViewport,
+          regionAnchor,
+        },
+      },
+    ],
+    fallbackViewport
+  );
+
+  assert.deepEqual(result.regionDefinitions, [
+    { regionId: "fnv1a32-a1b2c3d4", schemaVersion: 1 },
+  ]);
+  assert.deepEqual(result.groups[0]?.samples[0]?.regionAnchor, regionAnchor);
+  assert.equal(clickRegionAnchorSchema.safeParse(regionAnchor).success, true);
 });
 
 test("rejects invalid and conflicting persisted anchors without losing click samples", () => {

@@ -34,6 +34,11 @@
       "import": "./dist/element-anchor.js",
       "require": "./dist/element-anchor.js"
     },
+    "./region-anchor": {
+      "types": "./src/region-anchor.ts",
+      "import": "./dist/region-anchor.js",
+      "require": "./dist/region-anchor.js"
+    },
     "./errors": {
       "types": "./src/errors.ts",
       "import": "./dist/errors.js",

@@ -173,7 +173,7 @@ test('mounts click hotspots on a scaled matching viewport and suppresses incompa
       liveViewport: '1920x911',
       liveDocument: '1920x2700',
       rejectionReasons:
-        '{"document-height-incompatible":1,"viewport-dimensions-incompatible":1}',
+        '{"document-height-incompatible":1,"document-width-incompatible":1}',
     }
   )
 
@@ -187,9 +187,9 @@ test('mounts click hotspots on a scaled matching viewport and suppresses incompa
   await page.waitForFunction(() => {
     const element = document.querySelector('canvas[data-overlay-status]')
     return (
-      element?.dataset.overlayDrawnPoints === '0' &&
+      element?.dataset.overlayDrawnPoints === '1' &&
       element.dataset.overlayRejectionReasons ===
-        '{"document-height-incompatible":2,"viewport-dimensions-incompatible":1}'
+        '{"document-height-incompatible":2,"anchor-cross-viewport":1,"document-width-incompatible":1}'
     )
   })
   assert.equal(
@@ -246,7 +246,7 @@ test('mounts click hotspots on a scaled matching viewport and suppresses incompa
     compatibleGroups: '1',
     drawnPoints: '1',
     rejectionReasons:
-      '{"viewport-dimensions-incompatible":1,"document-height-incompatible":1}',
+      '{"document-width-incompatible":1,"document-height-incompatible":1}',
   })
 
   await page.evaluate(() => {
@@ -289,7 +289,7 @@ test('mounts click hotspots on a scaled matching viewport and suppresses incompa
     compatibleGroups: '1',
     drawnPoints: '2',
     regions: '2',
-    rejectionReasons: '{"viewport-dimensions-incompatible":1}',
+    rejectionReasons: '{"document-dimensions-incompatible":1}',
   })
 
   await page.evaluate(() => {

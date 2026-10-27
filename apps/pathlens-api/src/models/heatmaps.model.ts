@@ -1130,6 +1130,7 @@ export async function getHeatmapsModel(
     clickGroups: clickAggregation.groups,
     clickSamples: clickSamples.groups,
     anchorDefinitions: clickSamples.anchorDefinitions,
+    regionDefinitions: clickSamples.regionDefinitions,
     clickSampleCoverage,
     movementPoints: movementAggregation.points,
     movementGroups: movementAggregation.groups,

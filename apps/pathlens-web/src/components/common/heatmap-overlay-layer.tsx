@@ -4,6 +4,7 @@ import type {
   HeatmapClickSample,
   HeatmapClickPoint,
   HeatmapClickSampleGroup,
+  HeatmapClickRegionDefinition,
   HeatmapMovementGroup,
   HeatmapSnapshot,
   HeatmapMovementPoint,
@@ -11,8 +12,20 @@ import type {
   HeatmapScrollPoint,
   PreviewMeasurementState,
   PreviewAnchorResolution,
+  PreviewRegionResolution,
 } from '@workspace/contracts'
 import { useEffect, useRef, useState } from 'react'
+import {
+  projectClickPoint,
+  projectClickSample,
+  projectViewportPoint,
+} from './heatmap-projection'
+import type { ClickHotspotProjection } from './heatmap-projection'
+export {
+  projectClickPoint,
+  projectClickSample,
+  projectViewportPoint,
+} from './heatmap-projection'
 
 const DIMENSION_TOLERANCE_RATIO = 0.12
 const DIMENSION_TOLERANCE_PX = 96
@@ -22,11 +35,6 @@ const MAX_REQUESTED_ANCHORS = 256
 interface Dimensions {
   width: number
   height: number
-}
-
-export interface ClickHotspotProjection {
-  x: number
-  y: number
 }
 
 export interface ClickOverlayViewport {
@@ -46,9 +54,19 @@ export interface ClickAnchorSelection {
   omittedAnchorCount: number
 }
 
+export interface ClickRegionSelection {
+  requestedRegionIds: string[]
+  referencedRegionCount: number
+  omittedRegionCount: number
+}
+
 export interface ClickProjectionDiagnostics {
   anchoredSamples: number
+  regionSamples: number
   legacySamples: number
+  projectedSamples: number
+  excludedSamples: number
+  offscreenSamples: number
   unresolvedAnchorSamples: number
   missingAnchorSamples: number
   ambiguousAnchorSamples: number
@@ -103,15 +121,18 @@ function isPositioningAnchor(
 
 function isEligibleClickSampleGroup(
   group: HeatmapClickSampleGroup,
-  viewport: ClickOverlayViewport
+  _viewport: ClickOverlayViewport
 ): boolean {
+  const hasAnchoredSample = group.samples.some((sample) =>
+    Boolean(sample.anchorId)
+  )
   return (
-    group.coordinateMode === 'document' &&
-    group.alignment === 'document-compatible' &&
-    group.safeForDocumentOverlay &&
-    group.sourceViewport?.width === viewport.width &&
-    group.sourceViewport?.height === viewport.height &&
-    validDimensions(group.sourceDocument)
+    hasAnchoredSample ||
+    (group.coordinateMode === 'document' &&
+      group.alignment === 'document-compatible' &&
+      group.safeForDocumentOverlay &&
+      validDimensions(group.sourceViewport) &&
+      validDimensions(group.sourceDocument))
   )
 }
 
@@ -162,6 +183,33 @@ export function selectClickAnchorIds(
     referencedAnchorCount: ordered.length,
     eligibleAnchorCount: ordered.length,
     omittedAnchorCount: Math.max(0, ordered.length - requestedAnchorIds.length),
+  }
+}
+
+export function selectClickRegionIds(
+  sampleGroups: readonly HeatmapClickSampleGroup[],
+  definitions: readonly HeatmapClickRegionDefinition[],
+  maximum = MAX_REQUESTED_ANCHORS
+): ClickRegionSelection {
+  const definitionIds = new Set(
+    definitions.map((definition) => definition.regionId)
+  )
+  const ids = new Set<string>()
+  for (const group of sampleGroups) {
+    for (const sample of group.samples) {
+      if (
+        sample.regionAnchor &&
+        definitionIds.has(sample.regionAnchor.regionId)
+      ) {
+        ids.add(sample.regionAnchor.regionId)
+      }
+    }
+  }
+  const ordered = Array.from(ids).sort()
+  return {
+    requestedRegionIds: ordered.slice(0, maximum),
+    referencedRegionCount: ordered.length,
+    omittedRegionCount: Math.max(0, ordered.length - maximum),
   }
 }
 
@@ -308,16 +356,27 @@ export function getScrollGroupOverlayViewport(
 ): ClickOverlayViewport | null {
   const candidates = groups.filter(
     (group) =>
+      group.device === device &&
       group.safeForDocumentOverlay &&
       group.alignment === 'document-compatible' &&
       validDimensions(group.sourceViewport) &&
       matchesPreviewDevice(group.sourceViewport.width, device)
   )
-  const representative = candidates.reduce((current, candidate) =>
-    candidate.sessionCount > current.sessionCount ? candidate : current
+  const representative = candidates.reduce<HeatmapScrollGroup | null>(
+    (current, candidate) =>
+      !current || candidate.sessionCount > current.sessionCount
+        ? candidate
+        : current,
+    null
   )
-  const viewport = representative.sourceViewport
+  const viewport = representative?.sourceViewport
   return viewport ? { width: viewport.width, height: viewport.height } : null
+}
+
+export function getHeatmapPreviewViewport(
+  device: PreviewDevice
+): ClickOverlayViewport {
+  return getPreviewViewportForDevice([], device)
 }
 
 function dimensionsCompatible(source: Dimensions, live: Dimensions): boolean {
@@ -372,14 +431,6 @@ export function getScrollOverlayDecision(
     return { compatible: false, reason: 'live-dimensions-invalid' }
   }
   if (
-    !dimensionsCompatible(source.viewport, {
-      width: measurement.viewportWidth,
-      height: measurement.viewportHeight,
-    })
-  ) {
-    return { compatible: false, reason: 'viewport-dimensions-incompatible' }
-  }
-  if (
     !dimensionsCompatible(source.document, {
       width: measurement.documentWidth,
       height: measurement.documentHeight,
@@ -401,20 +452,8 @@ export function getClickGroupOverlayDecision(
     return { compatible: false, reason: 'layout-not-stable' }
   }
 
-  if (group.coordinateMode !== 'document') {
-    return { compatible: false, reason: 'coordinate-mode-not-document' }
-  }
-  if (group.alignment !== 'document-compatible') {
-    return { compatible: false, reason: 'alignment-not-document-compatible' }
-  }
-  if (!group.safeForDocumentOverlay) {
-    return { compatible: false, reason: 'document-overlay-not-safe' }
-  }
   if (!validDimensions(group.sourceViewport)) {
     return { compatible: false, reason: 'source-viewport-invalid' }
-  }
-  if (!validDimensions(group.sourceDocument)) {
-    return { compatible: false, reason: 'source-document-invalid' }
   }
   const liveViewport = {
     width: measurement.viewportWidth,
@@ -423,15 +462,30 @@ export function getClickGroupOverlayDecision(
   if (!validDimensions(liveViewport)) {
     return { compatible: false, reason: 'live-viewport-invalid' }
   }
+  if (group.coordinateMode === 'viewport') {
+    if (group.alignment !== 'viewport-only') {
+      return { compatible: false, reason: 'alignment-not-viewport-only' }
+    }
+    return dimensionsCompatible(group.sourceViewport, liveViewport)
+      ? { compatible: true, reason: 'viewport-compatible' }
+      : { compatible: false, reason: 'viewport-dimensions-incompatible' }
+  }
+
+  if (
+    group.alignment !== 'document-compatible' ||
+    !group.safeForDocumentOverlay
+  ) {
+    return { compatible: false, reason: 'document-overlay-not-safe' }
+  }
+  if (!validDimensions(group.sourceDocument)) {
+    return { compatible: false, reason: 'source-document-invalid' }
+  }
   const liveDocument = {
     width: measurement.documentWidth,
     height: measurement.documentHeight,
   }
   if (!validDimensions(liveDocument)) {
     return { compatible: false, reason: 'live-document-invalid' }
-  }
-  if (!dimensionsCompatible(group.sourceViewport, liveViewport)) {
-    return { compatible: false, reason: 'viewport-dimensions-incompatible' }
   }
   if (!dimensionCompatible(group.sourceDocument.width, liveDocument.width)) {
     return { compatible: false, reason: 'document-width-incompatible' }
@@ -440,7 +494,7 @@ export function getClickGroupOverlayDecision(
     return { compatible: false, reason: 'document-height-incompatible' }
   }
 
-  return { compatible: true, reason: 'compatible' }
+  return { compatible: true, reason: 'document-compatible-cross-viewport' }
 }
 
 export function isClickGroupOverlayCompatible(
@@ -450,6 +504,7 @@ export function isClickGroupOverlayCompatible(
   return getClickGroupOverlayDecision(group, measurement).compatible
 }
 
+/* Legacy projection implementation moved to heatmap-projection.ts.
 export function projectClickPoint(
   point: Pick<HeatmapOverlayPoint, 'x' | 'y' | 'coordinateMode'>,
   measurement: PreviewMeasurementState,
@@ -489,6 +544,33 @@ export function projectClickPoint(
   }
 }
 
+function projectViewportPoint(
+  point: Pick<HeatmapOverlayPoint, 'x' | 'y' | 'coordinateMode'>,
+  measurement: PreviewMeasurementState,
+  display: Dimensions,
+  sourceViewport: Dimensions
+): ClickHotspotProjection | null {
+  if (
+    point.coordinateMode !== 'viewport' ||
+    !validDimensions(display) ||
+    !validDimensions(sourceViewport) ||
+    !Number.isFinite(point.x) ||
+    !Number.isFinite(point.y) ||
+    point.x < 0 ||
+    point.x > 1 ||
+    point.y < 0 ||
+    point.y > 1 ||
+    !validMeasurementDimensions(measurement)
+  ) {
+    return null
+  }
+
+  return {
+    x: point.x * display.width,
+    y: point.y * display.height,
+  }
+}
+
 function validAnchorResolution(
   resolution: PreviewAnchorResolution | undefined,
   definition: HeatmapClickAnchorDefinition,
@@ -521,7 +603,63 @@ function validAnchorResolution(
   ) {
     return false
   }
+  if (
+    definition.positioningAncestorDepth !== undefined &&
+    resolution.positioningAncestorDepth !== definition.positioningAncestorDepth
+  ) {
+    return false
+  }
+  if (
+    definition.positioningAncestorAnchorId !== undefined &&
+    resolution.positioningAncestorAnchorId !==
+      definition.positioningAncestorAnchorId
+  ) {
+    return false
+  }
   return true
+}
+
+function projectRegionSample(
+  sample: HeatmapClickSample,
+  resolution: PreviewRegionResolution | undefined,
+  measurement: PreviewMeasurementState,
+  display: Dimensions
+): ClickHotspotProjection | null {
+  if (
+    !sample.regionAnchor ||
+    resolution?.status !== 'matched' ||
+    !resolution.rect ||
+    resolution.positionMode !== sample.regionAnchor.positionMode ||
+    (sample.regionAnchor.regionKind !== undefined &&
+      resolution.regionKind !== sample.regionAnchor.regionKind) ||
+    (sample.regionAnchor.structuralFingerprint !== undefined &&
+      resolution.structuralFingerprint !==
+        sample.regionAnchor.structuralFingerprint) ||
+    !validRelativePosition(sample.regionAnchor.relativeX) ||
+    !validRelativePosition(sample.regionAnchor.relativeY) ||
+    !validDimensions({
+      width: resolution.rect.width,
+      height: resolution.rect.height,
+    }) ||
+    resolution.rect.left < -measurement.viewportWidth ||
+    resolution.rect.top < -measurement.viewportHeight ||
+    resolution.rect.left > measurement.viewportWidth ||
+    resolution.rect.top > measurement.viewportHeight
+  ) {
+    return null
+  }
+  return {
+    x:
+      ((resolution.rect.left +
+        sample.regionAnchor.relativeX * resolution.rect.width) /
+        measurement.viewportWidth) *
+      display.width,
+    y:
+      ((resolution.rect.top +
+        sample.regionAnchor.relativeY * resolution.rect.height) /
+        measurement.viewportHeight) *
+      display.height,
+  }
 }
 
 export function projectClickSample(
@@ -529,17 +667,50 @@ export function projectClickSample(
   measurement: PreviewMeasurementState,
   display: Dimensions,
   definitions: ReadonlyMap<string, HeatmapClickAnchorDefinition>,
-  resolutions: ReadonlyMap<string, PreviewAnchorResolution>
+  resolutions: ReadonlyMap<string, PreviewAnchorResolution>,
+  sourceViewport: Dimensions = {
+    width: measurement.viewportWidth,
+    height: measurement.viewportHeight,
+  },
+  regionResolutions: ReadonlyMap<string, PreviewRegionResolution> = new Map()
 ): {
   projection: ClickHotspotProjection | null
-  mode: 'anchored' | 'document' | 'excluded'
+  mode: 'anchored' | 'region' | 'document' | 'excluded'
   reason?: string
 } {
   if (!sample.anchorId) {
+    if (sample.regionAnchor) {
+      const projection = projectRegionSample(
+        sample,
+        regionResolutions.get(sample.regionAnchor.regionId),
+        measurement,
+        display
+      )
+      return projection
+        ? { projection, mode: 'region' }
+        : {
+            projection: null,
+            mode: 'excluded',
+            reason: 'region-unresolved',
+          }
+    }
     return {
-      projection: projectClickPoint(sample, measurement, display),
+      projection:
+        sample.coordinateMode === 'viewport'
+          ? projectViewportPoint(sample, measurement, display, sourceViewport)
+          : projectClickPoint(sample, measurement, display),
       mode: 'document',
     }
+  }
+
+  if (sample.regionAnchor) {
+    const projection = projectRegionSample(
+      sample,
+      regionResolutions.get(sample.regionAnchor.regionId),
+      measurement,
+      display
+    )
+    if (projection) return { projection, mode: 'region' }
   }
 
   const definition = definitions.get(sample.anchorId)
@@ -589,11 +760,16 @@ export function projectClickSample(
   }
 
   return {
-    projection: projectClickPoint(sample, measurement, display),
+    projection:
+      sample.coordinateMode === 'viewport'
+        ? projectViewportPoint(sample, measurement, display, sourceViewport)
+        : projectClickPoint(sample, measurement, display),
     mode: 'document',
     reason: 'anchor-fallback-document',
   }
 }
+
+*/
 
 export function projectScrollDepth(
   point: HeatmapScrollPoint,
@@ -678,6 +854,161 @@ function drawHotspot(
   context.fill()
 }
 
+const MAX_PROJECTION_TRACES = 200
+let projectionTraceCount = 0
+
+function projectionTraceEnabled(): boolean {
+  if (typeof window === 'undefined') return false
+  if (
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    return false
+  }
+  try {
+    return window.localStorage.getItem('pathlens:heatmap-trace') === '1'
+  } catch {
+    return false
+  }
+}
+
+function projectionDebugEnabled(): boolean {
+  if (!projectionTraceEnabled()) return false
+  try {
+    return (
+      window.localStorage.getItem('pathlens:heatmap-debug') === '1' ||
+      window.localStorage.getItem('pathlens:heatmap-trace') === '1'
+    )
+  } catch {
+    return false
+  }
+}
+
+interface ProjectionDebugMarker {
+  projection: ClickHotspotProjection
+  liveRect: { left: number; top: number; width: number; height: number } | null
+  strategy: string
+}
+
+function drawProjectionDebugMarkers(
+  context: CanvasRenderingContext2D,
+  markers: readonly ProjectionDebugMarker[],
+  measurement: PreviewMeasurementState,
+  width: number,
+  height: number
+): void {
+  if (!projectionDebugEnabled()) return
+  context.save()
+  context.lineWidth = 1.5
+  context.font = '10px sans-serif'
+  for (const marker of markers) {
+    const target = marker.liveRect
+      ? {
+          x: (marker.liveRect.left / measurement.viewportWidth) * width,
+          y: (marker.liveRect.top / measurement.viewportHeight) * height,
+          width: (marker.liveRect.width / measurement.viewportWidth) * width,
+          height:
+            (marker.liveRect.height / measurement.viewportHeight) * height,
+        }
+      : null
+    const targetCenter = target
+      ? { x: target.x + target.width / 2, y: target.y + target.height / 2 }
+      : null
+    if (target) {
+      context.strokeStyle = 'rgba(34, 211, 238, 0.9)'
+      context.strokeRect(target.x, target.y, target.width, target.height)
+      context.beginPath()
+      context.moveTo(marker.projection.x, marker.projection.y)
+      context.lineTo(targetCenter!.x, targetCenter!.y)
+      context.stroke()
+    }
+    context.fillStyle = 'rgba(236, 72, 153, 0.95)'
+    context.beginPath()
+    context.arc(marker.projection.x, marker.projection.y, 4, 0, Math.PI * 2)
+    context.fill()
+    const offset = targetCenter
+      ? Math.hypot(
+          marker.projection.x - targetCenter.x,
+          marker.projection.y - targetCenter.y
+        ).toFixed(1)
+      : 'unverified'
+    context.fillText(
+      `${marker.strategy} d${offset}`,
+      marker.projection.x + 6,
+      marker.projection.y - 6
+    )
+  }
+  context.restore()
+}
+
+function traceClickProjection(
+  groupId: string,
+  sampleIndex: number,
+  sample: HeatmapClickSample,
+  sourceViewport: { width: number; height: number } | undefined,
+  sourceDocument: { width: number; height: number } | undefined,
+  measurement: PreviewMeasurementState,
+  displayWidth: number,
+  displayHeight: number,
+  decision: ReturnType<typeof projectClickSample>,
+  resolutions: ReadonlyMap<string, PreviewAnchorResolution>,
+  regionResolutions: ReadonlyMap<string, PreviewRegionResolution>
+): void {
+  if (
+    !projectionTraceEnabled() ||
+    projectionTraceCount >= MAX_PROJECTION_TRACES
+  )
+    return
+  projectionTraceCount += 1
+  const elementResolution = sample.anchorId
+    ? resolutions.get(sample.anchorId)
+    : undefined
+  const regionResolution = sample.regionAnchor
+    ? regionResolutions.get(sample.regionAnchor.regionId)
+    : undefined
+  const liveRect = elementResolution?.rect ?? regionResolution?.rect
+  const capturedRect = sample.capturedRect ?? sample.regionAnchor?.capturedRect
+  const finalDocument = decision.projection
+    ? {
+        x:
+          (decision.projection.x / displayWidth) * measurement.viewportWidth +
+          measurement.scrollX,
+        y:
+          (decision.projection.y / displayHeight) * measurement.viewportHeight +
+          measurement.scrollY,
+      }
+    : null
+
+  console.debug('[Pathlens heatmap projection]', {
+    sampleId: `${groupId}:${sampleIndex}`,
+    sourceViewport,
+    sourceDocument,
+    coordinateMode: sample.coordinateMode,
+    original: { x: sample.x, y: sample.y },
+    sourceScroll: undefined,
+    anchorId: sample.anchorId,
+    regionId: sample.regionAnchor?.regionId,
+    regionKind: sample.regionAnchor?.regionKind,
+    structuralFingerprint: sample.regionAnchor?.structuralFingerprint,
+    relative: {
+      x: sample.relativeX ?? sample.regionAnchor?.relativeX,
+      y: sample.relativeY ?? sample.regionAnchor?.relativeY,
+    },
+    capturedRect,
+    liveRect,
+    liveDocument: {
+      width: measurement.documentWidth,
+      height: measurement.documentHeight,
+    },
+    liveScroll: { x: measurement.scrollX, y: measurement.scrollY },
+    strategy: decision.mode,
+    projectedDocument: finalDocument,
+    projectedCanvas: decision.projection,
+    reason: decision.reason,
+    weight: sample.weight,
+  })
+}
+
 function colorizeDensity(value: number): [number, number, number] {
   const stops: Array<[number, [number, number, number]]> = [
     [0, [34, 197, 94]],
@@ -709,7 +1040,8 @@ function drawClickDensity(
   devicePixelRatio: number,
   definitions: ReadonlyMap<string, HeatmapClickAnchorDefinition>,
   resolutions: ReadonlyMap<string, PreviewAnchorResolution>,
-  anchorSelection: ClickAnchorSelection | null
+  anchorSelection: ClickAnchorSelection | null,
+  regionResolutions: ReadonlyMap<string, PreviewRegionResolution>
 ): {
   compatibleGroups: number
   drawnPoints: number
@@ -729,7 +1061,11 @@ function drawClickDensity(
       rejectionReasons: {},
       diagnostics: {
         anchoredSamples: 0,
+        regionSamples: 0,
         legacySamples: 0,
+        projectedSamples: 0,
+        excludedSamples: 0,
+        offscreenSamples: 0,
         unresolvedAnchorSamples: 0,
         missingAnchorSamples: 0,
         ambiguousAnchorSamples: 0,
@@ -747,11 +1083,16 @@ function drawClickDensity(
     ) *
     devicePixelRatio
   const rejectionReasons: Record<string, number> = {}
+  const debugMarkers: ProjectionDebugMarker[] = []
   let compatibleGroups = 0
   let drawnPoints = 0
   const diagnostics: ClickProjectionDiagnostics = {
     anchoredSamples: 0,
+    regionSamples: 0,
     legacySamples: 0,
+    projectedSamples: 0,
+    excludedSamples: 0,
+    offscreenSamples: 0,
     unresolvedAnchorSamples: 0,
     missingAnchorSamples: 0,
     ambiguousAnchorSamples: 0,
@@ -768,13 +1109,13 @@ function drawClickDensity(
     : null
   for (const group of orderedGroups) {
     const decision = getClickGroupOverlayDecision(group, measurement)
-    if (!decision.compatible) {
-      diagnostics.geometryIncompatibleSamples += group.samples.length
+    const groupCompatible = decision.compatible
+    if (!groupCompatible) {
       rejectionReasons[decision.reason] =
         (rejectionReasons[decision.reason] ?? 0) + 1
-      continue
+    } else {
+      compatibleGroups += 1
     }
-    compatibleGroups += 1
     const samples = [...group.samples].sort(
       (left, right) =>
         left.x - right.x ||
@@ -782,7 +1123,12 @@ function drawClickDensity(
         left.weight - right.weight ||
         left.coordinateMode.localeCompare(right.coordinateMode)
     )
-    for (const sample of samples) {
+    for (const [sampleIndex, sample] of samples.entries()) {
+      if (!groupCompatible && !sample.anchorId && !sample.regionAnchor) {
+        diagnostics.geometryIncompatibleSamples += 1
+        diagnostics.excludedSamples += 1
+        continue
+      }
       if (
         sample.anchorId &&
         requestedAnchorIds &&
@@ -798,9 +1144,41 @@ function drawClickDensity(
           height,
         },
         definitions,
-        resolutions
+        resolutions,
+        group.sourceViewport!,
+        regionResolutions
       )
+      traceClickProjection(
+        group.groupId,
+        sampleIndex,
+        sample,
+        group.sourceViewport,
+        group.sourceDocument,
+        measurement,
+        width,
+        height,
+        projected,
+        resolutions,
+        regionResolutions
+      )
+      if (
+        !groupCompatible &&
+        projected.mode !== 'anchored' &&
+        projected.mode !== 'region'
+      ) {
+        diagnostics.geometryIncompatibleSamples += 1
+        diagnostics.excludedSamples += 1
+        continue
+      }
+      if (
+        !groupCompatible &&
+        (projected.mode === 'anchored' || projected.mode === 'region')
+      ) {
+        rejectionReasons['anchor-cross-viewport'] =
+          (rejectionReasons['anchor-cross-viewport'] ?? 0) + 1
+      }
       if (projected.mode === 'anchored') diagnostics.anchoredSamples += 1
+      else if (projected.mode === 'region') diagnostics.regionSamples += 1
       else if (projected.mode === 'document') {
         if (!sample.anchorId) diagnostics.legacySamples += 1
       } else {
@@ -813,13 +1191,32 @@ function drawClickDensity(
         }
       }
       const projection = projected.projection
+      if (!projection) {
+        diagnostics.excludedSamples += 1
+        continue
+      }
+      diagnostics.projectedSamples += 1
+      if (projectionDebugEnabled()) {
+        const liveRect = sample.anchorId
+          ? resolutions.get(sample.anchorId)?.rect
+          : sample.regionAnchor
+            ? regionResolutions.get(sample.regionAnchor.regionId)?.rect
+            : undefined
+        if (debugMarkers.length < MAX_PROJECTION_TRACES) {
+          debugMarkers.push({
+            projection,
+            liveRect: liveRect ?? null,
+            strategy: projected.mode,
+          })
+        }
+      }
       if (
-        !projection ||
         projection.x < -radius / devicePixelRatio ||
         projection.y < -radius / devicePixelRatio ||
         projection.x > width + radius / devicePixelRatio ||
         projection.y > height + radius / devicePixelRatio
       ) {
+        diagnostics.offscreenSamples += 1
         continue
       }
       const x = projection.x * devicePixelRatio
@@ -870,6 +1267,7 @@ function drawClickDensity(
   context.setTransform(1, 0, 0, 1, 0, 0)
   context.putImageData(output, 0, 0)
   context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0)
+  drawProjectionDebugMarkers(context, debugMarkers, measurement, width, height)
   return { compatibleGroups, drawnPoints, rejectionReasons, diagnostics }
 }
 
@@ -910,6 +1308,8 @@ interface HeatmapOverlayLayerProps {
   anchorDefinitions?: readonly HeatmapClickAnchorDefinition[]
   anchorResolutions?: readonly PreviewAnchorResolution[] | null
   anchorSelection?: ClickAnchorSelection | null
+  regionResolutions?: readonly PreviewRegionResolution[] | null
+  regionSelection?: ClickRegionSelection | null
   movementGroups?: readonly HeatmapMovementGroup[]
   scrollPoints?: readonly HeatmapScrollPoint[]
   scrollGroups?: readonly HeatmapScrollGroup[]
@@ -917,6 +1317,19 @@ interface HeatmapOverlayLayerProps {
   heatmapType?: HeatmapOverlayType
   sessionKey: string
   measurement: PreviewMeasurementState | null
+  emptyStateMessage?: string | null
+  clickCoverage?: {
+    totalEvents: number
+    returnedEvents: number
+    eligibleEvents: number
+    truncated: boolean
+  }
+  movementCoverage?: {
+    totalEvents: number
+    returnedEvents: number
+    eligibleEvents: number
+    truncated: boolean
+  }
 }
 
 export function HeatmapOverlayLayer({
@@ -925,15 +1338,23 @@ export function HeatmapOverlayLayer({
   anchorDefinitions = [],
   anchorResolutions = null,
   anchorSelection = null,
+  regionResolutions = null,
+  regionSelection = null,
   movementGroups = [],
   scrollGroups,
   scrollSource = null,
   heatmapType = 'click',
   sessionKey,
   measurement,
+  emptyStateMessage = null,
+  clickCoverage,
+  movementCoverage,
 }: HeatmapOverlayLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [scrollReachPercent, setScrollReachPercent] = useState<number | null>(
+    null
+  )
+  const [projectionMessage, setProjectionMessage] = useState<string | null>(
     null
   )
   const groups = heatmapType === 'movement' ? movementGroups : clickGroups
@@ -968,6 +1389,7 @@ export function HeatmapOverlayLayer({
       let drawnPoints = 0
       const rejectionReasons: Record<string, number> = {}
       setScrollReachPercent(null)
+      setProjectionMessage(null)
       canvas.dataset.overlayCompatibleGroups = '0'
       canvas.dataset.overlayDrawnPoints = '0'
       canvas.dataset.overlayRejectionReasons = '{}'
@@ -1004,7 +1426,26 @@ export function HeatmapOverlayLayer({
       canvas.dataset.overlayOmittedAnchorSamples = String(
         anchorSelection?.omittedAnchorCount ?? 0
       )
+      canvas.dataset.overlayRegionSamples = '0'
+      canvas.dataset.overlayOmittedRegionSamples = String(
+        regionSelection?.omittedRegionCount ?? 0
+      )
       canvas.dataset.overlayGeometryIncompatibleSamples = '0'
+      const coverage =
+        heatmapType === 'click' ? clickCoverage : movementCoverage
+      canvas.dataset.overlayRecordedEvents = String(coverage?.totalEvents ?? 0)
+      canvas.dataset.overlayReturnedObservations = String(
+        coverage?.returnedEvents ?? 0
+      )
+      canvas.dataset.overlayEligibleObservations = String(
+        coverage?.eligibleEvents ?? 0
+      )
+      canvas.dataset.overlaySampleTruncated = String(
+        coverage?.truncated ?? false
+      )
+      canvas.dataset.overlayProjectedObservations = '0'
+      canvas.dataset.overlayExcludedObservations = '0'
+      canvas.dataset.overlayDrawnContributions = '0'
 
       if (!measurement || measurement.layoutVersion <= 0) {
         canvas.dataset.overlayRejectionReasons = JSON.stringify({
@@ -1018,6 +1459,21 @@ export function HeatmapOverlayLayer({
 
         if (scrollGroups) {
           for (const group of scrollGroups) {
+            if (
+              group.sessionCount <= 0 ||
+              group.maximumReachPercent === null ||
+              !group.reachPoints.some(
+                (point) =>
+                  Number.isFinite(point.percentage) &&
+                  point.percentage >= 0 &&
+                  point.percentage <= 100 &&
+                  point.count > 0
+              )
+            ) {
+              rejectionReasons['reach-data-unavailable'] =
+                (rejectionReasons['reach-data-unavailable'] ?? 0) + 1
+              continue
+            }
             const source =
               group.safeForDocumentOverlay &&
               group.alignment === 'document-compatible' &&
@@ -1041,11 +1497,6 @@ export function HeatmapOverlayLayer({
               continue
             }
             compatibleGroups += 1
-            if (group.maximumReachPercent === null) {
-              rejectionReasons['reach-data-unavailable'] =
-                (rejectionReasons['reach-data-unavailable'] ?? 0) + 1
-              continue
-            }
             maximumReachPercent = Math.max(
               maximumReachPercent ?? 0,
               group.maximumReachPercent
@@ -1074,12 +1525,42 @@ export function HeatmapOverlayLayer({
         )
         canvas.dataset.overlayReachPercent =
           maximumReachPercent === null ? '' : String(maximumReachPercent)
+        const returnedObservations = (scrollGroups ?? []).reduce(
+          (total, group) => total + Math.max(0, group.sessionCount),
+          0
+        )
+        canvas.dataset.overlayRecordedEvents = String(returnedObservations)
+        canvas.dataset.overlayReturnedObservations =
+          String(returnedObservations)
+        canvas.dataset.overlayEligibleObservations = String(compatibleGroups)
+        canvas.dataset.overlayProjectedObservations = String(
+          maximumReachPercent === null ? 0 : compatibleGroups
+        )
+        canvas.dataset.overlayExcludedObservations = String(
+          Math.max(0, (scrollGroups?.length ?? 0) - compatibleGroups)
+        )
+        canvas.dataset.overlayDrawnContributions = String(drawnPoints)
         canvas.dataset.overlayRejectionReasons =
           JSON.stringify(rejectionReasons)
+        setProjectionMessage(
+          (scrollGroups?.length ?? 0) > 0 && maximumReachPercent === null
+            ? 'Recorded interactions are available, but their positions cannot be safely mapped to the current page layout.'
+            : null
+        )
         return
       }
 
-      if (heatmapType === 'click' && clickSampleGroups) {
+      if (
+        heatmapType === 'click' &&
+        clickSampleGroups?.some((group) =>
+          group.samples.some(
+            (sample) =>
+              Number.isFinite(sample.x) &&
+              Number.isFinite(sample.y) &&
+              sample.weight > 0
+          )
+        )
+      ) {
         const definitionMap = new Map(
           anchorDefinitions.map((definition) => [
             definition.anchorId,
@@ -1092,6 +1573,12 @@ export function HeatmapOverlayLayer({
             resolution,
           ])
         )
+        const regionResolutionMap = new Map(
+          (regionResolutions ?? []).map((resolution) => [
+            resolution.regionId,
+            resolution,
+          ])
+        )
         const density = drawClickDensity(
           context,
           clickSampleGroups,
@@ -1101,7 +1588,8 @@ export function HeatmapOverlayLayer({
           devicePixelRatio,
           definitionMap,
           resolutionMap,
-          anchorSelection
+          anchorSelection,
+          regionResolutionMap
         )
         canvas.dataset.overlayCompatibleGroups = String(
           density.compatibleGroups
@@ -1113,6 +1601,9 @@ export function HeatmapOverlayLayer({
         )
         canvas.dataset.overlayAnchoredSamples = String(
           density.diagnostics.anchoredSamples
+        )
+        canvas.dataset.overlayRegionSamples = String(
+          density.diagnostics.regionSamples
         )
         canvas.dataset.overlayLegacySamples = String(
           density.diagnostics.legacySamples
@@ -1132,6 +1623,18 @@ export function HeatmapOverlayLayer({
         canvas.dataset.overlayGeometryIncompatibleSamples = String(
           density.diagnostics.geometryIncompatibleSamples
         )
+        canvas.dataset.overlayProjectedObservations = String(
+          density.diagnostics.projectedSamples
+        )
+        canvas.dataset.overlayExcludedObservations = String(
+          density.diagnostics.excludedSamples
+        )
+        canvas.dataset.overlayDrawnContributions = String(density.drawnPoints)
+        setProjectionMessage(
+          density.drawnPoints === 0 && clickSampleGroups.length > 0
+            ? 'Recorded interactions are available, but their positions cannot be safely mapped to the current page layout.'
+            : null
+        )
         return
       }
 
@@ -1144,10 +1647,15 @@ export function HeatmapOverlayLayer({
         }
         compatibleGroups += 1
         for (const point of group.points) {
-          const projection = projectClickPoint(point, measurement, {
-            width,
-            height,
-          })
+          const projection =
+            point.coordinateMode === 'viewport' && group.sourceViewport
+              ? projectViewportPoint(
+                  point,
+                  measurement,
+                  { width, height },
+                  group.sourceViewport
+                )
+              : projectClickPoint(point, measurement, { width, height })
           if (
             !projection ||
             projection.x < -MAX_HOTSPOT_RADIUS ||
@@ -1165,6 +1673,20 @@ export function HeatmapOverlayLayer({
       canvas.dataset.overlayDrawnPoints = String(drawnPoints)
       canvas.dataset.overlayBandCount = '0'
       canvas.dataset.overlayRejectionReasons = JSON.stringify(rejectionReasons)
+      canvas.dataset.overlayProjectedObservations = String(drawnPoints)
+      canvas.dataset.overlayExcludedObservations = String(
+        Math.max(
+          0,
+          groups.reduce((total, group) => total + group.points.length, 0) -
+            drawnPoints
+        )
+      )
+      canvas.dataset.overlayDrawnContributions = String(drawnPoints)
+      setProjectionMessage(
+        drawnPoints === 0 && groups.length > 0
+          ? 'Recorded interactions are available, but their positions cannot be safely mapped to the current page layout.'
+          : null
+      )
     }
 
     const scheduleDraw = () => {
@@ -1186,6 +1708,8 @@ export function HeatmapOverlayLayer({
     anchorDefinitions,
     anchorResolutions,
     anchorSelection,
+    regionResolutions,
+    regionSelection,
     heatmapType,
     measurement,
     scrollGroups,
@@ -1216,12 +1740,21 @@ export function HeatmapOverlayLayer({
         data-overlay-live-document=""
         data-overlay-live-scroll=""
         data-overlay-anchored-samples="0"
+        data-overlay-region-samples="0"
+        data-overlay-omitted-region-samples="0"
         data-overlay-legacy-samples="0"
         data-overlay-unresolved-anchor-samples="0"
         data-overlay-missing-anchor-samples="0"
         data-overlay-ambiguous-anchor-samples="0"
         data-overlay-omitted-anchor-samples="0"
         data-overlay-geometry-incompatible-samples="0"
+        data-overlay-recorded-events="0"
+        data-overlay-returned-observations="0"
+        data-overlay-eligible-observations="0"
+        data-overlay-projected-observations="0"
+        data-overlay-excluded-observations="0"
+        data-overlay-drawn-contributions="0"
+        data-overlay-sample-truncated="false"
         data-overlay-source-viewport=""
         data-overlay-source-document=""
         data-overlay-source-provenance=""
@@ -1240,6 +1773,15 @@ export function HeatmapOverlayLayer({
         >
           Reached: {Math.round(scrollReachPercent)}% · Not reached:{' '}
           {Math.round(100 - scrollReachPercent)}%
+        </div>
+      ) : null}
+      {emptyStateMessage || projectionMessage ? (
+        <div
+          aria-live="polite"
+          className="pointer-events-none absolute top-3 left-1/2 z-30 -translate-x-1/2 rounded-md border bg-black/60 px-3 py-2 text-center text-xs text-white shadow-sm"
+          data-heatmap-empty-state
+        >
+          {emptyStateMessage ?? projectionMessage}
         </div>
       ) : null}
     </>

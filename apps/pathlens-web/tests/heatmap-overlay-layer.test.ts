@@ -6,6 +6,7 @@ import type {
   HeatmapClickAnchorDefinition,
   HeatmapScrollPoint,
   PreviewMeasurementState,
+  PreviewRegionResolution,
 } from '@workspace/contracts'
 import {
   getClickGroupOverlayDecision,
@@ -18,6 +19,7 @@ import {
   selectClickAnchorIds,
   getScrollOverlayDecision,
   getScrollGroupOverlayViewport,
+  getHeatmapPreviewViewport,
   getSnapshotScrollOverlayDimensions,
   getSharedOverlayDimensions,
   projectScrollDepth,
@@ -160,6 +162,64 @@ test('prioritizes positioning anchors, then sample count, then anchor ID', () =>
   ])
 })
 
+test('requests anchored samples from compatible document groups across viewports', () => {
+  const definition = {
+    anchorId: 'fnv1a32-crossview',
+    positionMode: 'static' as const,
+    transformedAncestor: false,
+    scrollAncestors: [],
+  }
+
+  const result = selectClickAnchorIds(
+    [
+      sampleGroup([
+        {
+          x: 0.2,
+          y: 0.2,
+          weight: 1,
+          coordinateMode: 'document',
+          anchorId: definition.anchorId,
+          relativeX: 0.5,
+          relativeY: 0.5,
+        },
+      ]),
+      sampleGroup([
+        {
+          x: 0.4,
+          y: 0.4,
+          weight: 1,
+          coordinateMode: 'document',
+          anchorId: 'fnv1a32-otherview',
+          relativeX: 0.5,
+          relativeY: 0.5,
+        },
+      ]),
+    ].map((value, index) =>
+      index === 0
+        ? value
+        : {
+            ...value,
+            groupId: 'desktop-other-view',
+            sourceViewport: { width: 1440, height: 900 },
+            sourceDocument: { width: 1440, height: 2600 },
+          }
+    ),
+    [
+      definition,
+      {
+        ...definition,
+        anchorId: 'fnv1a32-otherview',
+      },
+    ],
+    { width: 1000, height: 500 }
+  )
+
+  assert.deepEqual(result.requestedAnchorIds.sort(), [
+    'fnv1a32-crossview',
+    'fnv1a32-otherview',
+  ])
+})
+
 test('excludes unresolved fixed and nested-scroll samples but falls back for normal samples', () => {
   const fixed: HeatmapClickAnchorDefinition = {
     anchorId: 'fnv1a32-fixed001',
@@ -262,6 +322,63 @@ test('rejects invalid or viewport-relative click points', () => {
   )
 })
 
+test('projects viewport-relative clicks only with matching source viewport geometry', () => {
+  const result = projectClickSample(
+    {
+      x: 0.25,
+      y: 0.5,
+      weight: 1,
+      coordinateMode: 'viewport',
+    },
+    measurement,
+    { width: 500, height: 250 },
+    new Map(),
+    new Map(),
+    { width: 1000, height: 500 }
+  )
+
+  assert.deepEqual(result, {
+    projection: { x: 125, y: 125 },
+    mode: 'document',
+  })
+})
+
+test('projects explicit region-relative clicks through live region geometry', () => {
+  const resolution: PreviewRegionResolution = {
+    regionId: 'fnv1a32-a1b2c3d4',
+    status: 'matched',
+    rect: { left: 100, top: 50, width: 400, height: 200 },
+    positionMode: 'static',
+  }
+  const result = projectClickSample(
+    {
+      x: 0.9,
+      y: 0.9,
+      weight: 1,
+      coordinateMode: 'document',
+      regionAnchor: {
+        schemaVersion: 1,
+        regionId: resolution.regionId,
+        positionMode: 'static',
+        relativeX: 0.25,
+        relativeY: 0.75,
+        capturedRect: { left: 0, top: 0, width: 800, height: 400 },
+      },
+    },
+    measurement,
+    { width: 500, height: 250 },
+    new Map(),
+    new Map(),
+    { width: 1000, height: 500 },
+    new Map([[resolution.regionId, resolution]])
+  )
+
+  assert.deepEqual(result, {
+    projection: { x: 100, y: 100 },
+    mode: 'region',
+  })
+})
+
 test('projects scroll reach percentages from the tracked scrollable distance', () => {
   const point = (percentage: number): HeatmapScrollPoint => ({
     percentage,
@@ -298,6 +415,25 @@ test('requires scroll source dimensions before accepting scroll overlay data', (
         document: { width: 1000, height: 2000 },
       },
       measurement
+    ),
+    { compatible: true, reason: 'compatible' }
+  )
+})
+
+test('accepts scroll reach across viewport sizes when document geometry matches', () => {
+  assert.deepEqual(
+    getScrollOverlayDecision(
+      {
+        viewport: { width: 1920, height: 911 },
+        document: { width: 1920, height: 2700 },
+      },
+      {
+        ...measurement,
+        viewportWidth: 1280,
+        viewportHeight: 720,
+        documentWidth: 1920,
+        documentHeight: 2700,
+      }
     ),
     { compatible: true, reason: 'compatible' }
   )
@@ -480,6 +616,13 @@ test('selects the highest-volume compatible Click geometry', () => {
   )
 })
 
+test('keeps the preview viewport stable when group volumes vary', () => {
+  assert.deepEqual(getHeatmapPreviewViewport('desktop'), {
+    width: 1280,
+    height: 720,
+  })
+})
+
 test('selects one Scroll preview geometry and leaves other geometries to compatibility filtering', () => {
   assert.deepEqual(
     getScrollGroupOverlayViewport(
@@ -517,13 +660,38 @@ test('selects one Scroll preview geometry and leaves other geometries to compati
   )
 })
 
+test('returns no Scroll preview geometry for empty or non-matching groups', () => {
+  assert.equal(getScrollGroupOverlayViewport([], 'desktop'), null)
+  assert.equal(
+    getScrollGroupOverlayViewport(
+      [
+        {
+          groupId: 'mobile-only',
+          device: 'mobile',
+          coordinateSchemaVersion: null,
+          sourceViewport: { width: 390, height: 844 },
+          sourceDocument: { width: 390, height: 1600 },
+          sessionCount: 1,
+          maximumReachPercent: 0,
+          coordinateMode: 'document',
+          alignment: 'document-compatible',
+          safeForDocumentOverlay: true,
+          reachPoints: [{ percentage: 0, count: 1, intensity: 1 }],
+        },
+      ],
+      'desktop'
+    ),
+    null
+  )
+})
+
 test('excludes incompatible and unsafe groups independently', () => {
   assert.equal(
     isClickGroupOverlayCompatible(
       group({ sourceViewport: { width: 1440, height: 900 } }),
       measurement
     ),
-    false
+    true
   )
   assert.equal(
     isClickGroupOverlayCompatible(
@@ -558,7 +726,7 @@ test('reports a constrained iframe viewport without accepting a mismatched group
 
   assert.deepEqual(decision, {
     compatible: false,
-    reason: 'viewport-dimensions-incompatible',
+    reason: 'document-height-incompatible',
   })
 })
 
