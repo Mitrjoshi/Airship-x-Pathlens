@@ -90,6 +90,7 @@ type AvatarDialogContentProps = {
   onAvatarChange: (avatarId: string | null, avatar: string | null) => void
   onSave: () => void
   isSaving: boolean
+  avatarId: string
 }
 
 function AvatarDialogContent({
@@ -99,6 +100,7 @@ function AvatarDialogContent({
   onAvatarChange,
   onSave,
   isSaving,
+  avatarId,
 }: AvatarDialogContentProps) {
   return (
     <DialogContent className="max-h-[90vh] w-fit max-w-4xl! overflow-auto">
@@ -123,7 +125,7 @@ function AvatarDialogContent({
                     type="button"
                     aria-label={`Choose ${avatar.name}`}
                     onClick={() => onAvatarChange(avatar.id, avatar.url)}
-                    className={`${avatarPreview === avatar.url ? 'ring-primary ring-4' : ''} cursor-pointer rounded-full p-2 duration-200`}
+                    className={`${avatarId === avatar.id ? 'ring-primary ring-4' : ''} cursor-pointer rounded-full p-2 duration-200`}
                   >
                     <Avatar className={`size-20 overflow-hidden`}>
                       <AvatarImage src={avatar.url ?? undefined} />
@@ -410,7 +412,7 @@ function RouteComponent() {
     <div>
       <div className="mx-auto max-w-4xl py-10">
         <div className="space-y-5">
-          <p className="text-2xl font-semibold">Account Settings</p>
+          <p className="text-xl font-semibold">Account Settings</p>
 
           <Card className="bg-card/30 rounded-none border-2 border-dashed">
             <form
@@ -440,6 +442,7 @@ function RouteComponent() {
                     onAvatarChange={handleAvatarChange}
                     onSave={() => handleAvatarSave()}
                     isSaving={updateProfile.isPending}
+                    avatarId={selectedAvatarId!}
                   />
                 </Dialog>
 

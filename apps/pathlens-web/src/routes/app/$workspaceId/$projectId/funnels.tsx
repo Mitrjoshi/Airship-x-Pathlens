@@ -1,4 +1,8 @@
-import { useCreateFunnel, useDeleteFunnel } from '@/mutations/funnels'
+import {
+  useCreateFunnel,
+  useDeleteFunnel,
+  useUpdateFunnel,
+} from '@/mutations/funnels'
 import { getFunnelsOptions, type FunnelRange } from '@/queries/funnels'
 import { getProjectDomainsOptions } from '@/queries/domains'
 import { useQuery } from '@tanstack/react-query'
@@ -23,6 +27,7 @@ import {
   PlayIcon,
   PlusIcon,
   RefreshCcwIcon,
+  SearchIcon,
   TrendingDownIcon,
   TrendingUpIcon,
   XIcon,
@@ -67,6 +72,11 @@ import {
 import { Input } from '@workspace/ui/components/input'
 import { Textarea } from '@workspace/ui/components/textarea'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
+import {
+  InputGroup,
+  InputGroupButton,
+  InputGroupInput,
+} from '@workspace/ui/components/input-group'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/funnels')({
   component: RouteComponent,
@@ -111,6 +121,11 @@ function RouteComponent() {
   // Create dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
+  // Edit dialog state
+  const [editingFunnel, setEditingFunnel] = useState<EditableFunnel | null>(
+    null
+  )
+
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedFunnel, setSelectedFunnel] = useState<{
@@ -149,7 +164,7 @@ function RouteComponent() {
   const { mutate: deleteFunnel, isPending: deleteFunnelPending } =
     useDeleteFunnel()
 
-  const form = useForm<FunnelFormValues>({
+  const form = useForm({
     defaultValues: {
       workspace_id: workspaceId,
       project_id: projectId,
@@ -179,6 +194,19 @@ function RouteComponent() {
       })
     },
   })
+
+  const handleEditClick = (funnel: NonNullable<typeof funnels>[number]) => {
+    // Take a snapshot of the selected funnel so its fields initialize together.
+    setEditingFunnel({
+      id: funnel.id,
+      name: funnel.name,
+      description: funnel.description ?? null,
+      steps: funnel.steps.map((step) => ({
+        name: step.name,
+        target: step.target ?? '',
+      })),
+    })
+  }
 
   const handleDeleteClick = (funnel: { id: string; name: string }) => {
     setSelectedFunnel({
@@ -298,7 +326,7 @@ function RouteComponent() {
               render={
                 <Button>
                   <PlusIcon />
-                  Create Funnel
+                  New Funnel
                 </Button>
               }
             />
@@ -575,188 +603,227 @@ function RouteComponent() {
           </Dialog>
         </div>
 
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <InputGroup className="w-120">
+              <InputGroupButton>
+                <SearchIcon />
+              </InputGroupButton>
+
+              <InputGroupInput placeholder="Search..." />
+            </InputGroup>
+          </div>
+        </div>
+
         <div>
-          <div className="grid grid-cols-3 gap-2">
-            {isLoading
-              ? [...Array(3)].map((_, index) => (
-                  <Card
-                    className="bg-card/30 gap-4 rounded-none border-2 border-dashed p-4"
-                    key={index}
-                  >
-                    <CardHeader className="flex items-start justify-between p-0">
-                      <div className="min-w-0 space-y-2">
-                        <Skeleton className="h-5 w-32" />
-                        <Skeleton className="h-4 w-48" />
-                      </div>
+          {isLoading ? (
+            <div className="grid grid-cols-3 gap-2">
+              {[...Array(3)].map((_, index) => (
+                <Card
+                  className="bg-card/30 gap-4 rounded-none border-2 border-dashed p-4"
+                  key={index}
+                >
+                  <CardHeader className="flex items-start justify-between p-0">
+                    <div className="min-w-0 space-y-2">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
 
-                      <Skeleton className="size-8" />
-                    </CardHeader>
+                    <Skeleton className="size-8" />
+                  </CardHeader>
 
-                    <CardContent className="space-y-4 p-0">
-                      {/* Conversion Rate */}
-                      <div className="flex items-end justify-between">
-                        <div className="space-y-2">
-                          <Skeleton className="h-3 w-24" />
-                          <Skeleton className="h-8 w-20" />
-                        </div>
-
-                        <Skeleton className="h-6 w-16 rounded-md" />
-                      </div>
-
-                      {/* Funnel Steps */}
-                      <div className="space-y-3">
-                        {[...Array(2)].map((_, stepIndex) => (
-                          <div key={stepIndex} className="space-y-1.5">
-                            <div className="flex items-center justify-between gap-3">
-                              <Skeleton className="h-3 w-28" />
-                              <Skeleton className="h-3 w-16" />
-                            </div>
-
-                            <Skeleton className="h-1.5 w-full" />
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Footer */}
-                      <div className="flex items-center justify-between border-t pt-3">
+                  <CardContent className="space-y-4 p-0">
+                    {/* Conversion Rate */}
+                    <div className="flex items-end justify-between">
+                      <div className="space-y-2">
                         <Skeleton className="h-3 w-24" />
-                        <Skeleton className="h-3 w-20" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              : funnels?.map((item, index) => (
-                  <Card
-                    key={index}
-                    className="bg-card/30 gap-4 rounded-none border-2 border-dashed p-4"
-                  >
-                    <CardHeader className="flex items-start justify-between p-0">
-                      <div className="min-w-0 space-y-1">
-                        <CardTitle className="flex items-center gap-2">
-                          <span className="truncate">{item.name}</span>
-
-                          <span
-                            className={cn(
-                              'flex items-center gap-1 text-xs font-medium',
-                              item.trend === 'up'
-                                ? 'text-green-500'
-                                : item.trend === 'down'
-                                  ? 'text-red-500'
-                                  : 'text-muted-foreground'
-                            )}
-                          >
-                            {item.trend === 'up' ? (
-                              <TrendingUpIcon className="size-3.5" />
-                            ) : item.trend === 'down' ? (
-                              <TrendingDownIcon className="size-3.5" />
-                            ) : (
-                              <MinusIcon className="size-3.5" />
-                            )}
-
-                            {item.trendValue}
-                          </span>
-                        </CardTitle>
-
-                        <CardDescription className="line-clamp-2">
-                          {item.description || 'No description provided'}
-                        </CardDescription>
+                        <Skeleton className="h-8 w-20" />
                       </div>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button size="icon" variant="ghost">
-                              <EllipsisIcon />
-                            </Button>
-                          }
-                        />
+                      <Skeleton className="h-6 w-16 rounded-md" />
+                    </div>
 
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
+                    {/* Funnel Steps */}
+                    <div className="space-y-3">
+                      {[...Array(2)].map((_, stepIndex) => (
+                        <div key={stepIndex} className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-3">
+                            <Skeleton className="h-3 w-28" />
+                            <Skeleton className="h-3 w-16" />
+                          </div>
 
-                          <DropdownMenuSeparator />
-
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteClick(item)}
-                            variant="destructive"
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </CardHeader>
-
-                    <CardContent className="space-y-4 p-0">
-                      {/* Conversion Rate */}
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="text-muted-foreground text-xs">
-                            Conversion rate
-                          </p>
-
-                          <p className="text-2xl font-semibold tabular-nums">
-                            {item.conversionRate.toFixed(1)}%
-                          </p>
+                          <Skeleton className="h-1.5 w-full" />
                         </div>
+                      ))}
+                    </div>
 
-                        <Badge variant="secondary">
-                          {item.steps.length} steps
-                        </Badge>
+                    {/* Footer */}
+                    <div className="flex items-center justify-between border-t pt-3">
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : funnels && funnels.length ? (
+            <div className="grid grid-cols-3 gap-2">
+              {funnels?.map((item, index) => (
+                <Card
+                  key={index}
+                  className="bg-card/30 gap-4 rounded-none border-2 border-dashed p-4"
+                >
+                  <CardHeader className="flex items-start justify-between p-0">
+                    <div className="min-w-0 space-y-1">
+                      <CardTitle className="flex items-center gap-2">
+                        <span className="truncate">{item.name}</span>
+
+                        <span
+                          className={cn(
+                            'flex items-center gap-1 text-xs font-medium',
+                            item.trend === 'up'
+                              ? 'text-green-500'
+                              : item.trend === 'down'
+                                ? 'text-red-500'
+                                : 'text-muted-foreground'
+                          )}
+                        >
+                          {item.trend === 'up' ? (
+                            <TrendingUpIcon className="size-3.5" />
+                          ) : item.trend === 'down' ? (
+                            <TrendingDownIcon className="size-3.5" />
+                          ) : (
+                            <MinusIcon className="size-3.5" />
+                          )}
+
+                          {item.trendValue}
+                        </span>
+                      </CardTitle>
+
+                      <CardDescription className="line-clamp-2">
+                        {item.description || 'No description provided'}
+                      </CardDescription>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button size="icon" variant="ghost">
+                            <EllipsisIcon />
+                          </Button>
+                        }
+                      />
+
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditClick(item)}>
+                          Edit
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteClick(item)}
+                          variant="destructive"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4 p-0">
+                    {/* Conversion Rate */}
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-muted-foreground text-xs">
+                          Conversion rate
+                        </p>
+
+                        <p className="text-2xl font-semibold tabular-nums">
+                          {item.conversionRate.toFixed(1)}%
+                        </p>
                       </div>
 
-                      {/* Funnel Steps */}
-                      <div className="space-y-3">
-                        {item.steps.map((step, stepIndex) => {
-                          const firstStepVisitors = item.steps[0]?.visitors ?? 0
+                      <Badge variant="secondary">
+                        {item.steps.length} steps
+                      </Badge>
+                    </div>
 
-                          const progress =
-                            firstStepVisitors > 0
-                              ? (step.visitors / firstStepVisitors) * 100
-                              : 0
+                    {/* Funnel Steps */}
+                    <div className="space-y-3">
+                      {item.steps.map((step, stepIndex) => {
+                        const firstStepVisitors = item.steps[0]?.visitors ?? 0
 
-                          return (
-                            <div key={stepIndex} className="space-y-1.5">
-                              <div className="flex items-center justify-between gap-3 text-xs">
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <span className="text-muted-foreground">
-                                    {stepIndex + 1}.
-                                  </span>
+                        const progress =
+                          firstStepVisitors > 0
+                            ? (step.visitors / firstStepVisitors) * 100
+                            : 0
 
-                                  <span className="truncate font-medium">
-                                    {step.name}
-                                  </span>
-                                </div>
+                        return (
+                          <div key={stepIndex} className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-3 text-xs">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span className="text-muted-foreground">
+                                  {stepIndex + 1}.
+                                </span>
 
-                                <span className="shrink-0 font-medium tabular-nums">
-                                  {step.visitors.toLocaleString()}
-
-                                  <span className="text-muted-foreground ml-1 font-normal">
-                                    visitors
-                                  </span>
+                                <span className="truncate font-medium">
+                                  {step.name}
                                 </span>
                               </div>
 
-                              <Progress
-                                value={Math.min(100, Math.max(0, progress))}
-                                className="h-1.5"
-                              />
+                              <span className="shrink-0 font-medium tabular-nums">
+                                {step.visitors.toLocaleString()}
+
+                                <span className="text-muted-foreground ml-1 font-normal">
+                                  visitors
+                                </span>
+                              </span>
                             </div>
-                          )
-                        })}
-                      </div>
 
-                      {/* Footer */}
-                      <div className="text-muted-foreground flex items-center justify-between border-t pt-3 text-xs">
-                        <span>Created {formatDate(item.createdAt)}</span>
+                            <Progress
+                              value={Math.min(100, Math.max(0, progress))}
+                              className="h-1.5"
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
 
-                        <span>{item.steps.length} funnel steps</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-          </div>
+                    {/* Footer */}
+                    <div className="text-muted-foreground flex items-center justify-between border-t pt-3 text-xs">
+                      <span>Created {formatDate(item.createdAt)}</span>
+
+                      <span>{item.steps.length} funnel steps</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="flex h-80 w-full flex-col items-center justify-center">
+              <p>No funnels found.</p>
+              <p className="text-muted-foreground text-sm">
+                Create your first funnel to get started.
+              </p>
+            </div>
+          )}
         </div>
       </div>
+
+      {editingFunnel && (
+        <EditFunnelDialog
+          key={editingFunnel.id}
+          funnel={editingFunnel}
+          workspaceId={workspaceId}
+          projectId={projectId}
+          onClose={() => setEditingFunnel(null)}
+          onUpdated={() => {
+            setEditingFunnel(null)
+            refetch()
+          }}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -774,7 +841,7 @@ function RouteComponent() {
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="py-2">
+          <DialogFooter className="bg-transparent py-2">
             <DialogClose
               disabled={deleteFunnelPending}
               onClick={() => setSelectedFunnel(null)}
@@ -796,5 +863,322 @@ function RouteComponent() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+// Mounting this component with a funnel-specific key gives TanStack Form
+// the selected funnel's data as its initial values on every edit.
+type EditableFunnel = {
+  id: string
+  name: string
+  description: string | null
+  steps: Array<{ name: string; target: string }>
+}
+
+type EditFunnelDialogProps = {
+  funnel: EditableFunnel
+  workspaceId: string
+  projectId: string
+  onClose: () => void
+  onUpdated: () => void
+}
+
+function EditFunnelDialog({
+  funnel,
+  workspaceId,
+  projectId,
+  onClose,
+  onUpdated,
+}: EditFunnelDialogProps) {
+  const { mutate: updateFunnel, isPending: updateFormPending } =
+    useUpdateFunnel()
+  const editForm = useForm({
+    defaultValues: {
+      workspace_id: workspaceId,
+      project_id: projectId,
+      name: funnel.name,
+      description: funnel.description,
+      steps: funnel.steps.map((step) => ({
+        name: step.name,
+        target: step.target,
+      })),
+    } as FunnelFormValues,
+
+    validators: { onSubmit: formSchema },
+    onSubmit: async ({ value }) => {
+      updateFunnel(
+        {
+          id: funnel.id,
+          payload: value,
+        },
+        { onSuccess: onUpdated }
+      )
+    },
+  })
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !updateFormPending) onClose()
+      }}
+    >
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit Funnel</DialogTitle>
+        </DialogHeader>
+
+        <form
+          className="no-scrollbar -mx-4 max-h-[50vh] overflow-y-auto px-4"
+          id="edit-funnel"
+          onSubmit={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            editForm.handleSubmit()
+          }}
+        >
+          <FieldGroup>
+            {/* Funnel name */}
+            <editForm.Field
+              name="name"
+              children={(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid
+
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={`edit-${field.name}`}>Name</FieldLabel>
+
+                    <Input
+                      id={`edit-${field.name}`}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      aria-invalid={isInvalid}
+                      placeholder="Checkout funnel"
+                      autoComplete="off"
+                    />
+
+                    <FieldDescription>
+                      Give your funnel a name that clearly describes the user
+                      journey.
+                    </FieldDescription>
+
+                    {isInvalid && (
+                      <FieldError errors={field.state.meta.errors} />
+                    )}
+                  </Field>
+                )
+              }}
+            />
+
+            {/* Description */}
+            <editForm.Field
+              name="description"
+              children={(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid
+
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={`edit-${field.name}`}>
+                      Description
+                    </FieldLabel>
+
+                    <Textarea
+                      id={`edit-${field.name}`}
+                      name={field.name}
+                      value={field.state.value ?? ''}
+                      onBlur={field.handleBlur}
+                      onChange={(e) =>
+                        field.handleChange(e.target.value || null)
+                      }
+                      aria-invalid={isInvalid}
+                      placeholder="Track users from landing page to checkout."
+                    />
+
+                    <FieldDescription>
+                      Optional description for this funnel.
+                    </FieldDescription>
+
+                    {isInvalid && (
+                      <FieldError errors={field.state.meta.errors} />
+                    )}
+                  </Field>
+                )
+              }}
+            />
+
+            {/* Steps */}
+            <editForm.Field name="steps">
+              {(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid
+
+                return (
+                  <FieldGroup>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <FieldLabel>Steps</FieldLabel>
+
+                        <FieldDescription>
+                          Define the pages or actions users need to complete.
+                        </FieldDescription>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          field.pushValue({
+                            name: '',
+                            target: '',
+                          })
+                        }
+                      >
+                        <PlusIcon />
+                        Add step
+                      </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {field.state.value.map((_, index) => (
+                        <div key={index} className="rounded-lg border p-3">
+                          <div className="mb-3 flex items-center justify-between">
+                            <p className="text-sm font-medium">
+                              Step {index + 1}
+                            </p>
+
+                            {field.state.value.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                                onClick={() => field.removeValue(index)}
+                              >
+                                <XIcon />
+                                <span className="sr-only">Remove step</span>
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="grid gap-3">
+                            {/* Step name */}
+                            <editForm.Field
+                              name={`steps[${index}].name`}
+                              children={(stepNameField) => {
+                                const isInvalid =
+                                  stepNameField.state.meta.isTouched &&
+                                  !stepNameField.state.meta.isValid
+
+                                return (
+                                  <Field data-invalid={isInvalid}>
+                                    <FieldLabel
+                                      htmlFor={`edit-${stepNameField.name}`}
+                                    >
+                                      Step name
+                                    </FieldLabel>
+
+                                    <Input
+                                      id={`edit-${stepNameField.name}`}
+                                      name={stepNameField.name}
+                                      value={stepNameField.state.value}
+                                      onBlur={stepNameField.handleBlur}
+                                      onChange={(e) =>
+                                        stepNameField.handleChange(
+                                          e.target.value
+                                        )
+                                      }
+                                      aria-invalid={isInvalid}
+                                      placeholder="Landing page"
+                                    />
+
+                                    {isInvalid && (
+                                      <FieldError
+                                        errors={stepNameField.state.meta.errors}
+                                      />
+                                    )}
+                                  </Field>
+                                )
+                              }}
+                            />
+
+                            {/* Step target */}
+                            <editForm.Field
+                              name={`steps[${index}].target`}
+                              children={(targetField) => {
+                                const isInvalid =
+                                  targetField.state.meta.isTouched &&
+                                  !targetField.state.meta.isValid
+
+                                return (
+                                  <Field data-invalid={isInvalid}>
+                                    <FieldLabel
+                                      htmlFor={`edit-${targetField.name}`}
+                                    >
+                                      Target
+                                    </FieldLabel>
+
+                                    <Input
+                                      id={`edit-${targetField.name}`}
+                                      name={targetField.name}
+                                      value={targetField.state.value}
+                                      onBlur={targetField.handleBlur}
+                                      onChange={(e) =>
+                                        targetField.handleChange(e.target.value)
+                                      }
+                                      aria-invalid={isInvalid}
+                                      placeholder="/checkout"
+                                    />
+
+                                    <FieldDescription>
+                                      The URL path or target to match.
+                                    </FieldDescription>
+
+                                    {isInvalid && (
+                                      <FieldError
+                                        errors={targetField.state.meta.errors}
+                                      />
+                                    )}
+                                  </Field>
+                                )
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {isInvalid && (
+                      <FieldError errors={field.state.meta.errors} />
+                    )}
+                  </FieldGroup>
+                )
+              }}
+            </editForm.Field>
+          </FieldGroup>
+        </form>
+
+        <DialogFooter className="bg-transparent py-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={updateFormPending}
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+
+          <Button disabled={updateFormPending} type="submit" form="edit-funnel">
+            <LoadingSwap isLoading={updateFormPending}>
+              Save Changes
+            </LoadingSwap>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

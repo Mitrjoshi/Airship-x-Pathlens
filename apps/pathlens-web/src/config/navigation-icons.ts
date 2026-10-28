@@ -1,32 +1,36 @@
 import {
   ActivityIcon,
   BarChart3Icon,
+  BellIcon,
+  BookOpenIcon,
   BotIcon,
   BugIcon,
   ChartColumnIncreasingIcon,
-  ChartPie,
+  ChartPieIcon,
+  CircleHelpIcon,
   CircleUserRoundIcon,
   ClapperboardIcon,
+  CodeXmlIcon,
   CopyIcon,
   EditIcon,
+  FlameIcon,
   FolderClosedIcon,
+  FunnelIcon,
   GaugeIcon,
   GlobeIcon,
   GoalIcon,
+  HistoryIcon,
   KeyRoundIcon,
+  LogsIcon,
   MegaphoneIcon,
+  MessageSquareTextIcon,
   MousePointerClickIcon,
   ReceiptTextIcon,
   RouteIcon,
-  FlameIcon,
   SettingsIcon,
   ShieldCheckIcon,
-  LogsIcon,
   TrashIcon,
   UsersIcon,
-  FunnelIcon,
-  MessageSquareTextIcon,
-  CodeXmlIcon,
 } from 'lucide-react'
 
 export const navigationIcons = {
@@ -52,18 +56,32 @@ export const navigationIcons = {
   permissions: ShieldCheckIcon,
   workspaceSettings: SettingsIcon,
   billing: ReceiptTextIcon,
-  usage: ChartPie,
+  usage: ChartPieIcon,
 
-  // added
+  // General
   workspaces: FolderClosedIcon,
+  activity: ActivityIcon,
+  notifications: BellIcon,
+
+  // Account
   profile: CircleUserRoundIcon,
   accountSettings: SettingsIcon,
+  security: ShieldCheckIcon,
+
+  // Resources
+  documentation: BookOpenIcon,
+  support: CircleHelpIcon,
+  changelog: HistoryIcon,
+
+  // Workspace
   team: UsersIcon,
   domain: GlobeIcon,
+  audit: LogsIcon,
+  setup: CodeXmlIcon,
+
+  // Actions
   trash: TrashIcon,
   copy: CopyIcon,
   edit: EditIcon,
-  audit: LogsIcon,
   chat: MessageSquareTextIcon,
-  setup: CodeXmlIcon,
 } as const

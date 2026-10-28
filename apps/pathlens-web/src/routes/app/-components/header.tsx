@@ -1,7 +1,12 @@
 import { FeedbackPopover } from '@/components/common/feedback-popover'
 import { NavUser } from '@/components/common/nav-user'
 import { NotificationsPopover } from '@/components/common/notifications-popover'
-import { Link, useParams, useRouteContext } from '@tanstack/react-router'
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useRouteContext,
+} from '@tanstack/react-router'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,12 +16,13 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { Button } from '@workspace/ui/components/button'
-import { AnimatePresence, motion } from 'motion/react'
+import { navigationIcons } from '@/config/navigation-icons'
 import {
   CheckIcon,
   ChevronsUpDownIcon,
   PlusIcon,
   SearchIcon,
+  SparklesIcon,
 } from 'lucide-react'
 import {
   InputGroup,
@@ -27,6 +33,7 @@ import { getProjectsOptions, type T_Projects } from '@/queries/projects'
 import { Separator } from '@workspace/ui/components/separator'
 import { useQuery } from '@tanstack/react-query'
 import { Avatar, AvatarImage } from '@workspace/ui/components/avatar'
+import { Skeleton } from '@workspace/ui/components/skeleton'
 
 export const Header = () => {
   const user = useRouteContext({
@@ -55,17 +62,10 @@ export const Header = () => {
             workspaceId={workspaceId!}
           />
         )}
-
-        <Separator orientation="vertical" />
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
         <FeedbackPopover />
-
-        {/* <Button variant={'outline'} className={'pl-1'}>
-          <img src="/ai.png" className="aspect-square size-7" />
-          Ask
-        </Button> */}
 
         <Separator orientation="vertical" />
 
@@ -90,37 +90,43 @@ export const ProjectSwitcher = ({
   activeProject,
   workspaceId,
 }: I_ProjectSwitcherProps) => {
+  const navigate = useNavigate()
   const project = projectData?.find((p) => p.id === activeProject)
 
   return (
     <>
       <DropdownMenu>
-        <div className="flex w-full items-center justify-center gap-2 overflow-hidden">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.p
-              key={projectDataLoading ? 'loading' : project?.name}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
-              className="truncate text-[15px]"
-            >
-              {projectDataLoading ? 'Loading...' : project?.name}
-            </motion.p>
-          </AnimatePresence>
-          <DropdownMenuTrigger
-            disabled={projectDataLoading}
-            render={
-              <Button
-                size="icon"
-                variant={'ghost'}
-                className={'flex-1 overflow-hidden'}
-              />
-            }
-          >
-            <ChevronsUpDownIcon />
-          </DropdownMenuTrigger>
-        </div>
+        <Button
+          onClick={() => {
+            navigate({
+              to: '/app/$workspaceId/$projectId',
+              params: {
+                workspaceId,
+                projectId: activeProject,
+              },
+            })
+          }}
+          variant="link"
+          className={'text-foreground'}
+        >
+          {projectDataLoading ? (
+            <Skeleton className="h-4 w-30" />
+          ) : (
+            project?.name
+          )}
+        </Button>
+        <DropdownMenuTrigger
+          disabled={projectDataLoading}
+          render={
+            <Button
+              size="icon"
+              variant={'ghost'}
+              className={'flex-1 overflow-hidden'}
+            />
+          }
+        >
+          <ChevronsUpDownIcon />
+        </DropdownMenuTrigger>
 
         <DropdownMenuContent className={'w-80'}>
           <InputGroup>

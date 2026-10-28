@@ -31,9 +31,8 @@ function RouteComponent() {
       <div className="mx-auto max-w-4xl py-10">
         <div className="space-y-6">
           <div>
-            <p className="text-2xl font-semibold">Billing</p>
-
-            <p className="text-muted-foreground mt-1 text-sm">
+            <p className="text-xl font-semibold">Billing</p>
+            <p className="text-muted-foreground text-sm">
               Manage your PathLens plan and billing access.
             </p>
           </div>

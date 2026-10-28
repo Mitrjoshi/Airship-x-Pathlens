@@ -3,6 +3,7 @@ import {
   Link,
   Outlet,
   useLocation,
+  useNavigate,
   useParams,
 } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'motion/react'
@@ -109,6 +110,24 @@ const sidebarProjectsItems = [
     label: 'Analytics',
     items: [
       {
+        label: 'Events',
+        icon: navigationIcons.events,
+        to: '/app/$workspaceId/$projectId/events',
+        isActive: (pathname: string) => pathname.includes('events'),
+      },
+      {
+        label: 'Visitors',
+        icon: navigationIcons.visitors,
+        to: '/app/$workspaceId/$projectId/visitors',
+        isActive: (pathname: string) => pathname.includes('visitors'),
+      },
+      {
+        label: 'Funnels',
+        icon: navigationIcons.funnels,
+        to: '/app/$workspaceId/$projectId/funnels',
+        isActive: (pathname: string) => pathname.includes('funnels'),
+      },
+      {
         label: 'User Journey',
         icon: navigationIcons.userJourney,
         to: '/app/$workspaceId/$projectId/user-journey',
@@ -119,18 +138,6 @@ const sidebarProjectsItems = [
         icon: navigationIcons.goals,
         to: '/app/$workspaceId/$projectId/goals',
         isActive: (pathname: string) => pathname.includes('goals'),
-      },
-      {
-        label: 'Funnels',
-        icon: navigationIcons.funnels,
-        to: '/app/$workspaceId/$projectId/funnels',
-        isActive: (pathname: string) => pathname.includes('funnels'),
-      },
-      {
-        label: 'Events',
-        icon: navigationIcons.events,
-        to: '/app/$workspaceId/$projectId/events',
-        isActive: (pathname: string) => pathname.includes('events'),
       },
       {
         label: 'Campaigns',
@@ -145,22 +152,28 @@ const sidebarProjectsItems = [
     label: 'Behavior',
     items: [
       {
-        label: 'Session Replay',
-        icon: navigationIcons.sessionReplay,
-        to: '/app/$workspaceId/$projectId/session-replay',
-        isActive: (pathname: string) => pathname.includes('session-replay'),
-      },
-      {
         label: 'Heatmaps',
         icon: navigationIcons.heatmaps,
         to: '/app/$workspaceId/$projectId/heatmaps',
         isActive: (pathname: string) => pathname.includes('heatmaps'),
       },
       {
-        label: 'Visitors',
-        icon: navigationIcons.visitors,
-        to: '/app/$workspaceId/$projectId/visitors',
-        isActive: (pathname: string) => pathname.includes('visitors'),
+        label: 'Session Replay',
+        icon: navigationIcons.sessionReplay,
+        to: '/app/$workspaceId/$projectId/session-replay',
+        isActive: (pathname: string) => pathname.includes('session-replay'),
+      },
+    ],
+  },
+
+  {
+    label: 'Monitoring',
+    items: [
+      {
+        label: 'Performance',
+        icon: navigationIcons.performance,
+        to: '/app/$workspaceId/$projectId/performance',
+        isActive: (pathname: string) => pathname.includes('performance'),
       },
       {
         label: 'Errors',
@@ -172,55 +185,19 @@ const sidebarProjectsItems = [
   },
 
   {
-    label: 'Performance',
-    items: [
-      {
-        label: 'Performance',
-        icon: navigationIcons.performance,
-        to: '/app/$workspaceId/$projectId/performance',
-        isActive: (pathname: string) => pathname.includes('performance'),
-      },
-    ],
-  },
-
-  {
     label: 'Insights',
     items: [
-      {
-        label: 'Reports',
-        icon: navigationIcons.reports,
-        to: '/app/$workspaceId/$projectId/reports',
-        isActive: (pathname: string) => pathname.includes('reports'),
-      },
       {
         label: 'AI Insights',
         icon: navigationIcons.aiInsights,
         to: '/app/$workspaceId/$projectId/ai-insights',
         isActive: (pathname: string) => pathname.includes('ai-insights'),
       },
-    ],
-  },
-
-  {
-    label: 'Workspace',
-    items: [
       {
-        label: 'Usage',
-        icon: navigationIcons.usage,
-        to: '/app/$workspaceId/$projectId/usage',
-        isActive: (pathname: string) => pathname.includes('usage'),
-      },
-      // {
-      //   label: 'Members',
-      //   icon: navigationIcons.team,
-      //   to: '/app/$workspaceId/$projectId/members',
-      //   isActive: (pathname: string) => pathname.includes('members'),
-      // },
-      {
-        label: 'Audit Logs',
-        icon: navigationIcons.audit,
-        to: '/app/$workspaceId/$projectId/audit-logs',
-        isActive: (pathname: string) => pathname.includes('audit-logs'),
+        label: 'Reports',
+        icon: navigationIcons.reports,
+        to: '/app/$workspaceId/$projectId/reports',
+        isActive: (pathname: string) => pathname.includes('reports'),
       },
     ],
   },
@@ -235,22 +212,40 @@ const sidebarProjectsItems = [
         isActive: (pathname: string) => pathname.includes('domains'),
       },
       {
-        label: 'API Keys',
-        icon: navigationIcons.apiKeys,
-        to: '/app/$workspaceId/$projectId/api-keys',
-        isActive: (pathname: string) => pathname.includes('api-keys'),
-      },
-      {
         label: 'Setup',
         icon: navigationIcons.setup,
         to: '/app/$workspaceId/$projectId/setup',
         isActive: (pathname: string) => pathname.includes('setup'),
       },
       {
+        label: 'API Keys',
+        icon: navigationIcons.apiKeys,
+        to: '/app/$workspaceId/$projectId/api-keys',
+        isActive: (pathname: string) => pathname.includes('api-keys'),
+      },
+      {
         label: 'Settings',
         icon: navigationIcons.settings,
         to: '/app/$workspaceId/$projectId/settings',
         isActive: (pathname: string) => pathname.includes('settings'),
+      },
+    ],
+  },
+
+  {
+    label: 'Activity',
+    items: [
+      {
+        label: 'Usage',
+        icon: navigationIcons.usage,
+        to: '/app/$workspaceId/$projectId/usage',
+        isActive: (pathname: string) => pathname.includes('usage'),
+      },
+      {
+        label: 'Audit Logs',
+        icon: navigationIcons.audit,
+        to: '/app/$workspaceId/$projectId/audit-logs',
+        isActive: (pathname: string) => pathname.includes('audit-logs'),
       },
     ],
   },
@@ -274,6 +269,12 @@ const sidebarWorkspaceItems = [
         isActive: (pathname: string) =>
           pathname.includes('team') || pathname.includes('invite'),
       },
+    ],
+  },
+
+  {
+    label: 'Access & Security',
+    items: [
       {
         label: 'Permissions',
         icon: navigationIcons.permissions,
@@ -281,16 +282,22 @@ const sidebarWorkspaceItems = [
         isActive: (pathname: string) => pathname.includes('permissions'),
       },
       {
-        label: 'Usage',
-        icon: navigationIcons.usage,
-        to: '/app/$workspaceId/usage',
-        isActive: (pathname: string) => pathname.includes('usage'),
-      },
-      {
         label: 'Audit Logs',
         icon: navigationIcons.audit,
         to: '/app/$workspaceId/audit-logs',
         isActive: (pathname: string) => pathname.includes('audit-logs'),
+      },
+    ],
+  },
+
+  {
+    label: 'Management',
+    items: [
+      {
+        label: 'Usage',
+        icon: navigationIcons.usage,
+        to: '/app/$workspaceId/usage',
+        isActive: (pathname: string) => pathname.includes('usage'),
       },
       {
         label: 'Workspace Settings',
@@ -468,37 +475,44 @@ export const WorkspaceSwitcher = ({
   workspaceDataLoading,
   activeWorkspace,
 }: I_AppSidebarProps) => {
+  const navigate = useNavigate()
   const workspace = workspaceData?.find((w) => w.id === activeWorkspace)
 
   return (
     <>
+      <Button
+        onClick={() => {
+          navigate({
+            to: '/app/$workspaceId',
+            params: {
+              workspaceId: activeWorkspace,
+            },
+          })
+        }}
+        variant="link"
+        size="lg"
+        className={'text-foreground text-md w-full flex-1 overflow-hidden pl-0'}
+      >
+        {workspaceDataLoading ? (
+          <Skeleton className="h-4 w-30" />
+        ) : (
+          workspace?.name
+        )}
+      </Button>
+
       <DropdownMenu>
-        <div className="flex w-full items-center justify-between overflow-hidden">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.p
-              key={workspaceDataLoading ? 'loading' : workspace?.name}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
-              className="truncate font-medium"
-            >
-              {workspaceDataLoading ? 'Loading...' : workspace?.name}
-            </motion.p>
-          </AnimatePresence>
-          <DropdownMenuTrigger
-            disabled={workspaceDataLoading}
-            render={
-              <Button
-                size="icon"
-                variant={'ghost'}
-                className={'overflow-hidden'}
-              />
-            }
-          >
-            <ChevronsUpDownIcon />
-          </DropdownMenuTrigger>
-        </div>
+        <DropdownMenuTrigger
+          disabled={workspaceDataLoading}
+          render={
+            <Button
+              size="icon"
+              variant={'ghost'}
+              className={'overflow-hidden'}
+            />
+          }
+        >
+          <ChevronsUpDownIcon />
+        </DropdownMenuTrigger>
 
         <DropdownMenuContent className={'w-80'}>
           <InputGroup>

@@ -75,7 +75,7 @@ function RouteComponent() {
       <div className="mx-auto w-full max-w-4xl pt-10">
         <div className="flex items-center justify-between space-y-5">
           <div>
-            <p className="text-2xl font-medium">Usage</p>
+            <p className="text-xl font-medium">Usage</p>
           </div>
 
           <Select

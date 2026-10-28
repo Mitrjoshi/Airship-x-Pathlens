@@ -13,7 +13,6 @@ import {
   AlertCircleIcon,
   EllipsisIcon,
   ExternalLinkIcon,
-  GlobeIcon,
   InfoIcon,
   LoaderIcon,
   PlusIcon,
@@ -41,6 +40,8 @@ import {
 import React from 'react'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { useDeleteProject } from '@/mutations/projects'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
+import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
 
 export const Route = createFileRoute('/app/$workspaceId/')({
   component: RouteComponent,
@@ -61,15 +62,11 @@ function RouteComponent() {
     })
   )
 
-  const deleteProject = useDeleteProject()
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
 
-  if (projectsError) {
-    return (
-      <div className="mx-auto max-w-4xl pt-10">
-        <p className="text-destructive text-sm">Failed to load projects.</p>
-      </div>
-    )
-  }
+  const deleteProject = useDeleteProject()
 
   return (
     <div>
@@ -111,7 +108,7 @@ function RouteComponent() {
               </div>
 
               <div className="space-y-2">
-                {projectsLoading ? (
+                {projectsLoading || permissionsLoading ? (
                   <>
                     {[...Array(3)].map((_, i) => (
                       <div
@@ -136,6 +133,8 @@ function RouteComponent() {
                       </div>
                     ))}
                   </>
+                ) : !permissionsData?.data?.includes('projects.view') ? (
+                  <NoPermissionView />
                 ) : (
                   projects?.data.map((item) => {
                     return (

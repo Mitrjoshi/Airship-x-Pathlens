@@ -11,6 +11,7 @@ import {
   getUserWorkspacesController,
   getWorkspaceMembers,
   getWorkspaceByIdController,
+  getWorkspacePermissions,
   getWorkspacePendingInvitations,
   getWorkspaceUsage,
   removeWorkspaceMember,
@@ -30,6 +31,7 @@ router.use(authMiddleware);
 router.get("/", getUserWorkspacesController);
 router.post("/", createWorkspace);
 router.get("/:workspace_id", getWorkspaceByIdController);
+router.get("/:workspace_id/permissions", getWorkspacePermissions);
 router.patch("/:workspace_id", updateWorkspace);
 router.delete("/:workspace_id", deleteWorkspace);
 router.get("/:workspace_id/members", getWorkspaceMembers);

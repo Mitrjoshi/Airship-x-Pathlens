@@ -165,7 +165,7 @@ function RouteComponent() {
     <div>
       <div className="mx-auto p-6">
         <div className="space-y-5">
-          <p className="text-2xl font-medium">Team</p>
+          <p className="text-xl font-medium">Team</p>
 
           <div className="flex items-start gap-4">
             <div className="flex-1 space-y-2">

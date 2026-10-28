@@ -17,6 +17,7 @@ import {
   getDefaultWorkspace,
   getWorkspaces,
 } from "../models/workshop.model";
+import { getUserUsagePercentageModel } from "../models/usage.model";
 
 const loginSchema = z.object({
   email: z.email({
@@ -226,7 +227,11 @@ export async function createUser(req: Request, res: Response) {
 
 export async function getUser(req: AuthRequest, res: Response) {
   try {
-    const userData = await getUserByIDModel(req.user?.id!);
+    const userId = req.user?.id!;
+    const [userData, usagePercentage] = await Promise.all([
+      getUserByIDModel(userId),
+      getUserUsagePercentageModel(userId),
+    ]);
 
     if (!userData) {
       return res.status(404).json({
@@ -247,6 +252,7 @@ export async function getUser(req: AuthRequest, res: Response) {
       data: {
         ...safeUserData,
         hasPassword: Boolean(userData.password),
+        usagePercentage,
       },
     });
   } catch (error) {

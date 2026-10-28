@@ -20,34 +20,64 @@ import {
 import { Link, useNavigate } from '@tanstack/react-router'
 import { ArrowUpRightIcon, CheckIcon } from 'lucide-react'
 import { useTheme } from '@/components/common/theme-provider'
+import { motion, useMotionValue, useTransform, animate } from 'motion/react'
+import { useEffect } from 'react'
+import { Progress } from '@workspace/ui/components/progress'
 
 export interface NavUserData {
   name: string
   email: string
   avatar: string | null
+  usagePercentage: number
 }
 
 export function NavUser({ user }: { user: NavUserData }) {
   const navigate = useNavigate()
   const { theme, setTheme } = useTheme()
 
+  const progress = useMotionValue(0)
+
+  const background = useTransform(
+    progress,
+    (value) =>
+      `conic-gradient(var(--primary) ${value}%, var(--muted) ${value}%)`
+  )
+
+  useEffect(() => {
+    const controls = animate(
+      progress,
+      Math.min(100, Math.max(0, user?.usagePercentage ?? 0)),
+      {
+        duration: 1,
+        ease: 'easeInOut',
+      }
+    )
+
+    return () => controls.stop()
+  }, [user?.usagePercentage, progress])
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button size="icon" className={''} variant="ghost" />}
+        render={
+          <Button size="icon" className={'rounded-full'} variant="ghost" />
+        }
       >
-        <Avatar>
-          <AvatarImage
-            className={''}
-            src={user?.avatar ?? undefined}
-            alt={user?.name}
-          />
-          <AvatarFallback
-            className={'bg-primary/40 text-black dark:text-white'}
-          >
-            {user?.name?.charAt(0)}
-          </AvatarFallback>
-        </Avatar>
+        <motion.div
+          className="aspect-square size-8 rounded-full p-[2px]"
+          style={{ background }}
+        >
+          <Avatar className="bg-background size-full rounded-full p-[3px]">
+            <AvatarImage
+              src={user?.avatar ?? undefined}
+              alt={user?.name ?? 'User'}
+              className="rounded-full object-cover"
+            />
+            <AvatarFallback className="bg-primary/40 text-black dark:text-white">
+              {user?.name?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+        </motion.div>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className="w-50"
@@ -56,16 +86,12 @@ export function NavUser({ user }: { user: NavUserData }) {
         sideOffset={8}
       >
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="p-0 font-normal">
-            <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="text-foreground truncate font-medium">
-                  {user?.name}
-                </span>
-                <span className="truncate text-xs">{user?.email}</span>
-              </div>
-            </div>
-          </DropdownMenuLabel>
+          <div className="space-y--2 px-1 py-1.5 text-left text-sm">
+            <p className="truncate font-medium">{user?.name}</p>
+            <p className="text-muted-foreground truncate text-xs">
+              {user?.email}
+            </p>
+          </div>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
@@ -88,12 +114,25 @@ export function NavUser({ user }: { user: NavUserData }) {
               <Button
                 className={'flex w-full cursor-pointer justify-between'}
                 variant="ghost"
+                render={<Link to="/app/usage" />}
+              />
+            }
+          >
+            Usage
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            render={
+              <Button
+                className={'flex w-full cursor-pointer justify-between'}
+                variant="ghost"
                 render={<Link to="/app/billing" />}
               />
             }
           >
             Subscription
           </DropdownMenuItem>
+
           <DropdownMenuSub>
             <DropdownMenuSubTrigger
               render={<Button variant="ghost" className={'w-full'} />}

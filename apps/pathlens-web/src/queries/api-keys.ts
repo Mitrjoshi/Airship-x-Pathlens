@@ -36,5 +36,4 @@ export const getProjectApiKeysOptions = (projectId: string) =>
   queryOptions({
     queryKey: ['PROJECT_API_KEYS', projectId],
     queryFn: () => getProjectApiKeys(projectId),
-    enabled: Boolean(projectId),
   })

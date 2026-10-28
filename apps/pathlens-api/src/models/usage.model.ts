@@ -21,6 +21,17 @@ interface WorkspaceUsageRow extends Record<string, unknown> {
   heatmap_pages: number | string | null;
 }
 
+interface UserUsageRow extends Record<string, unknown> {
+  workspace_count: number | string | null;
+  page_views: number | string | null;
+  event_count: number | string | null;
+  recordings: number | string | null;
+  heatmap_pages: number | string | null;
+  projects: number | string | null;
+  funnels: number | string | null;
+  goals: number | string | null;
+}
+
 interface WorkspaceLimitState extends Record<string, unknown> {
   usage_status: string;
   usage_warning_at: Date | string | null;
@@ -105,6 +116,75 @@ export async function getWorkspaceUsageCounts(workspaceId: string) {
     funnels: toNumber(row?.funnels),
     goals: toNumber(row?.goals),
   };
+}
+
+export async function getUserUsagePercentageModel(userId: string) {
+  const result = await db.execute<UserUsageRow>(sql`
+    SELECT
+      (SELECT COUNT(DISTINCT workspace_id)
+       FROM workspace_members
+       WHERE user_id = ${userId})::int AS workspace_count,
+      (SELECT COUNT(*)
+       FROM events
+       WHERE workspace_id IN (
+         SELECT workspace_id FROM workspace_members WHERE user_id = ${userId}
+       ) AND type = 'page_view')::int AS page_views,
+      (SELECT COUNT(*)
+       FROM events
+       WHERE workspace_id IN (
+         SELECT workspace_id FROM workspace_members WHERE user_id = ${userId}
+       ))::int AS event_count,
+      (SELECT COUNT(*)
+       FROM replay_sessions
+       WHERE workspace_id IN (
+         SELECT workspace_id FROM workspace_members WHERE user_id = ${userId}
+       ))::int AS recordings,
+      (SELECT COUNT(*)
+       FROM (
+         SELECT DISTINCT workspace_id, COALESCE(NULLIF(path, ''), '/') AS path
+         FROM events
+         WHERE workspace_id IN (
+           SELECT workspace_id FROM workspace_members WHERE user_id = ${userId}
+         ) AND type = 'page_view'
+       ) AS workspace_pages)::int AS heatmap_pages,
+      (SELECT COUNT(*)
+       FROM projects
+       WHERE workspace_id IN (
+         SELECT workspace_id FROM workspace_members WHERE user_id = ${userId}
+       ))::int AS projects,
+      (SELECT COUNT(*)
+       FROM funnels
+       WHERE workspace_id IN (
+         SELECT workspace_id FROM workspace_members WHERE user_id = ${userId}
+       ))::int AS funnels,
+      (SELECT COUNT(*)
+       FROM goals
+       WHERE workspace_id IN (
+         SELECT workspace_id FROM workspace_members WHERE user_id = ${userId}
+       ))::int AS goals
+  `);
+
+  const row = result.rows[0];
+  const workspaceCount = toNumber(row?.workspace_count);
+  const totalUsage = [
+    toNumber(row?.page_views),
+    toNumber(row?.event_count),
+    toNumber(row?.recordings),
+    toNumber(row?.heatmap_pages),
+    toNumber(row?.projects),
+    toNumber(row?.funnels),
+    toNumber(row?.goals),
+  ].reduce((total, value) => total + value, 0);
+  const totalLimit = Object.values(WORKSPACE_USAGE_LIMITS).reduce(
+    (total, limit) => total + limit,
+    0
+  );
+
+  if (workspaceCount === 0) return 0;
+
+  return Number(
+    ((totalUsage / (workspaceCount * totalLimit)) * 100).toFixed(2)
+  );
 }
 
 export async function assertWorkspaceUsageLimit(

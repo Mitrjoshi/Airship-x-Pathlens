@@ -123,7 +123,7 @@ function RouteComponent() {
       >
         <div className="mx-auto max-w-4xl pt-10">
           <div className="space-y-5">
-            <p className="text-2xl font-semibold">Your Workspaces</p>
+            <p className="text-xl font-semibold">Your Workspaces</p>
 
             <div className="space-y-5">
               <div className="flex items-center justify-between gap-4">

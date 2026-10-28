@@ -22,7 +22,9 @@ export const FeedbackPopover = () => {
   const [validationError, setValidationError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const createFeedback = useCreateFeedback()
-  const { data: feedbackStatus } = useQuery(getFeedbackStatusOptions())
+  const { data: feedbackStatus, isLoading } = useQuery(
+    getFeedbackStatusOptions()
+  )
   const hasSubmitted = submitted || feedbackStatus?.data.submitted === true
 
   const resetForm = () => {
@@ -64,7 +66,10 @@ export const FeedbackPopover = () => {
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger render={<Button variant="outline">Feedback</Button>} />
+      <PopoverTrigger
+        disabled={isLoading}
+        render={<Button variant="outline">Feedback</Button>}
+      />
 
       <PopoverContent
         align="end"

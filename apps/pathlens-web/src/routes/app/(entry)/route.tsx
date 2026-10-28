@@ -4,7 +4,7 @@ import {
   Outlet,
   useLocation,
 } from '@tanstack/react-router'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import {
   Sidebar,
   SidebarContent,
@@ -44,28 +44,63 @@ function RouteComponent() {
   )
 }
 
-const sidebarGeneralItems = [
-  {
-    label: 'Workspaces',
-    icon: navigationIcons.workspaces,
-    to: '/app',
-    isActive: (pathname: string) => pathname === '/app',
-  },
-  {
-    label: 'Billing',
-    icon: navigationIcons.billing,
-    to: '/app/billing',
-    isActive: (pathname: string) => pathname === '/app/billing',
-  },
-  {
-    label: 'Account Settings',
-    icon: navigationIcons.accountSettings,
-    to: '/app/settings',
-    isActive: (pathname: string) => pathname === '/app/settings',
-  },
-]
 export const EntrySidebar = () => {
   const { pathname } = useLocation()
+
+  const sidebarGeneralItems = [
+    {
+      label: 'General',
+      items: [
+        {
+          label: 'Workspaces',
+          icon: navigationIcons.workspaces,
+          to: '/app',
+          isActive: pathname === '/app',
+        },
+        {
+          label: 'Activity',
+          icon: navigationIcons.activity,
+          to: '/app/activity',
+          isActive: pathname === '/app/activity',
+        },
+        {
+          label: 'Usage',
+          icon: navigationIcons.usage,
+          to: '/app/usage',
+          isActive: pathname === '/app/usage',
+        },
+        {
+          label: 'Notifications',
+          icon: navigationIcons.notifications,
+          to: '/app/notifications',
+          isActive: pathname === '/app/notifications',
+        },
+      ],
+    },
+    {
+      label: 'Account',
+      items: [
+        {
+          label: 'Account Settings',
+          icon: navigationIcons.accountSettings,
+          to: '/app/settings',
+          isActive: pathname === '/app/settings',
+        },
+        {
+          label: 'Billing',
+          icon: navigationIcons.billing,
+          to: '/app/billing',
+          isActive: pathname === '/app/billing',
+        },
+        {
+          label: 'Sessions & Security',
+          icon: navigationIcons.security,
+          to: '/app/security',
+          isActive: pathname === '/app/security',
+        },
+      ],
+    },
+  ]
 
   return (
     <>
@@ -89,71 +124,88 @@ export const EntrySidebar = () => {
           <Separator />
 
           <SidebarGroup>
-            <SidebarGroupLabel>General</SidebarGroupLabel>
+            <AnimatePresence mode="wait">
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{
+                  duration: 0.18,
+                  ease: 'easeOut',
+                }}
+              >
+                <motion.div className="space-y-2">
+                  {sidebarGeneralItems.map((label, index) => {
+                    return (
+                      <div className="pb-2">
+                        <SidebarGroupLabel key={index}>
+                          {label.label}
+                        </SidebarGroupLabel>
 
-            <motion.div>
-              {sidebarGeneralItems.map((item, index) => {
-                const Icon = item.icon
-                const active = item.isActive(pathname)
+                        {label.items.map((item, index) => {
+                          const Icon = item.icon
 
-                return (
-                  <motion.div
-                    key={item.label}
-                    className="relative h-8 overflow-hidden rounded-md"
-                    initial="loading"
-                    animate="loaded"
-                    variants={{
-                      loading: {},
-                      loaded: {},
-                    }}
-                  >
-                    {/* Temporary loading background */}
-                    <motion.div
-                      className="bg-muted/20 absolute inset-0 mb-1 rounded-md"
-                      initial={{ opacity: 1 }}
-                      animate={{ opacity: 0 }}
-                      transition={{
-                        duration: 0.2,
-                        delay: index * 0.01,
-                      }}
-                    />
+                          return (
+                            <>
+                              <div key={item.label}>
+                                <div className="relative h-8 overflow-hidden rounded-md">
+                                  {/* Temporary loading background */}
+                                  <motion.div
+                                    className="bg-muted/20 absolute inset-0 mb-1 rounded-md"
+                                    initial={{ opacity: 1 }}
+                                    animate={{ opacity: 0 }}
+                                    transition={{
+                                      duration: 0.2,
+                                      delay: index * 0.01,
+                                    }}
+                                  />
 
-                    {/* Actual item */}
-                    <motion.div
-                      initial={{
-                        opacity: 0,
-                        y: 3,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      transition={{
-                        duration: 0.2,
-                        delay: index * 0.01,
-
-                        ease: 'easeOut',
-                      }}
-                    >
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          render={
-                            <Button
-                              className="justify-start"
-                              variant={active ? 'secondary' : 'ghost'}
-                              render={<Link to={item.to} />}
-                            />
-                          }
-                        >
-                          <Icon />
-                          {item.label}
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    </motion.div>
-                  </motion.div>
-                )
-              })}
-            </motion.div>
+                                  {/* Actual sidebar item */}
+                                  <motion.div
+                                    initial={{
+                                      opacity: 0,
+                                      y: 3,
+                                    }}
+                                    animate={{
+                                      opacity: 1,
+                                      y: 0,
+                                    }}
+                                    transition={{
+                                      duration: 0.18,
+                                      delay: index * 0.01,
+                                      ease: 'easeOut',
+                                    }}
+                                  >
+                                    <SidebarMenuItem>
+                                      <SidebarMenuButton
+                                        render={
+                                          <Button
+                                            className="justify-start"
+                                            variant={
+                                              item.isActive
+                                                ? 'secondary'
+                                                : 'ghost'
+                                            }
+                                            render={<Link to={item.to} />}
+                                          />
+                                        }
+                                      >
+                                        <Icon />
+                                        {item.label}
+                                      </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                  </motion.div>
+                                </div>
+                              </div>
+                            </>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </motion.div>
+              </motion.div>
+            </AnimatePresence>
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="bg-background border-t">

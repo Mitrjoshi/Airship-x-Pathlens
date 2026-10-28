@@ -13,7 +13,7 @@ import {
   EyeIcon,
   PlusIcon,
 } from 'lucide-react'
-import type { TrackingScope } from '@workspace/contracts'
+import type { Permission, TrackingScope } from '@workspace/contracts'
 import { Button } from '@workspace/ui/components/button'
 import { Badge } from '@workspace/ui/components/badge'
 import { Calendar } from '@workspace/ui/components/calendar'
@@ -62,7 +62,7 @@ import {
   getProjectApiKeysOptions,
   type T_ProjectApiKey,
 } from '@/queries/api-keys'
-import { getWorkspaceByIdOptions } from '@/queries/workspace'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 
 import {
   useCreateProjectApiKey,
@@ -77,7 +77,6 @@ import {
 import { DotSeparator, DotSeparatorItem } from '../../-components/dot-separator'
 
 import { NoPermissionView } from './-components/common/no-permission-view'
-import ApiKeyLoading from './-components/common/api-key-loading'
 
 /* -------------------------------------------------------------------------- */
 /*                                   Config                                   */
@@ -150,53 +149,58 @@ function RouteComponent() {
 
   const [dialog, setDialog] = useState<ApiKeyDialogState>(null)
 
-  const { data: workspace, isLoading: workspaceLoading } = useQuery(
-    getWorkspaceByIdOptions(workspaceId)
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
   )
 
-  const { data: keysData, isLoading: keysLoading } = useQuery(
-    getProjectApiKeysOptions(projectId)
-  )
+  const permissions = permissionsData?.data
 
-  if (
-    !(workspaceLoading || keysLoading) &&
-    !workspace?.data.permissions.includes('project.api_keys.view')
-  ) {
-    return <NoPermissionView />
-  }
+  const hasViewPermission = permissions?.includes('project.api_keys.view')
+  const hasCreatePermission = permissions?.includes('project.api_keys.create')
+  const hasRevokePermission = permissions?.includes('project.api_keys.revoke')
+
+  const { data: keysData, isLoading: keysLoading } = useQuery({
+    ...getProjectApiKeysOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
 
   return (
     <div className="space-y-6 p-6">
       <PageHeader
         onCreate={() => {
+          if (!hasCreatePermission) {
+            toast.error('You do not have permission to create API keys.')
+            return
+          }
           setDialog({
             type: 'create',
           })
         }}
       />
 
-      <ApiKeysTable
-        data={keysData?.data ?? []}
-        isLoading={workspaceLoading || keysLoading}
-        onCreate={() => {
-          setDialog({
-            type: 'create',
-          })
-        }}
-        onViewScript={(apiKey) => {
-          setDialog({
-            type: 'script',
-            apiKey,
-          })
-        }}
-        onDeactivate={(item) => {
-          setDialog({
-            type: 'deactivate',
-            id: item.id,
-            name: item.name,
-          })
-        }}
-      />
+      {hasViewPermission || permissionsLoading ? (
+        <ApiKeysTable
+          permissionsLoading={permissionsLoading}
+          hasRevokePermission={hasRevokePermission!}
+          data={keysData?.data ?? []}
+          isLoading={keysLoading}
+          onViewScript={(apiKey) => {
+            setDialog({
+              type: 'script',
+              apiKey,
+            })
+          }}
+          onDeactivate={(item) => {
+            setDialog({
+              type: 'deactivate',
+              id: item.id,
+              name: item.name,
+            })
+          }}
+        />
+      ) : (
+        <NoPermissionView />
+      )}
 
       <ApiKeyDialog
         projectId={projectId}
@@ -239,17 +243,21 @@ function PageHeader({ onCreate }: { onCreate: () => void }) {
 type ApiKeysTableProps = {
   data: T_ProjectApiKey[]
   isLoading: boolean
-  onCreate: () => void
   onViewScript: (apiKey: string) => void
   onDeactivate: (item: T_ProjectApiKey) => void
+  permissionsLoading: boolean
+
+  hasRevokePermission: boolean
 }
 
 function ApiKeysTable({
   data,
   isLoading,
-  onCreate,
   onViewScript,
   onDeactivate,
+  permissionsLoading,
+
+  hasRevokePermission,
 }: ApiKeysTableProps) {
   return (
     <div className="overflow-hidden border">
@@ -269,7 +277,7 @@ function ApiKeysTable({
         </TableHeader>
 
         <TableBody>
-          {isLoading ? (
+          {isLoading || permissionsLoading ? (
             <ApiKeysTableSkeleton />
           ) : data.length ? (
             data.map((item) => (
@@ -278,10 +286,12 @@ function ApiKeysTable({
                 item={item}
                 onViewScript={onViewScript}
                 onDeactivate={onDeactivate}
+
+                hasRevokePermission={hasRevokePermission!}
               />
             ))
           ) : (
-            <EmptyApiKeys onCreate={onCreate} />
+            <EmptyApiKeys />
           )}
         </TableBody>
       </Table>
@@ -329,7 +339,7 @@ function ApiKeysTableSkeleton() {
 /*                                Empty State                                 */
 /* -------------------------------------------------------------------------- */
 
-function EmptyApiKeys({ onCreate }: { onCreate: () => void }) {
+function EmptyApiKeys() {
   return (
     <TableRow>
       <TableCell colSpan={API_KEY_TABLE_COLUMNS} className="h-20 text-center">
@@ -349,9 +359,17 @@ type ApiKeyRowProps = {
   item: T_ProjectApiKey
   onViewScript: (apiKey: string) => void
   onDeactivate: (item: T_ProjectApiKey) => void
+
+  hasRevokePermission: boolean
 }
 
-function ApiKeyRow({ item, onViewScript, onDeactivate }: ApiKeyRowProps) {
+function ApiKeyRow({
+  item,
+  onViewScript,
+  onDeactivate,
+
+  hasRevokePermission,
+}: ApiKeyRowProps) {
   const isRevoked = Boolean(item.revokedAt)
 
   const [copied, setCopied] = useState(false)
@@ -426,6 +444,7 @@ function ApiKeyRow({ item, onViewScript, onDeactivate }: ApiKeyRowProps) {
 
       <TableCell className="w-20 text-center">
         <ApiKeyActions
+          hasRevokePermission={hasRevokePermission}
           disabled={isRevoked}
           onDeactivate={() => {
             onDeactivate(item)
@@ -479,9 +498,16 @@ function ScopeBadges({ scopes }: { scopes: string[] }) {
 type ApiKeyActionsProps = {
   disabled: boolean
   onDeactivate: () => void
+
+  hasRevokePermission: boolean
 }
 
-function ApiKeyActions({ disabled, onDeactivate }: ApiKeyActionsProps) {
+function ApiKeyActions({
+  disabled,
+  onDeactivate,
+
+  hasRevokePermission,
+}: ApiKeyActionsProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -495,6 +521,11 @@ function ApiKeyActions({ disabled, onDeactivate }: ApiKeyActionsProps) {
           variant="destructive"
           onClick={(event) => {
             event.stopPropagation()
+
+            if (!hasRevokePermission) {
+              toast.error('You do not have permission to revoke this API key.')
+              return
+            }
             onDeactivate()
           }}
         >
@@ -905,7 +936,7 @@ function DeactivateApiKey({
         </DialogDescription>
       </DialogHeader>
 
-      <DialogFooter className="pt-4">
+      <DialogFooter className="py-2">
         <Button variant="secondary" disabled={isPending} onClick={onCancel}>
           Cancel
         </Button>

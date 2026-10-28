@@ -268,7 +268,6 @@ export async function getWorkspaces(user_id: string) {
       role: workspaceMembers.role,
       permissionProfileId: workspaceMembers.permissionProfileId,
       permissionProfileName: permissionProfiles.name,
-      permissions: permissionProfiles.permissions,
       projectCount: db.$count(
         projects,
         eq(projects.workspaceId, workspaces.id)
@@ -290,10 +289,6 @@ export async function getWorkspaces(user_id: string) {
   return workspacesResult.map((workspace) => ({
     ...workspace,
     external: workspace.userId !== user_id,
-    permissions:
-      workspace.role === "owner"
-        ? [...DEFAULT_FULL_ACCESS_PERMISSIONS]
-        : normalizePermissions(workspace.permissions),
   }));
 }
 
@@ -313,7 +308,6 @@ export async function getWorkspaceByIdModel(
       role: workspaceMembers.role,
       permissionProfileId: workspaceMembers.permissionProfileId,
       permissionProfileName: permissionProfiles.name,
-      permissions: permissionProfiles.permissions,
       projectCount: db.$count(
         projects,
         eq(projects.workspaceId, workspaces.id)
@@ -340,10 +334,6 @@ export async function getWorkspaceByIdModel(
 
   return {
     ...workspace,
-    permissions:
-      workspace.role === "owner"
-        ? [...DEFAULT_FULL_ACCESS_PERMISSIONS]
-        : normalizePermissions(workspace.permissions),
   };
 }
 

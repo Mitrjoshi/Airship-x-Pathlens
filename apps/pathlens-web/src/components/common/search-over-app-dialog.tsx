@@ -1,5 +1,9 @@
 import { getProjectsOptions } from '@/queries/projects'
-import { getWorkspacesOptions, type T_Workspace } from '@/queries/workspace'
+import {
+  getWorkspacePermissionsOptions,
+  getWorkspacesOptions,
+  type T_Workspace,
+} from '@/queries/workspace'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import type { Permission } from '@workspace/contracts'
@@ -339,15 +343,14 @@ const projectPageDefinitions: PageDefinition<ProjectPagePath>[] = [
 
 function hasPermission(
   workspace: T_Workspace | undefined,
+  availablePermissions: readonly Permission[],
   permissions?: readonly Permission[]
 ): boolean {
   if (!permissions?.length) return true
 
   return (
     workspace?.role === 'owner' ||
-    permissions.some((permission) =>
-      workspace?.permissions.includes(permission)
-    )
+    permissions.some((permission) => availablePermissions.includes(permission))
   )
 }
 
@@ -390,6 +393,11 @@ export const SearchOverAppDialog = ({
     enabled: open,
   })
 
+  const workspacePermissionsQuery = useQuery({
+    ...getWorkspacePermissionsOptions(workspaceId ?? ''),
+    enabled: open && Boolean(workspaceId),
+  })
+
   const workspaces = workspacesQuery.data?.data ?? []
 
   const projectQueries = useQueries({
@@ -406,6 +414,7 @@ export const SearchOverAppDialog = ({
   const activeWorkspace = workspaceId
     ? workspaces.find((workspace) => workspace.id === workspaceId)
     : undefined
+  const activeWorkspacePermissions = workspacePermissionsQuery.data?.data ?? []
 
   /* ------------------------------------------------------------------------ */
   /* Keyboard shortcut                                                        */
@@ -501,7 +510,13 @@ export const SearchOverAppDialog = ({
 
   const workspacePageResults: SearchResult[] = workspaceId
     ? workspacePageDefinitions
-        .filter((page) => hasPermission(activeWorkspace, page.permissions))
+        .filter((page) =>
+          hasPermission(
+            activeWorkspace,
+            activeWorkspacePermissions,
+            page.permissions
+          )
+        )
         .map((page) => ({
           ...page,
           category: 'Pages' as const,
@@ -512,7 +527,13 @@ export const SearchOverAppDialog = ({
   const projectPageResults: SearchResult[] =
     workspaceId && projectId
       ? projectPageDefinitions
-          .filter((page) => hasPermission(activeWorkspace, page.permissions))
+          .filter((page) =>
+            hasPermission(
+              activeWorkspace,
+              activeWorkspacePermissions,
+              page.permissions
+            )
+          )
           .map((page) => ({
             ...page,
             category: 'Pages' as const,
@@ -622,6 +643,7 @@ export const SearchOverAppDialog = ({
   const isEntityLoading =
     open &&
     (workspacesQuery.isPending ||
+      workspacePermissionsQuery.isPending ||
       projectQueries.some((query) => query.isPending))
 
   /* ------------------------------------------------------------------------ */

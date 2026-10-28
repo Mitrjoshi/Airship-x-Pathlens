@@ -33,9 +33,12 @@ import { Route as AppWorkspaceIdSettingsRouteImport } from './routes/app/$worksp
 import { Route as AppWorkspaceIdTeamRouteImport } from './routes/app/$workspaceId/team'
 import { Route as AppWorkspaceIdUsageRouteImport } from './routes/app/$workspaceId/usage'
 import { Route as AppentryIndexRouteImport } from './routes/app/(entry)/index'
+import { Route as AppentryActivityRouteImport } from './routes/app/(entry)/activity'
 import { Route as AppentryBillingRouteImport } from './routes/app/(entry)/billing'
-import { Route as AppentryProfileRouteImport } from './routes/app/(entry)/profile'
+import { Route as AppentryNotificationsRouteImport } from './routes/app/(entry)/notifications'
+import { Route as AppentrySecurityRouteImport } from './routes/app/(entry)/security'
 import { Route as AppentrySettingsRouteImport } from './routes/app/(entry)/settings'
+import { Route as AppentryUsageRouteImport } from './routes/app/(entry)/usage'
 import { Route as openProductsProductIdIndexRouteImport } from './routes/(open)/products/$productId/index'
 import { Route as openSolutionsSolutionIdIndexRouteImport } from './routes/(open)/solutions/$solutionId/index'
 import { Route as AppWorkspaceIdProjectIdIndexRouteImport } from './routes/app/$workspaceId/$projectId/index'
@@ -178,19 +181,34 @@ const AppentryIndexRoute = AppentryIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppentryRouteRoute,
 } as any)
+const AppentryActivityRoute = AppentryActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => AppentryRouteRoute,
+} as any)
 const AppentryBillingRoute = AppentryBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
   getParentRoute: () => AppentryRouteRoute,
 } as any)
-const AppentryProfileRoute = AppentryProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+const AppentryNotificationsRoute = AppentryNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppentryRouteRoute,
+} as any)
+const AppentrySecurityRoute = AppentrySecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
   getParentRoute: () => AppentryRouteRoute,
 } as any)
 const AppentrySettingsRoute = AppentrySettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppentryRouteRoute,
+} as any)
+const AppentryUsageRoute = AppentryUsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
   getParentRoute: () => AppentryRouteRoute,
 } as any)
 const openProductsProductIdIndexRoute =
@@ -350,9 +368,12 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
+  '/app/activity': typeof AppentryActivityRoute
   '/app/billing': typeof AppentryBillingRoute
-  '/app/profile': typeof AppentryProfileRoute
+  '/app/notifications': typeof AppentryNotificationsRoute
+  '/app/security': typeof AppentrySecurityRoute
   '/app/settings': typeof AppentrySettingsRoute
+  '/app/usage': typeof AppentryUsageRoute
   '/products/': typeof openProductsIndexRoute
   '/solutions/': typeof openSolutionsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
@@ -398,9 +419,12 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
+  '/app/activity': typeof AppentryActivityRoute
   '/app/billing': typeof AppentryBillingRoute
-  '/app/profile': typeof AppentryProfileRoute
+  '/app/notifications': typeof AppentryNotificationsRoute
+  '/app/security': typeof AppentrySecurityRoute
   '/app/settings': typeof AppentrySettingsRoute
+  '/app/usage': typeof AppentryUsageRoute
   '/products': typeof openProductsIndexRoute
   '/solutions': typeof openSolutionsIndexRoute
   '/app/$workspaceId': typeof AppWorkspaceIdIndexRoute
@@ -450,9 +474,12 @@ export interface FileRoutesById {
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
+  '/app/(entry)/activity': typeof AppentryActivityRoute
   '/app/(entry)/billing': typeof AppentryBillingRoute
-  '/app/(entry)/profile': typeof AppentryProfileRoute
+  '/app/(entry)/notifications': typeof AppentryNotificationsRoute
+  '/app/(entry)/security': typeof AppentrySecurityRoute
   '/app/(entry)/settings': typeof AppentrySettingsRoute
+  '/app/(entry)/usage': typeof AppentryUsageRoute
   '/(open)/products/': typeof openProductsIndexRoute
   '/(open)/solutions/': typeof openSolutionsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
@@ -501,9 +528,12 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
+    | '/app/activity'
     | '/app/billing'
-    | '/app/profile'
+    | '/app/notifications'
+    | '/app/security'
     | '/app/settings'
+    | '/app/usage'
     | '/products/'
     | '/solutions/'
     | '/app/$workspaceId/'
@@ -549,9 +579,12 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
+    | '/app/activity'
     | '/app/billing'
-    | '/app/profile'
+    | '/app/notifications'
+    | '/app/security'
     | '/app/settings'
+    | '/app/usage'
     | '/products'
     | '/solutions'
     | '/app/$workspaceId'
@@ -600,9 +633,12 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
+    | '/app/(entry)/activity'
     | '/app/(entry)/billing'
-    | '/app/(entry)/profile'
+    | '/app/(entry)/notifications'
+    | '/app/(entry)/security'
     | '/app/(entry)/settings'
+    | '/app/(entry)/usage'
     | '/(open)/products/'
     | '/(open)/solutions/'
     | '/app/$workspaceId/'
@@ -808,6 +844,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppentryIndexRouteImport
       parentRoute: typeof AppentryRouteRoute
     }
+    '/app/(entry)/activity': {
+      id: '/app/(entry)/activity'
+      path: '/activity'
+      fullPath: '/app/activity'
+      preLoaderRoute: typeof AppentryActivityRouteImport
+      parentRoute: typeof AppentryRouteRoute
+    }
     '/app/(entry)/billing': {
       id: '/app/(entry)/billing'
       path: '/billing'
@@ -815,11 +858,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppentryBillingRouteImport
       parentRoute: typeof AppentryRouteRoute
     }
-    '/app/(entry)/profile': {
-      id: '/app/(entry)/profile'
-      path: '/profile'
-      fullPath: '/app/profile'
-      preLoaderRoute: typeof AppentryProfileRouteImport
+    '/app/(entry)/notifications': {
+      id: '/app/(entry)/notifications'
+      path: '/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppentryNotificationsRouteImport
+      parentRoute: typeof AppentryRouteRoute
+    }
+    '/app/(entry)/security': {
+      id: '/app/(entry)/security'
+      path: '/security'
+      fullPath: '/app/security'
+      preLoaderRoute: typeof AppentrySecurityRouteImport
       parentRoute: typeof AppentryRouteRoute
     }
     '/app/(entry)/settings': {
@@ -827,6 +877,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/app/settings'
       preLoaderRoute: typeof AppentrySettingsRouteImport
+      parentRoute: typeof AppentryRouteRoute
+    }
+    '/app/(entry)/usage': {
+      id: '/app/(entry)/usage'
+      path: '/usage'
+      fullPath: '/app/usage'
+      preLoaderRoute: typeof AppentryUsageRouteImport
       parentRoute: typeof AppentryRouteRoute
     }
     '/(open)/products/$productId/': {
@@ -1111,16 +1168,22 @@ const AppWorkspaceIdRouteRouteWithChildren =
   AppWorkspaceIdRouteRoute._addFileChildren(AppWorkspaceIdRouteRouteChildren)
 
 interface AppentryRouteRouteChildren {
+  AppentryActivityRoute: typeof AppentryActivityRoute
   AppentryBillingRoute: typeof AppentryBillingRoute
-  AppentryProfileRoute: typeof AppentryProfileRoute
+  AppentryNotificationsRoute: typeof AppentryNotificationsRoute
+  AppentrySecurityRoute: typeof AppentrySecurityRoute
   AppentrySettingsRoute: typeof AppentrySettingsRoute
+  AppentryUsageRoute: typeof AppentryUsageRoute
   AppentryIndexRoute: typeof AppentryIndexRoute
 }
 
 const AppentryRouteRouteChildren: AppentryRouteRouteChildren = {
+  AppentryActivityRoute: AppentryActivityRoute,
   AppentryBillingRoute: AppentryBillingRoute,
-  AppentryProfileRoute: AppentryProfileRoute,
+  AppentryNotificationsRoute: AppentryNotificationsRoute,
+  AppentrySecurityRoute: AppentrySecurityRoute,
   AppentrySettingsRoute: AppentrySettingsRoute,
+  AppentryUsageRoute: AppentryUsageRoute,
   AppentryIndexRoute: AppentryIndexRoute,
 }
 

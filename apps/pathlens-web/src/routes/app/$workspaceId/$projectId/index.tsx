@@ -42,6 +42,8 @@ import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import { getProjectDomainsOptions } from '@/queries/domains'
 import { DomainSwitcher } from './-components/common/domain-switcher'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
+import { NoPermissionView } from './-components/common/no-permission-view'
 
 const visitorsChartConfig = {
   value: {
@@ -108,10 +110,17 @@ function RouteComponent() {
     getProjectDomainsOptions(projectId)
   )
 
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+
   const dashboard = dashboardData?.data
   const domains = domainsData?.data
 
   const lastUpdated = useRelativeTime(dataUpdatedAt)
+  const hasViewPermission = permissions?.includes('project.api_keys.view')
 
   const deviceChartConfig = {
     value: {
@@ -247,247 +256,253 @@ function RouteComponent() {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <MetricCard
-            label="Visitors"
-            value={formatNumber(dashboard?.weeklyChange.visitors.total)}
-            change={dashboard?.weeklyChange.visitors.value ?? 0}
-            positive={dashboard?.weeklyChange.visitors.positive ?? false}
-            chartData={dashboard?.visitorsChart}
-            dataKey="value"
-            chartConfig={visitorsChartConfig}
-            loading={isLoading}
-            onViewDetails={() => {
-              navigate({
-                to: '/app/$workspaceId/$projectId/visitors',
-                params: {
-                  projectId,
-                  workspaceId,
-                },
-              })
-            }}
-          />
+        {hasViewPermission ? (
+          <NoPermissionView />
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              <MetricCard
+                label="Visitors"
+                value={formatNumber(dashboard?.weeklyChange.visitors.total)}
+                change={dashboard?.weeklyChange.visitors.value ?? 0}
+                positive={dashboard?.weeklyChange.visitors.positive ?? false}
+                chartData={dashboard?.visitorsChart}
+                dataKey="value"
+                chartConfig={visitorsChartConfig}
+                loading={isLoading}
+                onViewDetails={() => {
+                  navigate({
+                    to: '/app/$workspaceId/$projectId/visitors',
+                    params: {
+                      projectId,
+                      workspaceId,
+                    },
+                  })
+                }}
+              />
 
-          <MetricCard
-            label="Sessions"
-            value={formatNumber(dashboard?.weeklyChange.sessions.total)}
-            change={dashboard?.weeklyChange.sessions.value ?? 0}
-            positive={dashboard?.weeklyChange.sessions.positive ?? false}
-            chartData={dashboard?.sessionChart}
-            dataKey="value"
-            chartConfig={sessionsChartConfig}
-            loading={isLoading}
-            onViewDetails={() => {
-              navigate({
-                to: '/app/$workspaceId/$projectId/session-replay',
-                params: {
-                  projectId,
-                  workspaceId,
-                },
-              })
-            }}
-          />
+              <MetricCard
+                label="Sessions"
+                value={formatNumber(dashboard?.weeklyChange.sessions.total)}
+                change={dashboard?.weeklyChange.sessions.value ?? 0}
+                positive={dashboard?.weeklyChange.sessions.positive ?? false}
+                chartData={dashboard?.sessionChart}
+                dataKey="value"
+                chartConfig={sessionsChartConfig}
+                loading={isLoading}
+                onViewDetails={() => {
+                  navigate({
+                    to: '/app/$workspaceId/$projectId/session-replay',
+                    params: {
+                      projectId,
+                      workspaceId,
+                    },
+                  })
+                }}
+              />
 
-          <MetricCard
-            label="Events"
-            value={formatNumber(dashboard?.weeklyChange.events.total)}
-            change={dashboard?.weeklyChange.events.value ?? 0}
-            positive={dashboard?.weeklyChange.events.positive ?? false}
-            chartData={dashboard?.eventsChart}
-            dataKey="value"
-            chartConfig={eventsChartConfig}
-            loading={isLoading}
-            onViewDetails={() => {
-              navigate({
-                to: '/app/$workspaceId/$projectId/events',
-                params: {
-                  projectId,
-                  workspaceId,
-                },
-              })
-            }}
-          />
-        </div>
+              <MetricCard
+                label="Events"
+                value={formatNumber(dashboard?.weeklyChange.events.total)}
+                change={dashboard?.weeklyChange.events.value ?? 0}
+                positive={dashboard?.weeklyChange.events.positive ?? false}
+                chartData={dashboard?.eventsChart}
+                dataKey="value"
+                chartConfig={eventsChartConfig}
+                loading={isLoading}
+                onViewDetails={() => {
+                  navigate({
+                    to: '/app/$workspaceId/$projectId/events',
+                    params: {
+                      projectId,
+                      workspaceId,
+                    },
+                  })
+                }}
+              />
+            </div>
 
-        <div className="flex h-100 w-full gap-3">
-          <Card className="bg-card/30 aspect-square rounded-none border-2 border-dashed p-0">
-            <CardHeader className="p-2">
-              <CardDescription>Requests by device type</CardDescription>
-            </CardHeader>
-            <CardContent className="p-2 pt-0 pb-4">
-              {isLoading ? (
-                <div className="mx-auto flex aspect-square w-full items-center justify-center">
-                  <LoaderIcon className="animate-spin" />
-                </div>
-              ) : deviceChartData.every((item) => item.value === 0) ? (
-                <div className="mx-auto flex aspect-square w-full items-center justify-center">
-                  <p className="text-muted-foreground text-sm">
-                    No Data Available
-                  </p>
-                </div>
-              ) : (
-                <ChartContainer
-                  config={deviceChartConfig}
-                  className="mx-auto aspect-square h-[85%]"
-                >
-                  <PieChart>
-                    <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent hideLabel />}
-                    />
-                    <Pie
-                      data={deviceChartData}
-                      dataKey="value"
-                      nameKey="device"
-                      innerRadius="60%"
-                      paddingAngle={3}
-                      cornerRadius={3}
-                      startAngle={270}
-                      endAngle={-90}
-                    />
-                    <ChartLegend
-                      content={<ChartLegendContent nameKey="value" />}
-                    />
-                  </PieChart>
-                </ChartContainer>
-              )}
-            </CardContent>
-          </Card>
-          <Card className="bg-card/30 flex-1 rounded-none border-2 border-dashed p-0">
-            <CardHeader className="p-2">
-              <div className="flex items-center justify-between">
-                <CardDescription>Requests by country</CardDescription>
-
-                <Button
-                  variant="link"
-                  disabled={isLoading}
-                  onClick={() => {
-                    navigate({
-                      to: '/app/$workspaceId/$projectId/visitors',
-                      params: {
-                        projectId,
-                        workspaceId,
-                      },
-                    })
-                  }}
-                  size="sm"
-                  className="text-muted-foreground px-0 underline-offset-2"
-                >
-                  View full report
-                  <ArrowUpRightIcon />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="divide-border flex h-full w-full items-start divide-x-2 p-2">
-              <div className="aspect-square h-full">
-                <VisitorsGlobe
-                  countries={
-                    isLoading || !dashboard?.countries
-                      ? []
-                      : dashboard?.countries
-                  }
-                />
-              </div>
-              <div className="w-full space-y-4 px-4">
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
-                        <div className="w-full space-y-1">
-                          <Skeleton className="h-3 w-1/3" />
-                          <Skeleton className="h-3 w-1/6" />
-                        </div>
-                      </div>
-
-                      <Skeleton className="h-2 w-full rounded-full" />
-
-                      <Skeleton className="ml-auto h-4 w-4" />
+            <div className="flex h-100 w-full gap-3">
+              <Card className="bg-card/30 aspect-square rounded-none border-2 border-dashed p-0">
+                <CardHeader className="p-2">
+                  <CardDescription>Requests by device type</CardDescription>
+                </CardHeader>
+                <CardContent className="p-2 pt-0 pb-4">
+                  {isLoading ? (
+                    <div className="mx-auto flex aspect-square w-full items-center justify-center">
+                      <LoaderIcon className="animate-spin" />
                     </div>
-                  ))
-                ) : dashboard?.countries.length === 0 ? (
-                  <div className="flex w-full items-center justify-center">
-                    <p className="text-muted-foreground text-sm">
-                      No Data Available
-                    </p>
-                  </div>
-                ) : (
-                  dashboard?.countries.map((country, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Avatar>
-                          <AvatarFallback>{country.code}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="truncate text-sm font-medium">
-                            {country.city}
-                          </p>
-                          <p className="text-muted-foreground truncate text-xs">
-                            {country.name}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-                        <div
-                          className="bg-chart-1 h-full"
-                          style={{
-                            width: `${Math.min(country.visitors, 100)}%`,
-                          }}
-                        />
-                      </div>
-
-                      <p className="text-right text-sm font-medium">
-                        {formatNumber(country.visitors)}
+                  ) : deviceChartData.every((item) => item.value === 0) ? (
+                    <div className="mx-auto flex aspect-square w-full items-center justify-center">
+                      <p className="text-muted-foreground text-sm">
+                        No Data Available
                       </p>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  ) : (
+                    <ChartContainer
+                      config={deviceChartConfig}
+                      className="mx-auto aspect-square h-[85%]"
+                    >
+                      <PieChart>
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent hideLabel />}
+                        />
+                        <Pie
+                          data={deviceChartData}
+                          dataKey="value"
+                          nameKey="device"
+                          innerRadius="60%"
+                          paddingAngle={3}
+                          cornerRadius={3}
+                          startAngle={270}
+                          endAngle={-90}
+                        />
+                        <ChartLegend
+                          content={<ChartLegendContent nameKey="value" />}
+                        />
+                      </PieChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="bg-card/30 flex-1 rounded-none border-2 border-dashed p-0">
+                <CardHeader className="p-2">
+                  <div className="flex items-center justify-between">
+                    <CardDescription>Requests by country</CardDescription>
 
-        <div className="grid grid-cols-4 gap-3">
-          <ProgressListCard
-            title="Top paths"
-            data={dashboard?.pages}
-            getLabel={(item) => item.page as string}
-            getValue={(item) => item.views}
-            loading={isLoading}
-            getDuration={(item) => item.duration}
-          />
+                    <Button
+                      variant="link"
+                      disabled={isLoading}
+                      onClick={() => {
+                        navigate({
+                          to: '/app/$workspaceId/$projectId/visitors',
+                          params: {
+                            projectId,
+                            workspaceId,
+                          },
+                        })
+                      }}
+                      size="sm"
+                      className="text-muted-foreground px-0 underline-offset-2"
+                    >
+                      View full report
+                      <ArrowUpRightIcon />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="divide-border flex h-full w-full items-start divide-x-2 p-2">
+                  <div className="aspect-square h-full">
+                    <VisitorsGlobe
+                      countries={
+                        isLoading || !dashboard?.countries
+                          ? []
+                          : dashboard?.countries
+                      }
+                    />
+                  </div>
+                  <div className="w-full space-y-4 px-4">
+                    {isLoading ? (
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                            <div className="w-full space-y-1">
+                              <Skeleton className="h-3 w-1/3" />
+                              <Skeleton className="h-3 w-1/6" />
+                            </div>
+                          </div>
 
-          <ProgressListCard
-            title="Top hosts"
-            data={dashboard?.trafficSources}
-            getLabel={(item) => item.name}
-            getValue={(item) => item.visitors}
-            loading={isLoading}
-          />
+                          <Skeleton className="h-2 w-full rounded-full" />
 
-          <ProgressListCard
-            title="Top Browsers"
-            data={dashboard?.topBrowsers}
-            getLabel={(item) => item.name}
-            getValue={(item) => item.visitors}
-            loading={isLoading}
-          />
+                          <Skeleton className="ml-auto h-4 w-4" />
+                        </div>
+                      ))
+                    ) : dashboard?.countries.length === 0 ? (
+                      <div className="flex w-full items-center justify-center">
+                        <p className="text-muted-foreground text-sm">
+                          No Data Available
+                        </p>
+                      </div>
+                    ) : (
+                      dashboard?.countries.map((country, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Avatar>
+                              <AvatarFallback>{country.code}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="truncate text-sm font-medium">
+                                {country.city}
+                              </p>
+                              <p className="text-muted-foreground truncate text-xs">
+                                {country.name}
+                              </p>
+                            </div>
+                          </div>
 
-          <ProgressListCard
-            title="Top operating systems"
-            data={dashboard?.topOperatingSystems}
-            getLabel={(item) => item.name}
-            getValue={(item) => item.visitors}
-            loading={isLoading}
-          />
-        </div>
+                          <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                            <div
+                              className="bg-chart-1 h-full"
+                              style={{
+                                width: `${Math.min(country.visitors, 100)}%`,
+                              }}
+                            />
+                          </div>
+
+                          <p className="text-right text-sm font-medium">
+                            {formatNumber(country.visitors)}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3">
+              <ProgressListCard
+                title="Top paths"
+                data={dashboard?.pages}
+                getLabel={(item) => item.page as string}
+                getValue={(item) => item.views}
+                loading={isLoading}
+                getDuration={(item) => item.duration}
+              />
+
+              <ProgressListCard
+                title="Top hosts"
+                data={dashboard?.trafficSources}
+                getLabel={(item) => item.name}
+                getValue={(item) => item.visitors}
+                loading={isLoading}
+              />
+
+              <ProgressListCard
+                title="Top Browsers"
+                data={dashboard?.topBrowsers}
+                getLabel={(item) => item.name}
+                getValue={(item) => item.visitors}
+                loading={isLoading}
+              />
+
+              <ProgressListCard
+                title="Top operating systems"
+                data={dashboard?.topOperatingSystems}
+                getLabel={(item) => item.name}
+                getValue={(item) => item.visitors}
+                loading={isLoading}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

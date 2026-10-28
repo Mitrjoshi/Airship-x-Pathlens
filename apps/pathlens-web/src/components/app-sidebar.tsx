@@ -291,14 +291,6 @@ export function AppSidebar({
 
       <SidebarFooter className="border-t">
         <div className="flow-row flex items-center justify-between">
-          <NavUser
-            user={{
-              name: user?.name ?? 'Pathlens user',
-              email: user?.email ?? '',
-              avatar: user?.avatar,
-            }}
-          />
-
           <SidebarTrigger
             className={'duration-200 group-data-[state=collapsed]:hidden'}
             render={<Button variant="secondary" />}

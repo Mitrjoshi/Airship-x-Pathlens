@@ -150,7 +150,7 @@ function RouteComponent() {
         <div className="mx-auto max-w-4xl pt-10">
           <div className="space-y-5">
             <div>
-              <p className="text-2xl font-medium">Workspace Settings</p>
+              <p className="text-xl font-medium">Workspace Settings</p>
               <p className="text-muted-foreground text-sm">
                 This is the default workspace. You cannot edit the name or
                 delete it.

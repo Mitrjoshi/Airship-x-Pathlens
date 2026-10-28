@@ -5,7 +5,7 @@ import {
   type ErrorsDevice,
   type ErrorsRange,
 } from '@/queries/errors'
-import { formatDate, getPaginationItems } from '@/utils/utils'
+import { formatDate, formatNumber, getPaginationItems } from '@/utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
@@ -309,6 +309,9 @@ function RouteComponent() {
                     <TableHead className="w-32 text-center">
                       Affected Users
                     </TableHead>
+                    <TableHead className="w-32 text-center">
+                      Occurrences
+                    </TableHead>
                     <TableHead className="w-32 text-center">Devices</TableHead>
                     <TableHead className="w-32 text-center">
                       First Seen
@@ -336,6 +339,12 @@ function RouteComponent() {
                           <TableCell className="w-20">
                             <div className="flex justify-center">
                               <Skeleton className="h-4 w-16" />
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="w-32">
+                            <div className="flex justify-center">
+                              <Skeleton className="h-4 w-12" />
                             </div>
                           </TableCell>
 
@@ -390,11 +399,15 @@ function RouteComponent() {
                           </TableCell>
 
                           <TableCell className="w-32 text-center whitespace-nowrap">
-                            {item.affectedSessions}
+                            {formatNumber(item.affectedSessions)}
                           </TableCell>
 
                           <TableCell className="w-32 text-center whitespace-nowrap">
-                            {item.affectedUsers}
+                            {formatNumber(item.affectedUsers)}
+                          </TableCell>
+
+                          <TableCell className="w-32 text-center whitespace-nowrap">
+                            {formatNumber(item.errorCount)}
                           </TableCell>
 
                           <TableCell className="w-32 text-center whitespace-nowrap capitalize">

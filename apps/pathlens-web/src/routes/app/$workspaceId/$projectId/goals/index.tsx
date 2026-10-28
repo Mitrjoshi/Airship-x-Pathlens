@@ -44,7 +44,15 @@ import {
 } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
-import { CalendarIcon, EllipsisIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import {
+  CalendarIcon,
+  EllipsisIcon,
+  PauseIcon,
+  PlayIcon,
+  PlusIcon,
+  RefreshCcwIcon,
+  SearchIcon,
+} from 'lucide-react'
 import { DomainSwitcher } from '../-components/common/domain-switcher'
 import { Calendar } from '@workspace/ui/components/calendar'
 import {
@@ -176,6 +184,7 @@ function RouteComponent() {
   )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [domain, setDomain] = useState('')
+  const [liveMode, setLiveMode] = useState(false)
 
   const { data: domainsData, isLoading: domainsLoading } = useQuery(
     getProjectDomainsOptions(projectId)
@@ -187,6 +196,7 @@ function RouteComponent() {
     data: goalsData,
     isLoading: goalsLoading,
     refetch: refetchGoals,
+    isRefetching,
   } = useQuery(
     getGoalsOptions({
       project_id: projectId,
@@ -263,11 +273,37 @@ function RouteComponent() {
         />
 
         <div className="flex items-center gap-2">
+          <Button
+            data-live={liveMode}
+            onClick={() => setLiveMode(!liveMode)}
+            className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
+            variant="outline"
+          >
+            {liveMode ? <PauseIcon /> : <PlayIcon />}
+            Live Refresh
+          </Button>
+
+          <Button
+            disabled={isRefetching}
+            onClick={() => {
+              refetchGoals()
+            }}
+            variant="outline"
+          >
+            <RefreshCcwIcon
+              className={`${isRefetching ? 'animate-spin' : ''}`}
+            />
+            Refresh
+          </Button>
+
+          <Separator orientation="vertical" />
+
           <Select
             items={rangeLabels}
             value={range}
             onValueChange={(value) => {
               if (!value) return
+
               setRange(value as GoalRange)
               localStorage.setItem('range', value)
             }}
@@ -275,6 +311,7 @@ function RouteComponent() {
             <SelectTrigger className="w-full sm:w-36">
               <SelectValue />
             </SelectTrigger>
+
             <SelectContent alignItemWithTrigger={false}>
               {rangeLabels.map((range) => (
                 <SelectItem key={range.value} value={range.value}>
@@ -283,8 +320,20 @@ function RouteComponent() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
 
-          <Separator orientation="vertical" />
+      <div className="mx-auto space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xl font-medium">Goals</p>
+
+            <p className="text-muted-foreground text-sm">
+              Define and manage the key actions you want to track as
+              conversions.
+            </p>
+          </div>
 
           {/* Create Goal Dialog */}
           <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
@@ -814,17 +863,6 @@ function RouteComponent() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
-
-      <div className="space-y-5 p-6">
-        {/* Header */}
-        <div>
-          <p className="text-xl font-medium">Goals</p>
-
-          <p className="text-muted-foreground text-sm">
-            Define and manage the key actions you want to track as conversions.
-          </p>
-        </div>
 
         {/* Controls */}
         <div className="flex items-center justify-between gap-4">
@@ -847,9 +885,10 @@ function RouteComponent() {
             ))}
           </div>
         ) : !goals?.length ? (
-          <div>
-            <p className="text-muted-foreground mt-20 text-center">
-              No goals found.
+          <div className="flex h-80 w-full flex-col items-center justify-center">
+            <p>No goals found.</p>
+            <p className="text-muted-foreground text-sm">
+              Create your first goal to get started.
             </p>
           </div>
         ) : (
@@ -1374,7 +1413,7 @@ const GoalCard = ({
             </FieldGroup>
           </form>
 
-          <DialogFooter>
+          <DialogFooter className="bg-transparent py-2">
             <Button
               type="button"
               variant="outline"
@@ -1414,7 +1453,7 @@ const GoalCard = ({
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter>
+          <DialogFooter className="bg-transparent py-2">
             <Button
               type="button"
               variant="outline"

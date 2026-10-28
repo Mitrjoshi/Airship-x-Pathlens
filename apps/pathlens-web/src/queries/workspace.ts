@@ -104,6 +104,22 @@ export const getWorkspaceInvitationsOptions = (workspaceId: string) =>
     enabled: Boolean(workspaceId),
   })
 
+export const getWorkspacePermissionsOptions = (workspaceId: string) =>
+  queryOptions({
+    queryKey: ['WORKSPACE_PERMISSIONS', workspaceId],
+    queryFn: async (): Promise<{
+      success: boolean
+      data: Permission[]
+    }> => {
+      const response = await apiClient.get(
+        `/workspaces/${workspaceId}/permissions`
+      )
+
+      return response.data
+    },
+    enabled: Boolean(workspaceId),
+  })
+
 export type T_PermissionProfile = {
   id: string
   workspaceId: string

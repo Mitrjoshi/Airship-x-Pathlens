@@ -1,5 +1,4 @@
 import {
-  getWorkspaceByIdOptions,
   getWorkspacePermissionProfilesOptions,
   type T_PermissionProfile,
 } from '@/queries/workspace'
@@ -119,8 +118,6 @@ function RouteComponent() {
     isError: profilesError,
   } = useQuery(getWorkspacePermissionProfilesOptions(workspaceId))
 
-  const { data: workspaceData } = useQuery(getWorkspaceByIdOptions(workspaceId))
-
   const {
     mutate: createPermissionProfile,
     isPending: createPermissionProfilePending,
@@ -135,8 +132,6 @@ function RouteComponent() {
     mutate: deletePermissionProfile,
     isPending: deletePermissionProfilePending,
   } = useDeleteWorkspacePermissionProfile(workspaceId)
-
-  const permissions = workspaceData?.data?.permissions ?? []
 
   const profiles = profilesData?.data ?? []
   const permissionProfile = profiles?.filter((i) => i.id === permissionId)[0]
@@ -196,7 +191,7 @@ function RouteComponent() {
     <div>
       <div className="mx-auto max-w-4xl pt-10">
         <div className="space-y-5">
-          <p className="text-2xl font-medium">Permission Profiles</p>
+          <p className="text-xl font-medium">Permission Profiles</p>
 
           {profilesError ? (
             <div className="flex items-center gap-1">
@@ -257,7 +252,6 @@ function RouteComponent() {
                         <PermissionsCard
                           key={item.id}
                           item={item}
-                          permissions={permissions}
                           onEdit={(profile) => {
                             setProfileDialog({
                               mode: 'edit',
@@ -699,7 +693,6 @@ function PermissionTableSkeleton() {
 
 type PermissionsCardProps = {
   item: T_PermissionProfile
-  permissions: Permission[]
   onEdit: (profile: T_PermissionProfile) => void
   onDelete: (profileId: string) => void
   onClick: () => void
@@ -707,7 +700,6 @@ type PermissionsCardProps = {
 
 function PermissionsCard({
   item,
-  permissions,
   onEdit,
   onDelete,
   onClick,
@@ -717,18 +709,14 @@ function PermissionsCard({
       label: 'Edit',
       action: 'edit-permission',
       onClick: () => onEdit(item),
-      disabled:
-        !permissions.includes('workspace.permission_profiles.update') ||
-        item.isSystem,
+      disabled: item.isSystem,
     },
     {
       label: 'Delete',
       action: 'delete-permission',
       variant: 'destructive' as const,
       separatorBefore: true,
-      disabled:
-        !permissions.includes('workspace.permission_profiles.delete') ||
-        item.isSystem,
+      disabled: item.isSystem,
       onClick: () => onDelete(item.id),
     },
   ]

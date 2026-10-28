@@ -192,6 +192,36 @@ export async function getWorkspaceByIdController(
   }
 }
 
+export async function getWorkspacePermissions(req: AuthRequest, res: Response) {
+  const userId = getAuthenticatedUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { workspace_id } = workspaceParamsSchema.parse(req.params);
+    const access = await getWorkspaceAccessModel(workspace_id, userId);
+
+    if (!access) {
+      return res.status(404).json({
+        success: false,
+        message: "Workspace not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: access.permissions,
+    });
+  } catch (error) {
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
 export async function createWorkspace(req: AuthRequest, res: Response) {
   const userId = getAuthenticatedUserId(req);
 
