@@ -1,5 +1,5 @@
 import { Button } from '@workspace/ui/components/button'
-import { LockKeyhole } from 'lucide-react'
+import { ExternalLinkIcon, LockKeyhole } from 'lucide-react'
 
 type NoPermissionViewProps = {
   title?: string
@@ -24,7 +24,8 @@ export const NoPermissionView = ({
       </div>
 
       <Button variant={'link'} className={'text-foreground'}>
-        Request permission
+        Request access
+        <ExternalLinkIcon />
       </Button>
     </div>
   )

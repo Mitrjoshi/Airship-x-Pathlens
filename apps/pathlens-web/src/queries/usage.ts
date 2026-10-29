@@ -58,6 +58,5 @@ export const getUsageOptions = (workspaceId: string, projectId?: string) =>
 
       return response.data
     },
-    enabled: Boolean(workspaceId),
     staleTime: 60_000,
   })

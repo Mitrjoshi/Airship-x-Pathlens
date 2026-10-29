@@ -7,6 +7,7 @@ import {
   getWorkspaceInvitationsOptions,
   getWorkspaceMembersOptions,
   getWorkspacePermissionProfilesOptions,
+  getWorkspacePermissionsOptions,
 } from '@/queries/workspace'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
@@ -66,6 +67,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { PermissionProfileSheet } from './-components/permission-profile-sheet'
+import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
 
 export const Route = createFileRoute('/app/$workspaceId/team')({
   component: RouteComponent,
@@ -93,12 +95,21 @@ function RouteComponent() {
 
   const [permissionProfileId, setPermissionProfileId] = useState('')
 
-  const { data: membersData, isPending: membersPending } = useQuery(
-    getWorkspaceMembersOptions(workspaceId)
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
   )
-  const { data: invitationsData, isPending: invitationsPending } = useQuery(
-    getWorkspaceInvitationsOptions(workspaceId)
-  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('workspace.members.view')
+
+  const { data: membersData, isPending: membersPending } = useQuery({
+    ...getWorkspaceMembersOptions(workspaceId),
+    enabled: !!hasViewPermission,
+  })
+  const { data: invitationsData, isPending: invitationsPending } = useQuery({
+    ...getWorkspaceInvitationsOptions(workspaceId),
+    enabled: !!hasViewPermission,
+  })
   const { mutate: revokeInvitation, isPending: revokeInvitationPending } =
     useRevokeWorkspaceInvitation(workspaceId)
   const { data: profilesData } = useQuery(
@@ -164,247 +175,260 @@ function RouteComponent() {
   return (
     <div>
       <div className="mx-auto p-6">
-        <div className="space-y-5">
+        <div className="space-y-4">
           <p className="text-xl font-medium">Team</p>
 
-          <div className="flex items-start gap-4">
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center justify-between gap-4">
-                <InputGroup>
-                  <InputGroupButton>
-                    <SearchIcon />
-                  </InputGroupButton>
+          {!hasViewPermission && !permissionsLoading ? (
+            <NoPermissionView />
+          ) : (
+            <>
+              <div className="flex items-start gap-4">
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between gap-4">
+                    <InputGroup>
+                      <InputGroupButton>
+                        <SearchIcon />
+                      </InputGroupButton>
 
-                  <InputGroupInput placeholder="Search..." />
-                </InputGroup>
+                      <InputGroupInput placeholder="Search..." />
+                    </InputGroup>
 
-                <Button
-                  render={
-                    <Link
-                      params={{
-                        workspaceId,
-                      }}
-                      to="/app/$workspaceId/invite"
-                    />
-                  }
-                >
-                  <UserPlusIcon />
-                  Invite Member
-                </Button>
-              </div>
+                    <Button
+                      render={
+                        <Link
+                          params={{
+                            workspaceId,
+                          }}
+                          to="/app/$workspaceId/invite"
+                        />
+                      }
+                    >
+                      <UserPlusIcon />
+                      Invite Member
+                    </Button>
+                  </div>
 
-              <div className="overflow-hidden rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
+                  <div className="overflow-hidden rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
 
-                      <TableHead className="w-40 text-center">Role</TableHead>
+                          <TableHead className="w-40 text-center">
+                            Role
+                          </TableHead>
 
-                      <TableHead className="w-40 text-center">
-                        Access profile
-                      </TableHead>
+                          <TableHead className="w-40 text-center">
+                            Access profile
+                          </TableHead>
 
-                      <TableHead className="w-20 text-center">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                          <TableHead className="w-20 text-center">
+                            Action
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
 
-                  <TableBody>
-                    {membersPending
-                      ? [...Array(5)].map((_, index) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              <Skeleton className="h-6 w-50" />
-                            </TableCell>
+                      <TableBody>
+                        {membersPending
+                          ? [...Array(5)].map((_, index) => (
+                              <TableRow key={index}>
+                                <TableCell>
+                                  <Skeleton className="h-6 w-50" />
+                                </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-30" />
-                              </div>
-                            </TableCell>
+                                <TableCell>
+                                  <div className="flex justify-center">
+                                    <Skeleton className="h-6 w-30" />
+                                  </div>
+                                </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-30" />
-                              </div>
-                            </TableCell>
+                                <TableCell>
+                                  <div className="flex justify-center">
+                                    <Skeleton className="h-6 w-30" />
+                                  </div>
+                                </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-8 w-8" />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      : membersData?.data?.map((item) => (
-                          <TableRow
-                            key={item.id}
-                            className="hover:bg-card/40 cursor-pointer"
-                          >
-                            <TableCell>
-                              <div className="max-w-80 overflow-hidden">
-                                <div className="flex items-center gap-2 overflow-hidden">
-                                  <p className="truncate text-sm font-medium">
-                                    {item.name}
-                                  </p>
-                                </div>
+                                <TableCell>
+                                  <div className="flex justify-center">
+                                    <Skeleton className="h-8 w-8" />
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          : membersData?.data?.map((item) => (
+                              <TableRow
+                                key={item.id}
+                                className="hover:bg-card/40 cursor-pointer"
+                              >
+                                <TableCell>
+                                  <div className="max-w-80 overflow-hidden">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                      <p className="truncate text-sm font-medium">
+                                        {item.name}
+                                      </p>
+                                    </div>
 
-                                <p className="text-muted-foreground truncate text-xs">
-                                  {item.email}
-                                </p>
-                              </div>
-                            </TableCell>
+                                    <p className="text-muted-foreground truncate text-xs">
+                                      {item.email}
+                                    </p>
+                                  </div>
+                                </TableCell>
 
-                            <TableCell className="text-center">
-                              {getProfileLabel(
-                                item.permissionProfileId,
-                                item.role
-                              )}
-                            </TableCell>
+                                <TableCell className="text-center">
+                                  {getProfileLabel(
+                                    item.permissionProfileId,
+                                    item.role
+                                  )}
+                                </TableCell>
 
-                            <TableCell className="text-center">
-                              {item.permissionProfileId ? (
-                                <PermissionProfileSheet
-                                  workspace_id={workspaceId}
-                                  permission_id={item.permissionProfileId}
-                                />
-                              ) : (
-                                <span className="text-muted-foreground text-sm">
-                                  —
-                                </span>
-                              )}
-                            </TableCell>
+                                <TableCell className="text-center">
+                                  {item.permissionProfileId ? (
+                                    <PermissionProfileSheet
+                                      workspace_id={workspaceId}
+                                      permission_id={item.permissionProfileId}
+                                    />
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">
+                                      —
+                                    </span>
+                                  )}
+                                </TableCell>
 
-                            <TableCell className="text-center">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger
-                                  render={
-                                    <Button variant="ghost" size="icon" />
-                                  }
-                                >
-                                  <EllipsisIcon />
-                                </DropdownMenuTrigger>
+                                <TableCell className="text-center">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                      render={
+                                        <Button variant="ghost" size="icon" />
+                                      }
+                                    >
+                                      <EllipsisIcon />
+                                    </DropdownMenuTrigger>
 
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="w-32"
-                                >
-                                  <DropdownMenuItem
-                                    disabled={item.role === 'owner'}
-                                    onClick={() => handleOpenEdit(item)}
-                                  >
-                                    Edit
-                                  </DropdownMenuItem>
+                                    <DropdownMenuContent
+                                      align="end"
+                                      className="w-32"
+                                    >
+                                      <DropdownMenuItem
+                                        disabled={item.role === 'owner'}
+                                        onClick={() => handleOpenEdit(item)}
+                                      >
+                                        Edit
+                                      </DropdownMenuItem>
 
-                                  <DropdownMenuSeparator />
+                                      <DropdownMenuSeparator />
 
-                                  <DropdownMenuItem
-                                    disabled={item.role === 'owner'}
-                                    variant="destructive"
-                                    onClick={() => setRemoveMember(item)}
-                                  >
-                                    Remove
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
+                                      <DropdownMenuItem
+                                        disabled={item.role === 'owner'}
+                                        variant="destructive"
+                                        onClick={() => setRemoveMember(item)}
+                                      >
+                                        Remove
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
 
-            <div className="w-[25%] space-y-2">
-              <Card className="bg-card/30 gap-0 overflow-hidden rounded-none border-2 border-dashed p-0">
-                <CardHeader className="border-b p-4">
-                  <CardTitle>
-                    {invitationsPending ? (
-                      <Skeleton className="h-6 w-40" />
-                    ) : (
-                      <> Awaiting Acceptance ({invitations.length})</>
-                    )}
-                  </CardTitle>
-                </CardHeader>
+                <div className="w-[25%] space-y-2">
+                  <Card className="bg-card/30 gap-0 overflow-hidden rounded-none border-2 border-dashed p-0">
+                    <CardHeader className="border-b p-4">
+                      <CardTitle>
+                        {invitationsPending ? (
+                          <Skeleton className="h-6 w-40" />
+                        ) : (
+                          <> Awaiting Acceptance ({invitations.length})</>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
 
-                <CardContent className="aspect-square divide-y overflow-auto p-2 px-4">
-                  {invitationsPending ? (
-                    <div className="space-y-2 py-4">
-                      {[...Array(5)].map((_, index) => (
-                        <Skeleton className="h-10 w-full" key={index} />
-                      ))}
-                    </div>
-                  ) : !invitations.length ? (
-                    <div className="py-4">
-                      <p className="text-muted-foreground text-center">
-                        No invitations yet.
-                      </p>
-                    </div>
-                  ) : (
-                    invitations.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between gap-4 py-2"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p>{item.name}</p>
-                            <Badge variant="secondary">
-                              {item.permissionProfileName}
-                            </Badge>
-                          </div>
-                          <p className="text-muted-foreground text-xs">
-                            {item.email}
+                    <CardContent className="aspect-square divide-y overflow-auto p-2 px-4">
+                      {invitationsPending ? (
+                        <div className="space-y-2 py-4">
+                          {[...Array(5)].map((_, index) => (
+                            <Skeleton className="h-10 w-full" key={index} />
+                          ))}
+                        </div>
+                      ) : !invitations.length ? (
+                        <div className="py-4">
+                          <p className="text-muted-foreground text-center">
+                            No invitations yet.
                           </p>
                         </div>
-
-                        <Dialog open={open} onOpenChange={setOpen}>
-                          <DialogTrigger
-                            render={<Button size="sm" variant="destructive" />}
+                      ) : (
+                        invitations.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between gap-4 py-2"
                           >
-                            Revoke
-                          </DialogTrigger>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p>{item.name}</p>
+                                <Badge variant="secondary">
+                                  {item.permissionProfileName}
+                                </Badge>
+                              </div>
+                              <p className="text-muted-foreground text-xs">
+                                {item.email}
+                              </p>
+                            </div>
 
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Revoke invitation</DialogTitle>
-                              <DialogDescription>
-                                Are you sure you want to revoke this invitation?
-                              </DialogDescription>
-                            </DialogHeader>
-
-                            <DialogFooter className="py-2">
-                              <DialogClose
-                                render={<Button variant="outline" />}
-                              >
-                                Cancel
-                              </DialogClose>
-                              <Button
-                                onClick={() =>
-                                  revokeInvitation(item.id, {
-                                    onSuccess: () => {
-                                      setOpen(false)
-                                    },
-                                  })
+                            <Dialog open={open} onOpenChange={setOpen}>
+                              <DialogTrigger
+                                render={
+                                  <Button size="sm" variant="destructive" />
                                 }
-                                variant="destructive"
                               >
-                                <LoadingSwap
-                                  isLoading={revokeInvitationPending}
-                                >
-                                  Confirm
-                                </LoadingSwap>
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                                Revoke
+                              </DialogTrigger>
+
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Revoke invitation</DialogTitle>
+                                  <DialogDescription>
+                                    Are you sure you want to revoke this
+                                    invitation?
+                                  </DialogDescription>
+                                </DialogHeader>
+
+                                <DialogFooter className="py-2">
+                                  <DialogClose
+                                    render={<Button variant="outline" />}
+                                  >
+                                    Cancel
+                                  </DialogClose>
+                                  <Button
+                                    onClick={() =>
+                                      revokeInvitation(item.id, {
+                                        onSuccess: () => {
+                                          setOpen(false)
+                                        },
+                                      })
+                                    }
+                                    variant="destructive"
+                                  >
+                                    <LoadingSwap
+                                      isLoading={revokeInvitationPending}
+                                    >
+                                      Confirm
+                                    </LoadingSwap>
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

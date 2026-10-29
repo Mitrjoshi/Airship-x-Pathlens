@@ -55,7 +55,6 @@ export const getEventsChartOptions = (params: EventsChartParams) =>
   queryOptions({
     queryKey: ['EVENTS_CHART', params],
     queryFn: () => getEventsChart(params),
-    enabled: Boolean(params.workspace_id && params.project_id),
     refetchOnWindowFocus: false,
     refetchInterval: params.refetchInterval,
   })

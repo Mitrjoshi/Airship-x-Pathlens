@@ -64,5 +64,4 @@ export const getProjectsOptions = (params: {
   queryOptions({
     queryKey: ['PROJECTS', params],
     queryFn: () => getProjects(params),
-    enabled: !!params.workspace_id,
   })

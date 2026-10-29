@@ -58,12 +58,6 @@ export const EntrySidebar = () => {
           isActive: pathname === '/app',
         },
         {
-          label: 'Activity',
-          icon: navigationIcons.activity,
-          to: '/app/activity',
-          isActive: pathname === '/app/activity',
-        },
-        {
           label: 'Usage',
           icon: navigationIcons.usage,
           to: '/app/usage',

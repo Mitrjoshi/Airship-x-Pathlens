@@ -8,7 +8,7 @@ const router = Router();
 router.use(authMiddleware);
 router.get(
   "/",
-  requireWorkspacePermission("analytics.goals.view"),
+  requireWorkspacePermission("analytics.campaigns.view"),
   getCampaigns
 );
 

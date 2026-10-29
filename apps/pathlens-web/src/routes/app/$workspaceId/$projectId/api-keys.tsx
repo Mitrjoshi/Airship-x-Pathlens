@@ -13,7 +13,7 @@ import {
   EyeIcon,
   PlusIcon,
 } from 'lucide-react'
-import type { Permission, TrackingScope } from '@workspace/contracts'
+import type { TrackingScope } from '@workspace/contracts'
 import { Button } from '@workspace/ui/components/button'
 import { Badge } from '@workspace/ui/components/badge'
 import { Calendar } from '@workspace/ui/components/calendar'
@@ -68,7 +68,12 @@ import {
   useCreateProjectApiKey,
   useRevokeProjectApiKey,
 } from '@/mutations/api-keys'
-import { capitalizeFirstLetter, formatRelativeTime, mask } from '@/utils/utils'
+import {
+  capitalizeFirstLetter,
+  formatDate,
+  formatRelativeTime,
+  mask,
+} from '@/utils/utils'
 import {
   CodeBlock,
   integrations,
@@ -110,12 +115,6 @@ const trackingOptions = [
 ] as const
 
 const API_KEY_TABLE_COLUMNS = 9
-
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-})
 
 /* -------------------------------------------------------------------------- */
 /*                                    Types                                   */
@@ -165,7 +164,7 @@ function RouteComponent() {
   })
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-6">
       <PageHeader
         onCreate={() => {
           if (!hasCreatePermission) {
@@ -178,7 +177,9 @@ function RouteComponent() {
         }}
       />
 
-      {hasViewPermission || permissionsLoading ? (
+      {!hasViewPermission && !permissionsLoading ? (
+        <NoPermissionView />
+      ) : (
         <ApiKeysTable
           permissionsLoading={permissionsLoading}
           hasRevokePermission={hasRevokePermission!}
@@ -198,8 +199,6 @@ function RouteComponent() {
             })
           }}
         />
-      ) : (
-        <NoPermissionView />
       )}
 
       <ApiKeyDialog
@@ -220,7 +219,7 @@ function RouteComponent() {
 function PageHeader({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="flex items-center justify-between gap-6">
-      <div className="space-y-1">
+      <div className="">
         <h1 className="text-xl font-medium">API Keys</h1>
 
         <p className="text-muted-foreground text-sm">
@@ -787,7 +786,7 @@ function ExpiryDatePicker({ value, onChange }: ExpiryDatePickerProps) {
       >
         <CalendarIcon />
 
-        {value ? dateFormatter.format(value) : 'Never'}
+        {value ? formatDate(value.toString()) : 'Never'}
       </PopoverTrigger>
 
       <PopoverContent className="w-fit p-0" align="end">

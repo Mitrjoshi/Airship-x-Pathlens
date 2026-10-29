@@ -91,7 +91,6 @@ export const getVisitorLocationsOptions = (params: VisitorLocationsParams) =>
   queryOptions({
     queryKey: ['VISITOR_LOCATIONS', params],
     queryFn: () => getVisitorLocations(params),
-    enabled: Boolean(params.workspace_id && params.project_id),
     refetchInterval: params.refetchInterval,
   })
 
@@ -107,6 +106,5 @@ export const getVisitorsOptions = (params: VisitorsParams) =>
   queryOptions({
     queryKey: ['VISITORS', params],
     queryFn: () => getVisitors(params),
-    enabled: Boolean(params.workspace_id && params.project_id),
     refetchInterval: params.refetchInterval,
   })

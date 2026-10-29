@@ -13,13 +13,15 @@ import { getProjectApiKeysOptions } from '@/queries/api-keys'
 import { mask } from '@/utils/utils'
 import { toast } from 'sonner'
 import { ErrorScreen } from './-components/common/error-screen'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
+import { NoPermissionView } from './-components/common/no-permission-view'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/setup')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const { projectId } = Route.useParams()
+  const { projectId, workspaceId } = Route.useParams()
 
   const [activeIntegration, setActiveIntegration] = useState('html')
   const [copied, setCopied] = useState(false)
@@ -27,12 +29,22 @@ function RouteComponent() {
 
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('project.api_keys.view')
+
   const {
     data: keysData,
     isLoading: keysLoading,
     isError: keysError,
     refetch,
-  } = useQuery(getProjectApiKeysOptions(projectId))
+  } = useQuery({
+    ...getProjectApiKeysOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
 
   const apiKey = keysData?.data?.[0]?.secret
 
@@ -87,9 +99,9 @@ function RouteComponent() {
   }
 
   return (
-    <div className="p-6">
-      <div className="space-y-10">
-        <div className="space-y-1">
+    <div>
+      <div className="space-y-4 p-6">
+        <div className="">
           <h1 className="text-xl font-medium">Setup</h1>
 
           <p className="text-muted-foreground text-sm">
@@ -98,95 +110,110 @@ function RouteComponent() {
           </p>
         </div>
 
-        {keysLoading ? (
-          <div className="mx-auto w-fit space-y-4 pt-2">
-            <Skeleton className="mx-auto h-10 w-120 max-w-full rounded-full" />
-
-            <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
-              <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
-                <div className="flex items-center gap-1">
-                  <Skeleton className="size-3 rounded-full" />
-                  <Skeleton className="size-3 rounded-full" />
-                  <Skeleton className="size-3 rounded-full" />
-                  <Skeleton className="ml-2 h-4 w-32" />
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <Skeleton className="size-8 rounded-md" />
-                  <Skeleton className="size-8 rounded-md" />
-                </div>
-              </div>
-
-              <div className="space-y-4 p-4">
-                {Array.from({ length: 8 }, (_, index) => (
-                  <Skeleton
-                    key={index}
-                    className="h-4"
-                    style={{
-                      width: `${[85, 65, 92, 48, 76, 55, 70, 35][index]}%`,
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : keysError ? (
-          <ErrorScreen refetch={refetch} />
+        {!hasViewPermission && !permissionsLoading ? (
+          <NoPermissionView />
         ) : (
-          <div className="mx-auto w-fit space-y-4 pt-2">
-            <IntegrationSelector
-              value={activeIntegration}
-              onChange={handleIntegrationChange}
-            />
+          <>
+            {keysLoading ? (
+              <div className="mx-auto w-fit space-y-4 pt-2">
+                <Skeleton className="mx-auto h-10 w-120 max-w-full rounded-full" />
 
-            <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
-              <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
-                <div className="flex min-w-0 items-center gap-1">
-                  <span className="size-3 shrink-0 rounded-full bg-red-400" />
-                  <span className="size-3 shrink-0 rounded-full bg-yellow-400" />
-                  <span className="size-3 shrink-0 rounded-full bg-green-400" />
+                <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
+                  <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
+                    <div className="flex items-center gap-1">
+                      <Skeleton className="size-3 rounded-full" />
+                      <Skeleton className="size-3 rounded-full" />
+                      <Skeleton className="size-3 rounded-full" />
+                      <Skeleton className="ml-2 h-4 w-32" />
+                    </div>
 
-                  <span className="text-muted-foreground ml-2 truncate text-xs">
-                    {integration.filename}
-                  </span>
-                </div>
+                    <div className="flex items-center gap-1">
+                      <Skeleton className="size-8 rounded-md" />
+                      <Skeleton className="size-8 rounded-md" />
+                    </div>
+                  </div>
 
-                <div className="flex shrink-0 items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon"
-                    title={masked ? 'Show API key' : 'Hide API key'}
-                    onClick={() => setMasked((current) => !current)}
-                  >
-                    {masked ? (
-                      <EyeIcon key="show" className="copy-icon-animate" />
-                    ) : (
-                      <EyeOffIcon key="hide" className="copy-icon-animate" />
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon"
-                    title="Copy script"
-                    onClick={handleCopy}
-                  >
-                    {copied ? (
-                      <CheckIcon key="check" className="copy-icon-animate" />
-                    ) : (
-                      <CopyIcon key="copy" className="copy-icon-animate" />
-                    )}
-                  </Button>
+                  <div className="space-y-4 p-4">
+                    {Array.from({ length: 8 }, (_, index) => (
+                      <Skeleton
+                        key={index}
+                        className="h-4"
+                        style={{
+                          width: `${[85, 65, 92, 48, 76, 55, 70, 35][index]}%`,
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
+            ) : keysError ? (
+              <ErrorScreen refetch={refetch} />
+            ) : (
+              <div className="mx-auto w-fit space-y-4 pt-2">
+                <IntegrationSelector
+                  value={activeIntegration}
+                  onChange={handleIntegrationChange}
+                />
 
-              <div className="bg-background overflow-auto">
-                <CodeBlock code={previewCode} language={integration.language} />
+                <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
+                  <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
+                    <div className="flex min-w-0 items-center gap-1">
+                      <span className="size-3 shrink-0 rounded-full bg-red-400" />
+                      <span className="size-3 shrink-0 rounded-full bg-yellow-400" />
+                      <span className="size-3 shrink-0 rounded-full bg-green-400" />
+
+                      <span className="text-muted-foreground ml-2 truncate text-xs">
+                        {integration.filename}
+                      </span>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon"
+                        title={masked ? 'Show API key' : 'Hide API key'}
+                        onClick={() => setMasked((current) => !current)}
+                      >
+                        {masked ? (
+                          <EyeIcon key="show" className="copy-icon-animate" />
+                        ) : (
+                          <EyeOffIcon
+                            key="hide"
+                            className="copy-icon-animate"
+                          />
+                        )}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon"
+                        title="Copy script"
+                        onClick={handleCopy}
+                      >
+                        {copied ? (
+                          <CheckIcon
+                            key="check"
+                            className="copy-icon-animate"
+                          />
+                        ) : (
+                          <CopyIcon key="copy" className="copy-icon-animate" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="bg-background overflow-auto">
+                    <CodeBlock
+                      code={previewCode}
+                      language={integration.language}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

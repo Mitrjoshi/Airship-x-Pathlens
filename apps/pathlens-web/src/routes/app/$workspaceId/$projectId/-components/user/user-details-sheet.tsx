@@ -40,35 +40,28 @@ import { PermissionProfileSheet } from '../../../-components/permission-profile-
 export const UserDetailsSheet = ({
   userId,
   workspaceId,
+  disabled,
 }: {
   userId: string
   workspaceId: string
+  disabled?: boolean
 }) => {
   const { user } = useRouteContext({
     from: '/app',
   })
-  const navigate = useNavigate()
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
 
   const { data, isFetching } = useQuery(getUserByIdOptions(userId, workspaceId))
 
-  const { data: workspaceData, isFetching: workspaceDataFetching } = useQuery(
-    getWorkspaceByIdOptions(workspaceId)
-  )
-
   const { mutate, isPending } = useRemoveWorkspaceMember(userId)
 
   const userData = data?.data
-  const workspace = workspaceData?.data
 
-  const isLoading = isFetching || workspaceDataFetching
+  const isLoading = isFetching
 
-  const canRemoveUser =
-    userData?.role !== 'owner' &&
-    workspace?.permissions.includes('workspace.members.remove') &&
-    user.id !== userId
+  const canRemoveUser = userData?.role !== 'owner' && user.id !== userId
 
   const handleRemoveUser = () => {
     mutate(workspaceId, {
@@ -86,7 +79,7 @@ export const UserDetailsSheet = ({
       ======================================== */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger
-          disabled={isLoading}
+          disabled={isLoading || disabled}
           render={
             <Button className="text-foreground gap-1.5 px-0" variant="link" />
           }

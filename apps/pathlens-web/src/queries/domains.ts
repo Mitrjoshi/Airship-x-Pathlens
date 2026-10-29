@@ -24,5 +24,4 @@ export const getProjectDomainsOptions = (projectId: string) =>
 
       return response.data
     },
-    enabled: Boolean(projectId),
   })

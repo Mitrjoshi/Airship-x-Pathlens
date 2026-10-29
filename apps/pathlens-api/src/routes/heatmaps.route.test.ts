@@ -10,6 +10,7 @@ const otherWorkspaceId = "22222222-2222-4222-8222-222222222222";
 const projectId = "33333333-3333-4333-8333-333333333333";
 const otherProjectId = "44444444-4444-4444-8444-444444444444";
 const userId = "55555555-5555-4555-8555-555555555555";
+let requestedPermission: string | null = null;
 
 const sourcePath = (relativePath: string) =>
   pathToFileURL(join(process.cwd(), "src", relativePath)).href;
@@ -30,7 +31,10 @@ mock.module(sourcePath("models/workshop.model.ts"), {
       id === workspaceId && idUser === userId
         ? { workspaceId: id, userId: idUser, permissions: [] }
         : null,
-    hasWorkspacePermission: () => true,
+    hasWorkspacePermission: (_access: unknown, permission: string) => {
+      requestedPermission = permission;
+      return true;
+    },
   },
 });
 
@@ -91,6 +95,7 @@ test("allows a heatmap request when workspace and project match", async () => {
   );
 
   assert.equal(response.status, 200);
+  assert.equal(requestedPermission, "analytics.heatmaps.view");
 });
 
 test("rejects a project from another workspace before the controller runs", async () => {

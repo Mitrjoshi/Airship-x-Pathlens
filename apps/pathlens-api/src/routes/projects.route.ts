@@ -42,22 +42,22 @@ router.post(
 );
 router.get(
   "/:project_id/domains",
-  requireWorkspacePermission("project.settings.view"),
+  requireWorkspacePermission("project.domains.view"),
   getProjectDomains
 );
 router.post(
   "/:project_id/domains",
-  requireWorkspacePermission("project.settings.update"),
+  requireWorkspacePermission("project.domains.manage"),
   createProjectDomain
 );
 router.patch(
   "/:project_id/domains/:domain_id",
-  requireWorkspacePermission("project.settings.update"),
+  requireWorkspacePermission("project.domains.manage"),
   updateProjectDomain
 );
 router.delete(
   "/:project_id/domains/:domain_id",
-  requireWorkspacePermission("project.settings.update"),
+  requireWorkspacePermission("project.domains.manage"),
   deleteProjectDomain
 );
 router.patch(

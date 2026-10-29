@@ -6,6 +6,7 @@ import {
 import {
   getWorkspaceByIdOptions,
   getWorkspaceInvitationsOptions,
+  getWorkspacePermissionsOptions,
 } from '@/queries/workspace'
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
@@ -48,6 +49,7 @@ import {
 import { AlertTriangleIcon, ArrowUpRightIcon } from 'lucide-react'
 import { useState } from 'react'
 import { z } from 'zod'
+import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
 
 const schema = z.object({
   name: z
@@ -65,6 +67,15 @@ function RouteComponent() {
   const [open, setOpen] = useState(false)
   const [revokeId, setRevokeId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('workspace.view')
+  const hasDeletePermission = permissions?.includes('workspace.delete')
+  const hasEditPermission = permissions?.includes('workspace.settings.update')
 
   const { data, isLoading } = useQuery(getWorkspaceByIdOptions(workspaceId))
   const { mutate, isPending } = useRevokeWorkspaceInvitation(workspaceId)
@@ -147,224 +158,232 @@ function RouteComponent() {
   return (
     <div>
       <Dialog open={open} onOpenChange={setOpen}>
-        <div className="mx-auto max-w-4xl pt-10">
-          <div className="space-y-5">
-            <div>
-              <p className="text-xl font-medium">Workspace Settings</p>
-              <p className="text-muted-foreground text-sm">
-                This is the default workspace. You cannot edit the name or
-                delete it.
-              </p>
-            </div>
+        <div className="mx-auto max-w-4xl p-6 pt-10">
+          <div className="space-y-4">
+            <p className="text-xl font-medium">Workspace Settings</p>
 
-            <Card className="bg-card/30 rounded-none border-2 border-dashed">
-              <CardContent>
-                <form
-                  id="workspace-name"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    form.handleSubmit()
-                  }}
-                >
-                  <FieldGroup>
-                    <form.Field
-                      name="name"
-                      children={(field) => {
-                        const isInvalid =
-                          field.state.meta.isTouched &&
-                          !field.state.meta.isValid
-                        return (
-                          <Field
-                            orientation={'horizontal'}
-                            data-invalid={isInvalid}
-                          >
-                            <FieldLabel
-                              className="text-nowrap"
-                              htmlFor={field.name}
-                            >
-                              Workspace name
-                            </FieldLabel>
-                            <div className="flex w-full flex-col items-end">
-                              <Input
-                                id={field.name}
-                                disabled={workspaceData?.isDefault}
-                                name={field.name}
-                                value={field.state.value}
-                                onBlur={field.handleBlur}
-                                onChange={(e) =>
-                                  field.handleChange(e.target.value)
-                                }
-                                aria-invalid={isInvalid}
-                                placeholder="Workspace Name"
-                                autoComplete="off"
-                                className="w-[50%]"
-                              />
-
-                              {isInvalid && (
-                                <FieldError errors={field.state.meta.errors} />
-                              )}
-                            </div>
-                          </Field>
-                        )
-                      }}
-                    />
-                  </FieldGroup>
-                </form>
-              </CardContent>
-              <CardFooter className="justify-end rounded-none border-t-2 border-dashed bg-transparent py-2">
-                <Button
-                  disabled={workspaceData?.isDefault}
-                  form="workspace-name"
-                  type="submit"
-                >
-                  <LoadingSwap isLoading={updatePending}>
-                    Save Changes
-                  </LoadingSwap>
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card className="bg-card/30 rounded-none border-2 border-dashed">
-              <CardHeader className="flex gap-4">
-                <CardTitle>
-                  Pending Invitations ({invitations?.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-100 overflow-auto">
-                {invitationsData?.data.length ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="w-40 text-center">Role</TableHead>
-                        <TableHead className="w-40 text-center">
-                          Access profile
-                        </TableHead>
-                        <TableHead className="w-40 text-center">
-                          Action
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invitationsPending
-                        ? [...Array(5)].map((_, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <Skeleton className="h-6 w-50" />
-                              </TableCell>
-
-                              <TableCell>
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-6 w-30" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell>
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-6 w-30" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell>
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-6 w-30" />
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        : invitationsData?.data?.map((item) => (
-                            <TableRow key={item.id ?? item.email}>
-                              <TableCell>
-                                <div className="max-w-80 overflow-hidden">
-                                  <div className="flex items-center gap-2 overflow-hidden">
-                                    <p className="truncate text-sm font-medium">
-                                      {item.name}
-                                    </p>
-                                  </div>
-
-                                  <p className="text-muted-foreground truncate text-xs">
-                                    {item.email}
-                                  </p>
-                                </div>
-                              </TableCell>
-
-                              <TableCell className="text-center">
-                                {item.role}
-                              </TableCell>
-
-                              <TableCell className="text-center">
-                                <Button
-                                  className={'text-foreground'}
-                                  variant="link"
-                                  render={
-                                    <Link
-                                      to="/app/$workspaceId/permissions/$permissionId"
-                                      params={{
-                                        workspaceId,
-                                        permissionId: item.permissionProfileId!,
-                                      }}
-                                    />
-                                  }
-                                >
-                                  {item.permissionProfileName}
-                                  <ArrowUpRightIcon />
-                                </Button>
-                              </TableCell>
-
-                              <TableCell className="text-center">
-                                <Button
-                                  onClick={() => {
-                                    setRevokeId(item.id)
-                                    setOpen(true)
-                                  }}
-                                  variant={'destructive'}
-                                >
-                                  Revoke
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <p className="text-muted-foreground text-center text-sm">
-                    No pending invitations
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {workspaceData?.isDefault ? (
-              <p className="text-muted-foreground text-center text-sm">
-                This is the default workspace. You cannot delete it.
-              </p>
+            {(!hasViewPermission ||
+              !hasEditPermission ||
+              !hasDeletePermission) &&
+            !permissionsLoading ? (
+              <NoPermissionView />
             ) : (
-              <Card className="bg-destructive/2 border-destructive/50 rounded-none border-2 border-dashed">
-                <CardHeader className="flex gap-4">
-                  <AlertTriangleIcon className="text-destructive" />
-                  <div>
-                    <CardTitle>
-                      Deleting this workspace will also remove its projects
-                    </CardTitle>
-                    <CardDescription>
-                      Make sure you have made a backup of your projects if you
-                      want to keep your data
-                    </CardDescription>
-                  </div>
-                </CardHeader>
+              <>
+                <Card className="bg-card/30 rounded-none border-2 border-dashed">
+                  <CardContent>
+                    <form
+                      id="workspace-name"
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        form.handleSubmit()
+                      }}
+                    >
+                      <FieldGroup>
+                        <form.Field
+                          name="name"
+                          children={(field) => {
+                            const isInvalid =
+                              field.state.meta.isTouched &&
+                              !field.state.meta.isValid
+                            return (
+                              <Field
+                                orientation={'horizontal'}
+                                data-invalid={isInvalid}
+                              >
+                                <FieldLabel
+                                  className="text-nowrap"
+                                  htmlFor={field.name}
+                                >
+                                  Workspace name
+                                </FieldLabel>
+                                <div className="flex w-full flex-col items-end">
+                                  <Input
+                                    id={field.name}
+                                    disabled={workspaceData?.isDefault}
+                                    name={field.name}
+                                    value={field.state.value}
+                                    onBlur={field.handleBlur}
+                                    onChange={(e) =>
+                                      field.handleChange(e.target.value)
+                                    }
+                                    aria-invalid={isInvalid}
+                                    placeholder="Workspace Name"
+                                    autoComplete="off"
+                                    className="w-[50%]"
+                                  />
 
-                <CardFooter className="border-destructive/50 justify-end rounded-none border-t-2 border-dashed bg-transparent py-2">
-                  <Button
-                    onClick={() => {
-                      setDeleteId(workspaceData?.id as string)
-                      setOpen(true)
-                    }}
-                    variant={'destructive'}
-                  >
-                    Delete Workspace
-                  </Button>
-                </CardFooter>
-              </Card>
+                                  {isInvalid && (
+                                    <FieldError
+                                      errors={field.state.meta.errors}
+                                    />
+                                  )}
+                                </div>
+                              </Field>
+                            )
+                          }}
+                        />
+                      </FieldGroup>
+                    </form>
+                  </CardContent>
+                  <CardFooter className="justify-end rounded-none border-t-2 border-dashed bg-transparent py-2">
+                    <Button
+                      disabled={workspaceData?.isDefault}
+                      form="workspace-name"
+                      type="submit"
+                    >
+                      <LoadingSwap isLoading={updatePending}>
+                        Save Changes
+                      </LoadingSwap>
+                    </Button>
+                  </CardFooter>
+                </Card>
+
+                <Card className="bg-card/30 rounded-none border-2 border-dashed">
+                  <CardHeader className="flex gap-4">
+                    <CardTitle>
+                      Pending Invitations ({invitations?.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="max-h-100 overflow-auto">
+                    {invitationsData?.data.length ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead className="w-40 text-center">
+                              Role
+                            </TableHead>
+                            <TableHead className="w-40 text-center">
+                              Access profile
+                            </TableHead>
+                            <TableHead className="w-40 text-center">
+                              Action
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {invitationsPending
+                            ? [...Array(5)].map((_, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>
+                                    <Skeleton className="h-6 w-50" />
+                                  </TableCell>
+
+                                  <TableCell>
+                                    <div className="flex justify-center">
+                                      <Skeleton className="h-6 w-30" />
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell>
+                                    <div className="flex justify-center">
+                                      <Skeleton className="h-6 w-30" />
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell>
+                                    <div className="flex justify-center">
+                                      <Skeleton className="h-6 w-30" />
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            : invitationsData?.data?.map((item) => (
+                                <TableRow key={item.id ?? item.email}>
+                                  <TableCell>
+                                    <div className="max-w-80 overflow-hidden">
+                                      <div className="flex items-center gap-2 overflow-hidden">
+                                        <p className="truncate text-sm font-medium">
+                                          {item.name}
+                                        </p>
+                                      </div>
+
+                                      <p className="text-muted-foreground truncate text-xs">
+                                        {item.email}
+                                      </p>
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell className="text-center">
+                                    {item.role}
+                                  </TableCell>
+
+                                  <TableCell className="text-center">
+                                    <Button
+                                      className={'text-foreground'}
+                                      variant="link"
+                                      render={
+                                        <Link
+                                          to="/app/$workspaceId/permissions/$permissionId"
+                                          params={{
+                                            workspaceId,
+                                            permissionId:
+                                              item.permissionProfileId!,
+                                          }}
+                                        />
+                                      }
+                                    >
+                                      {item.permissionProfileName}
+                                      <ArrowUpRightIcon />
+                                    </Button>
+                                  </TableCell>
+
+                                  <TableCell className="text-center">
+                                    <Button
+                                      onClick={() => {
+                                        setRevokeId(item.id)
+                                        setOpen(true)
+                                      }}
+                                      variant={'destructive'}
+                                    >
+                                      Revoke
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="text-muted-foreground text-center text-sm">
+                        No pending invitations
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {workspaceData?.isDefault ? (
+                  <p className="text-muted-foreground text-center text-sm">
+                    This is the default workspace. You cannot delete it.
+                  </p>
+                ) : (
+                  <Card className="bg-destructive/2 border-destructive/50 rounded-none border-2 border-dashed">
+                    <CardHeader className="flex gap-4">
+                      <AlertTriangleIcon className="text-destructive" />
+                      <div>
+                        <CardTitle>
+                          Deleting this workspace will also remove its projects
+                        </CardTitle>
+                        <CardDescription>
+                          Make sure you have made a backup of your projects if
+                          you want to keep your data
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+
+                    <CardFooter className="border-destructive/50 justify-end rounded-none border-t-2 border-dashed bg-transparent py-2">
+                      <Button
+                        onClick={() => {
+                          setDeleteId(workspaceData?.id as string)
+                          setOpen(true)
+                        }}
+                        variant={'destructive'}
+                      >
+                        Delete Workspace
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -80,6 +80,9 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { Separator } from '@workspace/ui/components/separator'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
+import { NoPermissionView } from '../-components/common/no-permission-view'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/goals/')({
   component: RouteComponent,
@@ -186,9 +189,18 @@ function RouteComponent() {
   const [domain, setDomain] = useState('')
   const [liveMode, setLiveMode] = useState(false)
 
-  const { data: domainsData, isLoading: domainsLoading } = useQuery(
-    getProjectDomainsOptions(projectId)
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
   )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('analytics.goals.view')
+  const hasManagePermission = permissions?.includes('analytics.goals.manage')
+
+  const { data: domainsData, isLoading: domainsLoading } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
   const domains = domainsData?.data ?? []
   const selectedDomain = domains.find((item) => item.domain === domain)
 
@@ -197,14 +209,15 @@ function RouteComponent() {
     isLoading: goalsLoading,
     refetch: refetchGoals,
     isRefetching,
-  } = useQuery(
-    getGoalsOptions({
+  } = useQuery({
+    ...getGoalsOptions({
       project_id: projectId,
       range,
       workspace_id: workspaceId,
       domain_id: selectedDomain?.id,
-    })
-  )
+    }),
+    enabled: !!hasViewPermission,
+  })
 
   const { mutate: createGoal, isPending } = useCreateGoal()
 
@@ -263,67 +276,81 @@ function RouteComponent() {
 
   return (
     <div className="">
-      <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
-        <DomainSwitcher
-          loading={domainsLoading}
-          domain={domain}
-          setDomain={setDomain}
-          domains={domains!}
-          refetch={refetchGoals}
-        />
+      {permissionsLoading ? (
+        <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+          <Skeleton className={'h-8 w-60'} />
 
-        <div className="flex items-center gap-2">
-          <Button
-            data-live={liveMode}
-            onClick={() => setLiveMode(!liveMode)}
-            className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
-            variant="outline"
-          >
-            {liveMode ? <PauseIcon /> : <PlayIcon />}
-            Live Refresh
-          </Button>
-
-          <Button
-            disabled={isRefetching}
-            onClick={() => {
-              refetchGoals()
-            }}
-            variant="outline"
-          >
-            <RefreshCcwIcon
-              className={`${isRefetching ? 'animate-spin' : ''}`}
-            />
-            Refresh
-          </Button>
-
-          <Separator orientation="vertical" />
-
-          <Select
-            items={rangeLabels}
-            value={range}
-            onValueChange={(value) => {
-              if (!value) return
-
-              setRange(value as GoalRange)
-              localStorage.setItem('range', value)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
-            </SelectTrigger>
-
-            <SelectContent alignItemWithTrigger={false}>
-              {rangeLabels.map((range) => (
-                <SelectItem key={range.value} value={range.value}>
-                  {range.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
+          </div>
         </div>
-      </div>
+      ) : hasViewPermission ? (
+        <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+          <DomainSwitcher
+            loading={domainsLoading}
+            domain={domain}
+            setDomain={setDomain}
+            domains={domains!}
+            refetch={refetchGoals}
+          />
 
-      <div className="mx-auto space-y-6 p-6">
+          <div className="flex items-center gap-2">
+            <Button
+              data-live={liveMode}
+              onClick={() => setLiveMode(!liveMode)}
+              className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
+              variant="outline"
+            >
+              {liveMode ? <PauseIcon /> : <PlayIcon />}
+              Live Refresh
+            </Button>
+
+            <Button
+              disabled={isRefetching}
+              onClick={() => {
+                refetchGoals()
+              }}
+              variant="outline"
+            >
+              <RefreshCcwIcon
+                className={`${isRefetching ? 'animate-spin' : ''}`}
+              />
+              Refresh
+            </Button>
+
+            <Separator orientation="vertical" />
+
+            <Select
+              items={rangeLabels}
+              value={range}
+              onValueChange={(value) => {
+                if (!value) return
+
+                setRange(value as GoalRange)
+                localStorage.setItem('range', value)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+
+              <SelectContent alignItemWithTrigger={false}>
+                {rangeLabels.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : (
+        <></>
+      )}
+
+      <div className="mx-auto space-y-4 p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -336,7 +363,17 @@ function RouteComponent() {
           </div>
 
           {/* Create Goal Dialog */}
-          <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              if (open && !hasManagePermission) {
+                toast.error('You do not have permission to create goals.')
+                return
+              }
+
+              handleDialogChange(open)
+            }}
+          >
             <DialogTrigger render={<Button />}>
               <PlusIcon />
               New Goal
@@ -864,44 +901,50 @@ function RouteComponent() {
           </Dialog>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <InputGroup className="w-120">
-              <InputGroupButton>
-                <SearchIcon />
-              </InputGroupButton>
-
-              <InputGroupInput placeholder="Search..." />
-            </InputGroup>
-          </div>
-        </div>
-
-        {/* Goals */}
-        {goalsLoading ? (
-          <div className="grid grid-cols-3 gap-4">
-            {[...Array(3)].map((_, index) => (
-              <GoalCardSkeleton key={index} />
-            ))}
-          </div>
-        ) : !goals?.length ? (
-          <div className="flex h-80 w-full flex-col items-center justify-center">
-            <p>No goals found.</p>
-            <p className="text-muted-foreground text-sm">
-              Create your first goal to get started.
-            </p>
-          </div>
+        {!hasViewPermission && !permissionsLoading ? (
+          <NoPermissionView />
         ) : (
-          <div className="grid grid-cols-3 gap-4">
-            {goals.map((goal) => (
-              <GoalCard
-                key={goal.id}
-                item={goal}
-                workspaceId={workspaceId}
-                projectId={projectId}
-              />
-            ))}
-          </div>
+          <>
+            {/* Controls */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <InputGroup className="w-120">
+                  <InputGroupButton>
+                    <SearchIcon />
+                  </InputGroupButton>
+
+                  <InputGroupInput placeholder="Search..." />
+                </InputGroup>
+              </div>
+            </div>
+
+            {/* Goals */}
+            {goalsLoading ? (
+              <div className="grid grid-cols-3 gap-4">
+                {[...Array(3)].map((_, index) => (
+                  <GoalCardSkeleton key={index} />
+                ))}
+              </div>
+            ) : !goals?.length ? (
+              <div className="flex h-80 w-full flex-col items-center justify-center">
+                <p>No goals found.</p>
+                <p className="text-muted-foreground text-sm">
+                  Create your first goal to get started.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                {goals.map((goal) => (
+                  <GoalCard
+                    key={goal.id}
+                    item={goal}
+                    workspaceId={workspaceId}
+                    projectId={projectId}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

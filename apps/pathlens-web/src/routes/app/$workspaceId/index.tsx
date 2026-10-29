@@ -42,6 +42,7 @@ import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { useDeleteProject } from '@/mutations/projects'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
+import { ErrorScreen } from './$projectId/-components/common/error-screen'
 
 export const Route = createFileRoute('/app/$workspaceId/')({
   component: RouteComponent,
@@ -52,19 +53,26 @@ function RouteComponent() {
   const navigate = useNavigate()
   const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
 
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('projects.view')
+  const hasCreatePermission = permissions?.includes('projects.create')
+  const hasDeletePermission = permissions?.includes('projects.delete')
+
   const {
     data: projects,
     isPending: projectsLoading,
     isError: projectsError,
-  } = useQuery(
-    getProjectsOptions({
+    refetch,
+  } = useQuery({
+    ...getProjectsOptions({
       workspace_id: workspaceId,
-    })
-  )
-
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+    }),
+    enabled: !!hasViewPermission,
+  })
 
   const deleteProject = useDeleteProject()
 
@@ -78,11 +86,11 @@ function RouteComponent() {
           }
         }}
       >
-        <div className="mx-auto max-w-4xl py-10">
-          <div className="space-y-5">
-            <p className="text-2xl font-medium">Projects</p>
+        <div className="mx-auto max-w-4xl p-6 pt-10">
+          <div className="space-y-4">
+            <p className="text-xl font-medium">Projects</p>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <InputGroup>
                   <InputGroupButton>
@@ -94,6 +102,11 @@ function RouteComponent() {
 
                 <Button
                   onClick={() => {
+                    if (!hasCreatePermission)
+                      return toast.error(
+                        'You do not have permission to create projects.'
+                      )
+
                     navigate({
                       to: '/app/$workspaceId/create',
                       params: {
@@ -107,46 +120,55 @@ function RouteComponent() {
                 </Button>
               </div>
 
-              <div className="space-y-2">
-                {projectsLoading || permissionsLoading ? (
-                  <>
-                    {[...Array(3)].map((_, i) => (
-                      <div
-                        className="grid w-full grid-cols-[0.4fr_1fr] gap-4 border-2 border-dashed p-3 duration-150"
-                        key={i}
-                      >
-                        <Skeleton className="aspect-video w-full rounded-none" />
+              {!hasViewPermission && !permissionsLoading ? (
+                <NoPermissionView />
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {projectsLoading ? (
+                      <>
+                        {[...Array(2)].map((_, i) => (
+                          <div
+                            className="grid w-full grid-cols-[0.4fr_1fr] gap-4 border-2 border-dashed p-3 duration-150"
+                            key={i}
+                          >
+                            <Skeleton className="aspect-video w-full rounded-none" />
 
-                        <div className="flex flex-1 flex-col justify-between">
-                          <div className="space-y-2">
-                            <Skeleton className="h-6 w-50" />
-                            <Skeleton className="h-6 w-32" />
-                          </div>
+                            <div className="flex flex-1 flex-col justify-between">
+                              <div className="space-y-2">
+                                <Skeleton className="h-6 w-50" />
+                                <Skeleton className="h-6 w-32" />
+                              </div>
 
-                          <div className="flex items-center gap-8">
-                            <Skeleton className="h-6 w-20"></Skeleton>
-                            <Skeleton className="h-6 w-20"></Skeleton>
-                            <Skeleton className="h-6 w-20"></Skeleton>
-                            <Skeleton className="h-6 w-20"></Skeleton>
+                              <div className="flex items-center gap-8">
+                                <Skeleton className="h-6 w-20"></Skeleton>
+                                <Skeleton className="h-6 w-20"></Skeleton>
+                                <Skeleton className="h-6 w-20"></Skeleton>
+                                <Skeleton className="h-6 w-20"></Skeleton>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
-                  </>
-                ) : !permissionsData?.data?.includes('projects.view') ? (
-                  <NoPermissionView />
-                ) : (
-                  projects?.data.map((item) => {
-                    return (
-                      <ProjectCard
-                        setDeleteOpen={setDeleteOpen}
-                        item={item}
-                        workspaceId={workspaceId}
-                      />
-                    )
-                  })
-                )}
-              </div>
+                        ))}
+                      </>
+                    ) : projectsError ? (
+                      <>
+                        <ErrorScreen refetch={refetch} />
+                      </>
+                    ) : (
+                      projects?.data.map((item) => {
+                        return (
+                          <ProjectCard
+                            setDeleteOpen={setDeleteOpen}
+                            item={item}
+                            workspaceId={workspaceId}
+                            hasDeletePermission={hasDeletePermission!}
+                          />
+                        )
+                      })
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -196,10 +218,12 @@ const ProjectCard = ({
   item,
   workspaceId,
   setDeleteOpen,
+  hasDeletePermission,
 }: {
   item: T_Projects
   workspaceId: string
   setDeleteOpen: React.Dispatch<React.SetStateAction<string | null>>
+  hasDeletePermission: boolean
 }) => {
   const navigate = useNavigate()
 
@@ -303,6 +327,11 @@ const ProjectCard = ({
       label: 'Delete',
       variant: 'destructive' as const,
       onClick: () => {
+        if (!hasDeletePermission) {
+          return toast.error(
+            'You do not have permission to delete this project'
+          )
+        }
         setDeleteOpen(item.id)
       },
     },

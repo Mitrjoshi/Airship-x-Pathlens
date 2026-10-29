@@ -1,5 +1,6 @@
 import {
   getWorkspacePermissionProfilesOptions,
+  getWorkspacePermissionsOptions,
   type T_PermissionProfile,
 } from '@/queries/workspace'
 import { useQuery } from '@tanstack/react-query'
@@ -67,6 +68,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@workspace/ui/components/sheet'
+import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/app/$workspaceId/permissions')({
   component: RouteComponent,
@@ -112,11 +115,32 @@ function RouteComponent() {
   const [sheetOpen, setSheetOpen] = useState<boolean>(false)
   const [permissionId, setPermissionId] = useState<string | null>(null)
 
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes(
+    'workspace.permission_profiles.view'
+  )
+  const hasCreatePermission = permissions?.includes(
+    'workspace.permission_profiles.create'
+  )
+  const hasUpdatePermission = permissions?.includes(
+    'workspace.permission_profiles.update'
+  )
+  const hasDeletePermission = permissions?.includes(
+    'workspace.permission_profiles.delete'
+  )
+
   const {
     data: profilesData,
     isPending: profilesPending,
     isError: profilesError,
-  } = useQuery(getWorkspacePermissionProfilesOptions(workspaceId))
+  } = useQuery({
+    ...getWorkspacePermissionProfilesOptions(workspaceId),
+    enabled: !!hasViewPermission,
+  })
 
   const {
     mutate: createPermissionProfile,
@@ -189,8 +213,8 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="mx-auto max-w-4xl pt-10">
-        <div className="space-y-5">
+      <div className="mx-auto max-w-4xl p-6 pt-10">
+        <div className="space-y-4">
           <p className="text-xl font-medium">Permission Profiles</p>
 
           {profilesError ? (
@@ -202,7 +226,7 @@ function RouteComponent() {
           ) : (
             <>
               <div className="flex items-center justify-between gap-4">
-                <InputGroup>
+                <InputGroup className="w-90">
                   <InputGroupButton>
                     <SearchIcon />
                   </InputGroupButton>
@@ -216,6 +240,12 @@ function RouteComponent() {
 
                 <Button
                   onClick={() => {
+                    if (!hasCreatePermission) {
+                      return toast.error(
+                        'You do not have permission to create a permission profile'
+                      )
+                    }
+
                     setProfileDialog({
                       mode: 'create',
                     })
@@ -226,51 +256,69 @@ function RouteComponent() {
                 </Button>
               </div>
 
-              <div className="overflow-hidden rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
+              {!hasViewPermission && !permissionsLoading ? (
+                <NoPermissionView />
+              ) : (
+                <>
+                  <div className="overflow-hidden rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
 
-                      <TableHead className="w-32 text-center">
-                        Permissions
-                      </TableHead>
+                          <TableHead className="w-32 text-center">
+                            Permissions
+                          </TableHead>
 
-                      <TableHead className="w-24 text-center">
-                        Members
-                      </TableHead>
+                          <TableHead className="w-24 text-center">
+                            Members
+                          </TableHead>
 
-                      <TableHead className="w-20 text-center">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                          <TableHead className="w-20 text-center">
+                            Action
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
 
-                  <TableBody>
-                    {profilesPending ? (
-                      <PermissionTableSkeleton />
-                    ) : (
-                      filteredProfiles.map((item) => (
-                        <PermissionsCard
-                          key={item.id}
-                          item={item}
-                          onEdit={(profile) => {
-                            setProfileDialog({
-                              mode: 'edit',
-                              profile,
-                            })
-                          }}
-                          onDelete={(profileId) => {
-                            setDeleteOpen(profileId)
-                          }}
-                          onClick={() => {
-                            setSheetOpen(true)
-                            setPermissionId(item.id)
-                          }}
-                        />
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                      <TableBody>
+                        {profilesPending ? (
+                          <PermissionTableSkeleton />
+                        ) : (
+                          filteredProfiles.map((item) => (
+                            <PermissionsCard
+                              key={item.id}
+                              item={item}
+                              onEdit={(profile) => {
+                                if (!hasUpdatePermission) {
+                                  return toast.error(
+                                    'You do not have permission to update a permission profile'
+                                  )
+                                }
+                                setProfileDialog({
+                                  mode: 'edit',
+                                  profile,
+                                })
+                              }}
+                              onDelete={(profileId) => {
+                                if (!hasDeletePermission) {
+                                  return toast.error(
+                                    'You do not have permission to delete a permission profile'
+                                  )
+                                }
+                                setDeleteOpen(profileId)
+                              }}
+                              onClick={() => {
+                                setSheetOpen(true)
+                                setPermissionId(item.id)
+                              }}
+                            />
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -435,7 +483,7 @@ function PermissionProfileDialog({
           />
         </div>
 
-        <DialogFooter className="bg-transparent">
+        <DialogFooter className="bg-transparent py-2">
           <Button variant="ghost" disabled={isPending} onClick={onClose}>
             Cancel
           </Button>
@@ -637,7 +685,7 @@ function DeletePermissionProfileDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="py-2">
+        <DialogFooter className="bg-transparent py-2">
           <Button
             variant="secondary"
             disabled={isPending}

@@ -89,38 +89,40 @@ function RouteComponent() {
   const [liveMode, setLiveMode] = useState(false)
   const [domain, setDomain] = useState('')
 
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('analytics.dashboard.view')
+
   const {
     data: dashboardData,
     isLoading,
     refetch,
     dataUpdatedAt,
     isRefetching,
-  } = useQuery(
-    getDashboardOptions({
+  } = useQuery({
+    ...getDashboardOptions({
       workspace_id: workspaceId,
       project_id: projectId,
       range,
       device: 'all',
       refetchInterval: liveMode ? 5000 : undefined,
       domain,
-    })
-  )
+    }),
+    enabled: !!hasViewPermission,
+  })
 
-  const { data: domainsData, isLoading: domainsLoading } = useQuery(
-    getProjectDomainsOptions(projectId)
-  )
-
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
-
-  const permissions = permissionsData?.data
+  const { data: domainsData, isLoading: domainsLoading } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
 
   const dashboard = dashboardData?.data
   const domains = domainsData?.data
 
   const lastUpdated = useRelativeTime(dataUpdatedAt)
-  const hasViewPermission = permissions?.includes('project.api_keys.view')
 
   const deviceChartConfig = {
     value: {
@@ -163,90 +165,103 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
-        <div className="flex items-center gap-4">
-          <DomainSwitcher
-            loading={domainsLoading}
-            domain={domain}
-            setDomain={setDomain}
-            domains={domains!}
-            refetch={refetch}
-          />
+      {permissionsLoading ? (
+        <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+          <Skeleton className={'h-8 w-60'} />
 
-          <Separator orientation="vertical" />
-
-          <div className="flex items-center justify-between gap-3">
-            <span
-              className={`h-2 w-2 border ${dashboard?.liveVisitors ? 'bg-green-400' : 'bg-transparent'}`}
-            />
-
-            <p className="text-sm">
-              {isLoading ? (
-                <Skeleton className="h-6 w-25" />
-              ) : (
-                `${formatNumber(dashboard?.liveVisitors ?? 0)} Online`
-              )}{' '}
-            </p>
+          <div className="flex items-center gap-2">
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
           </div>
+        </div>
+      ) : hasViewPermission ? (
+        <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+          <div className="flex items-center gap-4">
+            <DomainSwitcher
+              loading={domainsLoading}
+              domain={domain}
+              setDomain={setDomain}
+              domains={domains!}
+              refetch={refetch}
+            />
+            <Separator orientation="vertical" />
 
-          <Separator orientation="vertical" />
+            <div className="flex items-center justify-between gap-3">
+              <span
+                className={`h-2 w-2 border ${dashboard?.liveVisitors ? 'bg-green-400' : 'bg-transparent'}`}
+              />
 
-          <div className="flex items-center justify-between gap-3">
-            {dataUpdatedAt && (
-              <p className="text-muted-foreground text-sm">
-                Last updated {lastUpdated}
+              <p className="text-sm">
+                {isLoading ? (
+                  <Skeleton className="h-6 w-25" />
+                ) : (
+                  `${formatNumber(dashboard?.liveVisitors ?? 0)} Online`
+                )}{' '}
               </p>
-            )}
+            </div>
+
+            <Separator orientation="vertical" />
+
+            <div className="flex items-center justify-between gap-3">
+              {lastUpdated && (
+                <p className="text-muted-foreground text-sm">
+                  Last updated {lastUpdated}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              data-live={liveMode}
+              onClick={() => setLiveMode(!liveMode)}
+              className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
+              variant="outline"
+            >
+              {liveMode ? <PauseIcon /> : <PlayIcon />}
+              Live Refresh
+            </Button>
+            <Button
+              disabled={isRefetching}
+              onClick={() => {
+                refetch()
+              }}
+              variant="outline"
+            >
+              <RefreshCcwIcon
+                className={`${isRefetching ? 'animate-spin' : ''}`}
+              />
+              Refresh
+            </Button>
+
+            <Separator orientation="vertical" />
+
+            <Select
+              items={rangeLabels}
+              value={range}
+              onValueChange={(value) => {
+                if (!value) return
+                setRange(value as DashboardRange)
+                localStorage.setItem('range', value)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {rangeLabels.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            data-live={liveMode}
-            onClick={() => setLiveMode(!liveMode)}
-            className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
-            variant="outline"
-          >
-            {liveMode ? <PauseIcon /> : <PlayIcon />}
-            Live Refresh
-          </Button>
-          <Button
-            disabled={isRefetching}
-            onClick={() => {
-              refetch()
-            }}
-            variant="outline"
-          >
-            <RefreshCcwIcon
-              className={`${isRefetching ? 'animate-spin' : ''}`}
-            />
-            Refresh
-          </Button>
-
-          <Separator orientation="vertical" />
-
-          <Select
-            items={rangeLabels}
-            value={range}
-            onValueChange={(value) => {
-              if (!value) return
-              setRange(value as DashboardRange)
-              localStorage.setItem('range', value)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              {rangeLabels.map((range) => (
-                <SelectItem key={range.value} value={range.value}>
-                  {range.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      ) : (
+        <></>
+      )}
 
       <div className="mx-auto space-y-4 p-6">
         <div>
@@ -256,7 +271,7 @@ function RouteComponent() {
           </p>
         </div>
 
-        {hasViewPermission ? (
+        {!hasViewPermission && !permissionsLoading ? (
           <NoPermissionView />
         ) : (
           <>

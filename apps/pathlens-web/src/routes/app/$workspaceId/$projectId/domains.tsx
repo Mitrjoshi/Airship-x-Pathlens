@@ -2,11 +2,6 @@ import { useState } from 'react'
 import { getProjectDomainsOptions } from '@/queries/domains'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import {
-  InputGroup,
-  InputGroupButton,
-  InputGroupInput,
-} from '@workspace/ui/components/input-group'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   Table,
@@ -16,12 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@workspace/ui/components/table'
-import {
-  EllipsisIcon,
-  ExternalLinkIcon,
-  PlusIcon,
-  SearchIcon,
-} from 'lucide-react'
+import { EllipsisIcon, ExternalLinkIcon, PlusIcon } from 'lucide-react'
 import { UserDetailsSheet } from './-components/user/user-details-sheet'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -49,8 +39,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
-import ApiKeyLoading from './-components/common/api-key-loading'
 import { Badge } from '@workspace/ui/components/badge'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
+import { toast } from 'sonner'
+import { NoPermissionView } from './-components/common/no-permission-view'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/domains')({
   component: RouteComponent,
@@ -62,7 +54,18 @@ function RouteComponent() {
   const [domain, setDomain] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const { data, isLoading } = useQuery(getProjectDomainsOptions(projectId))
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('project.domains.view')
+  const hasManagePermission = permissions?.includes('project.domains.manage')
+
+  const { data, isLoading } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
 
   const { mutate: createDomain, isPending: isCreating } =
     useCreateProjectDomain(projectId)
@@ -82,10 +85,16 @@ function RouteComponent() {
 
   return (
     <div className="p-6">
-      <div className="space-y-5">
+      <div className="space-y-4">
         <Dialog
           open={dialogOpen}
           onOpenChange={(open) => {
+            if (!hasManagePermission) {
+              return toast.error(
+                'You do not have permission to create domains.'
+              )
+            }
+
             setDialogOpen(open)
 
             if (!open) {
@@ -95,7 +104,7 @@ function RouteComponent() {
         >
           <div className="flex items-center justify-between gap-6">
             {/* Header */}
-            <div className="space-y-1">
+            <div className="">
               <p className="text-xl font-medium">Domains</p>
 
               <p className="text-muted-foreground text-sm">
@@ -156,84 +165,96 @@ function RouteComponent() {
         </Dialog>
 
         {/* Table */}
-        <div className="border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Domain</TableHead>
+        {!hasViewPermission && !permissionsLoading ? (
+          <NoPermissionView />
+        ) : (
+          <>
+            <div className="border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Domain</TableHead>
 
-                <TableHead className="w-60 text-center">Created By</TableHead>
+                    <TableHead className="w-60 text-center">
+                      Created By
+                    </TableHead>
 
-                <TableHead className="w-20 text-center">Action</TableHead>
-              </TableRow>
-            </TableHeader>
+                    <TableHead className="w-20 text-center">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
 
-            <TableBody>
-              {isLoading
-                ? [...Array(10)].map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Skeleton className="h-5 w-32" />
-                      </TableCell>
+                <TableBody>
+                  {isLoading
+                    ? [...Array(10)].map((_, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Skeleton className="h-5 w-32" />
+                          </TableCell>
 
-                      <TableCell>
-                        <Skeleton className="mx-auto h-5 w-60" />
-                      </TableCell>
+                          <TableCell>
+                            <Skeleton className="mx-auto h-5 w-60" />
+                          </TableCell>
 
-                      <TableCell>
-                        <Skeleton className="mx-auto h-5 w-8" />
+                          <TableCell>
+                            <Skeleton className="mx-auto h-5 w-8" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    : data?.data?.map((item) => (
+                        <TableRow key={item.id} className="hover:bg-card/40">
+                          <TableCell>
+                            <Button
+                              render={
+                                <a
+                                  href={item.domain as string}
+                                  target="_blank"
+                                />
+                              }
+                              variant="link"
+                              className="text-foreground px-0 underline underline-offset-4"
+                            >
+                              {item.domain}
+                              <ExternalLinkIcon />
+                            </Button>
+                            {item.isDefault && (
+                              <Badge variant={'secondary'} className="ml-4">
+                                Default
+                              </Badge>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            <UserDetailsSheet
+                              userId={item.userId}
+                              workspaceId={workspaceId}
+                            />
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            <DomainActions
+                              projectId={projectId}
+                              domainId={item.id}
+                              domain={item.domain}
+                              hasManagePermission={hasManagePermission!}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+
+                  {!isLoading && !data?.data?.length && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-32 text-center">
+                        <p className="text-muted-foreground text-sm">
+                          No domains found.
+                        </p>
                       </TableCell>
                     </TableRow>
-                  ))
-                : data?.data?.map((item) => (
-                    <TableRow key={item.id} className="hover:bg-card/40">
-                      <TableCell>
-                        <Button
-                          render={
-                            <a href={item.domain as string} target="_blank" />
-                          }
-                          variant="link"
-                          className="text-foreground px-0 underline underline-offset-4"
-                        >
-                          {item.domain}
-                          <ExternalLinkIcon />
-                        </Button>
-                        {item.isDefault && (
-                          <Badge variant={'secondary'} className="ml-4">
-                            Default
-                          </Badge>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="text-center">
-                        <UserDetailsSheet
-                          userId={item.userId}
-                          workspaceId={workspaceId}
-                        />
-                      </TableCell>
-
-                      <TableCell className="text-center">
-                        <DomainActions
-                          projectId={projectId}
-                          domainId={item.id}
-                          domain={item.domain}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-
-              {!isLoading && !data?.data?.length && (
-                <TableRow>
-                  <TableCell colSpan={3} className="h-32 text-center">
-                    <p className="text-muted-foreground text-sm">
-                      No domains found.
-                    </p>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -243,9 +264,16 @@ type DomainActionsProps = {
   projectId: string
   domainId: string
   domain: string
+
+  hasManagePermission: boolean
 }
 
-function DomainActions({ projectId, domainId, domain }: DomainActionsProps) {
+function DomainActions({
+  projectId,
+  domainId,
+  domain,
+  hasManagePermission,
+}: DomainActionsProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -257,7 +285,15 @@ function DomainActions({ projectId, domainId, domain }: DomainActionsProps) {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
+          <DropdownMenuItem
+            onClick={() => {
+              if (!hasManagePermission)
+                return toast.error(
+                  'You do not have permission to edit this domain.'
+                )
+              setEditOpen(true)
+            }}
+          >
             Edit
           </DropdownMenuItem>
 
@@ -265,7 +301,13 @@ function DomainActions({ projectId, domainId, domain }: DomainActionsProps) {
 
           <DropdownMenuItem
             variant="destructive"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => {
+              if (!hasManagePermission)
+                return toast.error(
+                  'You do not have permission to delete this domain.'
+                )
+              setDeleteOpen(true)
+            }}
           >
             Delete
           </DropdownMenuItem>
@@ -366,7 +408,7 @@ function EditDomainDialog({
           />
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="bg-transparent py-2">
           <DialogClose
             render={<Button variant="outline" disabled={isUpdating} />}
           >
@@ -421,7 +463,7 @@ function DeleteDomainDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter>
+        <DialogFooter className="bg-transparent py-2">
           <DialogClose
             render={<Button variant="outline" disabled={isDeleting} />}
           >

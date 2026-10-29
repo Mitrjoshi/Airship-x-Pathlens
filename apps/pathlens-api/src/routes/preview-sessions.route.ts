@@ -15,17 +15,17 @@ const router = Router();
 router.use(authMiddleware);
 router.post(
   "/",
-  requireWorkspaceProjectPermission("analytics.analytics.view"),
+  requireWorkspaceProjectPermission("analytics.heatmaps.view"),
   createPreviewSession
 );
 router.delete(
   "/",
-  requirePreviewSessionWorkspacePermission("analytics.analytics.view"),
+  requirePreviewSessionWorkspacePermission("analytics.heatmaps.view"),
   revokePreviewSession
 );
 router.post(
   "/supersede",
-  requirePreviewSessionWorkspacePermission("analytics.analytics.view"),
+  requirePreviewSessionWorkspacePermission("analytics.heatmaps.view"),
   supersedePreviewSession
 );
 

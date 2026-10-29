@@ -69,5 +69,4 @@ export const getPerformanceOptions = (params: PerformanceParams) =>
   queryOptions({
     queryKey: ['PERFORMANCE', params],
     queryFn: () => getPerformance(params),
-    enabled: !!params.workspace_id,
   })

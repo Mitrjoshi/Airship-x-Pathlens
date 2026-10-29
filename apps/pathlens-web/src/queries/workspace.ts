@@ -85,7 +85,6 @@ export const getWorkspaceMembersOptions = (workspaceId: string) =>
 
       return response.data
     },
-    enabled: Boolean(workspaceId),
   })
 
 export const getWorkspaceInvitationsOptions = (workspaceId: string) =>
@@ -101,7 +100,6 @@ export const getWorkspaceInvitationsOptions = (workspaceId: string) =>
 
       return response.data
     },
-    enabled: Boolean(workspaceId),
   })
 
 export const getWorkspacePermissionsOptions = (workspaceId: string) =>
@@ -148,7 +146,6 @@ export const getWorkspacePermissionProfilesOptions = (workspaceId: string) =>
 
       return response.data
     },
-    enabled: Boolean(workspaceId),
   })
 
 export interface PermissionProfileResponse {

@@ -32,8 +32,12 @@ import {
   SelectValue,
 } from '@workspace/ui/components/select'
 import { getProjectsOptions } from '@/queries/projects'
-import { getWorkspaceMembersOptions } from '@/queries/workspace'
+import {
+  getWorkspaceMembersOptions,
+  getWorkspacePermissionsOptions,
+} from '@/queries/workspace'
 import { UserDetailsSheet } from './$projectId/-components/user/user-details-sheet'
+import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
 
 export const Route = createFileRoute('/app/$workspaceId/audit-logs')({
   component: RouteComponent,
@@ -48,23 +52,40 @@ function RouteComponent() {
   const [projectId, setProjectId] = useState('all')
   const [memberId, setMemberId] = useState('all')
 
-  const { data: auditLogsData, isFetching: isAuditLogsFetching } = useQuery(
-    getAuditLogsOptions({
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('workspace.audit_logs.view')
+  const hasViewProjectsPermission = permissions?.includes('projects.view')
+  const hasViewMembersPermission = permissions?.includes(
+    'workspace.members.view'
+  )
+  const hasViewProfilePermission = permissions?.includes(
+    'workspace.permission_profiles.view'
+  )
+
+  const { data: auditLogsData, isFetching: isAuditLogsFetching } = useQuery({
+    ...getAuditLogsOptions({
       workspace_id: workspaceId,
       page,
       page_size: PAGE_SIZE,
       project_id: projectId === 'all' ? undefined : projectId,
       actor_user_id: memberId === 'all' ? undefined : memberId,
-    })
-  )
-  const { data: projectsData, isFetching: isProjectsDataLoading } = useQuery(
-    getProjectsOptions({
+    }),
+    enabled: !!hasViewPermission,
+  })
+  const { data: projectsData, isFetching: isProjectsDataLoading } = useQuery({
+    ...getProjectsOptions({
       workspace_id: workspaceId,
-    })
-  )
-  const { data: membersData, isFetching: isMembersDataLoading } = useQuery(
-    getWorkspaceMembersOptions(workspaceId)
-  )
+    }),
+    enabled: !!hasViewProjectsPermission && !!hasViewPermission,
+  })
+  const { data: membersData, isFetching: isMembersDataLoading } = useQuery({
+    ...getWorkspaceMembersOptions(workspaceId),
+    enabled: !!hasViewMembersPermission && !!hasViewPermission,
+  })
 
   const auditLogs = auditLogsData?.data
   const projects = projectsData?.data
@@ -100,14 +121,10 @@ function RouteComponent() {
   ]
 
   return (
-    <div className="mx-auto w-full max-w-4xl py-10">
-      <div className="space-y-5">
+    <div className="mx-auto w-full max-w-4xl p-6 pt-10">
+      <div className="space-y-4">
         <div>
           <p className="text-xl font-medium">Audit logs</p>
-
-          <p className="text-muted-foreground text-sm">
-            See the history of changes made within this workspace.
-          </p>
         </div>
 
         <div className="flex items-center justify-between gap-4">
@@ -120,6 +137,7 @@ function RouteComponent() {
 
           <div className="flex items-center justify-between gap-2">
             <Select
+              disabled={!hasViewProjectsPermission || !hasViewPermission}
               items={projectItems}
               value={projectId}
               onValueChange={(value) => {
@@ -140,6 +158,7 @@ function RouteComponent() {
             </Select>
 
             <Select
+              disabled={!hasViewMembersPermission || !hasViewPermission}
               items={memberItems}
               value={memberId}
               onValueChange={(value) => {
@@ -161,161 +180,173 @@ function RouteComponent() {
           </div>
         </div>
 
-        <div className="">
-          <div className="overflow-hidden border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Action Time</TableHead>
-                  <TableHead className="w-[40%]">Resource</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Actor</TableHead>
-                </TableRow>
-              </TableHeader>
+        {!hasViewPermission &&
+        !hasViewMembersPermission &&
+        !hasViewProjectsPermission &&
+        !permissionsLoading ? (
+          <NoPermissionView />
+        ) : (
+          <>
+            <div className="">
+              <div className="overflow-hidden border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Action Time</TableHead>
+                      <TableHead className="w-[40%]">Resource</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Actor</TableHead>
+                    </TableRow>
+                  </TableHeader>
 
-              <TableBody>
-                {isAuditLogsFetching
-                  ? [...Array(PAGE_SIZE)].map((_, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Skeleton className="h-5 w-32" />
-                        </TableCell>
+                  <TableBody>
+                    {isAuditLogsFetching
+                      ? [...Array(PAGE_SIZE)].map((_, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <Skeleton className="h-5 w-32" />
+                            </TableCell>
 
-                        <TableCell>
-                          <Skeleton className="h-5 w-60" />
-                        </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-5 w-60" />
+                            </TableCell>
 
-                        <TableCell>
-                          <Skeleton className="h-5 w-40" />
-                        </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-5 w-40" />
+                            </TableCell>
 
-                        <TableCell>
-                          <Skeleton className="h-5 w-40" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : auditLogs?.map((item) => (
-                      <TableRow
-                        key={item.id}
-                        className="hover:bg-card/40 cursor-pointer"
-                      >
-                        <TableCell>{formatDate(item.createdAt)}</TableCell>
-                        <TableCell>
-                          <p>
-                            {capitalizeFirstLetter(
-                              item.resourceType.replaceAll('_', ' ')
-                            )}
+                            <TableCell>
+                              <Skeleton className="h-5 w-40" />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      : auditLogs?.map((item) => (
+                          <TableRow
+                            key={item.id}
+                            className="hover:bg-card/40 cursor-pointer"
+                          >
+                            <TableCell>{formatDate(item.createdAt)}</TableCell>
+                            <TableCell>
+                              <p>
+                                {capitalizeFirstLetter(
+                                  item.resourceType.replaceAll('_', ' ')
+                                )}
+                              </p>
+
+                              {item.metadata && (
+                                <DotSeparator>
+                                  <DotSeparatorItem>
+                                    <p className="text-muted-foreground text-xs">
+                                      {capitalizeFirstLetter(
+                                        item.metadata?.name
+                                      )}
+                                    </p>
+                                  </DotSeparatorItem>
+                                </DotSeparator>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {capitalizeFirstLetter(
+                                item.action
+                                  .replaceAll('_', ' ')
+                                  .replaceAll('.', ' ')
+                              )}
+                            </TableCell>
+                            <TableCell className={'text-right'}>
+                              <UserDetailsSheet
+                                disabled={!hasViewProfilePermission}
+                                userId={item.actor.id}
+                                workspaceId={workspaceId}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+
+                    {!isAuditLogsFetching && !auditLogs?.length && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-32 text-center">
+                          <p className="text-muted-foreground text-sm">
+                            No audit logs found.
                           </p>
-
-                          {item.metadata && (
-                            <DotSeparator>
-                              <DotSeparatorItem>
-                                <p className="text-muted-foreground text-xs">
-                                  {capitalizeFirstLetter(item.metadata?.name)}
-                                </p>
-                              </DotSeparatorItem>
-                            </DotSeparator>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {capitalizeFirstLetter(
-                            item.action
-                              .replaceAll('_', ' ')
-                              .replaceAll('.', ' ')
-                          )}
-                        </TableCell>
-                        <TableCell className={'text-right'}>
-                          <UserDetailsSheet
-                            userId={item.actor.id}
-                            workspaceId={workspaceId}
-                          />
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
+                  </TableBody>
+                </Table>
 
-                {!isAuditLogsFetching && !auditLogs?.length && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center">
-                      <p className="text-muted-foreground text-sm">
-                        No audit logs found.
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                {/* Pagination */}
+                <div className="flex items-center justify-between border-t px-4 py-3">
+                  <p className="text-muted-foreground text-sm">
+                    {totalLogs > 0 ? (
+                      <>
+                        Showing {from}-{to} of {totalLogs} audit logs
+                      </>
+                    ) : (
+                      'No audit logs'
+                    )}
+                  </p>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-muted-foreground text-sm">
-                {totalLogs > 0 ? (
-                  <>
-                    Showing {from}-{to} of {totalLogs} audit logs
-                  </>
-                ) : (
-                  'No audit logs'
-                )}
-              </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page <= 1 || isAuditLogsFetching}
+                      onClick={() => {
+                        setPage((current) => Math.max(current - 1, 1))
+                      }}
+                    >
+                      Previous
+                    </Button>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1 || isAuditLogsFetching}
-                  onClick={() => {
-                    setPage((current) => Math.max(current - 1, 1))
-                  }}
-                >
-                  Previous
-                </Button>
+                    <div className="flex items-center gap-1">
+                      {paginationItems.map((item, index) => {
+                        if (item === 'ellipsis') {
+                          return (
+                            <span
+                              key={`ellipsis-${index}`}
+                              className="text-muted-foreground flex size-8 items-center justify-center text-sm"
+                            >
+                              ...
+                            </span>
+                          )
+                        }
 
-                <div className="flex items-center gap-1">
-                  {paginationItems.map((item, index) => {
-                    if (item === 'ellipsis') {
-                      return (
-                        <span
-                          key={`ellipsis-${index}`}
-                          className="text-muted-foreground flex size-8 items-center justify-center text-sm"
-                        >
-                          ...
-                        </span>
-                      )
-                    }
+                        return (
+                          <Button
+                            key={item}
+                            variant={page === item ? 'outline' : 'ghost'}
+                            size="icon"
+                            className="size-8"
+                            disabled={isAuditLogsFetching}
+                            onClick={() => {
+                              setPage(item)
+                            }}
+                          >
+                            {item}
+                          </Button>
+                        )
+                      })}
+                    </div>
 
-                    return (
-                      <Button
-                        key={item}
-                        variant={page === item ? 'outline' : 'ghost'}
-                        size="icon"
-                        className="size-8"
-                        disabled={isAuditLogsFetching}
-                        onClick={() => {
-                          setPage(item)
-                        }}
-                      >
-                        {item}
-                      </Button>
-                    )
-                  })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={
+                        !auditLogsData?.pagination?.hasNextPage ||
+                        isAuditLogsFetching
+                      }
+                      onClick={() => {
+                        setPage((current) => Math.min(current + 1, totalPages))
+                      }}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={
-                    !auditLogsData?.pagination?.hasNextPage ||
-                    isAuditLogsFetching
-                  }
-                  onClick={() => {
-                    setPage((current) => Math.min(current + 1, totalPages))
-                  }}
-                >
-                  Next
-                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   )

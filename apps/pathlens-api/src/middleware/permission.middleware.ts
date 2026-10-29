@@ -87,6 +87,73 @@ export function requireAnyWorkspacePermission(...permissions: Permission[]) {
   };
 }
 
+export function requireWorkspaceOrProjectPermission(
+  workspacePermission: Permission,
+  projectPermission: Permission
+) {
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized." });
+      return;
+    }
+
+    try {
+      const workspaceId = await getWorkspaceId(req);
+      const projectId =
+        getStringValue(req.params.project_id) ??
+        getStringValue(req.query.project_id) ??
+        getStringValue(req.body?.project_id);
+
+      if (!workspaceId) {
+        res.status(400).json({
+          success: false,
+          message: "Workspace id is required.",
+        });
+        return;
+      }
+
+      if (projectId && !z.uuid().safeParse(projectId).success) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid project id.",
+        });
+        return;
+      }
+
+      const access = await getWorkspaceAccessModel(workspaceId, userId);
+      const requiredPermission = projectId
+        ? projectPermission
+        : workspacePermission;
+
+      if (!access || !hasWorkspacePermission(access, requiredPermission)) {
+        res.status(403).json({
+          success: false,
+          message: "You do not have permission to perform this action.",
+        });
+        return;
+      }
+
+      if (projectId) {
+        const projectWorkspaceId = await getProjectWorkspaceIdModel(projectId);
+
+        if (!projectWorkspaceId || projectWorkspaceId !== workspaceId) {
+          res.status(403).json({
+            success: false,
+            message: "You do not have permission to perform this action.",
+          });
+          return;
+        }
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
 export function requireWorkspaceProjectPermission(
   ...permissions: Permission[]
 ) {

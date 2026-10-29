@@ -8,7 +8,7 @@ const router = Router();
 router.use(authMiddleware);
 router.get(
   "/",
-  requireAnyWorkspacePermission("analytics.analytics.view"),
+  requireAnyWorkspacePermission("analytics.errors.view"),
   getErrors
 );
 

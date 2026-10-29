@@ -33,7 +33,6 @@ import { Route as AppWorkspaceIdSettingsRouteImport } from './routes/app/$worksp
 import { Route as AppWorkspaceIdTeamRouteImport } from './routes/app/$workspaceId/team'
 import { Route as AppWorkspaceIdUsageRouteImport } from './routes/app/$workspaceId/usage'
 import { Route as AppentryIndexRouteImport } from './routes/app/(entry)/index'
-import { Route as AppentryActivityRouteImport } from './routes/app/(entry)/activity'
 import { Route as AppentryBillingRouteImport } from './routes/app/(entry)/billing'
 import { Route as AppentryNotificationsRouteImport } from './routes/app/(entry)/notifications'
 import { Route as AppentrySecurityRouteImport } from './routes/app/(entry)/security'
@@ -179,11 +178,6 @@ const AppWorkspaceIdUsageRoute = AppWorkspaceIdUsageRouteImport.update({
 const AppentryIndexRoute = AppentryIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppentryRouteRoute,
-} as any)
-const AppentryActivityRoute = AppentryActivityRouteImport.update({
-  id: '/activity',
-  path: '/activity',
   getParentRoute: () => AppentryRouteRoute,
 } as any)
 const AppentryBillingRoute = AppentryBillingRouteImport.update({
@@ -368,7 +362,6 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
-  '/app/activity': typeof AppentryActivityRoute
   '/app/billing': typeof AppentryBillingRoute
   '/app/notifications': typeof AppentryNotificationsRoute
   '/app/security': typeof AppentrySecurityRoute
@@ -419,7 +412,6 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
-  '/app/activity': typeof AppentryActivityRoute
   '/app/billing': typeof AppentryBillingRoute
   '/app/notifications': typeof AppentryNotificationsRoute
   '/app/security': typeof AppentrySecurityRoute
@@ -474,7 +466,6 @@ export interface FileRoutesById {
   '/app/$workspaceId/settings': typeof AppWorkspaceIdSettingsRoute
   '/app/$workspaceId/team': typeof AppWorkspaceIdTeamRoute
   '/app/$workspaceId/usage': typeof AppWorkspaceIdUsageRoute
-  '/app/(entry)/activity': typeof AppentryActivityRoute
   '/app/(entry)/billing': typeof AppentryBillingRoute
   '/app/(entry)/notifications': typeof AppentryNotificationsRoute
   '/app/(entry)/security': typeof AppentrySecurityRoute
@@ -528,7 +519,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
-    | '/app/activity'
     | '/app/billing'
     | '/app/notifications'
     | '/app/security'
@@ -579,7 +569,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
-    | '/app/activity'
     | '/app/billing'
     | '/app/notifications'
     | '/app/security'
@@ -633,7 +622,6 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/settings'
     | '/app/$workspaceId/team'
     | '/app/$workspaceId/usage'
-    | '/app/(entry)/activity'
     | '/app/(entry)/billing'
     | '/app/(entry)/notifications'
     | '/app/(entry)/security'
@@ -842,13 +830,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/app/'
       preLoaderRoute: typeof AppentryIndexRouteImport
-      parentRoute: typeof AppentryRouteRoute
-    }
-    '/app/(entry)/activity': {
-      id: '/app/(entry)/activity'
-      path: '/activity'
-      fullPath: '/app/activity'
-      preLoaderRoute: typeof AppentryActivityRouteImport
       parentRoute: typeof AppentryRouteRoute
     }
     '/app/(entry)/billing': {
@@ -1168,7 +1149,6 @@ const AppWorkspaceIdRouteRouteWithChildren =
   AppWorkspaceIdRouteRoute._addFileChildren(AppWorkspaceIdRouteRouteChildren)
 
 interface AppentryRouteRouteChildren {
-  AppentryActivityRoute: typeof AppentryActivityRoute
   AppentryBillingRoute: typeof AppentryBillingRoute
   AppentryNotificationsRoute: typeof AppentryNotificationsRoute
   AppentrySecurityRoute: typeof AppentrySecurityRoute
@@ -1178,7 +1158,6 @@ interface AppentryRouteRouteChildren {
 }
 
 const AppentryRouteRouteChildren: AppentryRouteRouteChildren = {
-  AppentryActivityRoute: AppentryActivityRoute,
   AppentryBillingRoute: AppentryBillingRoute,
   AppentryNotificationsRoute: AppentryNotificationsRoute,
   AppentrySecurityRoute: AppentrySecurityRoute,

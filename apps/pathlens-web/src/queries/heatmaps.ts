@@ -70,7 +70,6 @@ export const getHeatmapsOptions = (params: HeatmapsParams) =>
         },
       }
     },
-    enabled: Boolean(params.workspace_id && params.project_id),
     refetchInterval: params.refetchInterval,
   })
 

@@ -156,11 +156,11 @@ export function SessionReplayPlayer({
 
   const events = detail?.events ?? EMPTY_SESSION_EVENTS
   const currentEvent = events[currentEventIndex]
-  const initialReplayEvents = detail?.replay.events ?? EMPTY_REPLAY_EVENTS
+  const initialReplayEvents = detail?.replay?.events ?? EMPTY_REPLAY_EVENTS
   const replayEvents = initialReplayEvents.concat(appendedReplayEvents)
-  const replayAvailable = Boolean(detail?.replay.available)
-  const replayIsLive = Boolean(detail?.replay.isLive)
-  const replaySequence = detail?.replay.lastSequence ?? -1
+  const replayAvailable = Boolean(detail?.replay?.available)
+  const replayIsLive = Boolean(detail?.replay?.isLive)
+  const replaySequence = detail?.replay?.lastSequence ?? -1
   const replaySessionId = detail?.id
   const isLiveMode = liveModeOverride ?? replayIsLive
   const replayDuration = getReplayDuration(replayEvents)
@@ -199,7 +199,7 @@ export function SessionReplayPlayer({
         },
       })
     } catch (error) {
-      console.error('[Pathlens] Unable to initialize session replay.', error)
+      console.error('[Pathlens] Unable to initialize session replay?.', error)
       window.setTimeout(() => {
         if (!disposed) setReplayErrorKey(replayKey)
       }, 0)
@@ -457,7 +457,7 @@ export function SessionReplayPlayer({
           </div>
         ) : isError ? (
           <div className="text-destructive flex min-h-0 flex-1 items-center justify-center p-6 text-sm">
-            Unable to load this session replay.
+            Unable to load this session replay?.
           </div>
         ) : !detail || !hasReplay ? (
           <div className="text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-sm">

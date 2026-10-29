@@ -1,10 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
   Background,
-  Controls,
   Handle,
   MarkerType,
-  MiniMap,
   Position,
   ReactFlow,
   type Edge,
@@ -35,6 +33,9 @@ import { useQuery } from '@tanstack/react-query'
 import { getUserJourneyOptions } from '@/queries/user-journey'
 import { getProjectDomainsOptions } from '@/queries/domains'
 import { useRelativeTime } from '@/hooks/use-relative-time'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
+import { NoPermissionView } from './-components/common/no-permission-view'
+import { Skeleton } from '@workspace/ui/components/skeleton'
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/user-journey'
@@ -110,6 +111,13 @@ function RouteComponent() {
   const [liveMode, setLiveMode] = useState(false)
   const [domain, setDomain] = useState('')
 
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('analytics.user_journey.view')
+
   const {
     data: journeyData,
     isLoading,
@@ -126,9 +134,10 @@ function RouteComponent() {
     })
   )
 
-  const { data: domainsData, isLoading: domainsLoading } = useQuery(
-    getProjectDomainsOptions(projectId)
-  )
+  const { data: domainsData, isLoading: domainsLoading } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
 
   const journey = journeyData?.data
 
@@ -183,78 +192,91 @@ function RouteComponent() {
   return (
     <div>
       {/* Top toolbar */}
-      <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
-        <div className="flex items-center gap-4">
-          <DomainSwitcher
-            loading={domainsLoading}
-            domain={domain}
-            setDomain={setDomain}
-            domains={domains ?? []}
-            refetch={refetch}
-          />
+      {permissionsLoading ? (
+        <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+          <Skeleton className={'h-8 w-60'} />
 
-          <Separator orientation="vertical" />
-
-          <div className="flex items-center justify-between gap-3">
-            {!!dataUpdatedAt && (
-              <p className="text-muted-foreground text-sm">
-                Last updated {lastUpdated}
-              </p>
-            )}
+          <div className="flex items-center gap-2">
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
           </div>
         </div>
+      ) : hasViewPermission ? (
+        <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+          <div className="flex items-center gap-4">
+            <DomainSwitcher
+              loading={domainsLoading}
+              domain={domain}
+              setDomain={setDomain}
+              domains={domains ?? []}
+              refetch={refetch}
+            />
 
-        <div className="flex items-center gap-2">
-          <Button
-            data-live={liveMode}
-            onClick={() => {
-              setLiveMode((current) => !current)
-            }}
-            className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
-            variant="outline"
-          >
-            {liveMode ? <PauseIcon /> : <PlayIcon />}
-            Live Refresh
-          </Button>
+            <Separator orientation="vertical" />
 
-          <Button
-            disabled={isRefetching}
-            onClick={() => {
-              void refetch()
-            }}
-            variant="outline"
-          >
-            <RefreshCcwIcon className={isRefetching ? 'animate-spin' : ''} />
-            Refresh
-          </Button>
+            <div className="flex items-center justify-between gap-3">
+              {!!dataUpdatedAt && (
+                <p className="text-muted-foreground text-sm">
+                  Last updated {lastUpdated}
+                </p>
+              )}
+            </div>
+          </div>
 
-          <Separator orientation="vertical" />
+          <div className="flex items-center gap-2">
+            <Button
+              data-live={liveMode}
+              onClick={() => {
+                setLiveMode((current) => !current)
+              }}
+              className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
+              variant="outline"
+            >
+              {liveMode ? <PauseIcon /> : <PlayIcon />}
+              Live Refresh
+            </Button>
 
-          <Select
-            items={rangeLabels}
-            value={range}
-            onValueChange={(value) => {
-              if (!value) return
+            <Button
+              disabled={isRefetching}
+              onClick={() => {
+                void refetch()
+              }}
+              variant="outline"
+            >
+              <RefreshCcwIcon className={isRefetching ? 'animate-spin' : ''} />
+              Refresh
+            </Button>
 
-              setRange(value as UserJourneyRange)
-              localStorage.setItem('range', value)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
-            </SelectTrigger>
+            <Separator orientation="vertical" />
 
-            <SelectContent alignItemWithTrigger={false}>
-              {rangeLabels.map((rangeItem) => (
-                <SelectItem key={rangeItem.value} value={rangeItem.value}>
-                  {rangeItem.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select
+              items={rangeLabels}
+              value={range}
+              onValueChange={(value) => {
+                if (!value) return
+
+                setRange(value as UserJourneyRange)
+                localStorage.setItem('range', value)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+
+              <SelectContent alignItemWithTrigger={false}>
+                {rangeLabels.map((rangeItem) => (
+                  <SelectItem key={rangeItem.value} value={rangeItem.value}>
+                    {rangeItem.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
-
+      ) : (
+        <></>
+      )}
       {/* Page content */}
       <div className="mx-auto space-y-4 p-6">
         <div>
@@ -266,70 +288,83 @@ function RouteComponent() {
           </p>
         </div>
 
-        {/* Summary */}
-        {journey?.summary && (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-            <SummaryCard label="Visitors" value={journey.summary.visitors} />
+        {!hasViewPermission && !permissionsLoading ? (
+          <NoPermissionView />
+        ) : (
+          <>
+            {/* Summary */}
+            {journey?.summary && (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+                <SummaryCard
+                  label="Visitors"
+                  value={journey.summary.visitors}
+                />
 
-            <SummaryCard
-              label="Branches"
-              value={journey.summary.activeBranches}
-            />
+                <SummaryCard
+                  label="Branches"
+                  value={journey.summary.activeBranches}
+                />
 
-            <SummaryCard
-              label="Conversions"
-              value={journey.summary.conversionBranches}
-            />
+                <SummaryCard
+                  label="Conversions"
+                  value={journey.summary.conversionBranches}
+                />
 
-            <SummaryCard
-              label="Drop-offs"
-              value={journey.summary.dropoffBranches}
-            />
+                <SummaryCard
+                  label="Drop-offs"
+                  value={journey.summary.dropoffBranches}
+                />
 
-            <SummaryCard
-              label="Conversion rate"
-              value={`${journey.summary.conversionRate}%`}
-            />
+                <SummaryCard
+                  label="Conversion rate"
+                  value={`${journey.summary.conversionRate}%`}
+                />
 
-            <SummaryCard
-              label="Avg. conversion"
-              value={journey.summary.avgTimeToConvert}
-            />
-          </div>
+                <SummaryCard
+                  label="Avg. conversion"
+                  value={journey.summary.avgTimeToConvert}
+                />
+              </div>
+            )}
+
+            {/* Journey flow */}
+            <div className="bg-card/30 h-[calc(100vh-320px)] w-full overflow-hidden border-2 border-dashed">
+              {isLoading ? (
+                <JourneyLoading />
+              ) : flowNodes.length === 0 ? (
+                <JourneyEmpty />
+              ) : (
+                <ReactFlow
+                  nodes={flowNodes}
+                  edges={flowEdges}
+                  nodeTypes={nodeTypes}
+                  fitView
+                  fitViewOptions={{
+                    padding: 0.2,
+                    maxZoom: 1,
+                  }}
+                  minZoom={0.15}
+                  maxZoom={1.5}
+                  nodesDraggable={false}
+                  nodesConnectable={false}
+                  nodesFocusable
+                  edgesFocusable
+                  elementsSelectable
+                  deleteKeyCode={null}
+                  proOptions={{
+                    hideAttribution: true,
+                  }}
+                >
+                  <Background
+                    color="var(--color-foreground)"
+                    gap={32}
+                    size={1.2}
+                  />
+                </ReactFlow>
+              )}
+            </div>
+          </>
         )}
-
-        {/* Journey flow */}
-        <div className="bg-card/30 h-[calc(100vh-320px)] w-full overflow-hidden border-2 border-dashed">
-          {isLoading ? (
-            <JourneyLoading />
-          ) : flowNodes.length === 0 ? (
-            <JourneyEmpty />
-          ) : (
-            <ReactFlow
-              nodes={flowNodes}
-              edges={flowEdges}
-              nodeTypes={nodeTypes}
-              fitView
-              fitViewOptions={{
-                padding: 0.2,
-                maxZoom: 1,
-              }}
-              minZoom={0.15}
-              maxZoom={1.5}
-              nodesDraggable={false}
-              nodesConnectable={false}
-              nodesFocusable
-              edgesFocusable
-              elementsSelectable
-              deleteKeyCode={null}
-              proOptions={{
-                hideAttribution: true,
-              }}
-            >
-              <Background color="var(--color-foreground)" gap={32} size={1.2} />
-            </ReactFlow>
-          )}
-        </div>
       </div>
     </div>
   )

@@ -1,12 +1,9 @@
 import { Button } from '@workspace/ui/components/button'
-import { CircleXIcon } from 'lucide-react'
 
 export const ErrorScreen = ({ refetch }: { refetch: () => void }) => {
   return (
-    <div className="flex h-[calc(100dvh-200px)] items-center justify-center">
+    <div className="flex items-center justify-center pt-50">
       <div className="flex flex-col items-center justify-center space-y-1">
-        <CircleXIcon size={40} className="text-destructive" />
-
         <div className="text-center">
           <p className="text-destructive text-lg font-medium">
             Something went wrong!
@@ -18,11 +15,11 @@ export const ErrorScreen = ({ refetch }: { refetch: () => void }) => {
 
         <Button
           type="button"
-          variant="secondary"
-          className={'mt-4'}
+          variant="outline"
+          className={'mt-2'}
           onClick={() => refetch()}
         >
-          Retry
+          Try again
         </Button>
       </div>
     </div>

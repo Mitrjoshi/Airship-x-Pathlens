@@ -22,7 +22,7 @@ import {
 } from "../controllers/workspace.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { getAuditLogsController } from "../controllers/audit-logs.controller";
-import { requireWorkspacePermission } from "../middleware/permission.middleware";
+import { requireWorkspaceOrProjectPermission } from "../middleware/permission.middleware";
 
 const router = Router();
 
@@ -35,7 +35,14 @@ router.get("/:workspace_id/permissions", getWorkspacePermissions);
 router.patch("/:workspace_id", updateWorkspace);
 router.delete("/:workspace_id", deleteWorkspace);
 router.get("/:workspace_id/members", getWorkspaceMembers);
-router.get("/:workspace_id/usage", getWorkspaceUsage);
+router.get(
+  "/:workspace_id/usage",
+  requireWorkspaceOrProjectPermission(
+    "workspace.usage.view",
+    "project.usage.view"
+  ),
+  getWorkspaceUsage
+);
 router.get("/:workspace_id/invitations", getWorkspacePendingInvitations);
 router.get("/:workspace_id/permission-profiles", getPermissionProfiles);
 router.get(
@@ -44,7 +51,10 @@ router.get(
 );
 router.get(
   "/:workspace_id/audit-logs",
-  requireWorkspacePermission("workspace.audit_logs.view"),
+  requireWorkspaceOrProjectPermission(
+    "workspace.audit_logs.view",
+    "project.audit_logs.view"
+  ),
   getAuditLogsController
 );
 router.post("/:workspace_id/permission-profiles", createPermissionProfile);

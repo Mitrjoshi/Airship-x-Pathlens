@@ -18,6 +18,8 @@ import {
 } from '@workspace/ui/components/select'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { useState } from 'react'
+import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 
 export const Route = createFileRoute('/app/$workspaceId/usage')({
   component: RouteComponent,
@@ -28,15 +30,28 @@ function RouteComponent() {
 
   const [projectId, setProjectId] = useState('all')
 
-  const { data: projectsData, isLoading: projectsDataLoading } = useQuery(
-    getProjectsOptions({
-      workspace_id: workspaceId,
-    })
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
   )
 
-  const { data: usageData, isLoading: usageDataLoading } = useQuery(
-    getUsageOptions(workspaceId, projectId === 'all' ? undefined : projectId)
-  )
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('workspace.usage.view')
+  const hasViewProjectsPermission = permissions?.includes('projects.view')
+
+  const { data: projectsData, isLoading: projectsDataLoading } = useQuery({
+    ...getProjectsOptions({
+      workspace_id: workspaceId,
+    }),
+    enabled: !!hasViewProjectsPermission,
+  })
+
+  const { data: usageData, isLoading: usageDataLoading } = useQuery({
+    ...getUsageOptions(
+      workspaceId,
+      projectId === 'all' ? undefined : projectId
+    ),
+    enabled: !!hasViewPermission,
+  })
 
   const usage = usageData?.data
   const projects = projectsData?.data
@@ -72,13 +87,14 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="mx-auto w-full max-w-4xl pt-10">
-        <div className="flex items-center justify-between space-y-5">
+      <div className="mx-auto max-w-4xl p-6 pt-10">
+        <div className="flex items-center justify-between space-y-4">
           <div>
             <p className="text-xl font-medium">Usage</p>
           </div>
 
           <Select
+            disabled={!hasViewPermission || !hasViewProjectsPermission}
             items={projectItems}
             value={projectId}
             onValueChange={(value) => {
@@ -99,36 +115,44 @@ function RouteComponent() {
           </Select>
         </div>
 
-        <div>
-          <div className="grid grid-cols-3 gap-2">
-            {usageItems?.map((item, index) => (
-              <Card
-                key={index}
-                className="bg-card/30 rounded-none border-2 border-dashed"
-              >
-                <CardHeader>
-                  {usageDataLoading ? (
-                    <div>
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="mt-2 h-7 w-16" />
-                    </div>
-                  ) : (
-                    <>
-                      <CardDescription>{item.label}</CardDescription>
-                      <CardTitle className="text-xl">{item.value}</CardTitle>
-                    </>
-                  )}
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+        {!hasViewPermission && !permissionsLoading ? (
+          <NoPermissionView />
+        ) : (
+          <>
+            <div>
+              <div className="grid grid-cols-3 gap-2">
+                {usageItems?.map((item, index) => (
+                  <Card
+                    key={index}
+                    className="bg-card/30 rounded-none border-2 border-dashed"
+                  >
+                    <CardHeader>
+                      {usageDataLoading ? (
+                        <div>
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="mt-2 h-7 w-16" />
+                        </div>
+                      ) : (
+                        <>
+                          <CardDescription>{item.label}</CardDescription>
+                          <CardTitle className="text-xl">
+                            {item.value}
+                          </CardTitle>
+                        </>
+                      )}
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
 
-          {usage?.accountLifetimeAccess && (
-            <p className="text-muted-foreground mt-10 text-center text-sm">
-              Lifetime account access is active. No limits are applied.
-            </p>
-          )}
-        </div>
+              {usage?.accountLifetimeAccess && (
+                <p className="text-muted-foreground mt-10 text-center text-sm">
+                  Lifetime account access is active. No limits are applied.
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

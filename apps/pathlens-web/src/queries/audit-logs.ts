@@ -77,5 +77,4 @@ export const getAuditLogsOptions = (params: AuditLogsParams) =>
 
       return response.data
     },
-    enabled: Boolean(params.workspace_id),
   })

@@ -38,6 +38,8 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import { Badge } from '@workspace/ui/components/badge'
 import { SessionReplayPlayer } from '@/components/common/session-replay-player'
 import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
+import { NoPermissionView } from './-components/common/no-permission-view'
 
 const PAGE_SIZE = 10
 
@@ -79,14 +81,23 @@ function RouteComponent() {
   const [open, setOpen] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
 
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
+    getWorkspacePermissionsOptions(workspaceId)
+  )
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes(
+    'analytics.session_replay.view'
+  )
+
   const {
     data: sessionsData,
     isLoading: sessionsLoading,
     refetch,
     dataUpdatedAt,
     isRefetching,
-  } = useQuery(
-    getSessionReplayOptions({
+  } = useQuery({
+    ...getSessionReplayOptions({
       project_id: projectId,
       workspace_id: workspaceId,
       device,
@@ -96,8 +107,9 @@ function RouteComponent() {
       domain,
       search: undefined,
       refetchInterval: liveMode ? 5000 : undefined,
-    })
-  )
+    }),
+    enabled: !!hasViewPermission,
+  })
 
   const {
     data: sessionDetails,
@@ -112,9 +124,10 @@ function RouteComponent() {
     })
   )
 
-  const { data: domainsData, isLoading: domainsLoading } = useQuery(
-    getProjectDomainsOptions(projectId)
-  )
+  const { data: domainsData, isLoading: domainsLoading } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
 
   const sessions = sessionsData?.data
   const domains = domainsData?.data
@@ -136,97 +149,110 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
-        <div className="flex items-center gap-4">
-          <DomainSwitcher
-            loading={domainsLoading}
-            domain={domain}
-            setDomain={setDomain}
-            domains={domains!}
-            refetch={refetch}
-          />
+      {permissionsLoading ? (
+        <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+          <Skeleton className={'h-8 w-60'} />
 
-          <Separator orientation="vertical" />
-
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-muted-foreground text-sm">
-              Last updated {lastUpdated ? lastUpdated : '-'}
-            </p>
+          <div className="flex items-center gap-2">
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            data-live={liveMode}
-            onClick={() => setLiveMode(!liveMode)}
-            className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
-            variant="outline"
-          >
-            {liveMode ? <PauseIcon /> : <PlayIcon />}
-            Live Refresh
-          </Button>
-          <Button
-            disabled={isRefetching}
-            onClick={() => {
-              refetch()
-            }}
-            variant="outline"
-          >
-            <RefreshCcwIcon
-              className={`${isRefetching ? 'animate-spin' : ''}`}
+      ) : hasViewPermission ? (
+        <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+          <div className="flex items-center gap-4">
+            <DomainSwitcher
+              loading={domainsLoading}
+              domain={domain}
+              setDomain={setDomain}
+              domains={domains!}
+              refetch={refetch}
             />
-            Refresh
-          </Button>
 
-          <Separator orientation="vertical" />
+            <Separator orientation="vertical" />
 
-          <Select
-            items={rangeLabels}
-            value={range}
-            onValueChange={(value) => {
-              if (!value) return
-              setRange(value as SessionReplayRange)
-              localStorage.setItem('range', value)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              {rangeLabels.map((range) => (
-                <SelectItem key={range.value} value={range.value}>
-                  {range.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-muted-foreground text-sm">
+                Last updated {lastUpdated ? lastUpdated : '-'}
+              </p>
+            </div>
+          </div>
 
-          <Select
-            items={deviceLabels}
-            value={device}
-            onValueChange={(value) => {
-              if (value) {
-                setDevice(value as SessionReplayDevice)
-                localStorage.setItem('device', value)
-              }
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
-            </SelectTrigger>
+          <div className="flex items-center gap-2">
+            <Button
+              data-live={liveMode}
+              onClick={() => setLiveMode(!liveMode)}
+              className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
+              variant="outline"
+            >
+              {liveMode ? <PauseIcon /> : <PlayIcon />}
+              Live Refresh
+            </Button>
+            <Button
+              disabled={isRefetching}
+              onClick={() => {
+                refetch()
+              }}
+              variant="outline"
+            >
+              <RefreshCcwIcon
+                className={`${isRefetching ? 'animate-spin' : ''}`}
+              />
+              Refresh
+            </Button>
 
-            <SelectContent alignItemWithTrigger={false}>
-              {deviceLabels.map((device) => (
-                <SelectItem key={device.value} value={device.value}>
-                  {device.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Separator orientation="vertical" />
+
+            <Select
+              items={rangeLabels}
+              value={range}
+              onValueChange={(value) => {
+                if (!value) return
+                setRange(value as SessionReplayRange)
+                localStorage.setItem('range', value)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {rangeLabels.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              items={deviceLabels}
+              value={device}
+              onValueChange={(value) => {
+                if (value) {
+                  setDevice(value as SessionReplayDevice)
+                  localStorage.setItem('device', value)
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+
+              <SelectContent alignItemWithTrigger={false}>
+                {deviceLabels.map((device) => (
+                  <SelectItem key={device.value} value={device.value}>
+                    {device.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
-
-      <div className="mx-auto space-y-6 p-6">
+      ) : (
+        <></>
+      )}
+      <div className="mx-auto space-y-4 p-6">
         <div>
           <p className="text-xl font-medium">Session Replay</p>
 
@@ -236,242 +262,262 @@ function RouteComponent() {
           </p>
         </div>
 
-        <div className="space-y-5">
-          <div className="flex items-center justify-between gap-4">
-            <InputGroup className="w-120">
-              <InputGroupButton>
-                <SearchIcon />
-              </InputGroupButton>
-              <InputGroupInput placeholder="Search..." />
-            </InputGroup>
-          </div>
+        {!hasViewPermission && !permissionsLoading ? (
+          <NoPermissionView />
+        ) : (
+          <>
+            <div className="space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <InputGroup className="w-120">
+                  <InputGroupButton>
+                    <SearchIcon />
+                  </InputGroupButton>
+                  <InputGroupInput placeholder="Search..." />
+                </InputGroup>
+              </div>
 
-          <div>
-            <div className="overflow-hidden border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Location</TableHead>
-                    <TableHead className="w-32">Visitor ID</TableHead>
-                    <TableHead className="w-32 text-center">Device</TableHead>
-                    <TableHead className="w-32 text-center">Duration</TableHead>
-                    <TableHead className="w-32 text-center">Source</TableHead>
-                    <TableHead className="w-20 text-center">
-                      Total Events
-                    </TableHead>
-                    <TableHead className="w-32 text-center">
-                      Recorded at
-                    </TableHead>
-                    <TableHead className="w-32 text-center">Replay</TableHead>
-                  </TableRow>
-                </TableHeader>
+              <div>
+                <div className="overflow-hidden border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Location</TableHead>
+                        <TableHead className="w-32">Visitor ID</TableHead>
+                        <TableHead className="w-32 text-center">
+                          Device
+                        </TableHead>
+                        <TableHead className="w-32 text-center">
+                          Duration
+                        </TableHead>
+                        <TableHead className="w-32 text-center">
+                          Source
+                        </TableHead>
+                        <TableHead className="w-20 text-center">
+                          Total Events
+                        </TableHead>
+                        <TableHead className="w-32 text-center">
+                          Recorded at
+                        </TableHead>
+                        <TableHead className="w-32 text-center">
+                          Replay
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
 
-                <TableBody>
-                  {sessionsLoading
-                    ? [...Array(PAGE_SIZE)].map((_, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <div className="flex min-w-0 items-start gap-2">
-                              <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                    <TableBody>
+                      {sessionsLoading
+                        ? [...Array(PAGE_SIZE)].map((_, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <div className="flex min-w-0 items-start gap-2">
+                                  <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
 
-                              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                                <Skeleton className="h-4 w-50" />
-                                <Skeleton className="h-3 w-1/8" />
-                              </div>
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-50" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-32">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-16" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-32">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-20" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-32">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-20" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-20">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-10" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-32">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-24" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-32">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-8 w-8 rounded-md" />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : sessions?.sessions?.map((item) => (
-                        <TableRow
-                          onClick={() => {
-                            setOpen(true)
-                            setSessionId(item.id)
-                          }}
-                          key={item.id}
-                          className="hover:bg-card/40 cursor-pointer"
-                        >
-                          <TableCell>
-                            <div className="flex items-start gap-2">
-                              <div className="flex items-center gap-3">
-                                <Avatar>
-                                  <AvatarFallback>
-                                    {item.countryCode}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="truncate">{item.city}</p>
-                                  <p className="text-muted-foreground truncate text-xs">
-                                    {item.country}
-                                  </p>
+                                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                                    <Skeleton className="h-4 w-50" />
+                                    <Skeleton className="h-3 w-1/8" />
+                                  </div>
                                 </div>
-                              </div>
+                              </TableCell>
 
-                              <Badge
-                                variant={item.isLive ? 'default' : 'secondary'}
-                              >
-                                {item.isLive ? 'Online' : 'Offline'}
-                              </Badge>
-                            </div>
-                          </TableCell>
+                              <TableCell className="">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-50" />
+                                </div>
+                              </TableCell>
 
-                          <TableCell className="">{item.visitorId}</TableCell>
+                              <TableCell className="w-32">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-16" />
+                                </div>
+                              </TableCell>
 
-                          <TableCell className="w-32 text-center whitespace-nowrap">
-                            {item.device}
-                          </TableCell>
+                              <TableCell className="w-32">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-20" />
+                                </div>
+                              </TableCell>
 
-                          <TableCell className="w-32 text-center whitespace-nowrap">
-                            {item.duration}
-                          </TableCell>
+                              <TableCell className="w-32">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-20" />
+                                </div>
+                              </TableCell>
 
-                          <TableCell className="w-32 text-center whitespace-nowrap">
-                            {item.source}
-                          </TableCell>
+                              <TableCell className="w-20">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-10" />
+                                </div>
+                              </TableCell>
 
-                          <TableCell className="w-32 text-center whitespace-nowrap">
-                            {formatNumber(item.eventCount)}
-                          </TableCell>
+                              <TableCell className="w-32">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-24" />
+                                </div>
+                              </TableCell>
 
-                          <TableCell className="w-32 text-center whitespace-nowrap">
-                            {formatDate(item.recordedAt)}
-                          </TableCell>
-
-                          <TableCell className="w-20 text-center">
-                            <Button
-                              size="icon"
-                              variant={'outline'}
-                              disabled={!item.isReplayAvailable}
+                              <TableCell className="w-32">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-8 w-8 rounded-md" />
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        : sessions?.sessions?.map((item) => (
+                            <TableRow
+                              onClick={() => {
+                                setOpen(true)
+                                setSessionId(item.id)
+                              }}
+                              key={item.id}
+                              className="hover:bg-card/40 cursor-pointer"
                             >
-                              <PlayIcon />
-                            </Button>
+                              <TableCell>
+                                <div className="flex items-start gap-2">
+                                  <div className="flex items-center gap-3">
+                                    <Avatar>
+                                      <AvatarFallback>
+                                        {item.countryCode}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <p className="truncate">{item.city}</p>
+                                      <p className="text-muted-foreground truncate text-xs">
+                                        {item.country}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <Badge
+                                    variant={
+                                      item.isLive ? 'default' : 'secondary'
+                                    }
+                                  >
+                                    {item.isLive ? 'Online' : 'Offline'}
+                                  </Badge>
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="">
+                                {item.visitorId}
+                              </TableCell>
+
+                              <TableCell className="w-32 text-center whitespace-nowrap">
+                                {item.device}
+                              </TableCell>
+
+                              <TableCell className="w-32 text-center whitespace-nowrap">
+                                {item.duration}
+                              </TableCell>
+
+                              <TableCell className="w-32 text-center whitespace-nowrap">
+                                {item.source}
+                              </TableCell>
+
+                              <TableCell className="w-32 text-center whitespace-nowrap">
+                                {formatNumber(item.eventCount)}
+                              </TableCell>
+
+                              <TableCell className="w-32 text-center whitespace-nowrap">
+                                {formatDate(item.recordedAt)}
+                              </TableCell>
+
+                              <TableCell className="w-20 text-center">
+                                <Button
+                                  size="icon"
+                                  variant={'outline'}
+                                  disabled={!item.isReplayAvailable}
+                                >
+                                  <PlayIcon />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+
+                      {!sessionsLoading && !sessions?.sessions?.length && (
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-32 text-center">
+                            <p className="text-muted-foreground text-sm">
+                              No replays found.
+                            </p>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      )}
+                    </TableBody>
+                  </Table>
 
-                  {!sessionsLoading && !sessions?.sessions?.length && (
-                    <TableRow>
-                      <TableCell colSpan={7} className="h-32 text-center">
-                        <p className="text-muted-foreground text-sm">
-                          No events found.
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between border-t px-4 py-3">
+                    <p className="text-muted-foreground text-sm">
+                      {totalSessions > 0 ? (
+                        <>
+                          Showing {from}-{to} of {totalSessions} events
+                        </>
+                      ) : (
+                        'No events'
+                      )}
+                    </p>
 
-              {/* Pagination */}
-              <div className="flex items-center justify-between border-t px-4 py-3">
-                <p className="text-muted-foreground text-sm">
-                  {totalSessions > 0 ? (
-                    <>
-                      Showing {from}-{to} of {totalSessions} events
-                    </>
-                  ) : (
-                    'No events'
-                  )}
-                </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page <= 1 || sessionsLoading}
+                        onClick={() => {
+                          setPage((current) => Math.max(current - 1, 1))
+                        }}
+                      >
+                        Previous
+                      </Button>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1 || sessionsLoading}
-                    onClick={() => {
-                      setPage((current) => Math.max(current - 1, 1))
-                    }}
-                  >
-                    Previous
-                  </Button>
+                      <div className="flex items-center gap-1">
+                        {paginationItems.map((item, index) => {
+                          if (item === 'ellipsis') {
+                            return (
+                              <span
+                                key={`ellipsis-${index}`}
+                                className="text-muted-foreground flex size-8 items-center justify-center text-sm"
+                              >
+                                ...
+                              </span>
+                            )
+                          }
 
-                  <div className="flex items-center gap-1">
-                    {paginationItems.map((item, index) => {
-                      if (item === 'ellipsis') {
-                        return (
-                          <span
-                            key={`ellipsis-${index}`}
-                            className="text-muted-foreground flex size-8 items-center justify-center text-sm"
-                          >
-                            ...
-                          </span>
-                        )
-                      }
+                          return (
+                            <Button
+                              key={item}
+                              variant={page === item ? 'outline' : 'ghost'}
+                              size="icon"
+                              className="size-8"
+                              disabled={sessionsLoading}
+                              onClick={() => {
+                                setPage(item)
+                              }}
+                            >
+                              {item}
+                            </Button>
+                          )
+                        })}
+                      </div>
 
-                      return (
-                        <Button
-                          key={item}
-                          variant={page === item ? 'outline' : 'ghost'}
-                          size="icon"
-                          className="size-8"
-                          disabled={sessionsLoading}
-                          onClick={() => {
-                            setPage(item)
-                          }}
-                        >
-                          {item}
-                        </Button>
-                      )
-                    })}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page >= totalPages || sessionsLoading}
+                        onClick={() => {
+                          setPage((current) =>
+                            Math.min(current + 1, totalPages)
+                          )
+                        }}
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages || sessionsLoading}
-                    onClick={() => {
-                      setPage((current) => Math.min(current + 1, totalPages))
-                    }}
-                  >
-                    Next
-                  </Button>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       <SessionReplayPlayer

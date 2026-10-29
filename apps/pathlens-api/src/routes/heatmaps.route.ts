@@ -11,12 +11,12 @@ const router = Router();
 router.use(authMiddleware);
 router.get(
   "/detail",
-  requireWorkspaceProjectPermission("analytics.analytics.view"),
+  requireWorkspaceProjectPermission("analytics.heatmaps.view"),
   getHeatmapDetails
 );
 router.get(
   "/",
-  requireWorkspaceProjectPermission("analytics.analytics.view"),
+  requireWorkspaceProjectPermission("analytics.heatmaps.view"),
   getHeatmaps
 );
 

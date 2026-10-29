@@ -75,9 +75,9 @@ function RouteComponent() {
   const [device, setDevice] = useState<GoalDashboardDevice>('desktop')
   const [domain, setDomain] = useState('')
 
-  const { data: domainsData, isLoading: domainsLoading } = useQuery(
-    getProjectDomainsOptions(projectId)
-  )
+  const { data: domainsData, isLoading: domainsLoading } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+  })
   const selectedDomain = domain || domainsData?.data?.[0]?.domain || undefined
   const { data, isLoading, isRefetching, refetch, isError } = useQuery(
     getGoalDashboardOptions({

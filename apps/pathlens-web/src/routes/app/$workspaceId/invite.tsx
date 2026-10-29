@@ -90,7 +90,7 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="mx-auto max-w-4xl pt-10">
+      <div className="mx-auto max-w-4xl p-6 pt-10">
         <div className="space-y-5">
           <div className="space-y-2">
             <Button
