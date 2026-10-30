@@ -10,7 +10,7 @@ import {
   PlayIcon,
   RefreshCcwIcon,
 } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   Select,
   SelectContent,
@@ -96,6 +96,14 @@ function RouteComponent() {
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('analytics.dashboard.view')
 
+  const { data: domainsData, isLoading: domainsLoading } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
+
+  const domains = domainsData?.data
+  const activeDomain = domain || domains?.[0]?.domain || ''
+
   const {
     data: dashboardData,
     isLoading,
@@ -109,18 +117,12 @@ function RouteComponent() {
       range,
       device: 'all',
       refetchInterval: liveMode ? 5000 : undefined,
-      domain,
+      domain: activeDomain,
     }),
-    enabled: !!hasViewPermission,
-  })
-
-  const { data: domainsData, isLoading: domainsLoading } = useQuery({
-    ...getProjectDomainsOptions(projectId),
-    enabled: !!hasViewPermission,
+    enabled: !!hasViewPermission && !!activeDomain,
   })
 
   const dashboard = dashboardData?.data
-  const domains = domainsData?.data
 
   const lastUpdated = useRelativeTime(dataUpdatedAt)
 
@@ -157,11 +159,7 @@ function RouteComponent() {
       }
     }) ?? []
 
-  useEffect(() => {
-    if (domains) {
-      setDomain(domains[0].domain)
-    }
-  }, [domains])
+  const globalLoading = domainsLoading || isLoading || permissionsLoading
 
   return (
     <div>
@@ -180,7 +178,7 @@ function RouteComponent() {
           <div className="flex items-center gap-4">
             <DomainSwitcher
               loading={domainsLoading}
-              domain={domain}
+              domain={activeDomain}
               setDomain={setDomain}
               domains={domains!}
               refetch={refetch}
@@ -193,7 +191,7 @@ function RouteComponent() {
               />
 
               <p className="text-sm">
-                {isLoading ? (
+                {globalLoading ? (
                   <Skeleton className="h-6 w-25" />
                 ) : (
                   `${formatNumber(dashboard?.liveVisitors ?? 0)} Online`
@@ -284,7 +282,7 @@ function RouteComponent() {
                 chartData={dashboard?.visitorsChart}
                 dataKey="value"
                 chartConfig={visitorsChartConfig}
-                loading={isLoading}
+                loading={globalLoading}
                 onViewDetails={() => {
                   navigate({
                     to: '/app/$workspaceId/$projectId/visitors',
@@ -304,7 +302,7 @@ function RouteComponent() {
                 chartData={dashboard?.sessionChart}
                 dataKey="value"
                 chartConfig={sessionsChartConfig}
-                loading={isLoading}
+                loading={globalLoading}
                 onViewDetails={() => {
                   navigate({
                     to: '/app/$workspaceId/$projectId/session-replay',
@@ -324,7 +322,7 @@ function RouteComponent() {
                 chartData={dashboard?.eventsChart}
                 dataKey="value"
                 chartConfig={eventsChartConfig}
-                loading={isLoading}
+                loading={globalLoading}
                 onViewDetails={() => {
                   navigate({
                     to: '/app/$workspaceId/$projectId/events',
@@ -343,7 +341,7 @@ function RouteComponent() {
                   <CardDescription>Requests by device type</CardDescription>
                 </CardHeader>
                 <CardContent className="p-2 pt-0 pb-4">
-                  {isLoading ? (
+                  {globalLoading ? (
                     <div className="mx-auto flex aspect-square w-full items-center justify-center">
                       <LoaderIcon className="animate-spin" />
                     </div>
@@ -388,7 +386,7 @@ function RouteComponent() {
 
                     <Button
                       variant="link"
-                      disabled={isLoading}
+                      disabled={globalLoading}
                       onClick={() => {
                         navigate({
                           to: '/app/$workspaceId/$projectId/visitors',
@@ -410,14 +408,14 @@ function RouteComponent() {
                   <div className="aspect-square h-full">
                     <VisitorsGlobe
                       countries={
-                        isLoading || !dashboard?.countries
+                        globalLoading || !dashboard?.countries
                           ? []
                           : dashboard?.countries
                       }
                     />
                   </div>
                   <div className="w-full space-y-4 px-4">
-                    {isLoading ? (
+                    {globalLoading ? (
                       Array.from({ length: 5 }).map((_, index) => (
                         <div
                           key={index}
@@ -488,7 +486,7 @@ function RouteComponent() {
                 data={dashboard?.pages}
                 getLabel={(item) => item.page as string}
                 getValue={(item) => item.views}
-                loading={isLoading}
+                loading={globalLoading}
                 getDuration={(item) => item.duration}
               />
 
@@ -497,7 +495,7 @@ function RouteComponent() {
                 data={dashboard?.trafficSources}
                 getLabel={(item) => item.name}
                 getValue={(item) => item.visitors}
-                loading={isLoading}
+                loading={globalLoading}
               />
 
               <ProgressListCard
@@ -505,7 +503,7 @@ function RouteComponent() {
                 data={dashboard?.topBrowsers}
                 getLabel={(item) => item.name}
                 getValue={(item) => item.visitors}
-                loading={isLoading}
+                loading={globalLoading}
               />
 
               <ProgressListCard
@@ -513,7 +511,7 @@ function RouteComponent() {
                 data={dashboard?.topOperatingSystems}
                 getLabel={(item) => item.name}
                 getValue={(item) => item.visitors}
-                loading={isLoading}
+                loading={globalLoading}
               />
             </div>
           </>

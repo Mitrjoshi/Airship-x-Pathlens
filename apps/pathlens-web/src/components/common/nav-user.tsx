@@ -112,13 +112,23 @@ export function NavUser({ user }: { user: NavUserData }) {
           <DropdownMenuItem
             render={
               <Button
-                className={'flex w-full cursor-pointer justify-between'}
+                className={
+                  'flex w-full cursor-pointer items-center justify-between'
+                }
                 variant="ghost"
                 render={<Link to="/app/usage" />}
               />
             }
           >
-            Usage
+            Usage{' '}
+            <span
+              className="text-[13px]"
+              style={{
+                color: `hsl(${120 - Math.min(100, Math.max(0, user.usagePercentage)) * 1.2}, 75%, 42%)`,
+              }}
+            >
+              {user.usagePercentage.toFixed(1)}%
+            </span>
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -198,6 +208,7 @@ export function NavUser({ user }: { user: NavUserData }) {
                     <Button
                       className={'flex w-full cursor-pointer justify-between'}
                       variant="ghost"
+                      render={<Link to="/terms" target="_blank" />}
                     />
                   }
                 >
@@ -209,6 +220,7 @@ export function NavUser({ user }: { user: NavUserData }) {
                     <Button
                       className={'flex w-full cursor-pointer justify-between'}
                       variant="ghost"
+                      render={<Link to="/privacy" target="_blank" />}
                     />
                   }
                 >

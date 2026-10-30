@@ -23,6 +23,7 @@ import { validatePreviewSession } from "../controllers/preview-sessions.controll
 import { proxyAuthMiddleware } from "../middleware/proxy-auth.middleware";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
 import { getTrackingConfig } from "../controllers/tracking.controller";
+import { getActiveProjectDomainsCount } from "../controllers/projects.controller";
 import {
   githubCallback,
   githubLogin,
@@ -50,6 +51,7 @@ router.post(
 
 router.use(ApiKeyMiddleware);
 
+router.get("/projects/active", getActiveProjectDomainsCount);
 router.use("/auth", usersRouter);
 router.use("/errors", errorsRouter);
 router.use("/campaigns", campaignsRouter);

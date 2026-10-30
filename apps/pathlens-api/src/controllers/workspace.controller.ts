@@ -27,10 +27,15 @@ import {
   updateWorkspaceMemberModel,
 } from "../models/workshop.model";
 import { getAccountEntitlement } from "../models/billing.model";
-import { getWorkspaceUsageModel } from "../models/usage.model";
+import {
+  assertUserWorkspaceLimit,
+  assertWorkspaceUsageLimit,
+  getWorkspaceUsageModel,
+} from "../models/usage.model";
 import { getUserByEmailModel } from "../models/users.model";
 import { AuthRequest } from "../lib/jwt";
 import { createAuditLog } from "../models/audit-logs.model";
+import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 
 const workspaceParamsSchema = z.object({
   workspace_id: z.string().min(1, "Workspace id is required."),
@@ -241,6 +246,7 @@ export async function createWorkspace(req: AuthRequest, res: Response) {
     }
 
     const { name } = createWorkspaceSchema.parse(req.body ?? {});
+    await assertUserWorkspaceLimit(userId);
     const [workspace] = await createWorkspaceModel({
       user_id: userId,
       name,
@@ -257,10 +263,18 @@ export async function createWorkspace(req: AuthRequest, res: Response) {
 
     return res.status(201).json({ success: true, data: workspace });
   } catch (error) {
-    return res.status(error instanceof ZodError ? 400 : 500).json({
-      success: false,
-      message: getErrorMessage(error),
-    });
+    return res
+      .status(
+        error instanceof WorkspaceUsageLimitError
+          ? 409
+          : error instanceof ZodError
+            ? 400
+            : 500
+      )
+      .json({
+        success: false,
+        message: getErrorMessage(error),
+      });
   }
 }
 
@@ -662,6 +676,8 @@ export async function createWorkspaceInvitation(
       });
     }
 
+    await assertWorkspaceUsageLimit(workspace_id, "members", 1, false);
+
     const normalizedEmails = Array.from(
       new Set((emails ?? [email!]).map((value) => value.trim().toLowerCase()))
     );
@@ -744,10 +760,18 @@ export async function createWorkspaceInvitation(
       data: { created, skipped },
     });
   } catch (error) {
-    return res.status(error instanceof ZodError ? 400 : 500).json({
-      success: false,
-      message: getErrorMessage(error),
-    });
+    return res
+      .status(
+        error instanceof WorkspaceUsageLimitError
+          ? 409
+          : error instanceof ZodError
+            ? 400
+            : 500
+      )
+      .json({
+        success: false,
+        message: getErrorMessage(error),
+      });
   }
 }
 

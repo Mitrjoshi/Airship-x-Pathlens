@@ -79,13 +79,9 @@ export const Header = () => {
               </NavigationMenuList>
             </NavigationMenu>
 
-            <a href="/developer">
-              <p className={navigationMenuTriggerStyle()}>Developer</p>
-            </a>
-
-            <a href="/pricing">
+            <Link to="/pricing">
               <p className={navigationMenuTriggerStyle()}>Pricing</p>
-            </a>
+            </Link>
           </div>
 
           <div className="flex items-center gap-2">

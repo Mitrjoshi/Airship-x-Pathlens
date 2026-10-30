@@ -859,3 +859,51 @@ html {
     background-position: -200% 0;
   }
 }
+
+:root {
+  /* Active dots - Light mode */
+  --matrix-active-1: #168a5a;
+  --matrix-active-2: #219b69;
+  --matrix-active-3: #2fae74;
+  --matrix-active-4: #41ce8f;
+  --matrix-active-5: #178052;
+  --matrix-active-6: #35b77e;
+
+  /* Background dots - Light mode */
+  --matrix-bg-1: #d5e5dc;
+  --matrix-bg-2: #c7ded0;
+  --matrix-bg-3: #b8d6c4;
+  --matrix-bg-4: #a9cfb8;
+  --matrix-bg-5: #98c5a9;
+  --matrix-bg-6: #88b99b;
+
+  /* Background accent dots */
+  --matrix-accent-1: #8dc9aa;
+  --matrix-accent-2: #76bd97;
+  --matrix-accent-3: #63b68a;
+  --matrix-accent-4: #4fae7d;
+}
+
+.dark {
+  /* Active dots - Dark mode */
+  --matrix-active-1: #7ef0c6;
+  --matrix-active-2: #92f5cf;
+  --matrix-active-3: #68e7b8;
+  --matrix-active-4: #b4ffe3;
+  --matrix-active-5: #52dca5;
+  --matrix-active-6: #86f7d0;
+
+  /* Background dots - Dark mode */
+  --matrix-bg-1: #08110f;
+  --matrix-bg-2: #0b1714;
+  --matrix-bg-3: #10201b;
+  --matrix-bg-4: #143128;
+  --matrix-bg-5: #183c31;
+  --matrix-bg-6: #204d3f;
+
+  /* Background accent dots */
+  --matrix-accent-1: #173b31;
+  --matrix-accent-2: #1d4a3d;
+  --matrix-accent-3: #245646;
+  --matrix-accent-4: #2b6652;
+}

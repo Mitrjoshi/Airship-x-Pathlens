@@ -4,10 +4,11 @@ import { Separator } from '@workspace/ui/components/separator'
 import { Hero } from './-components/hero'
 import { WhyChooseUs } from './-components/why-choose-us'
 import { DotLayout } from './-components/dot-layout'
-import { PayOnlyFor } from './-components/pay-only-for'
 import { Region } from './-components/region'
 import { FewLinesOfCode } from './-components/few-lines-of-code'
 import { BuiltFor } from './solutions/$solutionId/-components/built-for'
+import { WebsitesTracking } from './-components/websites-tracking'
+import { Testimonials } from './-components/testimonials'
 
 export const Route = createFileRoute('/(open)/')({
   component: RouteComponent,
@@ -63,7 +64,17 @@ function RouteComponent() {
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
           <div className="bg-background nut-bottom-right mx-auto w-[75%] border-x-2 border-dashed">
-            <PayOnlyFor />
+            <Testimonials />
+          </div>
+        </DotLayout>
+      </HomeLayout>
+
+      <Separator className={'border-t-2 border-dashed bg-transparent'} />
+
+      <HomeLayout>
+        <DotLayout className="border-x-2 border-dashed">
+          <div className="bg-background nut-bottom-right mx-auto w-[75%] border-x-2 border-dashed">
+            <WebsitesTracking />
           </div>
         </DotLayout>
       </HomeLayout>

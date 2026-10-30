@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as openRouteRouteImport } from './routes/(open)/route'
+import { Route as referencesRouteRouteImport } from './routes/(references)/route'
 import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as authGithubCallbackRouteImport } from './routes/(auth)/github-callback'
 import { Route as authGoogleCallbackRouteImport } from './routes/(auth)/google-callback'
@@ -18,7 +19,10 @@ import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authPasswordResetRouteImport } from './routes/(auth)/password-reset'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as openIndexRouteImport } from './routes/(open)/index'
+import { Route as openCareersRouteImport } from './routes/(open)/careers'
 import { Route as openPricingRouteImport } from './routes/(open)/pricing'
+import { Route as referencesPrivacyRouteImport } from './routes/(references)/privacy'
+import { Route as referencesTermsRouteImport } from './routes/(references)/terms'
 import { Route as AppWorkspaceIdRouteRouteImport } from './routes/app/$workspaceId/route'
 import { Route as AppentryRouteRouteImport } from './routes/app/(entry)/route'
 import { Route as AppCheckoutRouteImport } from './routes/app/checkout'
@@ -70,6 +74,10 @@ const openRouteRoute = openRouteRouteImport.update({
   id: '/(open)',
   getParentRoute: () => rootRouteImport,
 } as any)
+const referencesRouteRoute = referencesRouteRouteImport.update({
+  id: '/(references)',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/app',
   path: '/app',
@@ -105,10 +113,25 @@ const openIndexRoute = openIndexRouteImport.update({
   path: '/',
   getParentRoute: () => openRouteRoute,
 } as any)
+const openCareersRoute = openCareersRouteImport.update({
+  id: '/careers',
+  path: '/careers',
+  getParentRoute: () => openRouteRoute,
+} as any)
 const openPricingRoute = openPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
   getParentRoute: () => openRouteRoute,
+} as any)
+const referencesPrivacyRoute = referencesPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => referencesRouteRoute,
+} as any)
+const referencesTermsRoute = referencesTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => referencesRouteRoute,
 } as any)
 const AppWorkspaceIdRouteRoute = AppWorkspaceIdRouteRouteImport.update({
   id: '/$workspaceId',
@@ -352,7 +375,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
+  '/careers': typeof openCareersRoute
   '/pricing': typeof openPricingRoute
+  '/privacy': typeof referencesPrivacyRoute
+  '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
   '/': typeof openIndexRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
@@ -402,7 +428,10 @@ export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
+  '/careers': typeof openCareersRoute
   '/pricing': typeof openPricingRoute
+  '/privacy': typeof referencesPrivacyRoute
+  '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
   '/': typeof openIndexRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
@@ -448,6 +477,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(auth)': typeof authRouteRouteWithChildren
   '/(open)': typeof openRouteRouteWithChildren
+  '/(references)': typeof referencesRouteRouteWithChildren
   '/app': typeof AppRouteRouteWithChildren
   '/app/$workspaceId': typeof AppWorkspaceIdRouteRouteWithChildren
   '/app/(entry)': typeof AppentryRouteRouteWithChildren
@@ -456,7 +486,10 @@ export interface FileRoutesById {
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/password-reset': typeof authPasswordResetRoute
   '/(auth)/sign-up': typeof authSignUpRoute
+  '/(open)/careers': typeof openCareersRoute
   '/(open)/pricing': typeof openPricingRoute
+  '/(references)/privacy': typeof referencesPrivacyRoute
+  '/(references)/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
   '/(open)/': typeof openIndexRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
@@ -509,7 +542,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/password-reset'
     | '/sign-up'
+    | '/careers'
     | '/pricing'
+    | '/privacy'
+    | '/terms'
     | '/app/checkout'
     | '/'
     | '/app/$workspaceId/audit-logs'
@@ -559,7 +595,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/password-reset'
     | '/sign-up'
+    | '/careers'
     | '/pricing'
+    | '/privacy'
+    | '/terms'
     | '/app/checkout'
     | '/'
     | '/app/$workspaceId/audit-logs'
@@ -604,6 +643,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/(auth)'
     | '/(open)'
+    | '/(references)'
     | '/app'
     | '/app/$workspaceId'
     | '/app/(entry)'
@@ -612,7 +652,10 @@ export interface FileRouteTypes {
     | '/(auth)/login'
     | '/(auth)/password-reset'
     | '/(auth)/sign-up'
+    | '/(open)/careers'
     | '/(open)/pricing'
+    | '/(references)/privacy'
+    | '/(references)/terms'
     | '/app/checkout'
     | '/(open)/'
     | '/app/$workspaceId/audit-logs'
@@ -659,6 +702,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   authRouteRoute: typeof authRouteRouteWithChildren
   openRouteRoute: typeof openRouteRouteWithChildren
+  referencesRouteRoute: typeof referencesRouteRouteWithChildren
   AppRouteRoute: typeof AppRouteRouteWithChildren
 }
 
@@ -676,6 +720,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: ''
       preLoaderRoute: typeof openRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(references)': {
+      id: '/(references)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof referencesRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -727,12 +778,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof openIndexRouteImport
       parentRoute: typeof openRouteRoute
     }
+    '/(open)/careers': {
+      id: '/(open)/careers'
+      path: '/careers'
+      fullPath: '/careers'
+      preLoaderRoute: typeof openCareersRouteImport
+      parentRoute: typeof openRouteRoute
+    }
     '/(open)/pricing': {
       id: '/(open)/pricing'
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof openPricingRouteImport
       parentRoute: typeof openRouteRoute
+    }
+    '/(references)/privacy': {
+      id: '/(references)/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof referencesPrivacyRouteImport
+      parentRoute: typeof referencesRouteRoute
+    }
+    '/(references)/terms': {
+      id: '/(references)/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof referencesTermsRouteImport
+      parentRoute: typeof referencesRouteRoute
     }
     '/app/$workspaceId': {
       id: '/app/$workspaceId'
@@ -1052,6 +1124,7 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 )
 
 interface openRouteRouteChildren {
+  openCareersRoute: typeof openCareersRoute
   openPricingRoute: typeof openPricingRoute
   openIndexRoute: typeof openIndexRoute
   openProductsIndexRoute: typeof openProductsIndexRoute
@@ -1061,6 +1134,7 @@ interface openRouteRouteChildren {
 }
 
 const openRouteRouteChildren: openRouteRouteChildren = {
+  openCareersRoute: openCareersRoute,
   openPricingRoute: openPricingRoute,
   openIndexRoute: openIndexRoute,
   openProductsIndexRoute: openProductsIndexRoute,
@@ -1071,6 +1145,20 @@ const openRouteRouteChildren: openRouteRouteChildren = {
 
 const openRouteRouteWithChildren = openRouteRoute._addFileChildren(
   openRouteRouteChildren,
+)
+
+interface referencesRouteRouteChildren {
+  referencesPrivacyRoute: typeof referencesPrivacyRoute
+  referencesTermsRoute: typeof referencesTermsRoute
+}
+
+const referencesRouteRouteChildren: referencesRouteRouteChildren = {
+  referencesPrivacyRoute: referencesPrivacyRoute,
+  referencesTermsRoute: referencesTermsRoute,
+}
+
+const referencesRouteRouteWithChildren = referencesRouteRoute._addFileChildren(
+  referencesRouteRouteChildren,
 )
 
 interface AppWorkspaceIdRouteRouteChildren {
@@ -1189,6 +1277,7 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   authRouteRoute: authRouteRouteWithChildren,
   openRouteRoute: openRouteRouteWithChildren,
+  referencesRouteRoute: referencesRouteRouteWithChildren,
   AppRouteRoute: AppRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport

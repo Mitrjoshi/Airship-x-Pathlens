@@ -2,9 +2,11 @@ export const WORKSPACE_USAGE_LIMITS = {
   pageViews: 10_000,
   events: 100_000,
   recordings: 100,
-  heatmapPages: 10,
+  heatmapPages: 5,
   funnels: 3,
   goals: 3,
+  workspaces: 1,
+  members: 0,
   projects: 5,
 } as const;
 

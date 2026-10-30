@@ -46,6 +46,13 @@ export const Footer = () => {
 
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
               <Link
+                to="/careers"
+                className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+              >
+                Careers
+              </Link>
+
+              <Link
                 to="/terms"
                 className="text-muted-foreground hover:text-foreground text-sm transition-colors"
               >

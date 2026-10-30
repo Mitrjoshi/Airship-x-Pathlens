@@ -104,7 +104,9 @@ export async function ingestReplayChunkModel(
     throw new Error("Replay session does not belong to this project.");
   }
 
-  await assertWorkspaceUsageLimit(project.workspace_id, "recordings");
+  if (!existingSession) {
+    await assertWorkspaceUsageLimit(project.workspace_id, "recordings");
+  }
 
   const inserted = await db.transaction(async (transaction) => {
     await transaction

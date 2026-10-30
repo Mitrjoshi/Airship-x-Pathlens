@@ -115,12 +115,20 @@ export async function getUserByIDModel(id: string) {
 
   if (!result) return null;
 
+  const {
+    usageStatus: _usageStatus,
+    usageWarningAt: _usageWarningAt,
+    usagePausedAt: _usagePausedAt,
+    unlimitedUsage: _unlimitedUsage,
+    ...safeDefaultWorkspace
+  } = result.defaultWorkspace;
+
   return {
     ...result.user,
     avatar: result.avatarRecord
       ? await createAvatarSignedUrl(result.avatarRecord.storageKey)
       : result.user.avatar,
-    defaultWorkspace: result.defaultWorkspace,
+    defaultWorkspace: safeDefaultWorkspace,
   };
 }
 

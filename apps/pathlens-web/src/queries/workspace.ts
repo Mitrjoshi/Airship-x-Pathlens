@@ -15,6 +15,10 @@ export type T_Workspace = {
   permissions: Permission[]
   projectCount: number
   memberCount: number
+  usageStatus?: 'active' | 'warning' | 'paused'
+  usageWarningAt?: string | null
+  usagePausedAt?: string | null
+  unlimitedUsage?: boolean
 }
 
 interface WorkspacesResponse {

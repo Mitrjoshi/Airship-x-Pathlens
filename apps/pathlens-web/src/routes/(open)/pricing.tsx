@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { HomeLayout } from './-components/home-layout'
 import { Button } from '@workspace/ui/components/button'
 import { DotLayout } from './-components/dot-layout'
+import { TitleReveal } from './products/$productId/-components/title-reveal'
 
 export const Route = createFileRoute('/(open)/pricing')({
   component: RouteComponent,
@@ -12,11 +13,14 @@ function RouteComponent() {
     <HomeLayout>
       <DotLayout className="border-x-2 border-dashed">
         <div className="bg-background mx-auto w-[75%] space-y-20 border-x-2 border-dashed py-20">
-          <div className="mx-auto w-fit space-y-2">
-            <h1 className="text-5xl font-medium">Pathlens Pricing</h1>
-            <p className="text-muted-foreground text-center">
-              One payment. Lifetime access.
-            </p>
+          <div className="mx-auto w-fit">
+            <div>
+              <TitleReveal
+                title="Pathlens Pricing"
+                description="One payment. Lifetime access."
+                className="flex flex-col gap-2 text-center"
+              />
+            </div>
           </div>
 
           <div className="nut-all mx-auto grid max-w-[75%] grid-cols-2 divide-x-2 divide-dashed border-2 border-dashed">

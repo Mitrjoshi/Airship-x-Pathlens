@@ -308,6 +308,10 @@ export async function getWorkspaceByIdModel(
       role: workspaceMembers.role,
       permissionProfileId: workspaceMembers.permissionProfileId,
       permissionProfileName: permissionProfiles.name,
+      usageStatus: workspaces.usageStatus,
+      usageWarningAt: workspaces.usageWarningAt,
+      usagePausedAt: workspaces.usagePausedAt,
+      unlimitedUsage: workspaces.unlimitedUsage,
       projectCount: db.$count(
         projects,
         eq(projects.workspaceId, workspaces.id)

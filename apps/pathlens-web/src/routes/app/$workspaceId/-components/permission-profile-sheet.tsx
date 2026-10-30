@@ -40,7 +40,6 @@ export const PermissionProfileSheet = ({
         ) : (
           <>
             {permission?.name}
-
             <ArrowUpRightIcon className="size-4" />
           </>
         )}

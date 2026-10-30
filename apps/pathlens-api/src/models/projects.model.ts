@@ -1,4 +1,13 @@
-import { and, count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  exists,
+  inArray,
+  sql,
+} from "drizzle-orm";
 import { db } from "../db/client";
 import {
   events,
@@ -363,6 +372,28 @@ export const getProjectsModel = async (
       (domain) => domain.domain
     ),
   }));
+};
+
+export const getActiveProjectDomainsCountModel = async (): Promise<number> => {
+  const [result] = await db
+    .select({ count: count(projectDomains.id) })
+    .from(projectDomains)
+    .innerJoin(projects, eq(projectDomains.projectId, projects.id))
+    .where(
+      exists(
+        db
+          .select({ id: events.id })
+          .from(events)
+          .where(
+            and(
+              eq(events.projectId, projects.id),
+              sql`${events.occurredAt} >= NOW() - INTERVAL '24 hours'`
+            )
+          )
+      )
+    );
+
+  return Number(result?.count ?? 0);
 };
 
 export const getProjectStatsModel = async (

@@ -147,7 +147,7 @@ function RouteComponent() {
               />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="bg-transparent py-2">
               <DialogClose
                 render={<Button variant="outline" disabled={isCreating} />}
               >

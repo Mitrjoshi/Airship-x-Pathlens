@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { z, ZodError } from "zod";
 import type { AuthRequest } from "../lib/jwt";
 import { generateApiKey } from "../utils/utils";
@@ -6,6 +6,7 @@ import type { TrackingScope } from "../lib/project-api-keys";
 import {
   createProjectModel,
   deleteProjectModel,
+  getActiveProjectDomainsCountModel,
   getEmptyProjectSnapshot,
   getProjectsModel,
   getProjectSnapshotsModel,
@@ -233,6 +234,27 @@ export async function getProjects(req: AuthRequest, res: Response) {
     return res.status(400).json({
       success: false,
       message: errorMessage,
+    });
+  }
+}
+
+export async function getActiveProjectDomainsCount(
+  _req: Request,
+  res: Response
+) {
+  try {
+    const count = await getActiveProjectDomainsCountModel();
+
+    return res.status(200).json({
+      success: true,
+      data: { count },
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
     });
   }
 }

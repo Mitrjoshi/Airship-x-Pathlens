@@ -30,6 +30,8 @@ interface UserUsageRow extends Record<string, unknown> {
   projects: number | string | null;
   funnels: number | string | null;
   goals: number | string | null;
+  members: number | string | null;
+  workspaces: number | string | null;
 }
 
 interface WorkspaceLimitState extends Record<string, unknown> {
@@ -102,8 +104,14 @@ export async function getWorkspaceUsageCounts(workspaceId: string) {
       (SELECT COUNT(*) FROM replay_sessions WHERE workspace_id = ${workspaceId})::int AS recordings,
       (SELECT COUNT(DISTINCT COALESCE(NULLIF(path, ''), '/')) FROM events WHERE workspace_id = ${workspaceId} AND type = 'page_view')::int AS heatmap_pages,
       (SELECT COUNT(*) FROM projects WHERE workspace_id = ${workspaceId})::int AS projects,
+      (SELECT COUNT(*) FROM workspace_members
+       WHERE workspace_id = ${workspaceId} AND role <> 'owner')::int AS members,
       (SELECT COUNT(*) FROM funnels WHERE workspace_id = ${workspaceId})::int AS funnels,
-      (SELECT COUNT(*) FROM goals WHERE workspace_id = ${workspaceId})::int AS goals
+      (SELECT COUNT(*) FROM goals WHERE workspace_id = ${workspaceId})::int AS goals,
+      (SELECT COUNT(*) FROM workspaces account_workspaces
+       WHERE account_workspaces.user_id = (
+         SELECT user_id FROM workspaces WHERE id = ${workspaceId}
+       ))::int AS workspaces
   `);
 
   const row = result.rows[0];
@@ -113,9 +121,34 @@ export async function getWorkspaceUsageCounts(workspaceId: string) {
     recordings: toNumber(row?.recordings),
     heatmapPages: toNumber(row?.heatmap_pages),
     projects: toNumber(row?.projects),
+    members: toNumber(row?.members),
     funnels: toNumber(row?.funnels),
     goals: toNumber(row?.goals),
+    workspaces: toNumber(row?.workspaces),
   };
+}
+
+export async function assertUserWorkspaceLimit(userId: string, increment = 1) {
+  const result = await db.execute<{
+    lifetime_access: boolean | null;
+    workspace_count: number | string | null;
+  }>(sql`
+    SELECT
+      u.lifetime_access,
+      (SELECT COUNT(*) FROM workspaces WHERE user_id = ${userId})::int AS workspace_count
+    FROM users u
+    WHERE u.id = ${userId}
+  `);
+
+  const row = result.rows[0];
+  if (row?.lifetime_access === true) return;
+
+  if (
+    toNumber(row?.workspace_count) + increment >
+    WORKSPACE_USAGE_LIMITS.workspaces
+  ) {
+    throw new WorkspaceUsageLimitError("workspaces");
+  }
 }
 
 export async function getUserUsagePercentageModel(userId: string) {
@@ -161,7 +194,12 @@ export async function getUserUsagePercentageModel(userId: string) {
        FROM goals
        WHERE workspace_id IN (
          SELECT workspace_id FROM workspace_members WHERE user_id = ${userId}
-       ))::int AS goals
+        ))::int AS goals,
+       (SELECT COUNT(*)
+        FROM workspace_members wm
+        INNER JOIN workspaces w ON w.id = wm.workspace_id
+        WHERE w.user_id = ${userId} AND wm.role <> 'owner')::int AS members,
+       (SELECT COUNT(*) FROM workspaces WHERE user_id = ${userId})::int AS workspaces
   `);
 
   const row = result.rows[0];
@@ -174,6 +212,8 @@ export async function getUserUsagePercentageModel(userId: string) {
     toNumber(row?.projects),
     toNumber(row?.funnels),
     toNumber(row?.goals),
+    toNumber(row?.members),
+    toNumber(row?.workspaces),
   ].reduce((total, value) => total + value, 0);
   const totalLimit = Object.values(WORKSPACE_USAGE_LIMITS).reduce(
     (total, limit) => total + limit,
@@ -352,13 +392,13 @@ export async function getWorkspaceUsageModel(
         WHERE rs.workspace_id = ${workspaceId})::bigint AS storage_bytes,
       (SELECT COUNT(*) FROM projects
         WHERE workspace_id = ${workspaceId})::int AS projects,
-      (SELECT COUNT(*) FROM workspace_members
-        WHERE workspace_id = ${workspaceId})::int AS members,
+       (SELECT COUNT(*) FROM workspace_members
+         WHERE workspace_id = ${workspaceId} AND role <> 'owner')::int AS members,
       (SELECT COUNT(*) FROM funnels
         WHERE workspace_id = ${workspaceId})::int AS funnels,
       (SELECT COUNT(*) FROM goals
         WHERE workspace_id = ${workspaceId})::int AS goals,
-      (SELECT COUNT(*) FROM workspace_members WHERE user_id = ${userId})::int AS workspaces
+       (SELECT COUNT(*) FROM workspaces WHERE user_id = ${userId})::int AS workspaces
   `);
 
   const row = result.rows[0];

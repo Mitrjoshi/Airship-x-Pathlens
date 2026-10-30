@@ -46,6 +46,13 @@ export interface UsersResponse {
   data: T_Projects[]
 }
 
+export interface ActiveProjectDomainsCountResponse {
+  success: boolean
+  data: {
+    count: number
+  }
+}
+
 const getProjects = async (params: {
   workspace_id: string
   project_id?: string
@@ -64,4 +71,17 @@ export const getProjectsOptions = (params: {
   queryOptions({
     queryKey: ['PROJECTS', params],
     queryFn: () => getProjects(params),
+  })
+
+export const getActiveProjectDomainsCount =
+  async (): Promise<ActiveProjectDomainsCountResponse> => {
+    const res = await apiClient.get('/projects/active')
+
+    return res.data
+  }
+
+export const getActiveProjectDomainsCountOptions = () =>
+  queryOptions({
+    queryKey: ['ACTIVE_PROJECT_DOMAINS_COUNT'],
+    queryFn: getActiveProjectDomainsCount,
   })

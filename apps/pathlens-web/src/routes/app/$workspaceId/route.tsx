@@ -49,7 +49,7 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import { Header } from '../-components/header'
 import { SearchOverAppDialog } from '@/components/common/search-over-app-dialog'
 import { navigationIcons } from '@/config/navigation-icons'
-import { Badge } from '@workspace/ui/components/badge'
+import { GracePeriod } from '../-components/grace-period'
 
 export const Route = createFileRoute('/app/$workspaceId')({
   component: RouteComponent,
@@ -336,7 +336,7 @@ export const AppSidebar = ({
           />
         </SidebarHeader>
         <SidebarContent className="bg-background">
-          <SidebarGroup>
+          <SidebarGroup className="bg-background sticky top-0 z-1000 border-b">
             <SearchOverAppDialog
               projectId={projectId}
               workspaceId={activeWorkspace}
@@ -458,6 +458,8 @@ export const AppSidebar = ({
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="bg-background border-t">
+          <GracePeriod />
+
           <SidebarTrigger>
             <Button variant="ghost" size="icon">
               <SidebarIcon />

@@ -15,5 +15,9 @@ export function useIsMac() {
 
 export function ModKey() {
   const isMac = useIsMac()
-  return isMac ? <Command className="size-3" aria-label="Command" /> : <>Ctrl</>
+  return isMac ? (
+    <Command className="size-3" aria-label="Command" />
+  ) : (
+    <>Ctrl+</>
+  )
 }
