@@ -240,7 +240,7 @@ async function getGoalWithStats(
 async function getGoalDefinitions(
   workspaceId: string,
   projectId: string,
-  domainId?: string
+  domainOrigin?: string
 ): Promise<GoalDefinition[]> {
   const definitions = await db
     .select({
@@ -265,8 +265,11 @@ async function getGoalDefinitions(
       and(
         eq(goals.workspaceId, workspaceId),
         eq(goals.projectId, projectId),
-        domainId
-          ? or(eq(goals.domainId, domainId), sql`${goals.domainId} IS NULL`)
+        domainOrigin
+          ? or(
+              eq(projectDomains.domain, domainOrigin),
+              sql`${goals.domainId} IS NULL`
+            )
           : undefined
       )
     )
@@ -280,12 +283,12 @@ export async function getGoalsModel(
   projectId: string,
   range: GoalRange,
   domain?: string,
-  domainId?: string
+  domainOrigin?: string
 ): Promise<Goal[]> {
   const definitions = await getGoalDefinitions(
     workspaceId,
     projectId,
-    domainId
+    domainOrigin
   );
 
   return Promise.all(

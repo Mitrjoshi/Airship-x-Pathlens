@@ -48,7 +48,6 @@ export interface VisitorsParams {
   search?: string
   page: number
   page_size: number
-  refetchInterval?: number
 }
 
 export interface VisitorLocation {
@@ -76,7 +75,6 @@ export interface VisitorLocationsParams {
   domain?: string
   range: VisitorsRange
   status: VisitorStatus
-  refetchInterval?: number
 }
 
 const getVisitorLocations = async (
@@ -91,7 +89,6 @@ export const getVisitorLocationsOptions = (params: VisitorLocationsParams) =>
   queryOptions({
     queryKey: ['VISITOR_LOCATIONS', params],
     queryFn: () => getVisitorLocations(params),
-    refetchInterval: params.refetchInterval,
   })
 
 const getVisitors = async (
@@ -106,5 +103,4 @@ export const getVisitorsOptions = (params: VisitorsParams) =>
   queryOptions({
     queryKey: ['VISITORS', params],
     queryFn: () => getVisitors(params),
-    refetchInterval: params.refetchInterval,
   })

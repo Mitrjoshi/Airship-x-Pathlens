@@ -59,7 +59,7 @@ import {
   RefreshCcwIcon,
   SearchIcon,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   Sheet,
@@ -76,6 +76,7 @@ import { getSessionReplayDetailOptions } from '@/queries/session-replay'
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './-components/common/no-permission-view'
+import { ErrorScreen } from './-components/common/error-screen'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/events')({
   component: RouteComponent,
@@ -365,19 +366,41 @@ function RouteComponent() {
   const [open, setOpen] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: permissionsRefetch,
+    isRefetching: permissionsRefetching,
+  } = useQuery({
+    ...getWorkspacePermissionsOptions(workspaceId),
+    enabled: !!workspaceId,
+  })
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('analytics.events.view')
 
   const {
+    data: domainsData,
+    isLoading: domainsLoading,
+    error: domainsError,
+    refetch: domainsRefetch,
+    isRefetching: domainsRefetching,
+  } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
+
+  const domains = domainsData?.data
+  const activeDomain = domain || domains?.[0]?.domain || ''
+
+  const {
     data: eventsData,
     isLoading: isEventsFetching,
-    refetch: refetchEvents,
     dataUpdatedAt: eventsUpdatedAt,
-    isRefetching: eventsDataRefetching,
+    error: eventsError,
+    refetch: refetchEventsData,
+    isRefetching: eventsRefetching,
   } = useQuery({
     ...getEventsOptions({
       workspace_id: workspaceId,
@@ -387,48 +410,46 @@ function RouteComponent() {
       device,
       page,
       page_size: PAGE_SIZE,
-      domain,
-      refetchInterval: liveMode ? 5000 : undefined,
+      domain: activeDomain,
     }),
-    enabled: !!hasViewPermission,
+    enabled: !!hasViewPermission && !!activeDomain,
+    refetchInterval: liveMode ? 5000 : undefined,
   })
 
   const {
     data: chartResponse,
     isLoading: isChartFetching,
-    refetch: refetchChart,
     dataUpdatedAt: chartUpdatedAt,
-    isRefetching: eventsChartRefetching,
-  } = useQuery(
-    getEventsChartOptions({
+    error: chartError,
+    refetch: refetchChartData,
+    isRefetching: chartRefetching,
+  } = useQuery({
+    ...getEventsChartOptions({
       workspace_id: workspaceId,
       project_id: projectId,
       range,
       domain,
-      refetchInterval: liveMode ? 5000 : undefined,
-    })
-  )
-
-  const { data: domainsData, isLoading: domainsLoading } = useQuery({
-    ...getProjectDomainsOptions(projectId),
-    enabled: !!hasViewPermission,
+    }),
+    enabled: !!hasViewPermission && !!activeDomain,
+    refetchInterval: liveMode ? 5000 : undefined,
   })
 
   const {
     data: sessionDetails,
     isLoading: sessionDetailsLoading,
     isError: sessionDetailsError,
-  } = useQuery(
-    getSessionReplayDetailOptions({
+  } = useQuery({
+    ...getSessionReplayDetailOptions({
       project_id: projectId,
       workspace_id: workspaceId,
       session_id: sessionId ?? '',
-      domain,
-    })
-  )
+      domain: activeDomain,
+    }),
+    enabled: !!hasViewPermission && !!activeDomain,
+    refetchInterval: liveMode ? 5000 : undefined,
+  })
 
   const events = eventsData?.data
-  const domains = domainsData?.data
 
   const chartData = (chartResponse?.data.chartData ?? []) as ChartDataItem[]
 
@@ -437,9 +458,7 @@ function RouteComponent() {
       item.desktop > 0 || item.mobile > 0 || item.tablet > 0 || item.unknown > 0
   )
 
-  const isInitialChartLoading = isChartFetching
   const dataUpdatedAt = Math.max(eventsUpdatedAt, chartUpdatedAt)
-  const refetch = () => Promise.all([refetchEvents(), refetchChart()])
 
   const lastUpdated = useRelativeTime(dataUpdatedAt)
 
@@ -450,11 +469,23 @@ function RouteComponent() {
   const from = totalEvents === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const to = Math.min(page * PAGE_SIZE, totalEvents)
 
-  useEffect(() => {
-    if (domains) {
-      setDomain(domains[0].domain)
-    }
-  }, [domains])
+  const globalLoading =
+    domainsLoading || isEventsFetching || isChartFetching || permissionsLoading
+  const globalRefetching =
+    eventsRefetching ||
+    chartRefetching ||
+    permissionsRefetching ||
+    domainsRefetching
+
+  const globalError =
+    permissionsError || domainsError || eventsError || chartError
+  const refetch = () =>
+    Promise.all([
+      permissionsRefetch(),
+      domainsRefetch(),
+      refetchEventsData(),
+      refetchChartData(),
+    ])
 
   return (
     <div>
@@ -473,8 +504,8 @@ function RouteComponent() {
         <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
           <div className="flex min-w-0 items-center gap-4">
             <DomainSwitcher
-              loading={domainsLoading}
-              domain={domain}
+              loading={globalLoading}
+              domain={activeDomain}
               setDomain={setDomain}
               domains={domains!}
               refetch={refetch}
@@ -510,14 +541,12 @@ function RouteComponent() {
 
             {/* Manual refresh */}
             <Button
-              disabled={eventsDataRefetching || eventsChartRefetching}
-              onClick={() => {
-                refetch()
-              }}
+              disabled={globalRefetching}
+              onClick={refetch}
               variant="outline"
             >
               <RefreshCcwIcon
-                className={`size-4 ${eventsDataRefetching || eventsChartRefetching ? 'animate-spin' : ''}`}
+                className={`size-4 ${globalRefetching ? 'animate-spin' : ''}`}
               />
               Refresh
             </Button>
@@ -561,501 +590,523 @@ function RouteComponent() {
           </p>
         </div>
 
-        {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetch={refetch}
+            refetching={globalRefetching}
+          />
         ) : (
           <>
-            {/* Events chart */}
-            <Card className="bg-card/30 overflow-hidden rounded-none border-2 border-dashed p-0">
-              <CardContent className="p-0">
-                {isInitialChartLoading ? (
-                  <EventsChartPlaceholder animated />
-                ) : !hasChartData ? (
-                  <div className="relative h-90 w-full">
-                    <EventsChartPlaceholder />
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
+            ) : (
+              <>
+                {/* Events chart */}
+                <Card className="bg-card/30 overflow-hidden rounded-none border-2 border-dashed p-0">
+                  <CardContent className="p-0">
+                    {globalLoading ? (
+                      <EventsChartPlaceholder animated />
+                    ) : !hasChartData ? (
+                      <div className="relative h-90 w-full">
+                        <EventsChartPlaceholder />
 
-                    <Badge
-                      variant="outline"
-                      className="bg-background/60 absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-lg px-3 py-1 backdrop-blur-md"
-                    >
-                      No Data
-                    </Badge>
-                  </div>
-                ) : (
-                  <EventsChart data={chartData} />
-                )}
-              </CardContent>
-            </Card>
+                        <Badge
+                          variant="outline"
+                          className="bg-background/60 absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-lg px-3 py-1 backdrop-blur-md"
+                        >
+                          No Data
+                        </Badge>
+                      </div>
+                    ) : (
+                      <EventsChart data={chartData} />
+                    )}
+                  </CardContent>
+                </Card>
 
-            <div className="space-y-5">
-              <div className="flex items-center justify-between gap-4">
-                <InputGroup className="w-120">
-                  <InputGroupButton>
-                    <SearchIcon />
-                  </InputGroupButton>
-                  <InputGroupInput placeholder="Search..." />
-                </InputGroup>
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <InputGroup className="w-120">
+                      <InputGroupButton>
+                        <SearchIcon />
+                      </InputGroupButton>
+                      <InputGroupInput placeholder="Search..." />
+                    </InputGroup>
 
-                <div className="flex items-center justify-between gap-2">
-                  <Select
-                    value={category}
-                    onValueChange={(value) => {
-                      setCategory(value as EventsCategory)
-                      setPage(1)
-                    }}
-                  >
-                    <SelectTrigger className="w-full sm:w-36">
-                      <SelectValue>
-                        {
-                          categoryOptions.find(
-                            (option) => option.value === category
-                          )?.label
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent alignItemWithTrigger={false}>
-                      {categoryOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    items={deviceLabels}
-                    value={device}
-                    onValueChange={(value) => {
-                      if (value) {
-                        setDevice(value as EventsDevice)
-                        localStorage.setItem('device', value)
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full sm:w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-
-                    <SelectContent alignItemWithTrigger={false}>
-                      {deviceLabels.map((device) => (
-                        <SelectItem key={device.value} value={device.value}>
-                          {device.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="">
-                <div className="overflow-hidden border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Event</TableHead>
-                        <TableHead className="w-24 text-center">
-                          Category
-                        </TableHead>
-                        <TableHead className="w-32 text-center">
-                          Country
-                        </TableHead>
-                        <TableHead className="w-32 text-center">
-                          Visitor
-                        </TableHead>
-                        <TableHead className="w-32 text-center">
-                          Device
-                        </TableHead>
-                        <TableHead className="w-32 text-center">
-                          Occurred
-                        </TableHead>
-                        <TableHead className="w-20 text-center">
-                          Replay
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-
-                    <TableBody>
-                      {isEventsFetching
-                        ? [...Array(PAGE_SIZE)].map((_, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <div className="space-y-1.5">
-                                  <Skeleton className="h-4 w-48" />
-                                  <Skeleton className="h-3 w-32" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell className="w-24">
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell className="w-32">
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-5 w-14" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell className="w-32">
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-5 w-24" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell className="w-32">
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell className="w-32">
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-5 w-20" />
-                                </div>
-                              </TableCell>
-
-                              <TableCell className="w-20">
-                                <div className="flex justify-center">
-                                  <Skeleton className="h-8 w-8 rounded-md" />
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        : events?.events?.map((item) => (
-                            <TableRow
-                              onClick={() => {
-                                setEvent(item)
-                                setSheetOpen(true)
-                              }}
-                              key={item.id}
-                              className="hover:bg-card/40 cursor-pointer"
-                            >
-                              <TableCell>
-                                <div className="flex flex-col justify-center overflow-hidden">
-                                  <p className="truncate text-sm">
-                                    {item.description}
-                                  </p>
-
-                                  <p className="text-muted-foreground truncate text-xs">
-                                    {item.path}
-                                    {item.title ? ` · ${item.title}` : ''}
-                                  </p>
-                                </div>
-                              </TableCell>
-
-                              <TableCell className="w-24 text-center">
-                                {item.category}
-                              </TableCell>
-
-                              <TableCell className="w-32 text-center whitespace-nowrap">
-                                {item.country}
-                              </TableCell>
-
-                              <TableCell className="w-32 text-center whitespace-nowrap">
-                                Anonymous #{item.visitorId.slice(0, 8)}
-                              </TableCell>
-
-                              <TableCell className="w-32 text-center whitespace-nowrap capitalize">
-                                {item.device}
-                              </TableCell>
-
-                              <TableCell className="w-32 text-center whitespace-nowrap">
-                                {formatRelativeTime(item.occurredAt)}
-                              </TableCell>
-
-                              <TableCell className="w-20 text-center">
-                                {item.replayAvailable ? (
-                                  <Button
-                                    onClick={(e) => e.preventDefault()}
-                                    size="icon"
-                                    variant="outline"
-                                  >
-                                    <PlayIcon />
-                                  </Button>
-                                ) : (
-                                  <div className="flex justify-center">
-                                    <MinusIcon className="text-muted-foreground" />
-                                  </div>
-                                )}
-                              </TableCell>
-                            </TableRow>
+                    <div className="flex items-center justify-between gap-2">
+                      <Select
+                        value={category}
+                        onValueChange={(value) => {
+                          setCategory(value as EventsCategory)
+                          setPage(1)
+                        }}
+                      >
+                        <SelectTrigger className="w-full sm:w-36">
+                          <SelectValue>
+                            {
+                              categoryOptions.find(
+                                (option) => option.value === category
+                              )?.label
+                            }
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent alignItemWithTrigger={false}>
+                          {categoryOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
 
-                      {!isEventsFetching && !events?.events?.length && (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-32 text-center">
-                            <p className="text-muted-foreground text-sm">
-                              No events found.
-                            </p>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-
-                  {/* Pagination */}
-                  <div className="flex items-center justify-between border-t px-4 py-3">
-                    <p className="text-muted-foreground text-sm">
-                      {totalEvents > 0 ? (
-                        <>
-                          Showing {from}-{to} of {totalEvents} events
-                        </>
-                      ) : (
-                        'No events'
-                      )}
-                    </p>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={page <= 1 || isEventsFetching}
-                        onClick={() => {
-                          setPage((current) => Math.max(current - 1, 1))
-                        }}
-                      >
-                        Previous
-                      </Button>
-
-                      <div className="flex items-center gap-1">
-                        {paginationItems.map((item, index) => {
-                          if (item === 'ellipsis') {
-                            return (
-                              <span
-                                key={`ellipsis-${index}`}
-                                className="text-muted-foreground flex size-8 items-center justify-center text-sm"
-                              >
-                                ...
-                              </span>
-                            )
+                      <Select
+                        items={deviceLabels}
+                        value={device}
+                        onValueChange={(value) => {
+                          if (value) {
+                            setDevice(value as EventsDevice)
+                            localStorage.setItem('device', value)
                           }
-
-                          return (
-                            <Button
-                              key={item}
-                              variant={page === item ? 'outline' : 'ghost'}
-                              size="icon"
-                              className="size-8"
-                              disabled={isEventsFetching}
-                              onClick={() => {
-                                setPage(item)
-                              }}
-                            >
-                              {item}
-                            </Button>
-                          )
-                        })}
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={page >= totalPages || isEventsFetching}
-                        onClick={() => {
-                          setPage((current) =>
-                            Math.min(current + 1, totalPages)
-                          )
                         }}
                       >
-                        Next
-                      </Button>
+                        <SelectTrigger className="w-full sm:w-36">
+                          <SelectValue />
+                        </SelectTrigger>
+
+                        <SelectContent alignItemWithTrigger={false}>
+                          {deviceLabels.map((device) => (
+                            <SelectItem key={device.value} value={device.value}>
+                              {device.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <Sheet
-                open={sheetOpen}
-                onOpenChange={setSheetOpen}
-                onOpenChangeComplete={(open) => {
-                  if (!open) setEvent(null)
-                }}
-              >
-                <SheetContent className="flex w-full max-w-lg! flex-col gap-0 p-0">
-                  <SheetHeader className="border-b px-6 py-5">
-                    <div className="space-y-2">
-                      <div>
-                        <SheetTitle className="text-lg">
-                          {event?.description}
-                        </SheetTitle>
+                  <div className="">
+                    <div className="overflow-hidden border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Event</TableHead>
+                            <TableHead className="w-24 text-center">
+                              Category
+                            </TableHead>
+                            <TableHead className="w-32 text-center">
+                              Country
+                            </TableHead>
+                            <TableHead className="w-32 text-center">
+                              Visitor
+                            </TableHead>
+                            <TableHead className="w-32 text-center">
+                              Device
+                            </TableHead>
+                            <TableHead className="w-32 text-center">
+                              Occurred
+                            </TableHead>
+                            <TableHead className="w-20 text-center">
+                              Replay
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
 
-                        <SheetDescription>
-                          Event details and performance information
-                        </SheetDescription>
-                      </div>
+                        <TableBody>
+                          {globalLoading
+                            ? [...Array(PAGE_SIZE)].map((_, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>
+                                    <div className="space-y-1.5">
+                                      <Skeleton className="h-4 w-48" />
+                                      <Skeleton className="h-3 w-32" />
+                                    </div>
+                                  </TableCell>
 
-                      <DotSeparator className="text-muted-foreground text-sm">
-                        <DotSeparatorItem>
-                          <Badge variant="secondary">
-                            {capitalizeFirstLetter(event?.category)}
-                          </Badge>
-                        </DotSeparatorItem>
+                                  <TableCell className="w-24">
+                                    <div className="flex justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                        <DotSeparatorItem>{event?.device}</DotSeparatorItem>
+                                  <TableCell className="w-32">
+                                    <div className="flex justify-center">
+                                      <Skeleton className="h-5 w-14" />
+                                    </div>
+                                  </TableCell>
 
-                        <DotSeparatorItem>{event?.browser}</DotSeparatorItem>
-                      </DotSeparator>
-                    </div>
-                  </SheetHeader>
+                                  <TableCell className="w-32">
+                                    <div className="flex justify-center">
+                                      <Skeleton className="h-5 w-24" />
+                                    </div>
+                                  </TableCell>
 
-                  <div className="flex-1 overflow-y-auto">
-                    <div className="space-y-6 p-6">
-                      <section className="space-y-3">
-                        <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-                          Performance
+                                  <TableCell className="w-32">
+                                    <div className="flex justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell className="w-32">
+                                    <div className="flex justify-center">
+                                      <Skeleton className="h-5 w-20" />
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell className="w-20">
+                                    <div className="flex justify-center">
+                                      <Skeleton className="h-8 w-8 rounded-md" />
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            : events?.events?.map((item) => (
+                                <TableRow
+                                  onClick={() => {
+                                    setEvent(item)
+                                    setSheetOpen(true)
+                                  }}
+                                  key={item.id}
+                                  className="hover:bg-card/40 cursor-pointer"
+                                >
+                                  <TableCell>
+                                    <div className="flex flex-col justify-center overflow-hidden">
+                                      <p className="truncate text-sm">
+                                        {item.description}
+                                      </p>
+
+                                      <p className="text-muted-foreground truncate text-xs">
+                                        {item.path}
+                                        {item.title ? ` · ${item.title}` : ''}
+                                      </p>
+                                    </div>
+                                  </TableCell>
+
+                                  <TableCell className="w-24 text-center">
+                                    {item.category}
+                                  </TableCell>
+
+                                  <TableCell className="w-32 text-center whitespace-nowrap">
+                                    {item.country}
+                                  </TableCell>
+
+                                  <TableCell className="w-32 text-center whitespace-nowrap">
+                                    Anonymous #{item.visitorId.slice(0, 8)}
+                                  </TableCell>
+
+                                  <TableCell className="w-32 text-center whitespace-nowrap capitalize">
+                                    {item.device}
+                                  </TableCell>
+
+                                  <TableCell className="w-32 text-center whitespace-nowrap">
+                                    {formatRelativeTime(item.occurredAt)}
+                                  </TableCell>
+
+                                  <TableCell className="w-20 text-center">
+                                    {item.replayAvailable ? (
+                                      <Button
+                                        onClick={(e) => e.preventDefault()}
+                                        size="icon"
+                                        variant="outline"
+                                      >
+                                        <PlayIcon />
+                                      </Button>
+                                    ) : (
+                                      <div className="flex justify-center">
+                                        <MinusIcon className="text-muted-foreground" />
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+
+                          {!globalLoading && !events?.events?.length && (
+                            <TableRow>
+                              <TableCell
+                                colSpan={7}
+                                className="h-32 text-center"
+                              >
+                                <p className="text-muted-foreground text-sm">
+                                  No events found.
+                                </p>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+
+                      {/* Pagination */}
+                      <div className="flex items-center justify-between border-t px-4 py-3">
+                        <p className="text-muted-foreground text-sm">
+                          {totalEvents > 0 ? (
+                            <>
+                              Showing {from}-{to} of {totalEvents} events
+                            </>
+                          ) : (
+                            'No events'
+                          )}
                         </p>
 
-                        <div className="grid grid-cols-3 gap-2">
-                          <MetricCard
-                            label="TTFB"
-                            value={`${event?.details?.ttfb ?? 0} ms`}
-                          />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page <= 1 || globalLoading}
+                            onClick={() => {
+                              setPage((current) => Math.max(current - 1, 1))
+                            }}
+                          >
+                            Previous
+                          </Button>
 
-                          <MetricCard
-                            label="DOM Loaded"
-                            value={`${event?.details?.domLoaded ?? 0} ms`}
-                          />
+                          <div className="flex items-center gap-1">
+                            {paginationItems.map((item, index) => {
+                              if (item === 'ellipsis') {
+                                return (
+                                  <span
+                                    key={`ellipsis-${index}`}
+                                    className="text-muted-foreground flex size-8 items-center justify-center text-sm"
+                                  >
+                                    ...
+                                  </span>
+                                )
+                              }
 
-                          <MetricCard
-                            label="Load"
-                            value={`${event?.details?.load ?? 0} ms`}
-                          />
+                              return (
+                                <Button
+                                  key={item}
+                                  variant={page === item ? 'outline' : 'ghost'}
+                                  size="icon"
+                                  className="size-8"
+                                  disabled={globalLoading}
+                                  onClick={() => {
+                                    setPage(item)
+                                  }}
+                                >
+                                  {item}
+                                </Button>
+                              )
+                            })}
+                          </div>
 
-                          <MetricCard
-                            label="DNS"
-                            value={`${event?.details?.dns ?? 0} ms`}
-                          />
-
-                          <MetricCard
-                            label="TCP"
-                            value={`${event?.details?.tcp ?? 0} ms`}
-                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page >= totalPages || globalLoading}
+                            onClick={() => {
+                              setPage((current) =>
+                                Math.min(current + 1, totalPages)
+                              )
+                            }}
+                          >
+                            Next
+                          </Button>
                         </div>
-                      </section>
-
-                      <Separator />
-
-                      <EventSection title="Page">
-                        <EventRow label="Title" value={event?.title} />
-
-                        <EventRow
-                          label="Path"
-                          value={
-                            <code className="bg-muted rounded px-1.5 py-0.5 text-xs">
-                              {event?.path}
-                            </code>
-                          }
-                        />
-
-                        <EventRow
-                          label="URL"
-                          value={
-                            <a
-                              href={event?.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="hover:text-foreground truncate underline underline-offset-4"
-                            >
-                              {event?.url}
-                            </a>
-                          }
-                        />
-                      </EventSection>
-
-                      <Separator />
-
-                      <EventSection title="Visitor">
-                        <EventRow label="Device" value={event?.device} />
-
-                        <EventRow
-                          label="Operating system"
-                          value={`${event?.os} ${event?.osVersion}`}
-                        />
-
-                        <EventRow
-                          label="Browser"
-                          value={`${event?.browser} ${event?.browserVersion}`}
-                        />
-
-                        <EventRow label="Country" value={event?.countryCode} />
-                      </EventSection>
-
-                      <Separator />
-
-                      <EventSection title="Session">
-                        <EventRow
-                          label="Session ID"
-                          value={<CopyableValue value={event?.sessionId} />}
-                        />
-
-                        <EventRow
-                          label="Visitor ID"
-                          value={<CopyableValue value={event?.visitorId} />}
-                        />
-
-                        <EventRow
-                          label="Replay"
-                          value={
-                            event?.replayAvailable ? (
-                              <Badge variant="outline">Available</Badge>
-                            ) : (
-                              <span className="text-muted-foreground">
-                                Unavailable
-                              </span>
-                            )
-                          }
-                        />
-
-                        <Button
-                          disabled={!event?.replayAvailable}
-                          onClick={() => {
-                            if (event?.sessionId) {
-                              setSessionId(event?.sessionId)
-                              setOpen(true)
-                            }
-                          }}
-                          className="w-full"
-                        >
-                          {event?.replayAvailable
-                            ? 'View session replay'
-                            : 'Replay Unavailable'}
-                        </Button>
-                      </EventSection>
-
-                      <Separator />
-
-                      <EventSection title="Referrer">
-                        <EventRow
-                          label="Domain"
-                          value={event?.referrerDomain || 'Direct'}
-                        />
-
-                        <EventRow
-                          label="URL"
-                          value={event?.referrer || 'Direct'}
-                        />
-                      </EventSection>
-
-                      <Separator />
-
-                      <EventSection title="Event">
-                        <EventRow label="Event ID" value={event?.id} />
-
-                        <EventRow label="Type" value={event?.type} />
-
-                        <EventRow label="Category" value={event?.category} />
-
-                        <EventRow
-                          label="Occurred at"
-                          value={event?.occurredAt}
-                        />
-                      </EventSection>
+                      </div>
                     </div>
                   </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+
+                  <Sheet
+                    open={sheetOpen}
+                    onOpenChange={setSheetOpen}
+                    onOpenChangeComplete={(open) => {
+                      if (!open) setEvent(null)
+                    }}
+                  >
+                    <SheetContent className="flex w-full max-w-lg! flex-col gap-0 p-0">
+                      <SheetHeader className="border-b px-6 py-5">
+                        <div className="space-y-2">
+                          <div>
+                            <SheetTitle className="text-lg">
+                              {event?.description}
+                            </SheetTitle>
+
+                            <SheetDescription>
+                              Event details and performance information
+                            </SheetDescription>
+                          </div>
+
+                          <DotSeparator className="text-muted-foreground text-sm">
+                            <DotSeparatorItem>
+                              <Badge variant="secondary">
+                                {capitalizeFirstLetter(event?.category)}
+                              </Badge>
+                            </DotSeparatorItem>
+
+                            <DotSeparatorItem>{event?.device}</DotSeparatorItem>
+
+                            <DotSeparatorItem>
+                              {event?.browser}
+                            </DotSeparatorItem>
+                          </DotSeparator>
+                        </div>
+                      </SheetHeader>
+
+                      <div className="flex-1 overflow-y-auto">
+                        <div className="space-y-6 p-6">
+                          <section className="space-y-3">
+                            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                              Performance
+                            </p>
+
+                            <div className="grid grid-cols-3 gap-2">
+                              <MetricCard
+                                label="TTFB"
+                                value={`${event?.details?.ttfb ?? 0} ms`}
+                              />
+
+                              <MetricCard
+                                label="DOM Loaded"
+                                value={`${event?.details?.domLoaded ?? 0} ms`}
+                              />
+
+                              <MetricCard
+                                label="Load"
+                                value={`${event?.details?.load ?? 0} ms`}
+                              />
+
+                              <MetricCard
+                                label="DNS"
+                                value={`${event?.details?.dns ?? 0} ms`}
+                              />
+
+                              <MetricCard
+                                label="TCP"
+                                value={`${event?.details?.tcp ?? 0} ms`}
+                              />
+                            </div>
+                          </section>
+
+                          <Separator />
+
+                          <EventSection title="Page">
+                            <EventRow label="Title" value={event?.title} />
+
+                            <EventRow
+                              label="Path"
+                              value={
+                                <code className="bg-muted rounded px-1.5 py-0.5 text-xs">
+                                  {event?.path}
+                                </code>
+                              }
+                            />
+
+                            <EventRow
+                              label="URL"
+                              value={
+                                <a
+                                  href={event?.url as string}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="hover:text-foreground truncate underline underline-offset-4"
+                                >
+                                  {event?.url}
+                                </a>
+                              }
+                            />
+                          </EventSection>
+
+                          <Separator />
+
+                          <EventSection title="Visitor">
+                            <EventRow label="Device" value={event?.device} />
+
+                            <EventRow
+                              label="Operating system"
+                              value={`${event?.os} ${event?.osVersion}`}
+                            />
+
+                            <EventRow
+                              label="Browser"
+                              value={`${event?.browser} ${event?.browserVersion}`}
+                            />
+
+                            <EventRow
+                              label="Country"
+                              value={event?.countryCode}
+                            />
+                          </EventSection>
+
+                          <Separator />
+
+                          <EventSection title="Session">
+                            <EventRow
+                              label="Session ID"
+                              value={<CopyableValue value={event?.sessionId} />}
+                            />
+
+                            <EventRow
+                              label="Visitor ID"
+                              value={<CopyableValue value={event?.visitorId} />}
+                            />
+
+                            <EventRow
+                              label="Replay"
+                              value={
+                                event?.replayAvailable ? (
+                                  <Badge variant="outline">Available</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">
+                                    Unavailable
+                                  </span>
+                                )
+                              }
+                            />
+
+                            <Button
+                              disabled={!event?.replayAvailable}
+                              onClick={() => {
+                                if (event?.sessionId) {
+                                  setSessionId(event?.sessionId)
+                                  setOpen(true)
+                                }
+                              }}
+                              className="w-full"
+                            >
+                              {event?.replayAvailable
+                                ? 'View session replay'
+                                : 'Replay Unavailable'}
+                            </Button>
+                          </EventSection>
+
+                          <Separator />
+
+                          <EventSection title="Referrer">
+                            <EventRow
+                              label="Domain"
+                              value={event?.referrerDomain || 'Direct'}
+                            />
+
+                            <EventRow
+                              label="URL"
+                              value={event?.referrer || 'Direct'}
+                            />
+                          </EventSection>
+
+                          <Separator />
+
+                          <EventSection title="Event">
+                            <EventRow label="Event ID" value={event?.id} />
+
+                            <EventRow label="Type" value={event?.type} />
+
+                            <EventRow
+                              label="Category"
+                              value={event?.category}
+                            />
+
+                            <EventRow
+                              label="Occurred at"
+                              value={event?.occurredAt}
+                            />
+                          </EventSection>
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

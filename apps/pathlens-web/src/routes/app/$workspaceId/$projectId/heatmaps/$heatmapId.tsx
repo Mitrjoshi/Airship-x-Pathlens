@@ -52,6 +52,9 @@ import {
 } from '@workspace/ui/components/card'
 import { Badge } from '@workspace/ui/components/badge'
 import { Skeleton } from '@workspace/ui/components/skeleton'
+import { getWorkspacePermissionsOptions } from '@/queries/workspace'
+import { NoPermissionView } from '../-components/common/no-permission-view'
+import { ErrorScreen } from '../-components/common/error-screen'
 
 const rangeLabels = [
   { value: '24h', label: 'Last 24 hours' },
@@ -90,20 +93,33 @@ function RouteComponent() {
   const [heatmapType, setHeatmapType] = useState<HeatmapOverlayType>('click')
 
   const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: permissionsRefetch,
+    isRefetching: permissionsRefetching,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
+
+  const permissions = permissionsData?.data
+  const hasViewPermission = permissions?.includes('analytics.heatmaps.view')
+
+  const {
     data: heatmapDetails,
     isLoading: heatmapLoading,
     dataUpdatedAt,
-    refetch,
-    isRefetching,
-  } = useQuery(
-    getHeatmapDetailsOptions({
+    refetch: heatmapRefetch,
+    isRefetching: heatmapRefetching,
+    error: heatmapError,
+  } = useQuery({
+    ...getHeatmapDetailsOptions({
       project_id: projectId,
       workspace_id: workspaceId,
       range,
       device,
       heatmap_id: heatmapId,
-    })
-  )
+    }),
+    enabled: !!hasViewPermission,
+  })
 
   const heatmap = heatmapDetails?.data
   const heatmapDataReady = Boolean(heatmap && !heatmapLoading)
@@ -162,308 +178,347 @@ function RouteComponent() {
     (a, b) => b.count - a.count
   )
 
+  const globalLoading = permissionsLoading || heatmapLoading
+  const globalError = permissionsError || heatmapError
+  const globalRefetching = permissionsRefetching || heatmapRefetching
+  const refetch = () => Promise.all([permissionsRefetch(), heatmapRefetch()])
+
   return (
     <div className="max-w-full min-w-0">
-      <div className="bg-background sticky top-14.25 z-10 flex max-w-full min-w-0 flex-wrap items-center justify-between gap-2 border-b p-4 py-2">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Back to goals"
-            onClick={() =>
-              navigate({
-                to: '/app/$workspaceId/$projectId/heatmaps',
-                params: { workspaceId, projectId },
-              })
-            }
-          >
-            <ArrowLeftIcon />
-          </Button>
+      {permissionsLoading ? (
+        <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
+          <Skeleton className={'h-8 w-60'} />
 
-          {/* <Separator orientation="vertical" />
+          <div className="flex items-center gap-2">
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
+            <Skeleton className={'h-8 w-30'} />
+          </div>
+        </div>
+      ) : hasViewPermission ? (
+        <div className="bg-background sticky top-14.25 z-10 flex max-w-full min-w-0 flex-wrap items-center justify-between gap-2 border-b p-4 py-2">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Back to goals"
+              onClick={() =>
+                navigate({
+                  to: '/app/$workspaceId/$projectId/heatmaps',
+                  params: { workspaceId, projectId },
+                })
+              }
+            >
+              <ArrowLeftIcon />
+            </Button>
 
-          <DomainSwitcher
-            loading={domainsLoading}
-            domain={activeDomain}
-            setDomain={(value) => {
-              setDomain(value)
-            }}
-            domains={domains!}
+            <Separator orientation="vertical" />
+
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-muted-foreground text-sm">
+                Last updated {lastUpdated}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              disabled={globalRefetching}
+              onClick={() => {
+                refetch()
+              }}
+              variant="outline"
+            >
+              <RefreshCcwIcon
+                className={`${globalRefetching ? 'animate-spin' : ''}`}
+              />
+              Refresh
+            </Button>
+
+            <Separator orientation="vertical" />
+
+            <Select
+              items={rangeLabels}
+              value={range}
+              onValueChange={(value) => {
+                if (!value) return
+                setRange(value as HeatmapsRange)
+                localStorage.setItem('range', value)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {rangeLabels.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              items={deviceLabels}
+              value={device}
+              onValueChange={(value) => {
+                if (value) {
+                  setDevice(value as HeatmapDevice)
+                  localStorage.setItem('device', value)
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+
+              <SelectContent alignItemWithTrigger={false}>
+                {deviceLabels.map((device) => (
+                  <SelectItem key={device.value} value={device.value}>
+                    {device.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Separator orientation="vertical" />
+
+            <ButtonGroup>
+              {(['click', 'movement', 'scroll'] as const).map((type) => (
+                <Button
+                  key={type}
+                  aria-pressed={heatmapType === type}
+                  variant={'outline'}
+                  onClick={() => setHeatmapType(type)}
+                  className="duration-200"
+                >
+                  {capitalizeFirstLetter(type)}
+
+                  <CheckIcon
+                    className={`${heatmapType === type ? 'size-4' : 'size-0'} duration-200`}
+                  />
+                </Button>
+              ))}
+            </ButtonGroup>
+            <HeatmapCompletenessWarning
+              coverage={
+                heatmapType === 'click'
+                  ? heatmap?.clickSampleCoverage
+                  : heatmap?.movementCoverage
+              }
+              heatmapType={heatmapType === 'click' ? 'click' : 'movement'}
+            />
+          </div>
+        </div>
+      ) : (
+        <></>
+      )}
+
+      <div className="mx-auto space-y-4 p-6">
+        <div>
+          <p className="text-xl font-medium">Heatmaps</p>
+
+          <p className="text-muted-foreground text-sm">
+            Visualize user interactions and identify the most engaged areas of
+            your project.
+          </p>
+        </div>
+
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
             refetch={refetch}
-          /> */}
-
-          <Separator orientation="vertical" />
-
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-muted-foreground text-sm">
-              Last updated {lastUpdated}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            disabled={isRefetching}
-            onClick={() => {
-              refetch()
-            }}
-            variant="outline"
-          >
-            <RefreshCcwIcon
-              className={`${isRefetching ? 'animate-spin' : ''}`}
-            />
-            Refresh
-          </Button>
-
-          <Separator orientation="vertical" />
-
-          <Select
-            items={rangeLabels}
-            value={range}
-            onValueChange={(value) => {
-              if (!value) return
-              setRange(value as HeatmapsRange)
-              localStorage.setItem('range', value)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              {rangeLabels.map((range) => (
-                <SelectItem key={range.value} value={range.value}>
-                  {range.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            items={deviceLabels}
-            value={device}
-            onValueChange={(value) => {
-              if (value) {
-                setDevice(value as HeatmapDevice)
-                localStorage.setItem('device', value)
-              }
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36">
-              <SelectValue />
-            </SelectTrigger>
-
-            <SelectContent alignItemWithTrigger={false}>
-              {deviceLabels.map((device) => (
-                <SelectItem key={device.value} value={device.value}>
-                  {device.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Separator orientation="vertical" />
-
-          <ButtonGroup>
-            {(['click', 'movement', 'scroll'] as const).map((type) => (
-              <Button
-                key={type}
-                aria-pressed={heatmapType === type}
-                variant={'outline'}
-                onClick={() => setHeatmapType(type)}
-                className="duration-200"
-              >
-                {capitalizeFirstLetter(type)}
-
-                <CheckIcon
-                  className={`${heatmapType === type ? 'size-4' : 'size-0'} duration-200`}
-                />
-              </Button>
-            ))}
-          </ButtonGroup>
-          <HeatmapCompletenessWarning
-            coverage={
-              heatmapType === 'click'
-                ? heatmap?.clickSampleCoverage
-                : heatmap?.movementCoverage
-            }
-            heatmapType={heatmapType === 'click' ? 'click' : 'movement'}
+            refetching={globalRefetching}
           />
-        </div>
-      </div>
-
-      <div className="grid h-[calc(100dvh-106px)] grid-cols-[1fr_350px] gap-6 p-6">
-        {heatmapLoading ? (
-          <div className="relative flex h-full w-full items-center justify-center overflow-hidden! p-6">
-            <p className="text-muted-foreground shimmer">Loading Preview...</p>
-          </div>
         ) : (
-          <div
-            className="relative h-[calc(100dvh-206px)] w-full overflow-hidden"
-            data-heatmap-viewer="live"
-          >
-            <HeatmapLiveViewer
-              heatmap={heatmap}
-              preview={previewState.session}
-              status={previewState.status}
-              onRetry={previewState.retry}
-              error={
-                previewState.error ??
-                (heatmapLoading ? 'Loading heatmap...' : null)
-              }
-              device={previewDevice}
-              overlayViewport={heatmapViewport}
-              anchorSelection={clickAnchorSelection}
-              regionSelection={clickRegionSelection}
-              heatmapType={heatmapType}
-              scrollSource={
-                visualizationReady && !heatmap?.scrollGroups
-                  ? scrollSource
-                  : null
-              }
-              scrollGroups={
-                visualizationReady
-                  ? heatmap?.scrollGroups?.filter(
-                      (group) => group.device === previewDevice
-                    )
-                  : undefined
-              }
-              heatmapDataReady={visualizationReady}
-              clickCoverage={
-                visualizationReady ? heatmap?.clickSampleCoverage : undefined
-              }
-              movementCoverage={
-                visualizationReady ? heatmap?.movementCoverage : undefined
-              }
-              emptyStateMessage={
-                visualizationReady
-                  ? getHeatmapEmptyStateMessage(
-                      heatmap,
-                      heatmapType,
-                      previewDevice
-                    )
-                  : null
-              }
-              // heatmapEmpty={
-              //   !heatmapLoading &&
-              //   !heatmapFetching &&
-              //   !isError &&
-              //   heatmapDetails?.success === true &&
-              //   !heatmap
-              // }
-            />
-          </div>
-        )}
-
-        <div className="h-full space-y-4 overflow-auto border-l px-4">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold">Analytics</p>
-
-            <div className="grid grid-cols-2 gap-2">
-              {analytics.map((item) => {
-                return (
-                  <Card
-                    key={item.title}
-                    className="bg-card/30 gap-0 rounded-none border-2 border-dashed p-3 shadow-none"
+          <>
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
+            ) : (
+              <div className="grid h-[calc(100dvh-106px)] grid-cols-[1fr_350px] gap-6">
+                {globalLoading ? (
+                  <div className="relative flex h-full w-full items-center justify-center overflow-hidden!">
+                    <p className="text-muted-foreground shimmer">
+                      Loading Preview...
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    className="relative h-[calc(100dvh-206px)] w-full overflow-hidden"
+                    data-heatmap-viewer="live"
                   >
-                    <CardHeader className="p-0">
-                      <CardDescription className="text-xs">
-                        {item.title}
-                      </CardDescription>
+                    <HeatmapLiveViewer
+                      heatmap={heatmap}
+                      preview={previewState.session}
+                      status={previewState.status}
+                      onRetry={previewState.retry}
+                      error={
+                        previewState.error ??
+                        (heatmapLoading ? 'Loading heatmap...' : null)
+                      }
+                      device={previewDevice}
+                      overlayViewport={heatmapViewport}
+                      anchorSelection={clickAnchorSelection}
+                      regionSelection={clickRegionSelection}
+                      heatmapType={heatmapType}
+                      scrollSource={
+                        visualizationReady && !heatmap?.scrollGroups
+                          ? scrollSource
+                          : null
+                      }
+                      scrollGroups={
+                        visualizationReady
+                          ? heatmap?.scrollGroups?.filter(
+                              (group) => group.device === previewDevice
+                            )
+                          : undefined
+                      }
+                      heatmapDataReady={visualizationReady}
+                      clickCoverage={
+                        visualizationReady
+                          ? heatmap?.clickSampleCoverage
+                          : undefined
+                      }
+                      movementCoverage={
+                        visualizationReady
+                          ? heatmap?.movementCoverage
+                          : undefined
+                      }
+                      emptyStateMessage={
+                        visualizationReady
+                          ? getHeatmapEmptyStateMessage(
+                              heatmap,
+                              heatmapType,
+                              previewDevice
+                            )
+                          : null
+                      }
+                      // heatmapEmpty={
+                      //   !heatmapLoading &&
+                      //   !heatmapFetching &&
+                      //   !isError &&
+                      //   heatmapDetails?.success === true &&
+                      //   !heatmap
+                      // }
+                    />
+                  </div>
+                )}
 
-                      <CardTitle className="text-2xl font-semibold tracking-tight tabular-nums">
-                        {heatmapLoading ? (
-                          <Skeleton className="h-8 w-12" />
-                        ) : (
-                          item.label
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                  </Card>
-                )
-              })}
-            </div>
-          </div>
+                <div className="h-full space-y-4 overflow-auto border-l px-4">
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold">Analytics</p>
 
-          <Separator />
+                    <div className="grid grid-cols-2 gap-2">
+                      {analytics.map((item) => {
+                        return (
+                          <Card
+                            key={item.title}
+                            className="bg-card/30 gap-0 rounded-none border-2 border-dashed p-3 shadow-none"
+                          >
+                            <CardHeader className="p-0">
+                              <CardDescription className="text-xs">
+                                {item.title}
+                              </CardDescription>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Hot Areas</h3>
-              {!heatmapLoading && (
-                <span className="text-muted-foreground text-xs">
-                  {hotAreas.length} areas
-                </span>
-              )}
-            </div>
-
-            {heatmapLoading ? (
-              <div className="divide-border divide-y">
-                {Array.from({ length: 8 }).map((_, index) => (
-                  <div key={index} className="space-y-2 py-3">
-                    <div className="flex items-start gap-3">
-                      <Skeleton className="h-5 w-5 shrink-0" />
-
-                      <div className="flex flex-1 items-center gap-2">
-                        <Skeleton className="h-5 w-16" />
-                        <Skeleton className="h-5 w-28" />
-                      </div>
-
-                      <Skeleton className="h-5 w-8 shrink-0" />
+                              <CardTitle className="text-2xl font-semibold tracking-tight tabular-nums">
+                                {heatmapLoading ? (
+                                  <Skeleton className="h-8 w-12" />
+                                ) : (
+                                  item.label
+                                )}
+                              </CardTitle>
+                            </CardHeader>
+                          </Card>
+                        )
+                      })}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : hotAreas.length > 0 ? (
-              <div className="divide-border divide-y">
-                {hotAreas.map((item, index) => {
-                  const [type, ...parts] = item.key.split(':')
-                  const label = parts.join(':') || type
-                  const percentage = (item.count / maxCount) * 100
 
-                  return (
-                    <div key={item.key} className="space-y-2 py-3">
-                      <div className="flex items-start gap-3">
-                        <span className="text-muted-foreground w-5 shrink-0 pt-1 text-xs tabular-nums">
-                          {String(index + 1).padStart(2, '0')}
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold">Hot Areas</h3>
+                      {!heatmapLoading && (
+                        <span className="text-muted-foreground text-xs">
+                          {hotAreas.length} areas
                         </span>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="wrap-break text-sm leading-6">
-                            <Badge
-                              variant="secondary"
-                              className="mr-1 inline-flex align-middle text-xs"
-                            >
-                              {capitalizeFirstLetter(type)}
-                            </Badge>{' '}
-                            <span>{label}</span>
-                          </div>
-                        </div>
-
-                        <span className="shrink-0 text-sm font-semibold tabular-nums">
-                          {item.count.toLocaleString()}
-                        </span>
-                      </div>
-
-                      <div className="bg-muted ml-8 h-1 overflow-hidden rounded-full">
-                        <div
-                          className="bg-primary/70 h-full rounded-full transition-[width] duration-300"
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
+                      )}
                     </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="border-2 border-dashed p-6 text-center">
-                <p className="text-sm font-medium">No hot areas yet</p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  Areas will appear once activity is recorded.
-                </p>
+
+                    {heatmapLoading ? (
+                      <div className="divide-border divide-y">
+                        {Array.from({ length: 8 }).map((_, index) => (
+                          <div key={index} className="space-y-2 py-3">
+                            <div className="flex items-start gap-3">
+                              <Skeleton className="h-5 w-5 shrink-0" />
+
+                              <div className="flex flex-1 items-center gap-2">
+                                <Skeleton className="h-5 w-16" />
+                                <Skeleton className="h-5 w-28" />
+                              </div>
+
+                              <Skeleton className="h-5 w-8 shrink-0" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : hotAreas.length > 0 ? (
+                      <div className="divide-border divide-y">
+                        {hotAreas.map((item, index) => {
+                          const [type, ...parts] = item.key.split(':')
+                          const label = parts.join(':') || type
+                          const percentage = (item.count / maxCount) * 100
+
+                          return (
+                            <div key={item.key} className="space-y-2 py-3">
+                              <div className="flex items-start gap-3">
+                                <span className="text-muted-foreground w-5 shrink-0 pt-1 text-xs tabular-nums">
+                                  {String(index + 1).padStart(2, '0')}
+                                </span>
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="wrap-break text-sm leading-6">
+                                    <Badge
+                                      variant="secondary"
+                                      className="mr-1 inline-flex align-middle text-xs"
+                                    >
+                                      {capitalizeFirstLetter(type)}
+                                    </Badge>{' '}
+                                    <span>{label}</span>
+                                  </div>
+                                </div>
+
+                                <span className="shrink-0 text-sm font-semibold tabular-nums">
+                                  {item.count.toLocaleString()}
+                                </span>
+                              </div>
+
+                              <div className="bg-muted ml-8 h-1 overflow-hidden rounded-full">
+                                <div
+                                  className="bg-primary/70 h-full rounded-full transition-[width] duration-300"
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed p-6 text-center">
+                        <p className="text-sm font-medium">No hot areas yet</p>
+                        <p className="text-muted-foreground mt-1 text-xs">
+                          Areas will appear once activity is recorded.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   )

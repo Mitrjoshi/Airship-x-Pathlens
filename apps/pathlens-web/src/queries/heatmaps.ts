@@ -70,7 +70,6 @@ export const getHeatmapsOptions = (params: HeatmapsParams) =>
         },
       }
     },
-    refetchInterval: params.refetchInterval,
   })
 
 export const getHeatmapDetailsOptions = (

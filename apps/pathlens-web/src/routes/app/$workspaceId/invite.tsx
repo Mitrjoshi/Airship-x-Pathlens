@@ -31,6 +31,7 @@ import {
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { ArrowLeftIcon, MailPlusIcon, PlusIcon } from 'lucide-react'
 import { z } from 'zod'
+import { ErrorScreen } from './$projectId/-components/common/error-screen'
 
 export const Route = createFileRoute('/app/$workspaceId/invite')({
   component: RouteComponent,
@@ -65,9 +66,12 @@ function RouteComponent() {
   const { workspaceId } = Route.useParams()
   const router = useRouter()
 
-  const { data: profilesData, isPending: profilesPending } = useQuery(
-    getWorkspacePermissionProfilesOptions(workspaceId)
-  )
+  const {
+    data: profilesData,
+    isPending: profilesPending,
+    error: profileError,
+    refetch,
+  } = useQuery(getWorkspacePermissionProfilesOptions(workspaceId))
   const createInvitation = useCreateWorkspaceInvitation(workspaceId)
 
   const profiles = profilesData?.data ?? []
@@ -170,42 +174,49 @@ function RouteComponent() {
                                 'gap-0 rounded-none border-2 border-dashed'
                               }
                             >
-                              {profilesPending
-                                ? [...Array(2)].map((_, i) => (
-                                    <div
-                                      className="space-y-2 border-b-2 border-dashed p-3 last:border-0"
-                                      key={i}
+                              {profilesPending ? (
+                                [...Array(2)].map((_, i) => (
+                                  <div
+                                    className="space-y-2 border-b-2 border-dashed p-3 last:border-0"
+                                    key={i}
+                                  >
+                                    <Skeleton className="h-4 w-40" />
+                                    <Skeleton className="h-4 w-70" />
+                                  </div>
+                                ))
+                              ) : profileError ? (
+                                <ErrorScreen
+                                  workspace_id={workspaceId}
+                                  refetch={refetch}
+                                />
+                              ) : (
+                                profiles.map((plan) => (
+                                  <FieldLabel
+                                    key={plan.id}
+                                    htmlFor={`form-tanstack-radiogroup-${plan.id}`}
+                                    className={
+                                      'border-border! rounded-none! border-0! border-b-2! border-dashed! last:border-0!'
+                                    }
+                                  >
+                                    <Field
+                                      orientation="horizontal"
+                                      data-invalid={isInvalid}
                                     >
-                                      <Skeleton className="h-4 w-40" />
-                                      <Skeleton className="h-4 w-70" />
-                                    </div>
-                                  ))
-                                : profiles.map((plan) => (
-                                    <FieldLabel
-                                      key={plan.id}
-                                      htmlFor={`form-tanstack-radiogroup-${plan.id}`}
-                                      className={
-                                        'border-border! rounded-none! border-0! border-b-2! border-dashed! last:border-0!'
-                                      }
-                                    >
-                                      <Field
-                                        orientation="horizontal"
-                                        data-invalid={isInvalid}
-                                      >
-                                        <RadioGroupItem
-                                          value={plan.id}
-                                          id={`form-tanstack-radiogroup-${plan.id}`}
-                                          aria-invalid={isInvalid}
-                                        />
-                                        <FieldContent>
-                                          <FieldTitle>{plan.name}</FieldTitle>
-                                          <FieldDescription>
-                                            {plan.description}
-                                          </FieldDescription>
-                                        </FieldContent>
-                                      </Field>
-                                    </FieldLabel>
-                                  ))}
+                                      <RadioGroupItem
+                                        value={plan.id}
+                                        id={`form-tanstack-radiogroup-${plan.id}`}
+                                        aria-invalid={isInvalid}
+                                      />
+                                      <FieldContent>
+                                        <FieldTitle>{plan.name}</FieldTitle>
+                                        <FieldDescription>
+                                          {plan.description}
+                                        </FieldDescription>
+                                      </FieldContent>
+                                    </Field>
+                                  </FieldLabel>
+                                ))
+                              )}
                             </RadioGroup>
                             {isInvalid && (
                               <FieldError errors={field.state.meta.errors} />

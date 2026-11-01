@@ -13,7 +13,10 @@ import {
 } from "../models/goals.model";
 import { WorkspaceUsageLimitError } from "../lib/usage-limits";
 import { createAuditLog } from "../models/audit-logs.model";
-import { normalizeProjectHostname } from "../lib/project-domain";
+import {
+  normalizeProjectDomain,
+  normalizeProjectHostname,
+} from "../lib/project-domain";
 
 const goalPayloadSchema = z
   .object({
@@ -47,7 +50,6 @@ const goalsQuerySchema = z.object({
   project_id: z.string().min(1),
   range: z.enum(["24h", "7d", "30d", "90d"]).default("7d"),
   domain: z.string().trim().max(2048).optional(),
-  domain_id: z.string().uuid().optional(),
 });
 
 const goalParamsSchema = z.object({
@@ -81,12 +83,18 @@ function getMatchPath(
 export async function getGoals(req: AuthRequest, res: Response) {
   try {
     const query = goalsQuerySchema.parse(req.query);
+    const domain = query.domain
+      ? (normalizeProjectHostname(query.domain) ?? undefined)
+      : undefined;
+    const domainOrigin = query.domain
+      ? (normalizeProjectDomain(query.domain) ?? undefined)
+      : undefined;
     const goals = await getGoalsModel(
       query.workspace_id,
       query.project_id,
       query.range as GoalRange,
-      query.domain ? (normalizeProjectHostname(query.domain) ?? "") : undefined,
-      query.domain_id
+      domain,
+      domainOrigin
     );
 
     return res.status(200).json({

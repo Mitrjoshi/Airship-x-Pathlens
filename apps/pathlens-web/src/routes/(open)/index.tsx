@@ -73,7 +73,7 @@ function RouteComponent() {
 
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
-          <div className="bg-background nut-bottom-right mx-auto w-[75%] border-x-2 border-dashed">
+          <div className="bg-background nut-bottom-right nut-top-left mx-auto w-[75%] border-x-2 border-dashed">
             <WebsitesTracking />
           </div>
         </DotLayout>

@@ -29,9 +29,13 @@ function RouteComponent() {
 
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    isRefetching: permissionsRefetching,
+    error: permissionsError,
+    refetch: refetchPermissions,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('project.api_keys.view')
@@ -40,7 +44,8 @@ function RouteComponent() {
     data: keysData,
     isLoading: keysLoading,
     isError: keysError,
-    refetch,
+    refetch: keysRefetch,
+    isRefetching: keysRefetching,
   } = useQuery({
     ...getProjectApiKeysOptions(projectId),
     enabled: !!hasViewPermission,
@@ -98,6 +103,12 @@ function RouteComponent() {
     }
   }
 
+  const globalLoading = permissionsLoading || keysLoading
+  const globalError = permissionsError || keysError
+  const globalRefetching = permissionsRefetching || keysRefetching
+
+  const refetch = () => Promise.all([refetchPermissions(), keysRefetch()])
+
   return (
     <div>
       <div className="space-y-4 p-6">
@@ -110,108 +121,123 @@ function RouteComponent() {
           </p>
         </div>
 
-        {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetch={refetch}
+            refetching={globalRefetching}
+          />
         ) : (
           <>
-            {keysLoading ? (
-              <div className="mx-auto w-fit space-y-4 pt-2">
-                <Skeleton className="mx-auto h-10 w-120 max-w-full rounded-full" />
-
-                <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
-                  <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
-                    <div className="flex items-center gap-1">
-                      <Skeleton className="size-3 rounded-full" />
-                      <Skeleton className="size-3 rounded-full" />
-                      <Skeleton className="size-3 rounded-full" />
-                      <Skeleton className="ml-2 h-4 w-32" />
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <Skeleton className="size-8 rounded-md" />
-                      <Skeleton className="size-8 rounded-md" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 p-4">
-                    {Array.from({ length: 8 }, (_, index) => (
-                      <Skeleton
-                        key={index}
-                        className="h-4"
-                        style={{
-                          width: `${[85, 65, 92, 48, 76, 55, 70, 35][index]}%`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : keysError ? (
-              <ErrorScreen refetch={refetch} />
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
             ) : (
-              <div className="mx-auto w-fit space-y-4 pt-2">
-                <IntegrationSelector
-                  value={activeIntegration}
-                  onChange={handleIntegrationChange}
-                />
+              <>
+                {globalLoading ? (
+                  <div className="mx-auto w-fit space-y-4 pt-2">
+                    <Skeleton className="mx-auto h-10 w-120 max-w-full rounded-full" />
 
-                <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
-                  <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
-                    <div className="flex min-w-0 items-center gap-1">
-                      <span className="size-3 shrink-0 rounded-full bg-red-400" />
-                      <span className="size-3 shrink-0 rounded-full bg-yellow-400" />
-                      <span className="size-3 shrink-0 rounded-full bg-green-400" />
+                    <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
+                      <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
+                        <div className="flex items-center gap-1">
+                          <Skeleton className="size-3 rounded-full" />
+                          <Skeleton className="size-3 rounded-full" />
+                          <Skeleton className="size-3 rounded-full" />
+                          <Skeleton className="ml-2 h-4 w-32" />
+                        </div>
 
-                      <span className="text-muted-foreground ml-2 truncate text-xs">
-                        {integration.filename}
-                      </span>
-                    </div>
+                        <div className="flex items-center gap-1">
+                          <Skeleton className="size-8 rounded-md" />
+                          <Skeleton className="size-8 rounded-md" />
+                        </div>
+                      </div>
 
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="icon"
-                        title={masked ? 'Show API key' : 'Hide API key'}
-                        onClick={() => setMasked((current) => !current)}
-                      >
-                        {masked ? (
-                          <EyeIcon key="show" className="copy-icon-animate" />
-                        ) : (
-                          <EyeOffIcon
-                            key="hide"
-                            className="copy-icon-animate"
+                      <div className="space-y-4 p-4">
+                        {Array.from({ length: 8 }, (_, index) => (
+                          <Skeleton
+                            key={index}
+                            className="h-4"
+                            style={{
+                              width: `${[85, 65, 92, 48, 76, 55, 70, 35][index]}%`,
+                            }}
                           />
-                        )}
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="icon"
-                        title="Copy script"
-                        onClick={handleCopy}
-                      >
-                        {copied ? (
-                          <CheckIcon
-                            key="check"
-                            className="copy-icon-animate"
-                          />
-                        ) : (
-                          <CopyIcon key="copy" className="copy-icon-animate" />
-                        )}
-                      </Button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-
-                  <div className="bg-background overflow-auto">
-                    <CodeBlock
-                      code={previewCode}
-                      language={integration.language}
+                ) : (
+                  <div className="mx-auto w-fit space-y-4 pt-2">
+                    <IntegrationSelector
+                      value={activeIntegration}
+                      onChange={handleIntegrationChange}
                     />
+
+                    <div className="w-[min(42rem,calc(100vw-3rem))] overflow-hidden border-2 border-dashed">
+                      <div className="bg-input/20 flex items-center justify-between border-b-2 border-dashed px-4 py-2">
+                        <div className="flex min-w-0 items-center gap-1">
+                          <span className="size-3 shrink-0 rounded-full bg-red-400" />
+                          <span className="size-3 shrink-0 rounded-full bg-yellow-400" />
+                          <span className="size-3 shrink-0 rounded-full bg-green-400" />
+
+                          <span className="text-muted-foreground ml-2 truncate text-xs">
+                            {integration.filename}
+                          </span>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            title={masked ? 'Show API key' : 'Hide API key'}
+                            onClick={() => setMasked((current) => !current)}
+                          >
+                            {masked ? (
+                              <EyeIcon
+                                key="show"
+                                className="copy-icon-animate"
+                              />
+                            ) : (
+                              <EyeOffIcon
+                                key="hide"
+                                className="copy-icon-animate"
+                              />
+                            )}
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            title="Copy script"
+                            onClick={handleCopy}
+                          >
+                            {copied ? (
+                              <CheckIcon
+                                key="check"
+                                className="copy-icon-animate"
+                              />
+                            ) : (
+                              <CopyIcon
+                                key="copy"
+                                className="copy-icon-animate"
+                              />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="bg-background overflow-auto">
+                        <CodeBlock
+                          code={previewCode}
+                          language={integration.language}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
           </>
         )}

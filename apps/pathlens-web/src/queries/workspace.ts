@@ -119,7 +119,6 @@ export const getWorkspacePermissionsOptions = (workspaceId: string) =>
 
       return response.data
     },
-    enabled: Boolean(workspaceId),
   })
 
 export type T_PermissionProfile = {

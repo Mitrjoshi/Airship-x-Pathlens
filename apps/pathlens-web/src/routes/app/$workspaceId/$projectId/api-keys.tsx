@@ -12,6 +12,7 @@ import {
   EyeOffIcon,
   EyeIcon,
   PlusIcon,
+  SearchIcon,
 } from 'lucide-react'
 import type { TrackingScope } from '@workspace/contracts'
 import { Button } from '@workspace/ui/components/button'
@@ -82,6 +83,12 @@ import {
 import { DotSeparator, DotSeparatorItem } from '../../-components/dot-separator'
 
 import { NoPermissionView } from './-components/common/no-permission-view'
+import {
+  InputGroup,
+  InputGroupButton,
+  InputGroupInput,
+} from '@workspace/ui/components/input-group'
+import { ErrorScreen } from './-components/common/error-screen'
 
 /* -------------------------------------------------------------------------- */
 /*                                   Config                                   */
@@ -148,9 +155,13 @@ function RouteComponent() {
 
   const [dialog, setDialog] = useState<ApiKeyDialogState>(null)
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: permissionsRefetch,
+    isRefetching: permissionsRefetching,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
 
@@ -158,47 +169,67 @@ function RouteComponent() {
   const hasCreatePermission = permissions?.includes('project.api_keys.create')
   const hasRevokePermission = permissions?.includes('project.api_keys.revoke')
 
-  const { data: keysData, isLoading: keysLoading } = useQuery({
+  const {
+    data: keysData,
+    isLoading: keysLoading,
+    error: keysError,
+    refetch: keysRefetch,
+    isRefetching: keysRefetching,
+  } = useQuery({
     ...getProjectApiKeysOptions(projectId),
     enabled: !!hasViewPermission,
   })
 
+  const globalLoading = permissionsLoading || keysLoading
+  const globalError = permissionsError || keysError
+  const refetch = () => Promise.all([permissionsRefetch(), keysRefetch()])
+  const globalRefetching = permissionsRefetching || keysRefetching
+
   return (
     <div className="space-y-4 p-6">
-      <PageHeader
-        onCreate={() => {
-          if (!hasCreatePermission) {
-            toast.error('You do not have permission to create API keys.')
-            return
-          }
-          setDialog({
-            type: 'create',
-          })
-        }}
-      />
+      <PageHeader />
 
-      {!hasViewPermission && !permissionsLoading ? (
-        <NoPermissionView />
-      ) : (
-        <ApiKeysTable
-          permissionsLoading={permissionsLoading}
-          hasRevokePermission={hasRevokePermission!}
-          data={keysData?.data ?? []}
-          isLoading={keysLoading}
-          onViewScript={(apiKey) => {
-            setDialog({
-              type: 'script',
-              apiKey,
-            })
-          }}
-          onDeactivate={(item) => {
-            setDialog({
-              type: 'deactivate',
-              id: item.id,
-              name: item.name,
-            })
-          }}
+      {globalError && !globalLoading ? (
+        <ErrorScreen
+          workspace_id={workspaceId}
+          project_id={projectId}
+          refetch={refetch}
+          refetching={globalRefetching}
         />
+      ) : (
+        <>
+          {!hasViewPermission && !permissionsLoading ? (
+            <NoPermissionView />
+          ) : (
+            <ApiKeysTable
+              onCreate={() => {
+                if (!hasCreatePermission) {
+                  toast.error('You do not have permission to create API keys.')
+                  return
+                }
+                setDialog({
+                  type: 'create',
+                })
+              }}
+              hasRevokePermission={hasRevokePermission!}
+              data={keysData?.data ?? []}
+              isLoading={globalLoading}
+              onViewScript={(apiKey) => {
+                setDialog({
+                  type: 'script',
+                  apiKey,
+                })
+              }}
+              onDeactivate={(item) => {
+                setDialog({
+                  type: 'deactivate',
+                  id: item.id,
+                  name: item.name,
+                })
+              }}
+            />
+          )}
+        </>
       )}
 
       <ApiKeyDialog
@@ -216,7 +247,7 @@ function RouteComponent() {
 /*                                 Page Header                                */
 /* -------------------------------------------------------------------------- */
 
-function PageHeader({ onCreate }: { onCreate: () => void }) {
+function PageHeader() {
   return (
     <div className="flex items-center justify-between gap-6">
       <div className="">
@@ -226,11 +257,6 @@ function PageHeader({ onCreate }: { onCreate: () => void }) {
           Create and manage API keys used by your project integrations.
         </p>
       </div>
-
-      <Button onClick={onCreate}>
-        <PlusIcon />
-        New API Key
-      </Button>
     </div>
   )
 }
@@ -244,9 +270,9 @@ type ApiKeysTableProps = {
   isLoading: boolean
   onViewScript: (apiKey: string) => void
   onDeactivate: (item: T_ProjectApiKey) => void
-  permissionsLoading: boolean
 
   hasRevokePermission: boolean
+  onCreate: () => void
 }
 
 function ApiKeysTable({
@@ -254,47 +280,64 @@ function ApiKeysTable({
   isLoading,
   onViewScript,
   onDeactivate,
-  permissionsLoading,
 
   hasRevokePermission,
+  onCreate,
 }: ApiKeysTableProps) {
   return (
-    <div className="overflow-hidden border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Key</TableHead>
-            <TableHead>Scope</TableHead>
-            <TableHead>Last used</TableHead>
-            <TableHead>Expires at</TableHead>
-            <TableHead>Created at</TableHead>
-            <TableHead className="w-30 text-center">Script</TableHead>
-            <TableHead className="w-20 text-center">Action</TableHead>
-          </TableRow>
-        </TableHeader>
+    <>
+      <div className="flex items-center justify-between gap-4">
+        <InputGroup className="w-120">
+          <InputGroupButton>
+            <SearchIcon />
+          </InputGroupButton>
 
-        <TableBody>
-          {isLoading || permissionsLoading ? (
-            <ApiKeysTableSkeleton />
-          ) : data.length ? (
-            data.map((item) => (
-              <ApiKeyRow
-                key={item.id}
-                item={item}
-                onViewScript={onViewScript}
-                onDeactivate={onDeactivate}
+          <InputGroupInput placeholder="Search..." />
+        </InputGroup>
 
-                hasRevokePermission={hasRevokePermission!}
-              />
-            ))
-          ) : (
-            <EmptyApiKeys />
-          )}
-        </TableBody>
-      </Table>
-    </div>
+        <Button disabled={isLoading} onClick={onCreate}>
+          <PlusIcon />
+          New API Key
+        </Button>
+      </div>
+
+      <div className="overflow-hidden border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Key</TableHead>
+              <TableHead>Scope</TableHead>
+              <TableHead>Last used</TableHead>
+              <TableHead>Expires at</TableHead>
+              <TableHead>Created at</TableHead>
+              <TableHead className="w-30 text-center">Script</TableHead>
+              <TableHead className="w-20 text-center">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {isLoading ? (
+              <ApiKeysTableSkeleton />
+            ) : data.length ? (
+              data.map((item) => (
+                <ApiKeyRow
+                  key={item.id}
+                  item={item}
+                  onViewScript={onViewScript}
+                  onDeactivate={onDeactivate}
+
+                  hasRevokePermission={hasRevokePermission!}
+                />
+              ))
+            ) : (
+              <EmptyApiKeys />
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   )
 }
 

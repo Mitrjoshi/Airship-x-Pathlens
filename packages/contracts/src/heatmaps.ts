@@ -265,7 +265,6 @@ export interface HeatmapsParams {
   page_path?: string
   page?: number
   page_size?: number
-  refetchInterval?: number
 }
 
 export interface HeatmapDetailsParams {

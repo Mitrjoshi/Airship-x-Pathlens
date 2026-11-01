@@ -16,13 +16,12 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { Button } from '@workspace/ui/components/button'
-import { navigationIcons } from '@/config/navigation-icons'
 import {
   CheckIcon,
   ChevronsUpDownIcon,
+  CircleQuestionMarkIcon,
   PlusIcon,
   SearchIcon,
-  SparklesIcon,
 } from 'lucide-react'
 import {
   InputGroup,
@@ -34,6 +33,8 @@ import { Separator } from '@workspace/ui/components/separator'
 import { useQuery } from '@tanstack/react-query'
 import { Avatar, AvatarImage } from '@workspace/ui/components/avatar'
 import { Skeleton } from '@workspace/ui/components/skeleton'
+import { Sheet, SheetTrigger } from '@workspace/ui/components/sheet'
+import { ContactUsSheet } from '../$workspaceId/$projectId/-components/common/error-screen'
 
 export const Header = () => {
   const user = useRouteContext({
@@ -45,11 +46,12 @@ export const Header = () => {
     strict: false,
   })
 
-  const { data: projects, isPending: projectsLoading } = useQuery(
-    getProjectsOptions({
+  const { data: projects, isPending: projectsLoading } = useQuery({
+    ...getProjectsOptions({
       workspace_id: workspaceId!,
-    })
-  )
+    }),
+    enabled: !!projectId,
+  })
 
   return (
     <header className="bg-background sticky top-0 z-10 flex h-14.25 shrink-0 items-center justify-between gap-2 border-b px-4 py-2 transition-[width,height] ease-linear">
@@ -66,6 +68,18 @@ export const Header = () => {
 
       <div className="flex shrink-0 items-center gap-2">
         <FeedbackPopover />
+
+        <Sheet>
+          <SheetTrigger
+            render={
+              <Button variant={'outline'} size="icon">
+                <CircleQuestionMarkIcon />
+              </Button>
+            }
+          />
+
+          <ContactUsSheet workspace_id={workspaceId} project_id={projectId!} />
+        </Sheet>
 
         <Separator orientation="vertical" />
 
@@ -152,6 +166,7 @@ export const ProjectSwitcher = ({
                         to={'/app/$workspaceId/$projectId'}
                         params={{
                           projectId: item.id,
+                          workspaceId: workspaceId,
                         }}
                       />
                     }

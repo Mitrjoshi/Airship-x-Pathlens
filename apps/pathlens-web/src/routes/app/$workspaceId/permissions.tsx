@@ -16,7 +16,6 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   CheckIcon,
   EllipsisIcon,
-  InfoIcon,
   PlusIcon,
   SearchIcon,
   XIcon,
@@ -70,6 +69,7 @@ import {
 } from '@workspace/ui/components/sheet'
 import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
 import { toast } from 'sonner'
+import { ErrorScreen } from './$projectId/-components/common/error-screen'
 
 export const Route = createFileRoute('/app/$workspaceId/permissions')({
   component: RouteComponent,
@@ -115,9 +115,13 @@ function RouteComponent() {
   const [sheetOpen, setSheetOpen] = useState<boolean>(false)
   const [permissionId, setPermissionId] = useState<string | null>(null)
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: permissionsRefetch,
+    isRefetching: permissionsRefetching,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes(
@@ -135,8 +139,10 @@ function RouteComponent() {
 
   const {
     data: profilesData,
-    isPending: profilesPending,
-    isError: profilesError,
+    isLoading: profilesLoading,
+    error: profilesError,
+    refetch: profilesRefetch,
+    isRefetching: profilesRefetching,
   } = useQuery({
     ...getWorkspacePermissionProfilesOptions(workspaceId),
     enabled: !!hasViewPermission,
@@ -211,18 +217,30 @@ function RouteComponent() {
     })
   }
 
+  const globalLoading = permissionsLoading || profilesLoading
+  const globalRefetching = permissionsRefetching || profilesRefetching
+  const refetch = () => Promise.all([permissionsRefetch(), profilesRefetch()])
+
+  const globalError = permissionsError || profilesError
+
   return (
     <div>
       <div className="mx-auto max-w-4xl p-6 pt-10">
         <div className="space-y-4">
-          <p className="text-xl font-medium">Permission Profiles</p>
+          <div>
+            <p className="text-xl font-medium">Permission Profiles</p>
+            <p className="text-muted-foreground">
+              Manage role-based permissions and control what members can access
+              across your workspace.
+            </p>
+          </div>
 
-          {profilesError ? (
-            <div className="flex items-center gap-1">
-              <InfoIcon size={18} className="text-destructive" />
-
-              <p className="text-destructive">Failed to load profiles</p>
-            </div>
+          {globalError && !globalLoading ? (
+            <ErrorScreen
+              refetching={globalRefetching}
+              workspace_id={workspaceId}
+              refetch={refetch}
+            />
           ) : (
             <>
               <div className="flex items-center justify-between gap-4">
@@ -281,7 +299,7 @@ function RouteComponent() {
                       </TableHeader>
 
                       <TableBody>
-                        {profilesPending ? (
+                        {globalLoading ? (
                           <PermissionTableSkeleton />
                         ) : (
                           filteredProfiles.map((item) => (

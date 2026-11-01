@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -83,6 +83,8 @@ import { Separator } from '@workspace/ui/components/separator'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from '../-components/common/no-permission-view'
 import { toast } from 'sonner'
+import { useRelativeTime } from '@/hooks/use-relative-time'
+import { ErrorScreen } from '../-components/common/error-screen'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/goals/')({
   component: RouteComponent,
@@ -189,39 +191,53 @@ function RouteComponent() {
   const [domain, setDomain] = useState('')
   const [liveMode, setLiveMode] = useState(false)
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: refetchPermissions,
+    isRefetching: permissionsRefetching,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('analytics.goals.view')
   const hasManagePermission = permissions?.includes('analytics.goals.manage')
 
-  const { data: domainsData, isLoading: domainsLoading } = useQuery({
+  const {
+    data: domainsData,
+    isLoading: domainsLoading,
+    error: domainsError,
+    refetch: refetchDomains,
+    isRefetching: domainsRefetching,
+  } = useQuery({
     ...getProjectDomainsOptions(projectId),
     enabled: !!hasViewPermission,
   })
   const domains = domainsData?.data ?? []
-  const selectedDomain = domains.find((item) => item.domain === domain)
+  const activeDomain = domain || domains?.[0]?.domain || ''
 
   const {
     data: goalsData,
     isLoading: goalsLoading,
     refetch: refetchGoals,
-    isRefetching,
+    isRefetching: goalsRefetching,
+    dataUpdatedAt,
+    error: goalsError,
   } = useQuery({
     ...getGoalsOptions({
       project_id: projectId,
       range,
       workspace_id: workspaceId,
-      domain_id: selectedDomain?.id,
+      domain: activeDomain,
     }),
-    enabled: !!hasViewPermission,
+    enabled: !!hasViewPermission && !!activeDomain,
+    refetchInterval: liveMode ? 5000 : undefined,
   })
 
   const { mutate: createGoal, isPending } = useCreateGoal()
 
   const goals = goalsData?.data
+  const lastUpdated = useRelativeTime(dataUpdatedAt)
 
   const form = useForm({
     defaultValues: {
@@ -268,11 +284,13 @@ function RouteComponent() {
     }
   }
 
-  useEffect(() => {
-    if (domains) {
-      setDomain(domains[0]?.domain)
-    }
-  }, [domains])
+  const globalLoading = goalsLoading || domainsLoading || permissionsLoading
+  const globalError = goalsError || domainsError || permissionsError
+  const globalRefetching =
+    goalsRefetching || domainsRefetching || permissionsRefetching
+
+  const refetch = () =>
+    Promise.all([refetchGoals(), refetchDomains(), refetchPermissions()])
 
   return (
     <div className="">
@@ -288,13 +306,25 @@ function RouteComponent() {
         </div>
       ) : hasViewPermission ? (
         <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
-          <DomainSwitcher
-            loading={domainsLoading}
-            domain={domain}
-            setDomain={setDomain}
-            domains={domains!}
-            refetch={refetchGoals}
-          />
+          <div className="flex items-center gap-4">
+            <DomainSwitcher
+              loading={globalLoading}
+              domain={activeDomain}
+              setDomain={setDomain}
+              domains={domains!}
+              refetch={refetchGoals}
+            />
+
+            <Separator orientation="vertical" />
+
+            <div className="flex items-center justify-between gap-3">
+              {lastUpdated && (
+                <p className="text-muted-foreground text-sm">
+                  Last updated {lastUpdated}
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="flex items-center gap-2">
             <Button
@@ -308,14 +338,14 @@ function RouteComponent() {
             </Button>
 
             <Button
-              disabled={isRefetching}
+              disabled={globalRefetching}
               onClick={() => {
                 refetchGoals()
               }}
               variant="outline"
             >
               <RefreshCcwIcon
-                className={`${isRefetching ? 'animate-spin' : ''}`}
+                className={`${globalRefetching ? 'animate-spin' : ''}`}
               />
               Refresh
             </Button>
@@ -361,588 +391,636 @@ function RouteComponent() {
               conversions.
             </p>
           </div>
+        </div>
 
-          {/* Create Goal Dialog */}
-          <Dialog
-            open={dialogOpen}
-            onOpenChange={(open) => {
-              if (open && !hasManagePermission) {
-                toast.error('You do not have permission to create goals.')
-                return
-              }
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetching={globalRefetching}
+            refetch={refetch}
+          />
+        ) : (
+          <>
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
+            ) : (
+              <>
+                {/* Controls */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <InputGroup className="w-120">
+                      <InputGroupButton>
+                        <SearchIcon />
+                      </InputGroupButton>
 
-              handleDialogChange(open)
-            }}
-          >
-            <DialogTrigger render={<Button />}>
-              <PlusIcon />
-              New Goal
-            </DialogTrigger>
+                      <InputGroupInput placeholder="Search..." />
+                    </InputGroup>
+                  </div>
 
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Create Goal</DialogTitle>
+                  {/* Create Goal Dialog */}
+                  <Dialog
+                    open={dialogOpen}
+                    onOpenChange={(open) => {
+                      if (open && !hasManagePermission) {
+                        toast.error(
+                          'You do not have permission to create goals.'
+                        )
+                        return
+                      }
 
-                <DialogDescription>
-                  Create a measurable goal and define the action Pathlens should
-                  track.
-                </DialogDescription>
-              </DialogHeader>
+                      handleDialogChange(open)
+                    }}
+                  >
+                    <DialogTrigger render={<Button disabled={globalLoading} />}>
+                      <PlusIcon />
+                      New Goal
+                    </DialogTrigger>
 
-              <form
-                id="create-goal-form"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
+                    <DialogContent className="sm:max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Create Goal</DialogTitle>
 
-                  void form.handleSubmit()
-                }}
-              >
-                <FieldGroup>
-                  <FieldSet>
-                    {/* Name */}
-                    <form.Field
-                      name="name"
-                      validators={{
-                        onChange: ({ value }) => {
-                          if (!value.trim()) {
-                            return 'Goal name is required.'
-                          }
+                        <DialogDescription>
+                          Create a measurable goal and define the action
+                          Pathlens should track.
+                        </DialogDescription>
+                      </DialogHeader>
 
-                          if (value.trim().length < 2) {
-                            return 'Goal name must be at least 2 characters.'
-                          }
+                      <form
+                        id="create-goal-form"
+                        onSubmit={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
 
-                          if (value.trim().length > 100) {
-                            return 'Goal name must be less than 100 characters.'
-                          }
-
-                          return undefined
-                        },
-                      }}
-                    >
-                      {(field) => (
-                        <Field
-                          data-invalid={
-                            field.state.meta.isTouched &&
-                            !field.state.meta.isValid
-                          }
-                        >
-                          <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            value={field.state.value}
-                            placeholder="Sign Up"
-                            disabled={isPending}
-                            aria-invalid={
-                              field.state.meta.isTouched &&
-                              !field.state.meta.isValid
-                            }
-                            onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
-                            }
-                          />
-
-                          {field.state.meta.isTouched &&
-                            !field.state.meta.isValid && (
-                              <FieldError errors={field.state.meta.errors} />
-                            )}
-                        </Field>
-                      )}
-                    </form.Field>
-
-                    <form.Field
-                      name="domain_id"
-                      validators={{
-                        onChange: ({ value }) =>
-                          value ? undefined : 'Select a domain for this goal.',
-                      }}
-                    >
-                      {(field) => (
-                        <Field
-                          data-invalid={
-                            field.state.meta.isTouched &&
-                            !field.state.meta.isValid
-                          }
-                        >
-                          <FieldLabel>Domain</FieldLabel>
-                          <Select
-                            value={field.state.value}
-                            disabled={isPending || domainsLoading}
-                            items={domains.map((item) => ({
-                              value: item.id,
-                              label: item.domain,
-                            }))}
-                            onValueChange={(value) => {
-                              if (value) field.handleChange(value)
-                            }}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a domain" />
-                            </SelectTrigger>
-                            <SelectContent alignItemWithTrigger={false}>
-                              {domains.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.domain}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {field.state.meta.isTouched &&
-                            !field.state.meta.isValid && (
-                              <FieldError errors={field.state.meta.errors} />
-                            )}
-                        </Field>
-                      )}
-                    </form.Field>
-
-                    {/* Type + Target */}
-                    <FieldSet className="grid grid-cols-2 gap-4">
-                      {/* Goal Type */}
-                      <form.Field name="type">
-                        {(field) => (
-                          <Field>
-                            <FieldLabel>Select Type</FieldLabel>
-
-                            <Select
-                              value={field.state.value}
-                              disabled={isPending}
-                              items={goalTypes}
-                              onValueChange={(value) => {
-                                if (!value) return
-
-                                const nextType = value as GoalType
-
-                                field.handleChange(nextType)
-
-                                form.setFieldValue(
-                                  'unit',
-                                  goalTypeMeta[nextType].defaultUnit
-                                )
-
-                                form.setFieldValue('match_target', '')
-                              }}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-
-                              <SelectContent alignItemWithTrigger={false}>
-                                {goalTypes.map((item) => (
-                                  <SelectItem
-                                    key={item.value}
-                                    value={item.value}
-                                  >
-                                    {item.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </Field>
-                        )}
-                      </form.Field>
-
-                      {/* Target */}
-                      <form.Field
-                        name="target"
-                        validators={{
-                          onChange: ({ value }) => {
-                            const target = Number(value)
-
-                            if (!Number.isFinite(target)) {
-                              return 'Enter a valid target.'
-                            }
-
-                            if (target <= 0) {
-                              return 'Target must be greater than 0.'
-                            }
-
-                            return undefined
-                          },
+                          void form.handleSubmit()
                         }}
                       >
-                        {(field) => (
-                          <Field
-                            data-invalid={
-                              field.state.meta.isTouched &&
-                              !field.state.meta.isValid
-                            }
-                          >
-                            <FieldLabel htmlFor={field.name}>Target</FieldLabel>
+                        <FieldGroup>
+                          <FieldSet>
+                            {/* Name */}
+                            <form.Field
+                              name="name"
+                              validators={{
+                                onChange: ({ value }) => {
+                                  if (!value.trim()) {
+                                    return 'Goal name is required.'
+                                  }
 
-                            <InputGroup>
-                              <InputGroupInput
-                                id={field.name}
-                                name={field.name}
-                                type="number"
-                                min={1}
-                                step={1}
-                                value={field.state.value}
-                                placeholder="100"
-                                disabled={isPending}
-                                aria-invalid={
-                                  field.state.meta.isTouched &&
-                                  !field.state.meta.isValid
-                                }
-                                onBlur={field.handleBlur}
-                                onChange={(event) =>
-                                  field.handleChange(Number(event.target.value))
-                                }
-                              />
+                                  if (value.trim().length < 2) {
+                                    return 'Goal name must be at least 2 characters.'
+                                  }
 
-                              <form.Subscribe
-                                selector={(state) => state.values.unit}
-                              >
-                                {(unit) => (
-                                  <InputGroupText className="mr-2">
-                                    {unit || 'units'}
-                                  </InputGroupText>
-                                )}
-                              </form.Subscribe>
-                            </InputGroup>
+                                  if (value.trim().length > 100) {
+                                    return 'Goal name must be less than 100 characters.'
+                                  }
 
-                            {field.state.meta.isTouched &&
-                              !field.state.meta.isValid && (
-                                <FieldError errors={field.state.meta.errors} />
-                              )}
-                          </Field>
-                        )}
-                      </form.Field>
-                    </FieldSet>
-
-                    {/* Unit */}
-                    <form.Field
-                      name="unit"
-                      validators={{
-                        onChange: ({ value }) => {
-                          if (!value.trim()) {
-                            return 'Unit is required.'
-                          }
-
-                          if (value.trim().length > 30) {
-                            return 'Unit must be less than 30 characters.'
-                          }
-
-                          return undefined
-                        },
-                      }}
-                    >
-                      {(field) => (
-                        <Field
-                          data-invalid={
-                            field.state.meta.isTouched &&
-                            !field.state.meta.isValid
-                          }
-                        >
-                          <FieldLabel htmlFor={field.name}>Unit</FieldLabel>
-
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            value={field.state.value}
-                            placeholder="events"
-                            disabled={isPending}
-                            aria-invalid={
-                              field.state.meta.isTouched &&
-                              !field.state.meta.isValid
-                            }
-                            onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
-                            }
-                          />
-
-                          <FieldDescription>
-                            Used when displaying progress toward the target.
-                          </FieldDescription>
-
-                          {field.state.meta.isTouched &&
-                            !field.state.meta.isValid && (
-                              <FieldError errors={field.state.meta.errors} />
-                            )}
-                        </Field>
-                      )}
-                    </form.Field>
-
-                    {/* Match Target */}
-                    <form.Subscribe selector={(state) => state.values.type}>
-                      {(type) => {
-                        const meta = goalTypeMeta[type]
-
-                        return (
-                          <form.Field
-                            name="match_target"
-                            validators={{
-                              onChange: ({ value }) => {
-                                if (!value.trim()) {
-                                  return `${meta.matchLabel} is required.`
-                                }
-
-                                return undefined
-                              },
-                            }}
-                          >
-                            {(field) => (
-                              <Field
-                                data-invalid={
-                                  field.state.meta.isTouched &&
-                                  !field.state.meta.isValid
-                                }
-                              >
-                                <FieldLabel htmlFor={field.name}>
-                                  {meta.matchLabel}
-                                </FieldLabel>
-
-                                <Input
-                                  id={field.name}
-                                  name={field.name}
-                                  value={field.state.value}
-                                  placeholder={meta.matchPlaceholder}
-                                  disabled={isPending}
-                                  aria-invalid={
+                                  return undefined
+                                },
+                              }}
+                            >
+                              {(field) => (
+                                <Field
+                                  data-invalid={
                                     field.state.meta.isTouched &&
                                     !field.state.meta.isValid
                                   }
-                                  onBlur={field.handleBlur}
-                                  onChange={(event) =>
-                                    field.handleChange(event.target.value)
-                                  }
-                                />
+                                >
+                                  <FieldLabel htmlFor={field.name}>
+                                    Name
+                                  </FieldLabel>
 
-                                <FieldDescription>
-                                  {meta.matchDescription}
-                                </FieldDescription>
-
-                                {field.state.meta.isTouched &&
-                                  !field.state.meta.isValid && (
-                                    <FieldError
-                                      errors={field.state.meta.errors}
-                                    />
-                                  )}
-                              </Field>
-                            )}
-                          </form.Field>
-                        )
-                      }}
-                    </form.Subscribe>
-
-                    {/* Match Path */}
-                    <form.Field
-                      name="match_path"
-                      validators={{
-                        onChange: ({ value }) => {
-                          if (!value?.trim()) {
-                            return undefined
-                          }
-
-                          if (!value.trim().startsWith('/')) {
-                            return 'Path must start with /.'
-                          }
-
-                          return undefined
-                        },
-                      }}
-                    >
-                      {(field) => (
-                        <Field
-                          data-invalid={
-                            field.state.meta.isTouched &&
-                            !field.state.meta.isValid
-                          }
-                        >
-                          <FieldLabel htmlFor={field.name}>
-                            Match Path
-                            <span className="text-muted-foreground ml-1 font-normal">
-                              Optional
-                            </span>
-                          </FieldLabel>
-
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            value={field.state.value ?? ''}
-                            placeholder="/signup"
-                            disabled={isPending}
-                            aria-invalid={
-                              field.state.meta.isTouched &&
-                              !field.state.meta.isValid
-                            }
-                            onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
-                            }
-                          />
-
-                          <FieldDescription>
-                            Restrict this goal to a specific page path.
-                          </FieldDescription>
-
-                          {field.state.meta.isTouched &&
-                            !field.state.meta.isValid && (
-                              <FieldError errors={field.state.meta.errors} />
-                            )}
-                        </Field>
-                      )}
-                    </form.Field>
-
-                    {/* Deadline */}
-                    <form.Field name="deadline">
-                      {(field) => {
-                        const selectedDate = field.state.value
-                          ? new Date(`${field.state.value}T00:00:00`)
-                          : undefined
-
-                        return (
-                          <Field>
-                            <FieldLabel>
-                              Deadline
-                              <span className="text-muted-foreground ml-1 font-normal">
-                                Optional
-                              </span>
-                            </FieldLabel>
-
-                            <Popover>
-                              <PopoverTrigger
-                                render={
-                                  <Button
-                                    type="button"
-                                    variant="outline"
+                                  <Input
+                                    id={field.name}
+                                    name={field.name}
+                                    value={field.state.value}
+                                    placeholder="Sign Up"
                                     disabled={isPending}
-                                    className="w-full justify-start text-left font-normal"
+                                    aria-invalid={
+                                      field.state.meta.isTouched &&
+                                      !field.state.meta.isValid
+                                    }
+                                    onBlur={field.handleBlur}
+                                    onChange={(event) =>
+                                      field.handleChange(event.target.value)
+                                    }
                                   />
-                                }
-                              >
-                                <CalendarIcon className="text-muted-foreground size-4" />
 
-                                {selectedDate ? (
-                                  format(selectedDate, 'dd MMM yyyy')
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    Select deadline
-                                  </span>
+                                  {field.state.meta.isTouched &&
+                                    !field.state.meta.isValid && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
+                                </Field>
+                              )}
+                            </form.Field>
+
+                            <form.Field
+                              name="domain_id"
+                              validators={{
+                                onChange: ({ value }) =>
+                                  value
+                                    ? undefined
+                                    : 'Select a domain for this goal.',
+                              }}
+                            >
+                              {(field) => (
+                                <Field
+                                  data-invalid={
+                                    field.state.meta.isTouched &&
+                                    !field.state.meta.isValid
+                                  }
+                                >
+                                  <FieldLabel>Domain</FieldLabel>
+                                  <Select
+                                    value={field.state.value}
+                                    disabled={isPending || domainsLoading}
+                                    items={domains.map((item) => ({
+                                      value: item.id,
+                                      label: item.domain,
+                                    }))}
+                                    onValueChange={(value) => {
+                                      if (value) field.handleChange(value)
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue placeholder="Select a domain" />
+                                    </SelectTrigger>
+                                    <SelectContent alignItemWithTrigger={false}>
+                                      {domains.map((item) => (
+                                        <SelectItem
+                                          key={item.id}
+                                          value={item.id}
+                                        >
+                                          {item.domain}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {field.state.meta.isTouched &&
+                                    !field.state.meta.isValid && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
+                                </Field>
+                              )}
+                            </form.Field>
+
+                            {/* Type + Target */}
+                            <FieldSet className="grid grid-cols-2 gap-4">
+                              {/* Goal Type */}
+                              <form.Field name="type">
+                                {(field) => (
+                                  <Field>
+                                    <FieldLabel>Select Type</FieldLabel>
+
+                                    <Select
+                                      value={field.state.value}
+                                      disabled={isPending}
+                                      items={goalTypes}
+                                      onValueChange={(value) => {
+                                        if (!value) return
+
+                                        const nextType = value as GoalType
+
+                                        field.handleChange(nextType)
+
+                                        form.setFieldValue(
+                                          'unit',
+                                          goalTypeMeta[nextType].defaultUnit
+                                        )
+
+                                        form.setFieldValue('match_target', '')
+                                      }}
+                                    >
+                                      <SelectTrigger className="w-full">
+                                        <SelectValue />
+                                      </SelectTrigger>
+
+                                      <SelectContent
+                                        alignItemWithTrigger={false}
+                                      >
+                                        {goalTypes.map((item) => (
+                                          <SelectItem
+                                            key={item.value}
+                                            value={item.value}
+                                          >
+                                            {item.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </Field>
                                 )}
-                              </PopoverTrigger>
+                              </form.Field>
 
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start"
-                              >
-                                <Calendar
-                                  mode="single"
-                                  selected={selectedDate}
-                                  onSelect={(date) => {
-                                    if (!date) {
-                                      field.handleChange('')
-                                      return
+                              {/* Target */}
+                              <form.Field
+                                name="target"
+                                validators={{
+                                  onChange: ({ value }) => {
+                                    const target = Number(value)
+
+                                    if (!Number.isFinite(target)) {
+                                      return 'Enter a valid target.'
                                     }
 
-                                    const year = date.getFullYear()
-                                    const month = String(
-                                      date.getMonth() + 1
-                                    ).padStart(2, '0')
-                                    const day = String(date.getDate()).padStart(
-                                      2,
-                                      '0'
-                                    )
+                                    if (target <= 0) {
+                                      return 'Target must be greater than 0.'
+                                    }
 
-                                    field.handleChange(
-                                      `${year}-${month}-${day}`
-                                    )
-                                  }}
-                                  disabled={(date) => {
-                                    const today = new Date()
-                                    today.setHours(0, 0, 0, 0)
+                                    return undefined
+                                  },
+                                }}
+                              >
+                                {(field) => (
+                                  <Field
+                                    data-invalid={
+                                      field.state.meta.isTouched &&
+                                      !field.state.meta.isValid
+                                    }
+                                  >
+                                    <FieldLabel htmlFor={field.name}>
+                                      Target
+                                    </FieldLabel>
 
-                                    return date < today
-                                  }}
-                                  captionLayout="dropdown"
-                                />
-                              </PopoverContent>
-                            </Popover>
+                                    <InputGroup>
+                                      <InputGroupInput
+                                        id={field.name}
+                                        name={field.name}
+                                        type="number"
+                                        min={1}
+                                        step={1}
+                                        value={field.state.value}
+                                        placeholder="100"
+                                        disabled={isPending}
+                                        aria-invalid={
+                                          field.state.meta.isTouched &&
+                                          !field.state.meta.isValid
+                                        }
+                                        onBlur={field.handleBlur}
+                                        onChange={(event) =>
+                                          field.handleChange(
+                                            Number(event.target.value)
+                                          )
+                                        }
+                                      />
 
-                            <FieldDescription>
-                              Set an optional deadline for reaching this goal.
-                            </FieldDescription>
-                          </Field>
-                        )
-                      }}
-                    </form.Field>
-                  </FieldSet>
-                </FieldGroup>
-              </form>
+                                      <form.Subscribe
+                                        selector={(state) => state.values.unit}
+                                      >
+                                        {(unit) => (
+                                          <InputGroupText className="mr-2">
+                                            {unit || 'units'}
+                                          </InputGroupText>
+                                        )}
+                                      </form.Subscribe>
+                                    </InputGroup>
 
-              <DialogFooter className="py-2">
-                <DialogClose
-                  render={<Button variant="outline" disabled={isPending} />}
-                >
-                  Cancel
-                </DialogClose>
+                                    {field.state.meta.isTouched &&
+                                      !field.state.meta.isValid && (
+                                        <FieldError
+                                          errors={field.state.meta.errors}
+                                        />
+                                      )}
+                                  </Field>
+                                )}
+                              </form.Field>
+                            </FieldSet>
 
-                <form.Subscribe
-                  selector={(state) => [state.canSubmit, state.isSubmitting]}
-                >
-                  {([canSubmit]) => (
-                    <Button
-                      type="submit"
-                      form="create-goal-form"
-                      disabled={!canSubmit || isPending}
-                    >
-                      <LoadingSwap isLoading={isPending}>
-                        Create Goal
-                      </LoadingSwap>
-                    </Button>
-                  )}
-                </form.Subscribe>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+                            {/* Unit */}
+                            <form.Field
+                              name="unit"
+                              validators={{
+                                onChange: ({ value }) => {
+                                  if (!value.trim()) {
+                                    return 'Unit is required.'
+                                  }
 
-        {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
-        ) : (
-          <>
-            {/* Controls */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <InputGroup className="w-120">
-                  <InputGroupButton>
-                    <SearchIcon />
-                  </InputGroupButton>
+                                  if (value.trim().length > 30) {
+                                    return 'Unit must be less than 30 characters.'
+                                  }
 
-                  <InputGroupInput placeholder="Search..." />
-                </InputGroup>
-              </div>
-            </div>
+                                  return undefined
+                                },
+                              }}
+                            >
+                              {(field) => (
+                                <Field
+                                  data-invalid={
+                                    field.state.meta.isTouched &&
+                                    !field.state.meta.isValid
+                                  }
+                                >
+                                  <FieldLabel htmlFor={field.name}>
+                                    Unit
+                                  </FieldLabel>
 
-            {/* Goals */}
-            {goalsLoading ? (
-              <div className="grid grid-cols-3 gap-4">
-                {[...Array(3)].map((_, index) => (
-                  <GoalCardSkeleton key={index} />
-                ))}
-              </div>
-            ) : !goals?.length ? (
-              <div className="flex h-80 w-full flex-col items-center justify-center">
-                <p>No goals found.</p>
-                <p className="text-muted-foreground text-sm">
-                  Create your first goal to get started.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-4">
-                {goals.map((goal) => (
-                  <GoalCard
-                    key={goal.id}
-                    item={goal}
-                    workspaceId={workspaceId}
-                    projectId={projectId}
-                  />
-                ))}
-              </div>
+                                  <Input
+                                    id={field.name}
+                                    name={field.name}
+                                    value={field.state.value}
+                                    placeholder="events"
+                                    disabled={isPending}
+                                    aria-invalid={
+                                      field.state.meta.isTouched &&
+                                      !field.state.meta.isValid
+                                    }
+                                    onBlur={field.handleBlur}
+                                    onChange={(event) =>
+                                      field.handleChange(event.target.value)
+                                    }
+                                  />
+
+                                  <FieldDescription>
+                                    Used when displaying progress toward the
+                                    target.
+                                  </FieldDescription>
+
+                                  {field.state.meta.isTouched &&
+                                    !field.state.meta.isValid && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
+                                </Field>
+                              )}
+                            </form.Field>
+
+                            {/* Match Target */}
+                            <form.Subscribe
+                              selector={(state) => state.values.type}
+                            >
+                              {(type) => {
+                                const meta = goalTypeMeta[type]
+
+                                return (
+                                  <form.Field
+                                    name="match_target"
+                                    validators={{
+                                      onChange: ({ value }) => {
+                                        if (!value.trim()) {
+                                          return `${meta.matchLabel} is required.`
+                                        }
+
+                                        return undefined
+                                      },
+                                    }}
+                                  >
+                                    {(field) => (
+                                      <Field
+                                        data-invalid={
+                                          field.state.meta.isTouched &&
+                                          !field.state.meta.isValid
+                                        }
+                                      >
+                                        <FieldLabel htmlFor={field.name}>
+                                          {meta.matchLabel}
+                                        </FieldLabel>
+
+                                        <Input
+                                          id={field.name}
+                                          name={field.name}
+                                          value={field.state.value}
+                                          placeholder={meta.matchPlaceholder}
+                                          disabled={isPending}
+                                          aria-invalid={
+                                            field.state.meta.isTouched &&
+                                            !field.state.meta.isValid
+                                          }
+                                          onBlur={field.handleBlur}
+                                          onChange={(event) =>
+                                            field.handleChange(
+                                              event.target.value
+                                            )
+                                          }
+                                        />
+
+                                        <FieldDescription>
+                                          {meta.matchDescription}
+                                        </FieldDescription>
+
+                                        {field.state.meta.isTouched &&
+                                          !field.state.meta.isValid && (
+                                            <FieldError
+                                              errors={field.state.meta.errors}
+                                            />
+                                          )}
+                                      </Field>
+                                    )}
+                                  </form.Field>
+                                )
+                              }}
+                            </form.Subscribe>
+
+                            {/* Match Path */}
+                            <form.Field
+                              name="match_path"
+                              validators={{
+                                onChange: ({ value }) => {
+                                  if (!value?.trim()) {
+                                    return undefined
+                                  }
+
+                                  if (!value.trim().startsWith('/')) {
+                                    return 'Path must start with /.'
+                                  }
+
+                                  return undefined
+                                },
+                              }}
+                            >
+                              {(field) => (
+                                <Field
+                                  data-invalid={
+                                    field.state.meta.isTouched &&
+                                    !field.state.meta.isValid
+                                  }
+                                >
+                                  <FieldLabel htmlFor={field.name}>
+                                    Match Path
+                                    <span className="text-muted-foreground ml-1 font-normal">
+                                      Optional
+                                    </span>
+                                  </FieldLabel>
+
+                                  <Input
+                                    id={field.name}
+                                    name={field.name}
+                                    value={field.state.value ?? ''}
+                                    placeholder="/signup"
+                                    disabled={isPending}
+                                    aria-invalid={
+                                      field.state.meta.isTouched &&
+                                      !field.state.meta.isValid
+                                    }
+                                    onBlur={field.handleBlur}
+                                    onChange={(event) =>
+                                      field.handleChange(event.target.value)
+                                    }
+                                  />
+
+                                  <FieldDescription>
+                                    Restrict this goal to a specific page path.
+                                  </FieldDescription>
+
+                                  {field.state.meta.isTouched &&
+                                    !field.state.meta.isValid && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
+                                </Field>
+                              )}
+                            </form.Field>
+
+                            {/* Deadline */}
+                            <form.Field name="deadline">
+                              {(field) => {
+                                const selectedDate = field.state.value
+                                  ? new Date(`${field.state.value}T00:00:00`)
+                                  : undefined
+
+                                return (
+                                  <Field>
+                                    <FieldLabel>
+                                      Deadline
+                                      <span className="text-muted-foreground ml-1 font-normal">
+                                        Optional
+                                      </span>
+                                    </FieldLabel>
+
+                                    <Popover>
+                                      <PopoverTrigger
+                                        render={
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            disabled={isPending}
+                                            className="w-full justify-start text-left font-normal"
+                                          />
+                                        }
+                                      >
+                                        <CalendarIcon className="text-muted-foreground size-4" />
+
+                                        {selectedDate ? (
+                                          format(selectedDate, 'dd MMM yyyy')
+                                        ) : (
+                                          <span className="text-muted-foreground">
+                                            Select deadline
+                                          </span>
+                                        )}
+                                      </PopoverTrigger>
+
+                                      <PopoverContent
+                                        className="w-auto p-0"
+                                        align="start"
+                                      >
+                                        <Calendar
+                                          mode="single"
+                                          selected={selectedDate}
+                                          onSelect={(date) => {
+                                            if (!date) {
+                                              field.handleChange('')
+                                              return
+                                            }
+
+                                            const year = date.getFullYear()
+                                            const month = String(
+                                              date.getMonth() + 1
+                                            ).padStart(2, '0')
+                                            const day = String(
+                                              date.getDate()
+                                            ).padStart(2, '0')
+
+                                            field.handleChange(
+                                              `${year}-${month}-${day}`
+                                            )
+                                          }}
+                                          disabled={(date) => {
+                                            const today = new Date()
+                                            today.setHours(0, 0, 0, 0)
+
+                                            return date < today
+                                          }}
+                                          captionLayout="dropdown"
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+
+                                    <FieldDescription>
+                                      Set an optional deadline for reaching this
+                                      goal.
+                                    </FieldDescription>
+                                  </Field>
+                                )
+                              }}
+                            </form.Field>
+                          </FieldSet>
+                        </FieldGroup>
+                      </form>
+
+                      <DialogFooter className="py-2">
+                        <DialogClose
+                          render={
+                            <Button variant="outline" disabled={isPending} />
+                          }
+                        >
+                          Cancel
+                        </DialogClose>
+
+                        <form.Subscribe
+                          selector={(state) => [
+                            state.canSubmit,
+                            state.isSubmitting,
+                          ]}
+                        >
+                          {([canSubmit]) => (
+                            <Button
+                              type="submit"
+                              form="create-goal-form"
+                              disabled={!canSubmit || isPending}
+                            >
+                              <LoadingSwap isLoading={isPending}>
+                                Create Goal
+                              </LoadingSwap>
+                            </Button>
+                          )}
+                        </form.Subscribe>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {/* Goals */}
+                {globalLoading ? (
+                  <div className="grid grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, index) => (
+                      <GoalCardSkeleton key={index} />
+                    ))}
+                  </div>
+                ) : !goals?.length ? (
+                  <div className="flex h-80 w-full flex-col items-center justify-center">
+                    <p>No goals found.</p>
+                    <p className="text-muted-foreground text-sm">
+                      Create your first goal to get started.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-4">
+                    {goals.map((goal) => (
+                      <GoalCard
+                        key={goal.id}
+                        item={goal}
+                        workspaceId={workspaceId}
+                        projectId={projectId}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

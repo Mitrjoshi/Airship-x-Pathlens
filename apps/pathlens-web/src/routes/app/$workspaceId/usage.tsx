@@ -38,14 +38,14 @@ function RouteComponent() {
   const hasViewPermission = permissions?.includes('workspace.usage.view')
   const hasViewProjectsPermission = permissions?.includes('projects.view')
 
-  const { data: projectsData, isLoading: projectsDataLoading } = useQuery({
+  const { data: projectsData, isLoading: projectsLoading } = useQuery({
     ...getProjectsOptions({
       workspace_id: workspaceId,
     }),
     enabled: !!hasViewProjectsPermission,
   })
 
-  const { data: usageData, isLoading: usageDataLoading } = useQuery({
+  const { data: usageData, isLoading: usageLoading } = useQuery({
     ...getUsageOptions(
       workspaceId,
       projectId === 'all' ? undefined : projectId
@@ -85,6 +85,8 @@ function RouteComponent() {
     })) ?? []),
   ]
 
+  const globalLoading = permissionsLoading || usageLoading || projectsLoading
+
   return (
     <div>
       <div className="mx-auto max-w-4xl p-6 pt-10">
@@ -101,7 +103,7 @@ function RouteComponent() {
               setProjectId(value ?? 'all')
             }}
           >
-            <SelectTrigger disabled={projectsDataLoading || usageDataLoading}>
+            <SelectTrigger disabled={globalLoading}>
               <SelectValue placeholder="All Projects" />
             </SelectTrigger>
 
@@ -127,7 +129,7 @@ function RouteComponent() {
                     className="bg-card/30 rounded-none border-2 border-dashed"
                   >
                     <CardHeader>
-                      {usageDataLoading ? (
+                      {globalLoading ? (
                         <div>
                           <Skeleton className="h-4 w-20" />
                           <Skeleton className="mt-2 h-7 w-16" />

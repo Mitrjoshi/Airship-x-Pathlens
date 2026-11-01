@@ -53,9 +53,13 @@ function RouteComponent() {
   const navigate = useNavigate()
   const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: refetchPermissions,
+    isRefetching: permissionsRefetching,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('projects.view')
@@ -66,7 +70,8 @@ function RouteComponent() {
     data: projects,
     isPending: projectsLoading,
     isError: projectsError,
-    refetch,
+    refetch: refetchProjects,
+    isRefetching: projectsRefetching,
   } = useQuery({
     ...getProjectsOptions({
       workspace_id: workspaceId,
@@ -75,6 +80,12 @@ function RouteComponent() {
   })
 
   const deleteProject = useDeleteProject()
+
+  const globalLoading = permissionsLoading || projectsLoading
+  const globalError = permissionsError || projectsError
+  const globalRefetching = permissionsRefetching || projectsRefetching
+
+  const refetch = () => Promise.all([refetchPermissions(), refetchProjects()])
 
   return (
     <div>
@@ -88,88 +99,98 @@ function RouteComponent() {
       >
         <div className="mx-auto max-w-4xl p-6 pt-10">
           <div className="space-y-4">
-            <p className="text-xl font-medium">Projects</p>
+            <div>
+              <p className="text-xl font-medium">Projects</p>
+              <p className="text-muted-foreground">
+                Manage your projects, configure tracking, and monitor user
+                activity across your websites.
+              </p>
+            </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <InputGroup>
-                  <InputGroupButton>
-                    <SearchIcon />
-                  </InputGroupButton>
+            {globalError && !globalLoading ? (
+              <ErrorScreen
+                refetching={globalRefetching}
+                workspace_id={workspaceId}
+                refetch={refetch}
+              />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <InputGroup>
+                    <InputGroupButton>
+                      <SearchIcon />
+                    </InputGroupButton>
 
-                  <InputGroupInput placeholder="Search..." />
-                </InputGroup>
+                    <InputGroupInput placeholder="Search..." />
+                  </InputGroup>
 
-                <Button
-                  onClick={() => {
-                    if (!hasCreatePermission)
-                      return toast.error(
-                        'You do not have permission to create projects.'
-                      )
+                  <Button
+                    onClick={() => {
+                      if (!hasCreatePermission)
+                        return toast.error(
+                          'You do not have permission to create projects.'
+                        )
 
-                    navigate({
-                      to: '/app/$workspaceId/create',
-                      params: {
-                        workspaceId,
-                      },
-                    })
-                  }}
-                >
-                  <PlusIcon />
-                  New Project
-                </Button>
-              </div>
+                      navigate({
+                        to: '/app/$workspaceId/create',
+                        params: {
+                          workspaceId,
+                        },
+                      })
+                    }}
+                  >
+                    <PlusIcon />
+                    New Project
+                  </Button>
+                </div>
 
-              {!hasViewPermission && !permissionsLoading ? (
-                <NoPermissionView />
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    {projectsLoading ? (
-                      <>
-                        {[...Array(2)].map((_, i) => (
-                          <div
-                            className="grid w-full grid-cols-[0.4fr_1fr] gap-4 border-2 border-dashed p-3 duration-150"
-                            key={i}
-                          >
-                            <Skeleton className="aspect-video w-full rounded-none" />
+                {!hasViewPermission && !permissionsLoading ? (
+                  <NoPermissionView />
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {globalLoading ? (
+                        <>
+                          {[...Array(2)].map((_, i) => (
+                            <div
+                              className="grid w-full grid-cols-[0.4fr_1fr] gap-4 border-2 border-dashed p-3 duration-150"
+                              key={i}
+                            >
+                              <Skeleton className="aspect-video w-full rounded-none" />
 
-                            <div className="flex flex-1 flex-col justify-between">
-                              <div className="space-y-2">
-                                <Skeleton className="h-6 w-50" />
-                                <Skeleton className="h-6 w-32" />
-                              </div>
+                              <div className="flex flex-1 flex-col justify-between">
+                                <div className="space-y-2">
+                                  <Skeleton className="h-6 w-50" />
+                                  <Skeleton className="h-6 w-32" />
+                                </div>
 
-                              <div className="flex items-center gap-8">
-                                <Skeleton className="h-6 w-20"></Skeleton>
-                                <Skeleton className="h-6 w-20"></Skeleton>
-                                <Skeleton className="h-6 w-20"></Skeleton>
-                                <Skeleton className="h-6 w-20"></Skeleton>
+                                <div className="flex items-center gap-8">
+                                  <Skeleton className="h-6 w-20"></Skeleton>
+                                  <Skeleton className="h-6 w-20"></Skeleton>
+                                  <Skeleton className="h-6 w-20"></Skeleton>
+                                  <Skeleton className="h-6 w-20"></Skeleton>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </>
-                    ) : projectsError ? (
-                      <>
-                        <ErrorScreen refetch={refetch} />
-                      </>
-                    ) : (
-                      projects?.data.map((item) => {
-                        return (
-                          <ProjectCard
-                            setDeleteOpen={setDeleteOpen}
-                            item={item}
-                            workspaceId={workspaceId}
-                            hasDeletePermission={hasDeletePermission!}
-                          />
-                        )
-                      })
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
+                          ))}
+                        </>
+                      ) : (
+                        projects?.data.map((item) => {
+                          return (
+                            <ProjectCard
+                              setDeleteOpen={setDeleteOpen}
+                              item={item}
+                              workspaceId={workspaceId}
+                              hasDeletePermission={hasDeletePermission!}
+                            />
+                          )
+                        })
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

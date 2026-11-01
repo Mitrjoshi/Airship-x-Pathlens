@@ -35,11 +35,12 @@ import {
 import { Separator } from '@workspace/ui/components/separator'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { RefreshCcwIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { CartesianGrid, Line, LineChart, XAxis } from 'recharts'
 import { DomainSwitcher } from './-components/common/domain-switcher'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './-components/common/no-permission-view'
+import { ErrorScreen } from './-components/common/error-screen'
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/performance'
@@ -194,18 +195,37 @@ function RouteComponent() {
   )
   const [domain, setDomain] = useState('')
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: permissionsRefetch,
+    isRefetching: permissionsRefetching,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('analytics.performance.view')
 
   const {
+    data: domainsData,
+    isLoading: domainsLoading,
+    error: domainsError,
+    refetch: domainsRefetch,
+    isRefetching: domainsRefetching,
+  } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
+
+  const domains = domainsData?.data
+  const activeDomain = domain || domains?.[0]?.domain || ''
+
+  const {
     data: performanceData,
     isLoading: performanceLoading,
-    isRefetching,
-    refetch,
+    isRefetching: performanceRefetching,
+    refetch: performanceRefetch,
+    error: performanceError,
     dataUpdatedAt,
   } = useQuery({
     ...getPerformanceOptions({
@@ -213,26 +233,22 @@ function RouteComponent() {
       project_id: projectId,
       range,
       device,
-      domain,
+      domain: activeDomain,
     }),
-    enabled: !!hasViewPermission,
-  })
-
-  const { data: domainsData, isLoading: domainsLoading } = useQuery({
-    ...getProjectDomainsOptions(projectId),
-    enabled: !!hasViewPermission,
+    enabled: !!hasViewPermission && !!activeDomain,
   })
 
   const lastUpdated = useRelativeTime(dataUpdatedAt)
 
   const performance = performanceData?.data
-  const domains = domainsData?.data
 
-  useEffect(() => {
-    if (domains) {
-      setDomain(domains[0].domain)
-    }
-  }, [domains])
+  const globalLoading =
+    permissionsLoading || domainsLoading || performanceLoading
+  const globalError = permissionsError || domainsError || performanceError
+  const refetch = () =>
+    Promise.all([permissionsRefetch(), domainsRefetch(), performanceRefetch()])
+  const globalRefetching =
+    permissionsRefetching || domainsRefetching || performanceRefetching
 
   return (
     <div>
@@ -250,8 +266,8 @@ function RouteComponent() {
         <div className="bg-background sticky top-14.25 z-10 flex items-center justify-between border-b p-4 py-2">
           <div className="flex items-center gap-4">
             <DomainSwitcher
-              loading={domainsLoading}
-              domain={domain}
+              loading={globalLoading}
+              domain={activeDomain}
               setDomain={setDomain}
               domains={domains!}
               refetch={refetch}
@@ -270,14 +286,14 @@ function RouteComponent() {
 
           <div className="flex items-center gap-2">
             <Button
-              disabled={isRefetching}
+              disabled={globalRefetching}
               onClick={() => {
                 refetch()
               }}
               variant="outline"
             >
               <RefreshCcwIcon
-                className={`${isRefetching ? 'animate-spin' : ''}`}
+                className={`${globalRefetching ? 'animate-spin' : ''}`}
               />
               Refresh
             </Button>
@@ -334,81 +350,88 @@ function RouteComponent() {
       )}
 
       <div className="mx-auto space-y-4 p-6">
-        {/* Heading */}
         <div>
           <p className="text-xl font-medium">Performance</p>
-
           <p className="text-muted-foreground text-sm">
             View and analyze performance metrics across your project.
           </p>
         </div>
 
-        {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetch={refetch}
+            refetching={globalRefetching}
+          />
         ) : (
           <>
-            <div>
-              <Card className="bg-card/30 overflow-hidden rounded-none border-2 border-dashed p-0">
-                <CardContent className="h-90 p-0">
-                  {performanceLoading ? (
-                    <svg
-                      viewBox="0 0 300 48"
-                      preserveAspectRatio="none"
-                      className="text-muted-foreground/20 h-full w-full"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <defs>
-                        <linearGradient
-                          id="chart-shimmer"
-                          x1="0"
-                          y1="0"
-                          x2="1"
-                          y2="0"
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
+            ) : (
+              <>
+                <div>
+                  <Card className="bg-card/30 overflow-hidden rounded-none border-2 border-dashed p-0">
+                    <CardContent className="h-90 p-0">
+                      {globalLoading ? (
+                        <svg
+                          viewBox="0 0 300 48"
+                          preserveAspectRatio="none"
+                          className="text-muted-foreground/20 h-full w-full"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
                         >
-                          <stop
-                            offset="0%"
-                            stopColor="currentColor"
-                            stopOpacity="0"
-                          />
-                          <stop
-                            offset="40%"
-                            stopColor="currentColor"
-                            stopOpacity="0.15"
-                          />
-                          <stop
-                            offset="50%"
-                            stopColor="currentColor"
-                            stopOpacity="0.45"
-                          />
-                          <stop
-                            offset="60%"
-                            stopColor="currentColor"
-                            stopOpacity="0.15"
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="currentColor"
-                            stopOpacity="0"
-                          />
-                          <animate
-                            attributeName="x1"
-                            values="-1;1"
-                            dur="2s"
-                            repeatCount="indefinite"
-                          />
-                          <animate
-                            attributeName="x2"
-                            values="0;2"
-                            dur="2s"
-                            repeatCount="indefinite"
-                          />
-                        </linearGradient>
-                      </defs>
+                          <defs>
+                            <linearGradient
+                              id="chart-shimmer"
+                              x1="0"
+                              y1="0"
+                              x2="1"
+                              y2="0"
+                            >
+                              <stop
+                                offset="0%"
+                                stopColor="currentColor"
+                                stopOpacity="0"
+                              />
+                              <stop
+                                offset="40%"
+                                stopColor="currentColor"
+                                stopOpacity="0.15"
+                              />
+                              <stop
+                                offset="50%"
+                                stopColor="currentColor"
+                                stopOpacity="0.45"
+                              />
+                              <stop
+                                offset="60%"
+                                stopColor="currentColor"
+                                stopOpacity="0.15"
+                              />
+                              <stop
+                                offset="100%"
+                                stopColor="currentColor"
+                                stopOpacity="0"
+                              />
+                              <animate
+                                attributeName="x1"
+                                values="-1;1"
+                                dur="2s"
+                                repeatCount="indefinite"
+                              />
+                              <animate
+                                attributeName="x2"
+                                values="0;2"
+                                dur="2s"
+                                repeatCount="indefinite"
+                              />
+                            </linearGradient>
+                          </defs>
 
-                      {/* Area beneath line */}
-                      <path
-                        d="
+                          {/* Area beneath line */}
+                          <path
+                            d="
                     M0 31
                     C8 8 15 42 24 20
                     C32 3 40 38 50 29
@@ -427,12 +450,12 @@ function RouteComponent() {
                     L0 48
                     Z
                   "
-                        fill="url(#chart-shimmer)"
-                      />
+                            fill="url(#chart-shimmer)"
+                          />
 
-                      {/* Line */}
-                      <path
-                        d="
+                          {/* Line */}
+                          <path
+                            d="
                   M0 31
                   C8 8 15 42 24 20
                   C32 3 40 38 50 29
@@ -447,73 +470,74 @@ function RouteComponent() {
                   C280 41 286 8 296 14
                   C298 15 299 12 300 10
                 "
-                        stroke="currentColor"
-                        strokeWidth="1"
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    </svg>
-                  ) : performance?.trend.every(
-                      (v) => v.domLoaded === 0 && v.load === 0 && v.ttfb === 0
-                    ) ? (
-                    <div className="relative h-full">
-                      <svg
-                        viewBox="0 0 300 48"
-                        preserveAspectRatio="none"
-                        className="text-muted-foreground/20 relative h-full w-full"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <defs>
-                          <linearGradient
-                            id="chart-shimmer"
-                            x1="0"
-                            y1="0"
-                            x2="1"
-                            y2="0"
+                            stroke="currentColor"
+                            strokeWidth="1"
+                            vectorEffect="non-scaling-stroke"
+                          />
+                        </svg>
+                      ) : performance?.trend.every(
+                          (v) =>
+                            v.domLoaded === 0 && v.load === 0 && v.ttfb === 0
+                        ) ? (
+                        <div className="relative h-full">
+                          <svg
+                            viewBox="0 0 300 48"
+                            preserveAspectRatio="none"
+                            className="text-muted-foreground/20 relative h-full w-full"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
                           >
-                            <stop
-                              offset="0%"
-                              stopColor="currentColor"
-                              stopOpacity="0"
-                            />
-                            <stop
-                              offset="40%"
-                              stopColor="currentColor"
-                              stopOpacity="0.15"
-                            />
-                            <stop
-                              offset="50%"
-                              stopColor="currentColor"
-                              stopOpacity="0.45"
-                            />
-                            <stop
-                              offset="60%"
-                              stopColor="currentColor"
-                              stopOpacity="0.15"
-                            />
-                            <stop
-                              offset="100%"
-                              stopColor="currentColor"
-                              stopOpacity="0"
-                            />
-                            <animate
-                              attributeName="x1"
-                              values="-1;1"
-                              dur="2s"
-                              repeatCount="indefinite"
-                            />
-                            <animate
-                              attributeName="x2"
-                              values="0;2"
-                              dur="2s"
-                              repeatCount="indefinite"
-                            />
-                          </linearGradient>
-                        </defs>
+                            <defs>
+                              <linearGradient
+                                id="chart-shimmer"
+                                x1="0"
+                                y1="0"
+                                x2="1"
+                                y2="0"
+                              >
+                                <stop
+                                  offset="0%"
+                                  stopColor="currentColor"
+                                  stopOpacity="0"
+                                />
+                                <stop
+                                  offset="40%"
+                                  stopColor="currentColor"
+                                  stopOpacity="0.15"
+                                />
+                                <stop
+                                  offset="50%"
+                                  stopColor="currentColor"
+                                  stopOpacity="0.45"
+                                />
+                                <stop
+                                  offset="60%"
+                                  stopColor="currentColor"
+                                  stopOpacity="0.15"
+                                />
+                                <stop
+                                  offset="100%"
+                                  stopColor="currentColor"
+                                  stopOpacity="0"
+                                />
+                                <animate
+                                  attributeName="x1"
+                                  values="-1;1"
+                                  dur="2s"
+                                  repeatCount="indefinite"
+                                />
+                                <animate
+                                  attributeName="x2"
+                                  values="0;2"
+                                  dur="2s"
+                                  repeatCount="indefinite"
+                                />
+                              </linearGradient>
+                            </defs>
 
-                        {/* Line */}
-                        <path
-                          d="
+                            {/* Line */}
+                            <path
+                              d="
                   M0 31
                   C8 8 15 42 24 20
                   C32 3 40 38 50 29
@@ -528,129 +552,138 @@ function RouteComponent() {
                   C280 41 286 8 296 14
                   C298 15 299 12 300 10
                 "
-                          stroke="currentColor"
-                          strokeWidth="1"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      </svg>
+                              stroke="currentColor"
+                              strokeWidth="1"
+                              vectorEffect="non-scaling-stroke"
+                            />
+                          </svg>
 
-                      <Badge
-                        variant="outline"
-                        className="absolute top-1/2 right-1/2 z-4 -translate-x-1/2 -translate-y-1/2 scale-110 rounded-lg backdrop-blur-3xl"
-                      >
-                        No Data
-                      </Badge>
-                    </div>
-                  ) : (
-                    <ChartContainer
-                      config={chartConfig}
-                      className="h-full w-full p-2"
-                    >
-                      <LineChart accessibilityLayer data={performance?.trend}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          tickFormatter={(value) => formatDate(value)}
-                        />
-                        <ChartTooltip
-                          cursor={false}
-                          content={<ChartTooltipContent />}
-                        />
-                        <Line
-                          dot={false}
-                          type="monotone"
-                          dataKey="dns"
-                          stroke="var(--color-dns)"
-                        />
-                        <Line
-                          dot={false}
-                          type="monotone"
-                          dataKey="tcp"
-                          stroke="var(--color-tcp)"
-                        />
-                        <Line
-                          dot={false}
-                          type="monotone"
-                          dataKey="ttfb"
-                          stroke="var(--color-ttfb)"
-                        />
-                        <Line
-                          type="monotone"
-                          dot={false}
-                          dataKey="domLoaded"
-                          stroke="var(--color-domLoaded)"
-                        />
-                        <Line
-                          type="monotone"
-                          dot={false}
-                          dataKey="load"
-                          stroke="var(--color-load)"
-                        />
-
-                        <ChartLegend content={<ChartLegendContent />} />
-                      </LineChart>
-                    </ChartContainer>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {summaryItems.map((item) => {
-                const value = performance?.summary?.[item.key] ?? 0
-                const totalSamples = performance?.summary?.totalSamples ?? 0
-                const status = getMetricStatus(value, item.target, totalSamples)
-
-                return (
-                  <Card
-                    className="bg-card/30 gap-4 rounded-none border-2 border-dashed p-4"
-                    key={item.key}
-                  >
-                    <CardHeader className="gap-2 p-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardDescription>{item.label}</CardDescription>
-                        <Badge
-                          variant="outline"
-                          className={`shrink-0 ${status.className}`}
-                        >
-                          {status.label}
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-2xl">
-                        {formatNumber(value)}
-                        {item.key !== 'totalSamples' && (
-                          <span className="text-muted-foreground ml-1 text-sm font-normal">
-                            ms
-                          </span>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-
-                    <CardContent className="space-y-3 p-0">
-                      {performanceLoading ? (
-                        <Skeleton className="h-12 w-full" />
+                          <Badge
+                            variant="outline"
+                            className="absolute top-1/2 right-1/2 z-4 -translate-x-1/2 -translate-y-1/2 scale-110 rounded-lg backdrop-blur-3xl"
+                          >
+                            No Data
+                          </Badge>
+                        </div>
                       ) : (
-                        <>
-                          <p className="text-muted-foreground text-sm">
-                            {item.description}
-                          </p>
-                          <p
-                            className={`text-sm ${status.label === 'Good' ? 'text-primary' : 'text-muted-foreground'}`}
+                        <ChartContainer
+                          config={chartConfig}
+                          className="h-full w-full p-2"
+                        >
+                          <LineChart
+                            accessibilityLayer
+                            data={performance?.trend}
                           >
-                            {status.label === 'Good'
-                              ? 'Good. This metric is within the recommended range.'
-                              : item.advice}
-                          </p>
-                        </>
+                            <CartesianGrid vertical={false} />
+                            <XAxis
+                              dataKey="date"
+                              tickLine={false}
+                              axisLine={false}
+                              tickMargin={8}
+                              tickFormatter={(value) => formatDate(value)}
+                            />
+                            <ChartTooltip
+                              cursor={false}
+                              content={<ChartTooltipContent />}
+                            />
+                            <Line
+                              dot={false}
+                              type="monotone"
+                              dataKey="dns"
+                              stroke="var(--color-dns)"
+                            />
+                            <Line
+                              dot={false}
+                              type="monotone"
+                              dataKey="tcp"
+                              stroke="var(--color-tcp)"
+                            />
+                            <Line
+                              dot={false}
+                              type="monotone"
+                              dataKey="ttfb"
+                              stroke="var(--color-ttfb)"
+                            />
+                            <Line
+                              type="monotone"
+                              dot={false}
+                              dataKey="domLoaded"
+                              stroke="var(--color-domLoaded)"
+                            />
+                            <Line
+                              type="monotone"
+                              dot={false}
+                              dataKey="load"
+                              stroke="var(--color-load)"
+                            />
+
+                            <ChartLegend content={<ChartLegendContent />} />
+                          </LineChart>
+                        </ChartContainer>
                       )}
                     </CardContent>
                   </Card>
-                )
-              })}
-            </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {summaryItems.map((item) => {
+                    const value = performance?.summary?.[item.key] ?? 0
+                    const totalSamples = performance?.summary?.totalSamples ?? 0
+                    const status = getMetricStatus(
+                      value,
+                      item.target,
+                      totalSamples
+                    )
+
+                    return (
+                      <Card
+                        className="bg-card/30 gap-4 rounded-none border-2 border-dashed p-4"
+                        key={item.key}
+                      >
+                        <CardHeader className="gap-2 p-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <CardDescription>{item.label}</CardDescription>
+                            <Badge
+                              variant="outline"
+                              className={`shrink-0 ${status.className}`}
+                            >
+                              {status.label}
+                            </Badge>
+                          </div>
+                          <CardTitle className="text-2xl">
+                            {formatNumber(value)}
+                            {item.key !== 'totalSamples' && (
+                              <span className="text-muted-foreground ml-1 text-sm font-normal">
+                                ms
+                              </span>
+                            )}
+                          </CardTitle>
+                        </CardHeader>
+
+                        <CardContent className="space-y-3 p-0">
+                          {globalLoading ? (
+                            <Skeleton className="h-12 w-full" />
+                          ) : (
+                            <>
+                              <p className="text-muted-foreground text-sm">
+                                {item.description}
+                              </p>
+                              <p
+                                className={`text-sm ${status.label === 'Good' ? 'text-primary' : 'text-muted-foreground'}`}
+                              >
+                                {status.label === 'Good'
+                                  ? 'Good. This metric is within the recommended range.'
+                                  : item.advice}
+                              </p>
+                            </>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

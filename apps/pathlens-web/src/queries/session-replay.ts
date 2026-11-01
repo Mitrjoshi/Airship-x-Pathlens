@@ -1,6 +1,7 @@
 import apiClient from '@/lib/apiClient'
 import type { ReplayEvent } from '@workspace/contracts'
 import { queryOptions } from '@tanstack/react-query'
+import { param } from 'motion/react-client'
 
 export type SessionReplayRange = '24h' | '7d' | '30d' | '90d'
 export type SessionReplayDevice = 'all' | 'desktop' | 'mobile' | 'tablet'
@@ -97,7 +98,6 @@ export interface SessionReplayParams {
   search?: string
   page: number
   page_size: number
-  refetchInterval?: number
 }
 
 export interface SessionReplayDetailParams {
@@ -130,8 +130,6 @@ export const getSessionReplayOptions = (params: SessionReplayParams) =>
   queryOptions({
     queryKey: ['SESSION_REPLAY', params],
     queryFn: () => getSessionReplay(params),
-    enabled: Boolean(params.workspace_id && params.project_id),
-    refetchInterval: params.refetchInterval,
   })
 
 const getSessionReplayDetail = async (
@@ -157,9 +155,6 @@ export const getSessionReplayDetailOptions = (
   queryOptions({
     queryKey: ['SESSION_REPLAY_DETAIL', params],
     queryFn: () => getSessionReplayDetail(params),
-    enabled: Boolean(
-      params.workspace_id && params.project_id && params.session_id
-    ),
   })
 
 export async function streamSessionReplay(

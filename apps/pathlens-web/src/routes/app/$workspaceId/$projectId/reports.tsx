@@ -32,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from '@workspace/ui/components/table'
-import { DownloadIcon, MinusIcon, PlusIcon } from 'lucide-react'
+import { DownloadIcon, MinusIcon, PlusIcon, SearchIcon } from 'lucide-react'
 import { useState } from 'react'
 import { UserDetailsSheet } from './-components/user/user-details-sheet'
 import { Field, FieldGroup, FieldLabel } from '@workspace/ui/components/field'
@@ -47,6 +47,12 @@ import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './-components/common/no-permission-view'
 import { toast } from 'sonner'
+import { ErrorScreen } from './-components/common/error-screen'
+import {
+  InputGroup,
+  InputGroupButton,
+  InputGroupInput,
+} from '@workspace/ui/components/input-group'
 
 const PAGE_SIZE = 10
 
@@ -91,15 +97,38 @@ function RouteComponent() {
   const [open, setOpen] = useState(false)
   const [downloading, setDownloading] = useState<string | null>(null)
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: permissionsRefetch,
+    isRefetching: permissionsRefetching,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('analytics.reports.view')
   const hasExportPermission = permissions?.includes('analytics.reports.export')
 
-  const { data: reportsData, isLoading: reportsLoading } = useQuery({
+  const {
+    data: domainsData,
+    isLoading: domainsLoading,
+    error: domainsError,
+    refetch: domainsRefetch,
+    isRefetching: domainsRefetching,
+  } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
+
+  const domains = domainsData?.data
+
+  const {
+    data: reportsData,
+    isLoading: reportsLoading,
+    error: reportsError,
+    refetch: reportsRefetch,
+    isRefetching: reportsRefetching,
+  } = useQuery({
     ...getReportGenerationsOptions({
       workspace_id: workspaceId,
       project_id: projectId,
@@ -109,15 +138,9 @@ function RouteComponent() {
     enabled: !!hasViewPermission,
   })
 
-  const { data: domainsData, isLoading: domainsLoading } = useQuery({
-    ...getProjectDomainsOptions(projectId),
-    enabled: !!hasViewPermission,
-  })
-
   const { mutate, isPending } = useGenerateReport()
 
   const reports = reportsData?.data
-  const domains = domainsData?.data
 
   const totalReports = reportsData?.pagination.total ?? 0
   const totalPages = Math.ceil(totalReports / PAGE_SIZE)
@@ -161,10 +184,16 @@ function RouteComponent() {
     }
   }
 
+  const globalLoading = permissionsLoading || domainsLoading || reportsLoading
+  const globalError = permissionsError || domainsError || reportsError
+  const globalRefetching =
+    permissionsRefetching || domainsRefetching || reportsRefetching
+  const refetch = () =>
+    Promise.all([permissionsRefetch(), domainsRefetch(), reportsRefetch()])
+
   return (
     <div>
       <div className="mx-auto space-y-4 p-6">
-        {/* Heading */}
         <div className="flex items-center justify-between gap-6">
           <div className="">
             <p className="text-xl font-medium">Reports</p>
@@ -173,338 +202,378 @@ function RouteComponent() {
               View and analyze reports generated across your project.
             </p>
           </div>
-
-          <Dialog
-            open={open}
-            onOpenChange={(open) => {
-              if (open && !hasExportPermission) {
-                toast.error('You do not have permission to export reports.')
-                return
-              }
-
-              setOpen(open)
-            }}
-          >
-            <DialogTrigger render={<Button disabled={domainsLoading} />}>
-              <PlusIcon />
-              Generate Report
-            </DialogTrigger>
-
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Generate Report</DialogTitle>
-              </DialogHeader>
-
-              <FieldGroup>
-                <Field>
-                  <FieldLabel>Report Type</FieldLabel>
-                  <Select
-                    items={reportTypes}
-                    value={reportType}
-                    onValueChange={(value) => {
-                      setReportType(value ?? 'full')
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-
-                    <SelectContent alignItemWithTrigger={false}>
-                      {reportTypes?.map((item, index) => (
-                        <SelectItem key={index} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
-                  <FieldLabel>Range</FieldLabel>
-                  <Select
-                    items={rangeLabels}
-                    value={range}
-                    onValueChange={(value) => {
-                      if (value) setRange(value as ReportRange)
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent alignItemWithTrigger={false}>
-                      {rangeLabels.map((range) => (
-                        <SelectItem key={range.value} value={range.value}>
-                          {range.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
-                  <FieldLabel>Domain</FieldLabel>
-                  <Select
-                    items={domainsItems}
-                    value={domain}
-                    onValueChange={(value) => {
-                      if (value) setDomain(value ?? 'all')
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent alignItemWithTrigger={false}>
-                      {domainsItems.map((range) => (
-                        <SelectItem key={range.value} value={range.value}>
-                          {range.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
-                  <FieldLabel>Device</FieldLabel>
-                  <Select
-                    items={deviceLabels}
-                    value={device}
-                    onValueChange={(value) => {
-                      if (value) {
-                        setDevice(value as ReportDevice)
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-
-                    <SelectContent alignItemWithTrigger={false}>
-                      {deviceLabels.map((device) => (
-                        <SelectItem key={device.value} value={device.value}>
-                          {device.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </FieldGroup>
-
-              <DialogFooter>
-                <Button
-                  onClick={() => {
-                    mutate(
-                      {
-                        workspace_id: workspaceId,
-                        project_id: projectId,
-                        device,
-                        range,
-                        report_type: reportType,
-                        domain,
-                      },
-                      {
-                        onSuccess: () => {
-                          setOpen(false)
-                        },
-                      }
-                    )
-                  }}
-                >
-                  <LoadingSwap isLoading={isPending}>Generate</LoadingSwap>
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
 
-        {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetch={refetch}
+            refetching={globalRefetching}
+          />
         ) : (
           <>
-            <div className="overflow-hidden">
-              <div className="overflow-hidden border">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="w-full justify-between">
-                      <TableHead>Report Type</TableHead>
-                      <TableHead>Device</TableHead>
-                      <TableHead>Domain</TableHead>
-                      <TableHead>Range</TableHead>
-                      <TableHead>File Size</TableHead>
-                      <TableHead>Generated By</TableHead>
-                      <TableHead>Generated At</TableHead>
-                      <TableHead className="w-40">File</TableHead>
-                    </TableRow>
-                  </TableHeader>
-
-                  <TableBody>
-                    {reportsLoading ? (
-                      [...Array(5)].map((_, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <Skeleton className="h-6 w-full" />
-                          </TableCell>
-
-                          <TableCell>
-                            <Skeleton className="h-6 w-full" />
-                          </TableCell>
-
-                          <TableCell>
-                            <Skeleton className="h-6 w-full" />
-                          </TableCell>
-
-                          <TableCell>
-                            <Skeleton className="h-6 w-full" />
-                          </TableCell>
-
-                          <TableCell>
-                            <Skeleton className="h-6 w-full" />
-                          </TableCell>
-
-                          <TableCell>
-                            <Skeleton className="h-6 w-full" />
-                          </TableCell>
-
-                          <TableCell>
-                            <Skeleton className="h-6 w-full" />
-                          </TableCell>
-
-                          <TableCell>
-                            <Skeleton className="h-6 w-full" />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : !reports?.length ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="h-32 text-center">
-                          <p className="text-muted-foreground text-sm">
-                            No reports generated yet.
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      reports?.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            {capitalizeFirstLetter(item.reportType)}
-                          </TableCell>
-                          <TableCell className="w-40">
-                            {capitalizeFirstLetter(item.filters.device)}
-                          </TableCell>
-                          <TableCell className="w-40">
-                            {item.filters.domain === 'all'
-                              ? 'All'
-                              : item.filters.domain || '-'}
-                          </TableCell>
-                          <TableCell className="w-40">
-                            {item.filters.range}
-                          </TableCell>
-
-                          <TableCell className="w-40">
-                            {formatBytes(item.fileSize!)}
-                          </TableCell>
-
-                          <TableCell className="w-64">
-                            <UserDetailsSheet
-                              userId={item.actorUserId}
-                              workspaceId={workspaceId}
-                            />
-                          </TableCell>
-
-                          <TableCell className="w-40">
-                            {formatDate(item.createdAt)}
-                          </TableCell>
-
-                          <TableCell>
-                            {item.downloadUrl ? (
-                              <Button
-                                onClick={() =>
-                                  handleDownload(item.downloadUrl!)
-                                }
-                                variant={'outline'}
-                              >
-                                <LoadingSwap
-                                  isLoading={downloading === item.downloadUrl}
-                                  className="flex items-center gap-2"
-                                >
-                                  <DownloadIcon />
-                                  Download
-                                </LoadingSwap>
-                              </Button>
-                            ) : (
-                              <MinusIcon />
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-
-                {/* Pagination */}
-                <div className="flex items-center justify-between border-t px-4 py-3">
-                  <p className="text-muted-foreground text-sm">
-                    {totalReports > 0 ? (
-                      <>
-                        Showing {from}-{to} of {totalReports} events
-                      </>
-                    ) : (
-                      'No reports generated'
-                    )}
-                  </p>
-
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page <= 1 || reportsLoading}
-                      onClick={() => {
-                        setPage((current) => Math.max(current - 1, 1))
-                      }}
-                    >
-                      Previous
-                    </Button>
+                    <InputGroup className="w-120">
+                      <InputGroupButton>
+                        <SearchIcon />
+                      </InputGroupButton>
 
-                    <div className="flex items-center gap-1">
-                      {paginationItems.map((item, index) => {
-                        if (item === 'ellipsis') {
-                          return (
-                            <span
-                              key={`ellipsis-${index}`}
-                              className="text-muted-foreground flex size-8 items-center justify-center text-sm"
-                            >
-                              ...
-                            </span>
-                          )
-                        }
+                      <InputGroupInput placeholder="Search..." />
+                    </InputGroup>
+                  </div>
 
-                        return (
-                          <Button
-                            key={item}
-                            variant={page === item ? 'outline' : 'ghost'}
-                            size="icon"
-                            className="size-8"
-                            disabled={reportsLoading}
-                            onClick={() => {
-                              setPage(item)
+                  <Dialog
+                    open={open}
+                    onOpenChange={(open) => {
+                      if (open && !hasExportPermission) {
+                        toast.error(
+                          'You do not have permission to export reports.'
+                        )
+                        return
+                      }
+
+                      setOpen(open)
+                    }}
+                  >
+                    <DialogTrigger render={<Button disabled={globalLoading} />}>
+                      <PlusIcon />
+                      Generate Report
+                    </DialogTrigger>
+
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Generate Report</DialogTitle>
+                      </DialogHeader>
+
+                      <FieldGroup>
+                        <Field>
+                          <FieldLabel>Report Type</FieldLabel>
+                          <Select
+                            items={reportTypes}
+                            value={reportType}
+                            onValueChange={(value) => {
+                              setReportType(value ?? 'full')
                             }}
                           >
-                            {item}
-                          </Button>
-                        )
-                      })}
-                    </div>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page >= totalPages || reportsLoading}
-                      onClick={() => {
-                        setPage((current) => Math.min(current + 1, totalPages))
-                      }}
-                    >
-                      Next
-                    </Button>
+                            <SelectContent alignItemWithTrigger={false}>
+                              {reportTypes?.map((item, index) => (
+                                <SelectItem key={index} value={item.value}>
+                                  {item.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field>
+                          <FieldLabel>Range</FieldLabel>
+                          <Select
+                            items={rangeLabels}
+                            value={range}
+                            onValueChange={(value) => {
+                              if (value) setRange(value as ReportRange)
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent alignItemWithTrigger={false}>
+                              {rangeLabels.map((range) => (
+                                <SelectItem
+                                  key={range.value}
+                                  value={range.value}
+                                >
+                                  {range.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field>
+                          <FieldLabel>Domain</FieldLabel>
+                          <Select
+                            items={domainsItems}
+                            value={domain}
+                            onValueChange={(value) => {
+                              if (value) setDomain(value ?? 'all')
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent alignItemWithTrigger={false}>
+                              {domainsItems.map((range) => (
+                                <SelectItem
+                                  key={range.value}
+                                  value={range.value}
+                                >
+                                  {range.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field>
+                          <FieldLabel>Device</FieldLabel>
+                          <Select
+                            items={deviceLabels}
+                            value={device}
+                            onValueChange={(value) => {
+                              if (value) {
+                                setDevice(value as ReportDevice)
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+
+                            <SelectContent alignItemWithTrigger={false}>
+                              {deviceLabels.map((device) => (
+                                <SelectItem
+                                  key={device.value}
+                                  value={device.value}
+                                >
+                                  {device.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                      </FieldGroup>
+
+                      <DialogFooter>
+                        <Button
+                          onClick={() => {
+                            mutate(
+                              {
+                                workspace_id: workspaceId,
+                                project_id: projectId,
+                                device,
+                                range,
+                                report_type: reportType,
+                                domain,
+                              },
+                              {
+                                onSuccess: () => {
+                                  setOpen(false)
+                                },
+                              }
+                            )
+                          }}
+                        >
+                          <LoadingSwap isLoading={isPending}>
+                            Generate
+                          </LoadingSwap>
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="overflow-hidden">
+                  <div className="overflow-hidden border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="w-full justify-between">
+                          <TableHead>Report Type</TableHead>
+                          <TableHead>Device</TableHead>
+                          <TableHead>Domain</TableHead>
+                          <TableHead>Range</TableHead>
+                          <TableHead>File Size</TableHead>
+                          <TableHead>Generated By</TableHead>
+                          <TableHead>Generated At</TableHead>
+                          <TableHead className="w-40">File</TableHead>
+                        </TableRow>
+                      </TableHeader>
+
+                      <TableBody>
+                        {globalLoading ? (
+                          [...Array(5)].map((_, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <Skeleton className="h-6 w-full" />
+                              </TableCell>
+
+                              <TableCell>
+                                <Skeleton className="h-6 w-full" />
+                              </TableCell>
+
+                              <TableCell>
+                                <Skeleton className="h-6 w-full" />
+                              </TableCell>
+
+                              <TableCell>
+                                <Skeleton className="h-6 w-full" />
+                              </TableCell>
+
+                              <TableCell>
+                                <Skeleton className="h-6 w-full" />
+                              </TableCell>
+
+                              <TableCell>
+                                <Skeleton className="h-6 w-full" />
+                              </TableCell>
+
+                              <TableCell>
+                                <Skeleton className="h-6 w-full" />
+                              </TableCell>
+
+                              <TableCell>
+                                <Skeleton className="h-6 w-full" />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : !reports?.length ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="h-32 text-center">
+                              <p className="text-muted-foreground text-sm">
+                                No reports generated yet.
+                              </p>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          reports?.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell>
+                                {capitalizeFirstLetter(item.reportType)}
+                              </TableCell>
+                              <TableCell className="w-40">
+                                {capitalizeFirstLetter(item.filters.device)}
+                              </TableCell>
+                              <TableCell className="w-40">
+                                {item.filters.domain === 'all'
+                                  ? 'All'
+                                  : item.filters.domain || '-'}
+                              </TableCell>
+                              <TableCell className="w-40">
+                                {item.filters.range}
+                              </TableCell>
+
+                              <TableCell className="w-40">
+                                {formatBytes(item.fileSize!)}
+                              </TableCell>
+
+                              <TableCell className="w-64">
+                                <UserDetailsSheet
+                                  userId={item.actorUserId}
+                                  workspaceId={workspaceId}
+                                />
+                              </TableCell>
+
+                              <TableCell className="w-40">
+                                {formatDate(item.createdAt)}
+                              </TableCell>
+
+                              <TableCell>
+                                {item.downloadUrl ? (
+                                  <Button
+                                    onClick={() =>
+                                      handleDownload(item.downloadUrl!)
+                                    }
+                                    variant={'outline'}
+                                  >
+                                    <LoadingSwap
+                                      isLoading={
+                                        downloading === item.downloadUrl
+                                      }
+                                      className="flex items-center gap-2"
+                                    >
+                                      <DownloadIcon />
+                                      Download
+                                    </LoadingSwap>
+                                  </Button>
+                                ) : (
+                                  <MinusIcon />
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+
+                    {/* Pagination */}
+                    <div className="flex items-center justify-between border-t px-4 py-3">
+                      <p className="text-muted-foreground text-sm">
+                        {totalReports > 0 ? (
+                          <>
+                            Showing {from}-{to} of {totalReports} events
+                          </>
+                        ) : (
+                          'No reports generated'
+                        )}
+                      </p>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={page <= 1 || globalLoading}
+                          onClick={() => {
+                            setPage((current) => Math.max(current - 1, 1))
+                          }}
+                        >
+                          Previous
+                        </Button>
+
+                        <div className="flex items-center gap-1">
+                          {paginationItems.map((item, index) => {
+                            if (item === 'ellipsis') {
+                              return (
+                                <span
+                                  key={`ellipsis-${index}`}
+                                  className="text-muted-foreground flex size-8 items-center justify-center text-sm"
+                                >
+                                  ...
+                                </span>
+                              )
+                            }
+
+                            return (
+                              <Button
+                                key={item}
+                                variant={page === item ? 'outline' : 'ghost'}
+                                size="icon"
+                                className="size-8"
+                                disabled={globalLoading}
+                                onClick={() => {
+                                  setPage(item)
+                                }}
+                              >
+                                {item}
+                              </Button>
+                            )
+                          })}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={page >= totalPages || globalLoading}
+                          onClick={() => {
+                            setPage((current) =>
+                              Math.min(current + 1, totalPages)
+                            )
+                          }}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}{' '}
           </>
         )}
       </div>

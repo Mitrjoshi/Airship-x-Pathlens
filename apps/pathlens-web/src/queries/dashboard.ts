@@ -116,12 +116,9 @@ export const getDashboardOptions = (params: {
   domain?: string
   range: DashboardRange
   device: DashboardDevice
-  refetchInterval?: number
 }) =>
   queryOptions({
     queryKey: ['DASHBOARD', params],
     queryFn: () => getDashboard(params),
     refetchOnWindowFocus: false,
-    refetchInterval: params.refetchInterval,
-    refetchIntervalInBackground: true,
   })

@@ -25,7 +25,6 @@ export type EventsChartParams = Pick<
   'workspace_id' | 'project_id' | 'range'
 > & {
   domain?: string
-  refetchInterval?: number
 }
 
 const getEvents = async (params: EventsParams): Promise<EventsResponse> => {
@@ -39,8 +38,6 @@ export const getEventsOptions = (params: EventsParams) =>
     queryKey: ['EVENTS', params],
     queryFn: () => getEvents(params),
     enabled: Boolean(params.workspace_id && params.project_id),
-    refetchOnWindowFocus: false,
-    refetchInterval: params.refetchInterval,
   })
 
 const getEventsChart = async (
@@ -55,6 +52,4 @@ export const getEventsChartOptions = (params: EventsChartParams) =>
   queryOptions({
     queryKey: ['EVENTS_CHART', params],
     queryFn: () => getEventsChart(params),
-    refetchOnWindowFocus: false,
-    refetchInterval: params.refetchInterval,
   })

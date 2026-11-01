@@ -8,7 +8,7 @@ import { getProjectDomainsOptions } from '@/queries/domains'
 import { getPaginationItems } from '@/utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { DomainSwitcher } from './-components/common/domain-switcher'
 import { Separator } from '@workspace/ui/components/separator'
 import { Button } from '@workspace/ui/components/button'
@@ -42,6 +42,7 @@ import {
 } from '@workspace/ui/components/card'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './-components/common/no-permission-view'
+import { ErrorScreen } from './-components/common/error-screen'
 
 const deviceLabels = [
   { value: 'desktop', label: 'Desktop' },
@@ -80,19 +81,42 @@ function RouteComponent() {
   const [page, setPage] = useState(1)
   const [domain, setDomain] = useState('')
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: permissionsRefetch,
+    isRefetching: permissionsRefetching,
+  } = useQuery({
+    ...getWorkspacePermissionsOptions(workspaceId),
+    refetchInterval: liveMode ? 5000 : undefined,
+  })
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('analytics.campaigns.view')
 
   const {
+    data: domainsData,
+    isLoading: domainsLoading,
+    error: domainsError,
+    refetch: domainsRefetch,
+    isRefetching: domainsRefetching,
+  } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+    refetchInterval: liveMode ? 5000 : undefined,
+  })
+
+  const domains = domainsData?.data
+  const activeDomain = domain || domains?.[0]?.domain || ''
+
+  const {
     data: campaignsData,
-    isLoading,
+    isLoading: campaignsLoading,
     dataUpdatedAt,
-    refetch,
-    isRefetching,
+    refetch: refetchCampaigns,
+    isRefetching: campaignsRefetching,
+    error: campaignsError,
   } = useQuery({
     ...getCampaignsOptions({
       workspace_id: workspaceId,
@@ -102,18 +126,13 @@ function RouteComponent() {
       goal_id: undefined,
       page,
       page_size: PAGE_SIZE,
-      domain,
+      domain: activeDomain,
     }),
-    enabled: !!hasViewPermission,
-  })
-
-  const { data: domainsData, isLoading: domainsLoading } = useQuery({
-    ...getProjectDomainsOptions(projectId),
-    enabled: !!hasViewPermission,
+    enabled: !!hasViewPermission && !!activeDomain,
+    refetchInterval: liveMode ? 5000 : undefined,
   })
 
   const campaigns = campaignsData?.data
-  const domains = domainsData?.data
 
   const lastUpdated = useRelativeTime(dataUpdatedAt)
 
@@ -123,12 +142,6 @@ function RouteComponent() {
 
   const from = totalCampaigns === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const to = Math.min(page * PAGE_SIZE, totalCampaigns)
-
-  useEffect(() => {
-    if (domains) {
-      setDomain(domains[0].domain)
-    }
-  }, [domains])
 
   const summaryCards = [
     {
@@ -175,6 +188,14 @@ function RouteComponent() {
     },
   ]
 
+  const globalLoading = domainsLoading || campaignsLoading || permissionsLoading
+  const globalError = domainsError || campaignsError || permissionsError
+  const globalRefetching =
+    domainsRefetching || campaignsRefetching || permissionsRefetching
+
+  const refetch = () =>
+    Promise.all([refetchCampaigns(), domainsRefetch(), permissionsRefetch()])
+
   return (
     <div>
       {/* Top toolbar */}
@@ -193,7 +214,7 @@ function RouteComponent() {
           <div className="flex min-w-0 items-center gap-4">
             <DomainSwitcher
               loading={domainsLoading}
-              domain={domain}
+              domain={activeDomain}
               setDomain={setDomain}
               domains={domains!}
               refetch={refetch}
@@ -227,14 +248,14 @@ function RouteComponent() {
 
             {/* Manual refresh */}
             <Button
-              disabled={isRefetching}
+              disabled={globalRefetching}
               onClick={() => {
                 refetch()
               }}
               variant="outline"
             >
               <RefreshCcwIcon
-                className={`size-4 ${isRefetching ? 'animate-spin' : ''}`}
+                className={`size-4 ${globalRefetching ? 'animate-spin' : ''}`}
               />
               Refresh
             </Button>
@@ -300,289 +321,320 @@ function RouteComponent() {
           </div>
         </div>
 
-        {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetch={refetch}
+            refetching={globalRefetching}
+          />
         ) : (
           <>
-            <div className="grid grid-cols-5 gap-3">
-              {summaryCards.map((item) => (
-                <Card
-                  className="bg-card/30 rounded-none border-2 border-dashed"
-                  key={item.title}
-                >
-                  <CardHeader>
-                    {isLoading ? (
-                      <div>
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="mt-2 h-7 w-16" />
-                      </div>
-                    ) : (
-                      <>
-                        <CardDescription>{item.title}</CardDescription>
-                        <CardTitle className="text-xl">{item.value}</CardTitle>
-                      </>
-                    )}
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-            <div className="space-y-5">
-              <div className="flex items-center justify-between gap-4">
-                <InputGroup className="w-120">
-                  <InputGroupButton>
-                    <SearchIcon />
-                  </InputGroupButton>
-                  <InputGroupInput placeholder="Search..." />
-                </InputGroup>
-              </div>
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
+            ) : (
+              <>
+                <div className="grid grid-cols-5 gap-3">
+                  {summaryCards.map((item) => (
+                    <Card
+                      className="bg-card/30 rounded-none border-2 border-dashed"
+                      key={item.title}
+                    >
+                      <CardHeader>
+                        {globalLoading ? (
+                          <div>
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="mt-2 h-7 w-16" />
+                          </div>
+                        ) : (
+                          <>
+                            <CardDescription>{item.title}</CardDescription>
+                            <CardTitle className="text-xl">
+                              {item.value}
+                            </CardTitle>
+                          </>
+                        )}
+                      </CardHeader>
+                    </Card>
+                  ))}
+                </div>
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <InputGroup className="w-120">
+                      <InputGroupButton>
+                        <SearchIcon />
+                      </InputGroupButton>
+                      <InputGroupInput placeholder="Search..." />
+                    </InputGroup>
+                  </div>
 
-              <div>
-                <div className="overflow-hidden border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Campaign</TableHead>
-                        <TableHead>Source</TableHead>
-                        <TableHead>Medium</TableHead>
-                        <TableHead>Term</TableHead>
-                        <TableHead>Content</TableHead>
-                        <TableHead className="text-center">Visitors</TableHead>
-                        <TableHead className="text-center">Sessions</TableHead>
-                        <TableHead className="text-center">
-                          Engaged Visitors
-                        </TableHead>
-                        <TableHead className="text-center">
-                          Engaged Sessions
-                        </TableHead>
-                        <TableHead className="text-center">
-                          Engagement Rate
-                        </TableHead>
-                        <TableHead className="text-center">
-                          Converted Visitors
-                        </TableHead>
-                        <TableHead className="text-center">
-                          Conversion Rate
-                        </TableHead>
-                        <TableHead className="text-center">Revenue</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                  <div>
+                    <div className="overflow-hidden border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Campaign</TableHead>
+                            <TableHead>Source</TableHead>
+                            <TableHead>Medium</TableHead>
+                            <TableHead>Term</TableHead>
+                            <TableHead>Content</TableHead>
+                            <TableHead className="text-center">
+                              Visitors
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Sessions
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Engaged Visitors
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Engaged Sessions
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Engagement Rate
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Converted Visitors
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Conversion Rate
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Revenue
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
 
-                    <TableBody>
-                      {isLoading
-                        ? [...Array(PAGE_SIZE)].map((_, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                        <TableBody>
+                          {globalLoading
+                            ? [...Array(PAGE_SIZE)].map((_, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
 
-                              <TableCell>
-                                <div className="flex w-full justify-center">
-                                  <Skeleton className="h-5 w-16" />
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        : campaigns?.campaigns?.map((item, index) => (
-                            <TableRow key={index} className="hover:bg-muted/40">
-                              <TableCell>
-                                <span className="font-medium">
-                                  {getCampaignName(item)}
-                                </span>
-                              </TableCell>
+                                  <TableCell>
+                                    <div className="flex w-full justify-center">
+                                      <Skeleton className="h-5 w-16" />
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            : campaigns?.campaigns?.map((item, index) => (
+                                <TableRow
+                                  key={index}
+                                  className="hover:bg-muted/40"
+                                >
+                                  <TableCell>
+                                    <span className="font-medium">
+                                      {getCampaignName(item)}
+                                    </span>
+                                  </TableCell>
 
-                              <TableCell>{item.utmSource || 'N/A'}</TableCell>
+                                  <TableCell>
+                                    {item.utmSource || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell>{item.utmMedium || 'N/A'}</TableCell>
+                                  <TableCell>
+                                    {item.utmMedium || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell>{item.utmTerm || 'N/A'}</TableCell>
+                                  <TableCell>{item.utmTerm || 'N/A'}</TableCell>
 
-                              <TableCell>{item.utmContent || 'N/A'}</TableCell>
+                                  <TableCell>
+                                    {item.utmContent || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell className="text-center">
-                                {item.visitors || 'N/A'}
-                              </TableCell>
+                                  <TableCell className="text-center">
+                                    {item.visitors || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell className="text-center">
-                                {item.sessions || 'N/A'}
-                              </TableCell>
+                                  <TableCell className="text-center">
+                                    {item.sessions || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell className="text-center">
-                                {item.engagedVisitors || 'N/A'}
-                              </TableCell>
+                                  <TableCell className="text-center">
+                                    {item.engagedVisitors || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell className="text-center">
-                                {item.engagedSessions || 'N/A'}
-                              </TableCell>
+                                  <TableCell className="text-center">
+                                    {item.engagedSessions || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell className="text-center">
-                                {item.engagementRate || 'N/A'}
-                              </TableCell>
+                                  <TableCell className="text-center">
+                                    {item.engagementRate || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell className="text-center">
-                                {item.convertedVisitors || 'N/A'}
-                              </TableCell>
+                                  <TableCell className="text-center">
+                                    {item.convertedVisitors || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell className="text-center">
-                                {item.conversionRate || 'N/A'}
-                              </TableCell>
+                                  <TableCell className="text-center">
+                                    {item.conversionRate || 'N/A'}
+                                  </TableCell>
 
-                              <TableCell className="text-center">
-                                {item.revenue || 'N/A'}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                  <TableCell className="text-center">
+                                    {item.revenue || 'N/A'}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
 
-                      {!isLoading && !campaigns?.campaigns?.length && (
-                        <TableRow>
-                          <TableCell colSpan={13} className="h-32 text-center">
-                            <p className="text-muted-foreground text-sm">
-                              No campaigns found.
-                            </p>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-
-                  {/* Pagination */}
-                  <div className="flex items-center justify-between border-t px-4 py-3">
-                    <p className="text-muted-foreground text-sm">
-                      {totalCampaigns > 0 ? (
-                        <>
-                          Showing {from}-{to} of {totalCampaigns} events
-                        </>
-                      ) : (
-                        'No events'
-                      )}
-                    </p>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={page <= 1 || isLoading}
-                        onClick={() => {
-                          setPage((current) => Math.max(current - 1, 1))
-                        }}
-                      >
-                        Previous
-                      </Button>
-
-                      <div className="flex items-center gap-1">
-                        {paginationItems.map((item, index) => {
-                          if (item === 'ellipsis') {
-                            return (
-                              <span
-                                key={`ellipsis-${index}`}
-                                className="text-muted-foreground flex size-8 items-center justify-center text-sm"
+                          {!globalLoading && !campaigns?.campaigns?.length && (
+                            <TableRow>
+                              <TableCell
+                                colSpan={13}
+                                className="h-32 text-center"
                               >
-                                ...
-                              </span>
-                            )
-                          }
+                                <p className="text-muted-foreground text-sm">
+                                  No campaigns found.
+                                </p>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
 
-                          return (
-                            <Button
-                              key={item}
-                              variant={page === item ? 'outline' : 'ghost'}
-                              size="icon"
-                              className="size-8"
-                              disabled={isLoading}
-                              onClick={() => {
-                                setPage(item)
-                              }}
-                            >
-                              {item}
-                            </Button>
-                          )
-                        })}
+                      {/* Pagination */}
+                      <div className="flex items-center justify-between border-t px-4 py-3">
+                        <p className="text-muted-foreground text-sm">
+                          {totalCampaigns > 0 ? (
+                            <>
+                              Showing {from}-{to} of {totalCampaigns} events
+                            </>
+                          ) : (
+                            'No events'
+                          )}
+                        </p>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page <= 1 || globalLoading}
+                            onClick={() => {
+                              setPage((current) => Math.max(current - 1, 1))
+                            }}
+                          >
+                            Previous
+                          </Button>
+
+                          <div className="flex items-center gap-1">
+                            {paginationItems.map((item, index) => {
+                              if (item === 'ellipsis') {
+                                return (
+                                  <span
+                                    key={`ellipsis-${index}`}
+                                    className="text-muted-foreground flex size-8 items-center justify-center text-sm"
+                                  >
+                                    ...
+                                  </span>
+                                )
+                              }
+
+                              return (
+                                <Button
+                                  key={item}
+                                  variant={page === item ? 'outline' : 'ghost'}
+                                  size="icon"
+                                  className="size-8"
+                                  disabled={globalLoading}
+                                  onClick={() => {
+                                    setPage(item)
+                                  }}
+                                >
+                                  {item}
+                                </Button>
+                              )
+                            })}
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page >= totalPages || globalLoading}
+                            onClick={() => {
+                              setPage((current) =>
+                                Math.min(current + 1, totalPages)
+                              )
+                            }}
+                          >
+                            Next
+                          </Button>
+                        </div>
                       </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={page >= totalPages || isLoading}
-                        onClick={() => {
-                          setPage((current) =>
-                            Math.min(current + 1, totalPages)
-                          )
-                        }}
-                      >
-                        Next
-                      </Button>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>{' '}
+                </div>{' '}
+              </>
+            )}
           </>
         )}
       </div>

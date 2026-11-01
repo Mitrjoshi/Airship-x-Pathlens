@@ -23,11 +23,11 @@ import {
 } from '@workspace/ui/components/select'
 import { Separator } from '@workspace/ui/components/separator'
 
-import { LoaderIcon, PauseIcon, PlayIcon, RefreshCcwIcon } from 'lucide-react'
+import { PauseIcon, PlayIcon, RefreshCcwIcon } from 'lucide-react'
 
 import { DomainSwitcher } from './-components/common/domain-switcher'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { getUserJourneyOptions } from '@/queries/user-journey'
@@ -36,6 +36,7 @@ import { useRelativeTime } from '@/hooks/use-relative-time'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './-components/common/no-permission-view'
 import { Skeleton } from '@workspace/ui/components/skeleton'
+import { ErrorScreen } from './-components/common/error-screen'
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/user-journey'
@@ -111,66 +112,53 @@ function RouteComponent() {
   const [liveMode, setLiveMode] = useState(false)
   const [domain, setDomain] = useState('')
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: refetchPermissions,
+    isRefetching: isRefetchingPermissions,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('analytics.user_journey.view')
 
   const {
-    data: journeyData,
-    isLoading,
-    refetch,
-    dataUpdatedAt,
-    isRefetching,
-  } = useQuery(
-    getUserJourneyOptions({
-      workspace_id: workspaceId,
-      project_id: projectId,
-      range,
-      device: 'all',
-      domain,
-    })
-  )
-
-  const { data: domainsData, isLoading: domainsLoading } = useQuery({
+    data: domainsData,
+    isLoading: domainsLoading,
+    error: domainsError,
+    refetch: refetchDomains,
+    isRefetching: isRefetchingDomains,
+  } = useQuery({
     ...getProjectDomainsOptions(projectId),
     enabled: !!hasViewPermission,
   })
 
+  const domains = domainsData?.data
+  const activeDomain = domain || domains?.[0]?.domain || ''
+
+  const {
+    data: journeyData,
+    isLoading,
+    refetch: refetchJourney,
+    dataUpdatedAt,
+    isRefetching: isRefetchingJourney,
+    error: journeyError,
+  } = useQuery({
+    ...getUserJourneyOptions({
+      workspace_id: workspaceId,
+      project_id: projectId,
+      range,
+      device: 'all',
+      domain: activeDomain,
+    }),
+    enabled: !!hasViewPermission && !!activeDomain,
+    refetchInterval: liveMode ? 5000 : undefined,
+  })
+
   const journey = journeyData?.data
 
-  const domains = domainsData?.data
-
   const lastUpdated = useRelativeTime(dataUpdatedAt)
-
-  useEffect(() => {
-    if (!domains?.length) return
-
-    setDomain((currentDomain) => {
-      if (currentDomain) return currentDomain
-
-      return domains[0]?.domain ?? ''
-    })
-  }, [domains])
-
-  /*
-   * Live refresh
-   *
-   * Change 10_000 if you want a different refresh interval.
-   */
-  useEffect(() => {
-    if (!liveMode) return
-
-    const interval = window.setInterval(() => {
-      void refetch()
-    }, 10_000)
-
-    return () => {
-      window.clearInterval(interval)
-    }
-  }, [liveMode, refetch])
 
   const flowNodes = useMemo(() => {
     if (!journey?.nodes?.length) return []
@@ -187,7 +175,15 @@ function RouteComponent() {
       journey.edges as ApiJourneyEdge[],
       journey.nodes as ApiJourneyNode[]
     )
-  }, [journey?.edges, journey?.nodes])
+  }, [journey])
+
+  const globalLoading = permissionsLoading || domainsLoading || isLoading
+  const globalError = permissionsError || domainsError || journeyError
+  const globalRefetching =
+    isRefetchingPermissions || isRefetchingDomains || isRefetchingJourney
+
+  const refetch = () =>
+    Promise.all([refetchPermissions(), refetchDomains(), refetchJourney()])
 
   return (
     <div>
@@ -207,7 +203,7 @@ function RouteComponent() {
           <div className="flex items-center gap-4">
             <DomainSwitcher
               loading={domainsLoading}
-              domain={domain}
+              domain={activeDomain}
               setDomain={setDomain}
               domains={domains ?? []}
               refetch={refetch}
@@ -238,13 +234,13 @@ function RouteComponent() {
             </Button>
 
             <Button
-              disabled={isRefetching}
-              onClick={() => {
-                void refetch()
-              }}
+              disabled={globalRefetching}
+              onClick={refetch}
               variant="outline"
             >
-              <RefreshCcwIcon className={isRefetching ? 'animate-spin' : ''} />
+              <RefreshCcwIcon
+                className={globalRefetching ? 'animate-spin' : ''}
+              />
               Refresh
             </Button>
 
@@ -288,81 +284,96 @@ function RouteComponent() {
           </p>
         </div>
 
-        {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetch={refetch}
+            refetching={globalRefetching}
+          />
         ) : (
           <>
-            {/* Summary */}
-            {journey?.summary && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-                <SummaryCard
-                  label="Visitors"
-                  value={journey.summary.visitors}
-                />
-
-                <SummaryCard
-                  label="Branches"
-                  value={journey.summary.activeBranches}
-                />
-
-                <SummaryCard
-                  label="Conversions"
-                  value={journey.summary.conversionBranches}
-                />
-
-                <SummaryCard
-                  label="Drop-offs"
-                  value={journey.summary.dropoffBranches}
-                />
-
-                <SummaryCard
-                  label="Conversion rate"
-                  value={`${journey.summary.conversionRate}%`}
-                />
-
-                <SummaryCard
-                  label="Avg. conversion"
-                  value={journey.summary.avgTimeToConvert}
-                />
-              </div>
-            )}
-
-            {/* Journey flow */}
-            <div className="bg-card/30 h-[calc(100vh-320px)] w-full overflow-hidden border-2 border-dashed">
-              {isLoading ? (
-                <JourneyLoading />
-              ) : flowNodes.length === 0 ? (
-                <JourneyEmpty />
-              ) : (
-                <ReactFlow
-                  nodes={flowNodes}
-                  edges={flowEdges}
-                  nodeTypes={nodeTypes}
-                  fitView
-                  fitViewOptions={{
-                    padding: 0.2,
-                    maxZoom: 1,
-                  }}
-                  minZoom={0.15}
-                  maxZoom={1.5}
-                  nodesDraggable={false}
-                  nodesConnectable={false}
-                  nodesFocusable
-                  edgesFocusable
-                  elementsSelectable
-                  deleteKeyCode={null}
-                  proOptions={{
-                    hideAttribution: true,
-                  }}
-                >
-                  <Background
-                    color="var(--color-foreground)"
-                    gap={32}
-                    size={1.2}
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
+            ) : (
+              <>
+                {/* Summary */}
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+                  <SummaryCard
+                    label="Visitors"
+                    value={journey?.summary?.visitors}
+                    isLoading={globalLoading}
                   />
-                </ReactFlow>
-              )}
-            </div>
+
+                  <SummaryCard
+                    label="Branches"
+                    value={journey?.summary?.activeBranches}
+                    isLoading={globalLoading}
+                  />
+
+                  <SummaryCard
+                    label="Conversions"
+                    value={journey?.summary?.conversionBranches}
+                    isLoading={globalLoading}
+                  />
+
+                  <SummaryCard
+                    label="Drop-offs"
+                    value={journey?.summary?.dropoffBranches}
+                    isLoading={globalLoading}
+                  />
+
+                  <SummaryCard
+                    label="Conversion rate"
+                    value={`${journey?.summary?.conversionRate}%`}
+                    isLoading={globalLoading}
+                  />
+
+                  <SummaryCard
+                    label="Avg. conversion"
+                    value={journey?.summary?.avgTimeToConvert}
+                    isLoading={globalLoading}
+                  />
+                </div>
+
+                {/* Journey flow */}
+                <div className="bg-card/30 h-[calc(100vh-320px)] w-full overflow-hidden border-2 border-dashed">
+                  {globalLoading ? (
+                    <JourneyLoading />
+                  ) : flowNodes.length === 0 ? (
+                    <JourneyEmpty />
+                  ) : (
+                    <ReactFlow
+                      nodes={flowNodes}
+                      edges={flowEdges}
+                      nodeTypes={nodeTypes}
+                      fitView
+                      fitViewOptions={{
+                        padding: 0.2,
+                        maxZoom: 1,
+                      }}
+                      minZoom={0.15}
+                      maxZoom={1.5}
+                      nodesDraggable={false}
+                      nodesConnectable={false}
+                      nodesFocusable
+                      edgesFocusable
+                      elementsSelectable
+                      deleteKeyCode={null}
+                      proOptions={{
+                        hideAttribution: true,
+                      }}
+                    >
+                      <Background
+                        color="var(--color-foreground)"
+                        gap={32}
+                        size={1.2}
+                      />
+                    </ReactFlow>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
@@ -373,15 +384,21 @@ function RouteComponent() {
 function SummaryCard({
   label,
   value,
+  isLoading,
 }: {
   label: string
-  value: string | number
+  value?: string | number
+  isLoading: boolean
 }) {
   return (
     <div className="bg-card/30 border-2 border-dashed p-4">
       <p className="text-muted-foreground text-xs">{label}</p>
 
-      <p className="mt-1 text-xl font-semibold">{value}</p>
+      {isLoading || value === undefined ? (
+        <Skeleton className="mt-1 h-6 w-16" />
+      ) : (
+        <p className="mt-1 text-xl font-semibold">{value}</p>
+      )}
     </div>
   )
 }
@@ -390,13 +407,7 @@ function JourneyLoading() {
   return (
     <div className="flex h-full items-center justify-center">
       <div className="text-center">
-        <LoaderIcon className="text-muted-foreground mx-auto mb-3 size-5 animate-spin" />
-
-        <p className="text-sm font-medium">Loading user journey</p>
-
-        <p className="text-muted-foreground mt-1 text-xs">
-          Preparing journey visualization...
-        </p>
+        <p className="text-muted-foreground shimmer">Loading Preview...</p>
       </div>
     </div>
   )

@@ -29,7 +29,6 @@ export interface GoalsParams {
   workspace_id: string
   project_id: string
   domain?: string
-  domain_id?: string
   range: GoalRange
 }
 
@@ -144,7 +143,6 @@ export const getGoalsOptions = (params: GoalsParams) =>
   queryOptions({
     queryKey: ['GOALS', params],
     queryFn: () => getGoals(params),
-    enabled: Boolean(params.workspace_id && params.project_id),
   })
 
 const getGoalDashboard = async (

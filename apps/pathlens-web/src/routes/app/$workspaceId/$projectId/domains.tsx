@@ -11,7 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from '@workspace/ui/components/table'
-import { EllipsisIcon, ExternalLinkIcon, PlusIcon } from 'lucide-react'
+import {
+  EllipsisIcon,
+  ExternalLinkIcon,
+  PlusIcon,
+  SearchIcon,
+} from 'lucide-react'
 import { UserDetailsSheet } from './-components/user/user-details-sheet'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -43,6 +48,12 @@ import { Badge } from '@workspace/ui/components/badge'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { toast } from 'sonner'
 import { NoPermissionView } from './-components/common/no-permission-view'
+import {
+  InputGroup,
+  InputGroupButton,
+  InputGroupInput,
+} from '@workspace/ui/components/input-group'
+import { ErrorScreen } from './-components/common/error-screen'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/domains')({
   component: RouteComponent,
@@ -54,15 +65,25 @@ function RouteComponent() {
   const [domain, setDomain] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: permissionsRefetch,
+    isRefetching: permissionsRefetching,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('project.domains.view')
   const hasManagePermission = permissions?.includes('project.domains.manage')
 
-  const { data, isLoading } = useQuery({
+  const {
+    data: domainsData,
+    isLoading: domainsLoading,
+    error: domainsError,
+    refetch: domainsRefetch,
+    isRefetching: domainsRefetching,
+  } = useQuery({
     ...getProjectDomainsOptions(projectId),
     enabled: !!hasViewPermission,
   })
@@ -83,176 +104,210 @@ function RouteComponent() {
     })
   }
 
+  const globalLoading = permissionsLoading || domainsLoading
+  const globalError = permissionsError || domainsError
+  const globalRefetching = permissionsRefetching || domainsRefetching
+  const refetch = () => Promise.all([permissionsRefetch(), domainsRefetch()])
+
   return (
     <div className="p-6">
       <div className="space-y-4">
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            if (!hasManagePermission) {
-              return toast.error(
-                'You do not have permission to create domains.'
-              )
-            }
+        <div className="flex items-center justify-between gap-6">
+          {/* Header */}
+          <div className="">
+            <p className="text-xl font-medium">Domains</p>
 
-            setDialogOpen(open)
-
-            if (!open) {
-              setDomain('')
-            }
-          }}
-        >
-          <div className="flex items-center justify-between gap-6">
-            {/* Header */}
-            <div className="">
-              <p className="text-xl font-medium">Domains</p>
-
-              <p className="text-muted-foreground text-sm">
-                Manage the domains where Pathlens is installed and collecting
-                analytics.
-              </p>
-            </div>
-
-            <DialogTrigger render={<Button />}>
-              <PlusIcon />
-              New Domain
-            </DialogTrigger>
+            <p className="text-muted-foreground text-sm">
+              Manage the domains where Pathlens is installed and collecting
+              analytics.
+            </p>
           </div>
+        </div>
 
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Domain</DialogTitle>
-
-              <DialogDescription>
-                Add a domain where Pathlens will be installed and collect
-                analytics.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-2 py-2">
-              <Label htmlFor="create-domain">Domain</Label>
-
-              <Input
-                id="create-domain"
-                value={domain}
-                onChange={(event) => setDomain(event.target.value)}
-                placeholder="example.com"
-                disabled={isCreating}
-                autoFocus
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    handleCreateDomain()
-                  }
-                }}
-              />
-            </div>
-
-            <DialogFooter className="bg-transparent py-2">
-              <DialogClose
-                render={<Button variant="outline" disabled={isCreating} />}
-              >
-                Cancel
-              </DialogClose>
-
-              <Button
-                onClick={handleCreateDomain}
-                disabled={!domain.trim() || isCreating}
-              >
-                <LoadingSwap isLoading={isCreating}>Add Domain</LoadingSwap>
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Table */}
-        {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetch={refetch}
+            refetching={globalRefetching}
+          />
         ) : (
           <>
-            <div className="border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Domain</TableHead>
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-4">
+                  <InputGroup className="w-120">
+                    <InputGroupButton>
+                      <SearchIcon />
+                    </InputGroupButton>
 
-                    <TableHead className="w-60 text-center">
-                      Created By
-                    </TableHead>
+                    <InputGroupInput placeholder="Search..." />
+                  </InputGroup>
 
-                    <TableHead className="w-20 text-center">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
+                  <Dialog
+                    open={dialogOpen}
+                    onOpenChange={(open) => {
+                      if (!hasManagePermission) {
+                        return toast.error(
+                          'You do not have permission to create domains.'
+                        )
+                      }
 
-                <TableBody>
-                  {isLoading
-                    ? [...Array(10)].map((_, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <Skeleton className="h-5 w-32" />
-                          </TableCell>
+                      setDialogOpen(open)
 
-                          <TableCell>
-                            <Skeleton className="mx-auto h-5 w-60" />
-                          </TableCell>
+                      if (!open) {
+                        setDomain('')
+                      }
+                    }}
+                  >
+                    <DialogTrigger render={<Button disabled={globalLoading} />}>
+                      <PlusIcon />
+                      New Domain
+                    </DialogTrigger>
 
-                          <TableCell>
-                            <Skeleton className="mx-auto h-5 w-8" />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : data?.data?.map((item) => (
-                        <TableRow key={item.id} className="hover:bg-card/40">
-                          <TableCell>
-                            <Button
-                              render={
-                                <a
-                                  href={item.domain as string}
-                                  target="_blank"
-                                />
-                              }
-                              variant="link"
-                              className="text-foreground px-0 underline underline-offset-4"
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add Domain</DialogTitle>
+
+                        <DialogDescription>
+                          Add a domain where Pathlens will be installed and
+                          collect analytics.
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="space-y-2 py-2">
+                        <Label htmlFor="create-domain">Domain</Label>
+
+                        <Input
+                          id="create-domain"
+                          value={domain}
+                          onChange={(event) => setDomain(event.target.value)}
+                          placeholder="example.com"
+                          disabled={isCreating}
+                          autoFocus
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              handleCreateDomain()
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <DialogFooter className="bg-transparent py-2">
+                        <DialogClose
+                          render={
+                            <Button variant="outline" disabled={isCreating} />
+                          }
+                        >
+                          Cancel
+                        </DialogClose>
+
+                        <Button
+                          onClick={handleCreateDomain}
+                          disabled={!domain.trim() || isCreating}
+                        >
+                          <LoadingSwap isLoading={isCreating}>
+                            Add Domain
+                          </LoadingSwap>
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Domain</TableHead>
+
+                        <TableHead className="w-60 text-center">
+                          Created By
+                        </TableHead>
+
+                        <TableHead className="w-20 text-center">
+                          Action
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+
+                    <TableBody>
+                      {globalLoading
+                        ? [...Array(10)].map((_, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <Skeleton className="h-5 w-32" />
+                              </TableCell>
+
+                              <TableCell>
+                                <Skeleton className="mx-auto h-5 w-60" />
+                              </TableCell>
+
+                              <TableCell>
+                                <Skeleton className="mx-auto h-5 w-8" />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        : domainsData?.data?.map((item) => (
+                            <TableRow
+                              key={item.id}
+                              className="hover:bg-card/40"
                             >
-                              {item.domain}
-                              <ExternalLinkIcon />
-                            </Button>
-                            {item.isDefault && (
-                              <Badge variant={'secondary'} className="ml-4">
-                                Default
-                              </Badge>
-                            )}
-                          </TableCell>
+                              <TableCell>
+                                <Button
+                                  render={
+                                    <a
+                                      href={item.domain as string}
+                                      target="_blank"
+                                    />
+                                  }
+                                  variant="link"
+                                  className="text-foreground px-0 underline underline-offset-4"
+                                >
+                                  {item.domain}
+                                  <ExternalLinkIcon />
+                                </Button>
+                                {item.isDefault && (
+                                  <Badge variant={'secondary'} className="ml-4">
+                                    Default
+                                  </Badge>
+                                )}
+                              </TableCell>
 
-                          <TableCell className="text-center">
-                            <UserDetailsSheet
-                              userId={item.userId}
-                              workspaceId={workspaceId}
-                            />
-                          </TableCell>
+                              <TableCell className="text-center">
+                                <UserDetailsSheet
+                                  userId={item.userId}
+                                  workspaceId={workspaceId}
+                                />
+                              </TableCell>
 
-                          <TableCell className="text-center">
-                            <DomainActions
-                              projectId={projectId}
-                              domainId={item.id}
-                              domain={item.domain}
-                              hasManagePermission={hasManagePermission!}
-                            />
+                              <TableCell className="text-center">
+                                <DomainActions
+                                  projectId={projectId}
+                                  domainId={item.id}
+                                  domain={item.domain}
+                                  hasManagePermission={hasManagePermission!}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+
+                      {!globalLoading && !domainsData?.data?.length && (
+                        <TableRow>
+                          <TableCell colSpan={3} className="h-32 text-center">
+                            <p className="text-muted-foreground text-sm">
+                              No domains found.
+                            </p>
                           </TableCell>
                         </TableRow>
-                      ))}
-
-                  {!isLoading && !data?.data?.length && (
-                    <TableRow>
-                      <TableCell colSpan={3} className="h-32 text-center">
-                        <p className="text-muted-foreground text-sm">
-                          No domains found.
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

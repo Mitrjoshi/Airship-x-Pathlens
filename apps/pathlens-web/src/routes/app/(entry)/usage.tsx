@@ -78,6 +78,7 @@ function RouteComponent() {
     isPending: usageDataLoading,
     isError: usageError,
     refetch,
+    refetching,
   } = useQuery({
     ...getUsageOptions(
       resolvedWorkspaceId ?? '',
@@ -289,7 +290,12 @@ function RouteComponent() {
 
         {/* Error states */}
         {usageError ? (
-          <ErrorScreen refetch={refetch} />
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetch={refetch}
+            refetching={refetching}
+          />
         ) : (
           <>
             {/* Usage statistics */}

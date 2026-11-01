@@ -19,13 +19,14 @@ import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authPasswordResetRouteImport } from './routes/(auth)/password-reset'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as openIndexRouteImport } from './routes/(open)/index'
-import { Route as openCareersRouteImport } from './routes/(open)/careers'
 import { Route as openPricingRouteImport } from './routes/(open)/pricing'
 import { Route as referencesPrivacyRouteImport } from './routes/(references)/privacy'
 import { Route as referencesTermsRouteImport } from './routes/(references)/terms'
 import { Route as AppWorkspaceIdRouteRouteImport } from './routes/app/$workspaceId/route'
 import { Route as AppentryRouteRouteImport } from './routes/app/(entry)/route'
 import { Route as AppCheckoutRouteImport } from './routes/app/checkout'
+import { Route as openCareersIndexRouteImport } from './routes/(open)/careers/index'
+import { Route as openCareersJobsRouteImport } from './routes/(open)/careers/jobs'
 import { Route as openProductsIndexRouteImport } from './routes/(open)/products/index'
 import { Route as openSolutionsIndexRouteImport } from './routes/(open)/solutions/index'
 import { Route as AppWorkspaceIdIndexRouteImport } from './routes/app/$workspaceId/index'
@@ -113,11 +114,6 @@ const openIndexRoute = openIndexRouteImport.update({
   path: '/',
   getParentRoute: () => openRouteRoute,
 } as any)
-const openCareersRoute = openCareersRouteImport.update({
-  id: '/careers',
-  path: '/careers',
-  getParentRoute: () => openRouteRoute,
-} as any)
 const openPricingRoute = openPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -146,6 +142,16 @@ const AppCheckoutRoute = AppCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const openCareersIndexRoute = openCareersIndexRouteImport.update({
+  id: '/careers/',
+  path: '/careers/',
+  getParentRoute: () => openRouteRoute,
+} as any)
+const openCareersJobsRoute = openCareersJobsRouteImport.update({
+  id: '/careers/jobs',
+  path: '/careers/jobs',
+  getParentRoute: () => openRouteRoute,
 } as any)
 const openProductsIndexRoute = openProductsIndexRouteImport.update({
   id: '/products/',
@@ -375,12 +381,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
-  '/careers': typeof openCareersRoute
   '/pricing': typeof openPricingRoute
   '/privacy': typeof referencesPrivacyRoute
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
   '/': typeof openIndexRoute
+  '/careers/jobs': typeof openCareersJobsRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
   '/app/$workspaceId/invite': typeof AppWorkspaceIdInviteRoute
@@ -393,6 +399,7 @@ export interface FileRoutesByFullPath {
   '/app/security': typeof AppentrySecurityRoute
   '/app/settings': typeof AppentrySettingsRoute
   '/app/usage': typeof AppentryUsageRoute
+  '/careers/': typeof openCareersIndexRoute
   '/products/': typeof openProductsIndexRoute
   '/solutions/': typeof openSolutionsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
@@ -428,12 +435,12 @@ export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
-  '/careers': typeof openCareersRoute
   '/pricing': typeof openPricingRoute
   '/privacy': typeof referencesPrivacyRoute
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
   '/': typeof openIndexRoute
+  '/careers/jobs': typeof openCareersJobsRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
   '/app/$workspaceId/invite': typeof AppWorkspaceIdInviteRoute
@@ -446,6 +453,7 @@ export interface FileRoutesByTo {
   '/app/security': typeof AppentrySecurityRoute
   '/app/settings': typeof AppentrySettingsRoute
   '/app/usage': typeof AppentryUsageRoute
+  '/careers': typeof openCareersIndexRoute
   '/products': typeof openProductsIndexRoute
   '/solutions': typeof openSolutionsIndexRoute
   '/app/$workspaceId': typeof AppWorkspaceIdIndexRoute
@@ -486,12 +494,12 @@ export interface FileRoutesById {
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/password-reset': typeof authPasswordResetRoute
   '/(auth)/sign-up': typeof authSignUpRoute
-  '/(open)/careers': typeof openCareersRoute
   '/(open)/pricing': typeof openPricingRoute
   '/(references)/privacy': typeof referencesPrivacyRoute
   '/(references)/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
   '/(open)/': typeof openIndexRoute
+  '/(open)/careers/jobs': typeof openCareersJobsRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
   '/app/$workspaceId/invite': typeof AppWorkspaceIdInviteRoute
@@ -504,6 +512,7 @@ export interface FileRoutesById {
   '/app/(entry)/security': typeof AppentrySecurityRoute
   '/app/(entry)/settings': typeof AppentrySettingsRoute
   '/app/(entry)/usage': typeof AppentryUsageRoute
+  '/(open)/careers/': typeof openCareersIndexRoute
   '/(open)/products/': typeof openProductsIndexRoute
   '/(open)/solutions/': typeof openSolutionsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
@@ -542,12 +551,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/password-reset'
     | '/sign-up'
-    | '/careers'
     | '/pricing'
     | '/privacy'
     | '/terms'
     | '/app/checkout'
     | '/'
+    | '/careers/jobs'
     | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
     | '/app/$workspaceId/invite'
@@ -560,6 +569,7 @@ export interface FileRouteTypes {
     | '/app/security'
     | '/app/settings'
     | '/app/usage'
+    | '/careers/'
     | '/products/'
     | '/solutions/'
     | '/app/$workspaceId/'
@@ -595,12 +605,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/password-reset'
     | '/sign-up'
-    | '/careers'
     | '/pricing'
     | '/privacy'
     | '/terms'
     | '/app/checkout'
     | '/'
+    | '/careers/jobs'
     | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
     | '/app/$workspaceId/invite'
@@ -613,6 +623,7 @@ export interface FileRouteTypes {
     | '/app/security'
     | '/app/settings'
     | '/app/usage'
+    | '/careers'
     | '/products'
     | '/solutions'
     | '/app/$workspaceId'
@@ -652,12 +663,12 @@ export interface FileRouteTypes {
     | '/(auth)/login'
     | '/(auth)/password-reset'
     | '/(auth)/sign-up'
-    | '/(open)/careers'
     | '/(open)/pricing'
     | '/(references)/privacy'
     | '/(references)/terms'
     | '/app/checkout'
     | '/(open)/'
+    | '/(open)/careers/jobs'
     | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
     | '/app/$workspaceId/invite'
@@ -670,6 +681,7 @@ export interface FileRouteTypes {
     | '/app/(entry)/security'
     | '/app/(entry)/settings'
     | '/app/(entry)/usage'
+    | '/(open)/careers/'
     | '/(open)/products/'
     | '/(open)/solutions/'
     | '/app/$workspaceId/'
@@ -778,13 +790,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof openIndexRouteImport
       parentRoute: typeof openRouteRoute
     }
-    '/(open)/careers': {
-      id: '/(open)/careers'
-      path: '/careers'
-      fullPath: '/careers'
-      preLoaderRoute: typeof openCareersRouteImport
-      parentRoute: typeof openRouteRoute
-    }
     '/(open)/pricing': {
       id: '/(open)/pricing'
       path: '/pricing'
@@ -826,6 +831,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/checkout'
       preLoaderRoute: typeof AppCheckoutRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/(open)/careers/': {
+      id: '/(open)/careers/'
+      path: '/careers'
+      fullPath: '/careers/'
+      preLoaderRoute: typeof openCareersIndexRouteImport
+      parentRoute: typeof openRouteRoute
+    }
+    '/(open)/careers/jobs': {
+      id: '/(open)/careers/jobs'
+      path: '/careers/jobs'
+      fullPath: '/careers/jobs'
+      preLoaderRoute: typeof openCareersJobsRouteImport
+      parentRoute: typeof openRouteRoute
     }
     '/(open)/products/': {
       id: '/(open)/products/'
@@ -1124,9 +1143,10 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 )
 
 interface openRouteRouteChildren {
-  openCareersRoute: typeof openCareersRoute
   openPricingRoute: typeof openPricingRoute
   openIndexRoute: typeof openIndexRoute
+  openCareersJobsRoute: typeof openCareersJobsRoute
+  openCareersIndexRoute: typeof openCareersIndexRoute
   openProductsIndexRoute: typeof openProductsIndexRoute
   openSolutionsIndexRoute: typeof openSolutionsIndexRoute
   openProductsProductIdIndexRoute: typeof openProductsProductIdIndexRoute
@@ -1134,9 +1154,10 @@ interface openRouteRouteChildren {
 }
 
 const openRouteRouteChildren: openRouteRouteChildren = {
-  openCareersRoute: openCareersRoute,
   openPricingRoute: openPricingRoute,
   openIndexRoute: openIndexRoute,
+  openCareersJobsRoute: openCareersJobsRoute,
+  openCareersIndexRoute: openCareersIndexRoute,
   openProductsIndexRoute: openProductsIndexRoute,
   openSolutionsIndexRoute: openSolutionsIndexRoute,
   openProductsProductIdIndexRoute: openProductsProductIdIndexRoute,

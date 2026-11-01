@@ -18,6 +18,7 @@ import {
   PauseIcon,
   PlayIcon,
   RefreshCcwIcon,
+  SearchIcon,
 } from 'lucide-react'
 import {
   Select,
@@ -38,6 +39,12 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import { CenterEllipsis } from '../-components/common/center-ellipsis'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from '../-components/common/no-permission-view'
+import { ErrorScreen } from '../-components/common/error-screen'
+import {
+  InputGroup,
+  InputGroupButton,
+  InputGroupInput,
+} from '@workspace/ui/components/input-group'
 
 export const Route = createFileRoute('/app/$workspaceId/$projectId/heatmaps/')({
   component: RouteComponent,
@@ -76,25 +83,38 @@ function RouteComponent() {
   const [page, setPage] = useState(1)
   const [domain, setDomain] = useState('')
 
-  const { data: domainsData, isLoading: domainsLoading } = useQuery(
-    getProjectDomainsOptions(projectId)
-  )
-  const domains = domainsData?.data
-  const activeDomain = domain || domains?.[0]?.domain || ''
-
-  const { data: permissionsData, isLoading: permissionsLoading } = useQuery(
-    getWorkspacePermissionsOptions(workspaceId)
-  )
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    refetch: permissionsRefetch,
+    isRefetching: permissionsRefetching,
+  } = useQuery(getWorkspacePermissionsOptions(workspaceId))
 
   const permissions = permissionsData?.data
   const hasViewPermission = permissions?.includes('analytics.heatmaps.view')
 
   const {
+    data: domainsData,
+    isLoading: domainsLoading,
+    error: domainsError,
+    refetch: domainsRefetch,
+    isRefetching: domainsRefetching,
+  } = useQuery({
+    ...getProjectDomainsOptions(projectId),
+    enabled: !!hasViewPermission,
+  })
+
+  const domains = domainsData?.data
+  const activeDomain = domain || domains?.[0]?.domain || ''
+
+  const {
     data: heatmapsData,
     isLoading: heatmapsLoading,
     dataUpdatedAt,
-    refetch,
-    isRefetching,
+    refetch: heatmapsRefetch,
+    isRefetching: heatmapsRefetching,
+    error: heatmapsError,
   } = useQuery({
     ...getHeatmapsOptions({
       project_id: projectId,
@@ -105,9 +125,9 @@ function RouteComponent() {
       domain: activeDomain,
       page,
       page_size: PAGE_SIZE,
-      refetchInterval: liveMode ? 5000 : undefined,
     }),
-    enabled: !!hasViewPermission,
+    enabled: !!hasViewPermission && !!activeDomain,
+    refetchInterval: liveMode ? 5000 : undefined,
   })
 
   const heatmaps = heatmapsData?.data
@@ -119,6 +139,14 @@ function RouteComponent() {
 
   const from = totalEvents === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
   const to = Math.min(page * PAGE_SIZE, totalEvents)
+
+  const globalLoading = heatmapsLoading || permissionsLoading || domainsLoading
+  const globalRefetching =
+    heatmapsRefetching || permissionsRefetching || domainsRefetching
+  const globalError = heatmapsError || permissionsError || domainsError
+
+  const refetch = () =>
+    Promise.all([heatmapsRefetch(), permissionsRefetch(), domainsRefetch()])
 
   return (
     <div>
@@ -165,14 +193,12 @@ function RouteComponent() {
               Live Refresh
             </Button>
             <Button
-              disabled={isRefetching}
-              onClick={() => {
-                refetch()
-              }}
+              disabled={globalRefetching}
+              onClick={refetch}
               variant="outline"
             >
               <RefreshCcwIcon
-                className={`${isRefetching ? 'animate-spin' : ''}`}
+                className={`${globalRefetching ? 'animate-spin' : ''}`}
               />
               Refresh
             </Button>
@@ -238,202 +264,236 @@ function RouteComponent() {
           </p>
         </div>
 
-        {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+        {globalError && !globalLoading ? (
+          <ErrorScreen
+            workspace_id={workspaceId}
+            project_id={projectId}
+            refetch={refetch}
+            refetching={globalRefetching}
+          />
         ) : (
           <>
-            <div className="overflow-hidden border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>URL</TableHead>
-                    <TableHead className="w-32 text-center">Path</TableHead>
-                    <TableHead className="w-32 text-center">Visitor</TableHead>
-                    <TableHead className="w-32 text-center">Views</TableHead>
-                    <TableHead className="w-32 text-center">Clicks</TableHead>
-                    <TableHead className="w-32 text-center">
-                      Max Scroll
-                    </TableHead>
-                    <TableHead className="w-32 text-center">Heatmap</TableHead>
-                  </TableRow>
-                </TableHeader>
+            {!hasViewPermission && !permissionsLoading ? (
+              <NoPermissionView />
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-4">
+                  <InputGroup className="w-120">
+                    <InputGroupButton>
+                      <SearchIcon />
+                    </InputGroupButton>
 
-                <TableBody>
-                  {heatmapsLoading
-                    ? [...Array(PAGE_SIZE)].map((_, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <Skeleton className="h-5 w-32" />
-                          </TableCell>
-
-                          <TableCell className="w-24">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-16" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-32">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-24" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-32">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-16" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-32">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-20" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-32">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-5 w-20" />
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="w-20">
-                            <div className="flex justify-center">
-                              <Skeleton className="h-8 w-8 rounded-md" />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : heatmaps?.pages?.map((item) => (
-                        <TableRow
-                          onClick={() => {
-                            if (!item.id) return
-                            void navigate({
-                              to: '/app/$workspaceId/$projectId/heatmaps/$heatmapId',
-                              params: {
-                                workspaceId,
-                                projectId,
-                                heatmapId: item.id,
-                              },
-                            })
-                          }}
-                          key={item.path}
-                          className="hover:bg-card/40 cursor-pointer"
-                        >
-                          <TableCell>
-                            {item?.url ? (
-                              <CenterEllipsis text={item?.url} maxLength={70} />
-                            ) : (
-                              <MinusIcon />
-                            )}
-                          </TableCell>
-
-                          <TableCell className="w-24 text-center">
-                            {item.path}
-                          </TableCell>
-
-                          <TableCell className="w-32 text-center whitespace-nowrap">
-                            {formatNumber(item.visitors)}
-                          </TableCell>
-
-                          <TableCell className="w-32 text-center whitespace-nowrap">
-                            {formatNumber(item.views)}
-                          </TableCell>
-
-                          <TableCell className="w-32 text-center whitespace-nowrap">
-                            {formatNumber(item.clicks)}
-                          </TableCell>
-
-                          <TableCell className="w-32 text-center whitespace-nowrap">
-                            {item.maxScroll}%
-                          </TableCell>
-
-                          <TableCell className="w-20 text-center">
-                            <Button size="icon" variant="outline">
-                              <ArrowUpRightIcon />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-
-                  {!heatmapsLoading && !heatmaps?.pages?.length && (
-                    <TableRow>
-                      <TableCell colSpan={7} className="h-32 text-center">
-                        <p className="text-muted-foreground text-sm">
-                          No heatmaps found.
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between border-t px-4 py-3">
-                <p className="text-muted-foreground text-sm">
-                  {totalEvents > 0 ? (
-                    <>
-                      Showing {from}-{to} of {totalEvents} events
-                    </>
-                  ) : (
-                    'No events'
-                  )}
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1 || heatmapsLoading}
-                    onClick={() => {
-                      setPage((current) => Math.max(current - 1, 1))
-                    }}
-                  >
-                    Previous
-                  </Button>
-
-                  <div className="flex items-center gap-1">
-                    {paginationItems.map((item, index) => {
-                      if (item === 'ellipsis') {
-                        return (
-                          <span
-                            key={`ellipsis-${index}`}
-                            className="text-muted-foreground flex size-8 items-center justify-center text-sm"
-                          >
-                            ...
-                          </span>
-                        )
-                      }
-
-                      return (
-                        <Button
-                          key={item}
-                          variant={page === item ? 'outline' : 'ghost'}
-                          size="icon"
-                          className="size-8"
-                          disabled={heatmapsLoading}
-                          onClick={() => {
-                            setPage(item)
-                          }}
-                        >
-                          {item}
-                        </Button>
-                      )
-                    })}
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages || heatmapsLoading}
-                    onClick={() => {
-                      setPage((current) => Math.min(current + 1, totalPages))
-                    }}
-                  >
-                    Next
-                  </Button>
+                    <InputGroupInput placeholder="Search..." />
+                  </InputGroup>
                 </div>
-              </div>
-            </div>
+
+                <div className="overflow-hidden border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>URL</TableHead>
+                        <TableHead className="w-32 text-center">Path</TableHead>
+                        <TableHead className="w-32 text-center">
+                          Visitor
+                        </TableHead>
+                        <TableHead className="w-32 text-center">
+                          Views
+                        </TableHead>
+                        <TableHead className="w-32 text-center">
+                          Clicks
+                        </TableHead>
+                        <TableHead className="w-32 text-center">
+                          Max Scroll
+                        </TableHead>
+                        <TableHead className="w-32 text-center">
+                          Heatmap
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+
+                    <TableBody>
+                      {globalLoading
+                        ? [...Array(PAGE_SIZE)].map((_, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <Skeleton className="h-5 w-32" />
+                              </TableCell>
+
+                              <TableCell className="w-24">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-16" />
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="w-32">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-24" />
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="w-32">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-16" />
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="w-32">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-20" />
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="w-32">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-5 w-20" />
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="w-20">
+                                <div className="flex justify-center">
+                                  <Skeleton className="h-8 w-8 rounded-md" />
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        : heatmaps?.pages?.map((item) => (
+                            <TableRow
+                              onClick={() => {
+                                if (!item.id) return
+                                void navigate({
+                                  to: '/app/$workspaceId/$projectId/heatmaps/$heatmapId',
+                                  params: {
+                                    workspaceId,
+                                    projectId,
+                                    heatmapId: item.id,
+                                  },
+                                })
+                              }}
+                              key={item.path}
+                              className="hover:bg-card/40 cursor-pointer"
+                            >
+                              <TableCell>
+                                {item?.url ? (
+                                  <CenterEllipsis
+                                    text={item?.url}
+                                    maxLength={70}
+                                  />
+                                ) : (
+                                  <MinusIcon />
+                                )}
+                              </TableCell>
+
+                              <TableCell className="w-24 text-center">
+                                {item.path}
+                              </TableCell>
+
+                              <TableCell className="w-32 text-center whitespace-nowrap">
+                                {formatNumber(item.visitors)}
+                              </TableCell>
+
+                              <TableCell className="w-32 text-center whitespace-nowrap">
+                                {formatNumber(item.views)}
+                              </TableCell>
+
+                              <TableCell className="w-32 text-center whitespace-nowrap">
+                                {formatNumber(item.clicks)}
+                              </TableCell>
+
+                              <TableCell className="w-32 text-center whitespace-nowrap">
+                                {item.maxScroll}%
+                              </TableCell>
+
+                              <TableCell className="w-20 text-center">
+                                <Button size="icon" variant="outline">
+                                  <ArrowUpRightIcon />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+
+                      {!globalLoading && !heatmaps?.pages?.length && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-32 text-center">
+                            <p className="text-muted-foreground text-sm">
+                              No heatmaps found.
+                            </p>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between border-t px-4 py-3">
+                    <p className="text-muted-foreground text-sm">
+                      {totalEvents > 0 ? (
+                        <>
+                          Showing {from}-{to} of {totalEvents} events
+                        </>
+                      ) : (
+                        'No events'
+                      )}
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page <= 1 || heatmapsLoading}
+                        onClick={() => {
+                          setPage((current) => Math.max(current - 1, 1))
+                        }}
+                      >
+                        Previous
+                      </Button>
+
+                      <div className="flex items-center gap-1">
+                        {paginationItems.map((item, index) => {
+                          if (item === 'ellipsis') {
+                            return (
+                              <span
+                                key={`ellipsis-${index}`}
+                                className="text-muted-foreground flex size-8 items-center justify-center text-sm"
+                              >
+                                ...
+                              </span>
+                            )
+                          }
+
+                          return (
+                            <Button
+                              key={item}
+                              variant={page === item ? 'outline' : 'ghost'}
+                              size="icon"
+                              className="size-8"
+                              disabled={heatmapsLoading}
+                              onClick={() => {
+                                setPage(item)
+                              }}
+                            >
+                              {item}
+                            </Button>
+                          )
+                        })}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page >= totalPages || heatmapsLoading}
+                        onClick={() => {
+                          setPage((current) =>
+                            Math.min(current + 1, totalPages)
+                          )
+                        }}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

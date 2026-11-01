@@ -54,5 +54,4 @@ export const getFunnelsOptions = (params: FunnelsParams) =>
   queryOptions({
     queryKey: ['FUNNELS', params],
     queryFn: () => getFunnels(params),
-    enabled: Boolean(params.workspace_id && params.project_id),
   })
