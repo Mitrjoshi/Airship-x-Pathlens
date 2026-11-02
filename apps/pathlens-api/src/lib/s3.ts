@@ -1,4 +1,5 @@
 import {
+  DeleteObjectsCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -109,6 +110,43 @@ export async function uploadReport(
       ContentType: contentType,
     })
   );
+}
+
+export async function deleteStoredObjects(
+  storagePaths: readonly (string | null)[]
+): Promise<void> {
+  const keys = [
+    ...new Set(
+      storagePaths.filter((storagePath): storagePath is string =>
+        Boolean(storagePath)
+      )
+    ),
+  ];
+
+  if (keys.length === 0) return;
+
+  const client = getS3Client();
+  const bucket = process.env.S3_BUCKET?.trim() || DEFAULT_SNAPSHOT_BUCKET;
+
+  if (!client) {
+    throw new Error("AWS_REGION is required to delete stored objects.");
+  }
+
+  for (let index = 0; index < keys.length; index += 1000) {
+    const response = await client.send(
+      new DeleteObjectsCommand({
+        Bucket: bucket,
+        Delete: {
+          Objects: keys.slice(index, index + 1000).map((Key) => ({ Key })),
+          Quiet: true,
+        },
+      })
+    );
+
+    if (response.Errors?.length) {
+      throw new Error("Unable to delete one or more stored objects.");
+    }
+  }
 }
 
 export async function createReportSignedUrl(

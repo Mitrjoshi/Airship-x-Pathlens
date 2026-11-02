@@ -10,7 +10,7 @@ import { ThemeProvider } from './components/common/theme-provider'
 import { TooltipProvider } from '@workspace/ui/components/tooltip'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-const queryClient = new QueryClient()
+export const queryClient = new QueryClient()
 
 // Create a new router instance
 const router = createRouter({

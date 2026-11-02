@@ -446,7 +446,12 @@ function ApiKeyRow({
       <TableCell>
         {mask(item.secret!)}
 
-        <Button onClick={handleCopy} size="icon-xs" variant={'ghost'}>
+        <Button
+          disabled={!!item.revokedAt}
+          onClick={handleCopy}
+          size="icon-xs"
+          variant={'ghost'}
+        >
           {copied ? (
             <CheckIcon key="check" className="copy-icon-animate" />
           ) : (

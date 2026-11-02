@@ -48,6 +48,7 @@ import {
   TableHeader,
   TableRow,
 } from '@workspace/ui/components/table'
+import { CenterEllipsis } from '../$workspaceId/$projectId/-components/common/center-ellipsis'
 
 const formSchema = z.object({
   workspace_name: z
@@ -338,7 +339,7 @@ const WorkspaceCard = ({
       action: 'delete',
       variant: 'destructive' as const,
       separatorBefore: true,
-      display: !item.isDefault && item.permissions.includes('workspace.delete'),
+      display: !item.isDefault,
       onClick: () => {
         setOpen(true)
         setDeleteOpen(item.id)
@@ -367,7 +368,7 @@ const WorkspaceCard = ({
             }}
             className="truncate text-sm underline"
           >
-            {item.name}
+            <CenterEllipsis text={item.name} maxLength={50} />
           </Link>
 
           {item.external ? (

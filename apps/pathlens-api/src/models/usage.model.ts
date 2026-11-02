@@ -380,24 +380,39 @@ export async function getWorkspaceUsageModel(
 ): Promise<WorkspaceUsage> {
   const periodStart = new Date(0);
   const periodEnd = new Date();
+  const eventProjectFilter = projectId
+    ? sql` AND e.project_id = ${projectId}`
+    : sql``;
+  const replayProjectFilter = projectId
+    ? sql` AND rs.project_id = ${projectId}`
+    : sql``;
+  const projectAggregateFilter = projectId
+    ? sql` AND id = ${projectId}`
+    : sql``;
+  const funnelProjectFilter = projectId
+    ? sql` AND f.project_id = ${projectId}`
+    : sql``;
+  const goalProjectFilter = projectId
+    ? sql` AND g.project_id = ${projectId}`
+    : sql``;
 
   const result = await db.execute<WorkspaceUsageRow>(sql`
     SELECT
-      (SELECT COUNT(*) FROM events WHERE workspace_id = ${workspaceId} AND type = 'page_view')::int AS page_views,
-      (SELECT COUNT(*) FROM events WHERE workspace_id = ${workspaceId})::int AS event_count,
-      (SELECT COUNT(*) FROM replay_sessions WHERE workspace_id = ${workspaceId})::int AS recordings,
-      (SELECT COUNT(DISTINCT COALESCE(NULLIF(path, ''), '/')) FROM events WHERE workspace_id = ${workspaceId} AND type = 'page_view')::int AS heatmap_pages,
+      (SELECT COUNT(*) FROM events e WHERE e.workspace_id = ${workspaceId} AND e.type = 'page_view'${eventProjectFilter})::int AS page_views,
+      (SELECT COUNT(*) FROM events e WHERE e.workspace_id = ${workspaceId}${eventProjectFilter})::int AS event_count,
+      (SELECT COUNT(*) FROM replay_sessions rs WHERE rs.workspace_id = ${workspaceId}${replayProjectFilter})::int AS recordings,
+      (SELECT COUNT(DISTINCT COALESCE(NULLIF(e.path, ''), '/')) FROM events e WHERE e.workspace_id = ${workspaceId} AND e.type = 'page_view'${eventProjectFilter})::int AS heatmap_pages,
       (SELECT COALESCE(SUM(rc.byte_count), 0) FROM replay_chunks rc
         INNER JOIN replay_sessions rs ON rs.id = rc.session_id
-        WHERE rs.workspace_id = ${workspaceId})::bigint AS storage_bytes,
+        WHERE rs.workspace_id = ${workspaceId}${replayProjectFilter})::bigint AS storage_bytes,
       (SELECT COUNT(*) FROM projects
-        WHERE workspace_id = ${workspaceId})::int AS projects,
+        WHERE workspace_id = ${workspaceId}${projectAggregateFilter})::int AS projects,
        (SELECT COUNT(*) FROM workspace_members
          WHERE workspace_id = ${workspaceId} AND role <> 'owner')::int AS members,
-      (SELECT COUNT(*) FROM funnels
-        WHERE workspace_id = ${workspaceId})::int AS funnels,
-      (SELECT COUNT(*) FROM goals
-        WHERE workspace_id = ${workspaceId})::int AS goals,
+      (SELECT COUNT(*) FROM funnels f
+        WHERE f.workspace_id = ${workspaceId}${funnelProjectFilter})::int AS funnels,
+      (SELECT COUNT(*) FROM goals g
+        WHERE g.workspace_id = ${workspaceId}${goalProjectFilter})::int AS goals,
        (SELECT COUNT(*) FROM workspaces WHERE user_id = ${userId})::int AS workspaces
   `);
 

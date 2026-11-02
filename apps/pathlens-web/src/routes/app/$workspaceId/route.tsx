@@ -50,6 +50,7 @@ import { Header } from '../-components/header'
 import { SearchOverAppDialog } from '@/components/common/search-over-app-dialog'
 import { navigationIcons } from '@/config/navigation-icons'
 import { GracePeriod } from '../-components/grace-period'
+import { ProjectPaused } from './$projectId/-components/common/project-paused'
 
 export const Route = createFileRoute('/app/$workspaceId')({
   component: RouteComponent,
@@ -216,6 +217,12 @@ const sidebarProjectsItems = [
         icon: navigationIcons.setup,
         to: '/app/$workspaceId/$projectId/setup',
         isActive: (pathname: string) => pathname.includes('setup'),
+      },
+      {
+        label: 'Integrations',
+        icon: navigationIcons.integrations,
+        to: '/app/$workspaceId/$projectId/integrations',
+        isActive: (pathname: string) => pathname.includes('integrations'),
       },
       {
         label: 'API Keys',
@@ -460,6 +467,13 @@ export const AppSidebar = ({
         <SidebarFooter className="bg-background border-t">
           <GracePeriod />
 
+          {projectId && (
+            <ProjectPaused
+              workspaceId={activeWorkspace}
+              projectId={projectId}
+            />
+          )}
+
           <SidebarTrigger>
             <Button variant="ghost" size="icon">
               <SidebarIcon />
@@ -479,6 +493,26 @@ export const WorkspaceSwitcher = ({
 }: I_AppSidebarProps) => {
   const navigate = useNavigate()
   const workspace = workspaceData?.find((w) => w.id === activeWorkspace)
+  const { projectId } = useParams({ strict: false })
+
+  const switchWorkspace = (workspaceId: string) => {
+    if (projectId) {
+      navigate({
+        to: '/app/$workspaceId',
+        params: { workspaceId },
+      })
+      return
+    }
+
+    navigate({
+      to: '.',
+      params: (prev) => ({
+        ...prev,
+        workspaceId,
+      }),
+      search: true,
+    })
+  }
 
   return (
     <>
@@ -493,12 +527,14 @@ export const WorkspaceSwitcher = ({
         }}
         variant="link"
         size="lg"
-        className={'text-foreground text-md w-full flex-1 overflow-hidden pl-0'}
+        className={
+          'text-foreground text-md w-full flex-1 justify-start overflow-hidden pl-1'
+        }
       >
         {workspaceDataLoading ? (
           <Skeleton className="h-4 w-30" />
         ) : (
-          workspace?.name
+          <p className="truncate">{workspace?.name}</p>
         )}
       </Button>
 
@@ -542,14 +578,7 @@ export const WorkspaceSwitcher = ({
                         activeWorkspace === item.id ? 'secondary' : 'ghost'
                       }
                       className={'w-full justify-between'}
-                      render={
-                        <Link
-                          to={'/app/$workspaceId'}
-                          params={{
-                            workspaceId: item.id,
-                          }}
-                        />
-                      }
+                      onClick={() => switchWorkspace(item.id)}
                     />
                   }
                 >

@@ -107,6 +107,144 @@ export const useUpdateProject = (projectId: string) => {
   })
 }
 
+interface PauseProjectResponse {
+  success: boolean
+  message?: string
+  data?: {
+    projectId: string
+    disabledCount: number
+  }
+}
+
+export const usePauseProject = (projectId: string) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (): Promise<PauseProjectResponse> => {
+      const response = await apiClient.post<PauseProjectResponse>(
+        `/projects/${projectId}/pause`
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to pause project.')
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['PROJECTS'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['PROJECT_API_KEYS', projectId],
+        }),
+      ])
+      toast.success('Project paused.')
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
+interface ResumeProjectResponse {
+  success: boolean
+  message?: string
+  data?: {
+    projectId: string
+    enabledCount: number
+  }
+}
+
+export const useResumeProject = (projectId: string) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (): Promise<ResumeProjectResponse> => {
+      const response = await apiClient.post<ResumeProjectResponse>(
+        `/projects/${projectId}/resume`
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to resume project.')
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['PROJECTS'] }),
+        queryClient.invalidateQueries({
+          queryKey: ['PROJECT_API_KEYS', projectId],
+        }),
+      ])
+      toast.success('Project resumed.')
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
+interface ResetProjectAnalyticsResponse {
+  success: boolean
+  message?: string
+  data?: {
+    projectId: string
+    events: number
+    replaySessions: number
+    visitorCampaignAttribution: number
+    heatmapPageSnapshots: number
+    reports: number
+  }
+}
+
+export const useResetProjectAnalytics = (projectId: string) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (): Promise<ResetProjectAnalyticsResponse> => {
+      const response = await apiClient.post<ResetProjectAnalyticsResponse>(
+        `/projects/${projectId}/reset`
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to reset project analytics.')
+      }
+
+      await Promise.all(
+        [
+          'PROJECTS',
+          'ANALYTICS',
+          'DASHBOARD',
+          'EVENTS',
+          'EVENTS_CHART',
+          'VISITORS',
+          'VISITOR_LOCATIONS',
+          'SESSION_REPLAY',
+          'SESSION_REPLAY_DETAIL',
+          'USER_JOURNEY',
+          'ERRORS',
+          'PERFORMANCE',
+          'HEATMAPS',
+          'HEATMAP_DETAILS',
+          'REPORT_GENERATIONS',
+          'REPORT_DOWNLOAD',
+          'WORKSPACE_USAGE',
+        ].map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey: [queryKey] })
+        )
+      )
+      toast.success('Project analytics reset.')
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
 interface DeleteProjectPayload {
   project_id: string
   workspace_id: string

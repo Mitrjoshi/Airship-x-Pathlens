@@ -98,6 +98,31 @@ export const revokeProjectApiKeyModel = async (data: {
   });
 };
 
+export const pauseProjectApiKeysModel = async (projectId: string) => {
+  const result = await db
+    .update(projectApiKeys)
+    .set({ revokedAt: new Date() })
+    .where(
+      and(
+        eq(projectApiKeys.projectId, projectId),
+        isNull(projectApiKeys.revokedAt)
+      )
+    )
+    .returning({ id: projectApiKeys.id });
+
+  return { disabledCount: result.length };
+};
+
+export const resumeProjectApiKeysModel = async (projectId: string) => {
+  const result = await db
+    .update(projectApiKeys)
+    .set({ revokedAt: null })
+    .where(eq(projectApiKeys.projectId, projectId))
+    .returning({ id: projectApiKeys.id });
+
+  return { enabledCount: result.length };
+};
+
 export const updateProjectApiKeyModel = async (data: {
   projectId: string;
   keyId: string;

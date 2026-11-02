@@ -13,6 +13,7 @@ export type T_Projects = {
   capturePerformance: boolean
   captureErrors: boolean
   apiKey: string
+  paused: boolean
   createdAt: string
   snapshot: {
     status: 'pending' | 'processing' | 'ready' | 'stale' | 'failed'

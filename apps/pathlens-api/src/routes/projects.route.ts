@@ -4,6 +4,9 @@ import {
   createProject,
   deleteProject,
   getProjects,
+  pauseProject,
+  resetProjectAnalytics,
+  resumeProject,
   updateProject,
 } from "../controllers/projects.controller";
 import {
@@ -79,6 +82,21 @@ router.patch(
   "/:project_id",
   requireWorkspacePermission("project.settings.update"),
   updateProject
+);
+router.post(
+  "/:project_id/pause",
+  requireWorkspacePermission("project.settings.update"),
+  pauseProject
+);
+router.post(
+  "/:project_id/resume",
+  requireWorkspacePermission("project.settings.update"),
+  resumeProject
+);
+router.post(
+  "/:project_id/reset",
+  requireWorkspacePermission("project.settings.update"),
+  resetProjectAnalytics
 );
 router.delete(
   "/delete/:project_id",

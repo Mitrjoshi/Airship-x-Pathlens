@@ -81,11 +81,8 @@ export const TrackingTypeSchema = z.enum([
 
 export const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
-
   domain: z.url('Enter a valid URL'),
-
   description: z.string(),
-
   tracking: z
     .array(TrackingTypeSchema)
     .min(1, 'Select at least one tracking option'),

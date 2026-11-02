@@ -54,40 +54,45 @@ export const Header = () => {
   })
 
   return (
-    <header className="bg-background sticky top-0 z-10 flex h-14.25 shrink-0 items-center justify-between gap-2 border-b px-4 py-2 transition-[width,height] ease-linear">
-      <div className="flex items-center gap-2">
-        {projectId && (
-          <ProjectSwitcher
-            activeProject={projectId}
-            projectData={projects?.data as T_Projects[]}
-            projectDataLoading={projectsLoading}
-            workspaceId={workspaceId!}
-          />
-        )}
-      </div>
+    <>
+      <header className="bg-background sticky top-0 z-10 flex h-14.25 shrink-0 items-center justify-between gap-2 border-b px-4 py-2 transition-[width,height] ease-linear">
+        <div className="flex items-center gap-2">
+          {projectId && (
+            <ProjectSwitcher
+              activeProject={projectId}
+              projectData={projects?.data as T_Projects[]}
+              projectDataLoading={projectsLoading}
+              workspaceId={workspaceId!}
+            />
+          )}
+        </div>
 
-      <div className="flex shrink-0 items-center gap-2">
-        <FeedbackPopover />
+        <div className="flex shrink-0 items-center gap-2">
+          <FeedbackPopover />
 
-        <Sheet>
-          <SheetTrigger
-            render={
-              <Button variant={'outline'} size="icon">
-                <CircleQuestionMarkIcon />
-              </Button>
-            }
-          />
+          <Sheet>
+            <SheetTrigger
+              render={
+                <Button variant={'outline'} size="icon">
+                  <CircleQuestionMarkIcon />
+                </Button>
+              }
+            />
 
-          <ContactUsSheet workspace_id={workspaceId} project_id={projectId!} />
-        </Sheet>
+            <ContactUsSheet
+              workspace_id={workspaceId}
+              project_id={projectId!}
+            />
+          </Sheet>
 
-        <Separator orientation="vertical" />
+          <Separator orientation="vertical" />
 
-        <NotificationsPopover />
+          <NotificationsPopover />
 
-        <NavUser user={user} />
-      </div>
-    </header>
+          <NavUser user={user} />
+        </div>
+      </header>
+    </>
   )
 }
 
@@ -107,9 +112,20 @@ export const ProjectSwitcher = ({
   const navigate = useNavigate()
   const project = projectData?.find((p) => p.id === activeProject)
 
+  const switchProject = (projectId: string) => {
+    navigate({
+      to: '.',
+      params: (prev) => ({
+        ...prev,
+        projectId,
+      }),
+      search: true,
+    })
+  }
+
   return (
-    <>
-      <DropdownMenu>
+    <DropdownMenu>
+      <div className="flex items-center gap-0">
         <Button
           onClick={() => {
             navigate({
@@ -121,94 +137,81 @@ export const ProjectSwitcher = ({
             })
           }}
           variant="link"
-          className={'text-foreground'}
+          className="text-foreground"
         >
           {projectDataLoading ? (
             <Skeleton className="h-4 w-30" />
           ) : (
-            project?.name
+            <p className="max-w-40 truncate">{project?.name}</p>
           )}
         </Button>
+
         <DropdownMenuTrigger
           disabled={projectDataLoading}
           render={
             <Button
               size="icon"
-              variant={'ghost'}
-              className={'flex-1 overflow-hidden'}
+              variant="ghost"
+              className="flex-1 overflow-hidden"
             />
           }
         >
           <ChevronsUpDownIcon />
         </DropdownMenuTrigger>
+      </div>
 
-        <DropdownMenuContent className={'w-80'}>
-          <InputGroup>
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput placeholder="Search..." />
-          </InputGroup>
+      <DropdownMenuContent className="w-80">
+        <InputGroup>
+          <InputGroupAddon>
+            <SearchIcon />
+          </InputGroupAddon>
+          <InputGroupInput placeholder="Search..." />
+        </InputGroup>
 
-          <DropdownMenuSeparator />
+        <DropdownMenuSeparator />
 
-          <DropdownMenuGroup className={'h-60! overflow-auto'}>
-            {projectData?.map((item, index) => (
-              <DropdownMenuItem
-                key={index}
-                render={
-                  <Button
-                    size="lg"
-                    variant={activeProject === item.id ? 'secondary' : 'ghost'}
-                    className={'w-full justify-between'}
-                    render={
-                      <Link
-                        to={'/app/$workspaceId/$projectId'}
-                        params={{
-                          projectId: item.id,
-                          workspaceId: workspaceId,
-                        }}
-                      />
-                    }
-                  />
-                }
-              >
-                <div className="flex items-center gap-2">
-                  <Avatar size="sm" className={'border bg-white'}>
-                    <AvatarImage
-                      src={item.faviconUrl ? item.faviconUrl : '/logo.png'}
-                    />
-                  </Avatar>
-                  <p>{item.name}</p>
-                </div>
-                {activeProject === item.id && <CheckIcon />}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
+        <DropdownMenuGroup className="h-60! overflow-auto">
+          {projectData?.map((item) => (
+            <DropdownMenuItem
+              key={item.id}
+              render={
+                <Button
+                  size="lg"
+                  variant={activeProject === item.id ? 'secondary' : 'ghost'}
+                  className="w-full justify-between"
+                  onClick={() => switchProject(item.id)}
+                />
+              }
+            >
+              <div className="flex items-center gap-2 overflow-hidden">
+                <Avatar size="sm" className="border bg-white">
+                  <AvatarImage src={item.faviconUrl || '/logo.png'} />
+                </Avatar>
+                <p className="truncate">{item.name}</p>
+              </div>
 
-          <DropdownMenuSeparator />
+              {activeProject === item.id && <CheckIcon />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
 
-          <DropdownMenuItem
-            render={
-              <Button
-                render={
-                  <Link
-                    to={'/app/$workspaceId/create'}
-                    params={{
-                      workspaceId,
-                    }}
-                  />
-                }
-                variant="ghost"
-                className={'w-full justify-start'}
-              />
-            }
-          >
-            <PlusIcon />
-            Create Project
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          render={
+            <Button
+              render={
+                <Link to="/app/$workspaceId/create" params={{ workspaceId }} />
+              }
+              variant="ghost"
+              className="w-full justify-start"
+            />
+          }
+        >
+          <PlusIcon />
+          Create Project
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

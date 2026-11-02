@@ -12,8 +12,13 @@ import {
   getProjectSnapshotsModel,
   getProjectStatsModel,
   getProjectWorkspaceIdModel,
+  resetProjectAnalyticsModel,
   updateProjectModel,
 } from "../models/projects.model";
+import {
+  pauseProjectApiKeysModel,
+  resumeProjectApiKeysModel,
+} from "../models/project-api-keys.model";
 import { createAuditLog } from "../models/audit-logs.model";
 import { enqueueProjectSnapshot } from "../lib/snapshot-queue";
 import { WorkspaceUsageLimitError } from "../lib/usage-limits";
@@ -312,6 +317,144 @@ export async function updateProject(req: AuthRequest, res: Response) {
     return res.status(error instanceof ZodError ? 400 : 500).json({
       success: false,
       message: errorMessage,
+    });
+  }
+}
+
+export async function pauseProject(req: AuthRequest, res: Response) {
+  try {
+    const { project_id } = updateProjectParamsSchema.parse(req.params);
+    const workspaceId = await getProjectWorkspaceIdModel(project_id);
+
+    if (!workspaceId) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
+    }
+
+    const { disabledCount } = await pauseProjectApiKeysModel(project_id);
+
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId,
+        actorUserId: req.user.id,
+        projectId: project_id,
+        action: "project.paused",
+        resourceType: "project",
+        resourceId: project_id,
+        metadata: { disabledCount },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        projectId: project_id,
+        disabledCount,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message:
+        error instanceof ZodError
+          ? (error.issues[0]?.message ?? "Validation failed")
+          : "Unable to pause project.",
+    });
+  }
+}
+
+export async function resumeProject(req: AuthRequest, res: Response) {
+  try {
+    const { project_id } = updateProjectParamsSchema.parse(req.params);
+    const workspaceId = await getProjectWorkspaceIdModel(project_id);
+
+    if (!workspaceId) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
+    }
+
+    const { enabledCount } = await resumeProjectApiKeysModel(project_id);
+
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId,
+        actorUserId: req.user.id,
+        projectId: project_id,
+        action: "project.resumed",
+        resourceType: "project",
+        resourceId: project_id,
+        metadata: { enabledCount },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        projectId: project_id,
+        enabledCount,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message:
+        error instanceof ZodError
+          ? (error.issues[0]?.message ?? "Validation failed")
+          : "Unable to resume project.",
+    });
+  }
+}
+
+export async function resetProjectAnalytics(req: AuthRequest, res: Response) {
+  try {
+    const { project_id } = updateProjectParamsSchema.parse(req.params);
+    const workspaceId = await getProjectWorkspaceIdModel(project_id);
+
+    if (!workspaceId) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
+    }
+
+    const counts = await resetProjectAnalyticsModel(project_id);
+
+    if (req.user?.id) {
+      await createAuditLog({
+        workspaceId,
+        actorUserId: req.user.id,
+        projectId: project_id,
+        action: "project.analytics_reset",
+        resourceType: "project",
+        resourceId: project_id,
+        metadata: counts,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        projectId: project_id,
+        ...counts,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(error instanceof ZodError ? 400 : 500).json({
+      success: false,
+      message:
+        error instanceof ZodError
+          ? (error.issues[0]?.message ?? "Validation failed")
+          : "Unable to reset project analytics.",
     });
   }
 }

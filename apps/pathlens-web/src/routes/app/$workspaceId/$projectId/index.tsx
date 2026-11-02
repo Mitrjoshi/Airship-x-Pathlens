@@ -45,6 +45,7 @@ import { DomainSwitcher } from './-components/common/domain-switcher'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './-components/common/no-permission-view'
 import { ErrorScreen } from './-components/common/error-screen'
+import { ProjectPaused } from './-components/common/project-paused'
 
 const visitorsChartConfig = {
   value: {

@@ -6,18 +6,23 @@ import {
   eq,
   exists,
   inArray,
+  isNull,
   sql,
 } from "drizzle-orm";
 import { db } from "../db/client";
 import {
   events,
+  heatmapPageSnapshots,
   projectApiKeys,
   projectDomains,
   projectSnapshots,
   projects,
+  reportGenerations,
+  replaySessions,
+  visitorCampaignAttribution,
 } from "../db/schema";
 import { normalizeProjectDomains } from "../lib/project-domain";
-import { createSnapshotSignedUrl } from "../lib/s3";
+import { createSnapshotSignedUrl, deleteStoredObjects } from "../lib/s3";
 import { assertWorkspaceUsageLimit } from "./usage.model";
 import { hashApiKey } from "../utils/utils";
 import { encryptApiKey } from "../lib/api-key-encryption";
@@ -351,6 +356,21 @@ export const getProjectsModel = async (
       )
     );
 
+  const activeKeyRows = await db
+    .select({ projectId: projectApiKeys.projectId })
+    .from(projectApiKeys)
+    .where(
+      and(
+        inArray(
+          projectApiKeys.projectId,
+          projectRows.map((project) => project.id)
+        ),
+        isNull(projectApiKeys.revokedAt)
+      )
+    );
+
+  const activeProjectIds = new Set(activeKeyRows.map((key) => key.projectId));
+
   const domainsByProject = new Map<
     string,
     { domain: string; isDefault: boolean }[]
@@ -371,6 +391,7 @@ export const getProjectsModel = async (
     domains: (domainsByProject.get(project.id) ?? []).map(
       (domain) => domain.domain
     ),
+    paused: !activeProjectIds.has(project.id),
   }));
 };
 
@@ -535,6 +556,63 @@ export const getProjectWorkspaceIdModel = async (projectId: string) => {
     .where(eq(projects.id, projectId));
 
   return project?.workspaceId ?? null;
+};
+
+export const resetProjectAnalyticsModel = async (projectId: string) => {
+  const [heatmapRows, reportRows] = await Promise.all([
+    db
+      .select({ storagePath: heatmapPageSnapshots.storagePath })
+      .from(heatmapPageSnapshots)
+      .where(eq(heatmapPageSnapshots.projectId, projectId)),
+    db
+      .select({ storagePath: reportGenerations.storagePath })
+      .from(reportGenerations)
+      .where(eq(reportGenerations.projectId, projectId)),
+  ]);
+
+  await deleteStoredObjects([
+    ...heatmapRows.map((row) => row.storagePath),
+    ...reportRows.map((row) => row.storagePath),
+  ]);
+
+  return db.transaction(async (transaction) => {
+    const [
+      eventRows,
+      replaySessionRows,
+      attributionRows,
+      heatmapRowsDeleted,
+      reportRowsDeleted,
+    ] = await Promise.all([
+      transaction
+        .delete(events)
+        .where(eq(events.projectId, projectId))
+        .returning({ id: events.id }),
+      transaction
+        .delete(replaySessions)
+        .where(eq(replaySessions.projectId, projectId))
+        .returning({ id: replaySessions.id }),
+      transaction
+        .delete(visitorCampaignAttribution)
+        .where(eq(visitorCampaignAttribution.projectId, projectId))
+        .returning({ visitorId: visitorCampaignAttribution.visitorId }),
+      transaction
+        .delete(heatmapPageSnapshots)
+        .where(eq(heatmapPageSnapshots.projectId, projectId))
+        .returning({ id: heatmapPageSnapshots.id }),
+      transaction
+        .delete(reportGenerations)
+        .where(eq(reportGenerations.projectId, projectId))
+        .returning({ id: reportGenerations.id }),
+    ]);
+
+    return {
+      events: eventRows.length,
+      replaySessions: replaySessionRows.length,
+      visitorCampaignAttribution: attributionRows.length,
+      heatmapPageSnapshots: heatmapRowsDeleted.length,
+      reports: reportRowsDeleted.length,
+    };
+  });
 };
 
 export const deleteProjectModel = async (project_id: string) => {

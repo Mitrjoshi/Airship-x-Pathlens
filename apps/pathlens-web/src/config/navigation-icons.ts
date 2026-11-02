@@ -31,6 +31,7 @@ import {
   ShieldCheckIcon,
   TrashIcon,
   UsersIcon,
+  BlocksIcon,
 } from 'lucide-react'
 
 export const navigationIcons = {
@@ -84,4 +85,5 @@ export const navigationIcons = {
   copy: CopyIcon,
   edit: EditIcon,
   chat: MessageSquareTextIcon,
+  integrations: BlocksIcon,
 } as const

@@ -11,6 +11,7 @@ import {
 } from '@workspace/ui/components/input-group'
 import {
   AlertCircleIcon,
+  ArrowUpRightIcon,
   EllipsisIcon,
   ExternalLinkIcon,
   InfoIcon,
@@ -199,7 +200,7 @@ function RouteComponent() {
             <DialogHeader>
               <DialogTitle>Confirm Delete</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this workspace?
+                Are you sure you want to delete this project?
               </DialogDescription>
             </DialogHeader>
 
@@ -370,42 +371,53 @@ const ProjectCard = ({
     >
       {/* Project Preview */}
       <div className="aspect-video max-w-60 overflow-hidden">
-        {!item.snapshot.url ? (
+        {item.paused ? (
+          <div className="flex aspect-video w-full flex-col items-center justify-center bg-yellow-400/10">
+            <p className="flex items-center gap-2 text-xs font-medium text-yellow-400">
+              <AlertCircleIcon size={14} />
+              This project is paused
+            </p>
+          </div>
+        ) : (
           <>
-            {item.snapshot.status === 'failed' ? (
-              <div className="bg-destructive/10 flex aspect-video w-full items-center justify-center">
-                <p className="text-destructive flex items-center gap-2 text-xs font-medium">
-                  <AlertCircleIcon size={14} />
-                  Failed to generate preview
-                </p>
-              </div>
-            ) : (
-              <div className="bg-muted-foreground/10 flex aspect-video w-full items-center justify-center">
-                {item.snapshot.status === 'processing' ||
-                item.snapshot.status === 'pending' ? (
-                  <>
-                    <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
-                      <LoaderIcon className="animate-spin" size={14} />
-                      Generating preview...
+            {!item.snapshot.url ? (
+              <>
+                {item.snapshot.status === 'failed' ? (
+                  <div className="bg-destructive/10 flex aspect-video w-full items-center justify-center">
+                    <p className="text-destructive flex items-center gap-2 text-xs font-medium">
+                      <AlertCircleIcon size={14} />
+                      Failed to generate preview
                     </p>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
-                      <InfoIcon size={14} />
-                      Preview not available.
-                    </p>
-                  </>
+                  <div className="bg-muted-foreground/10 flex aspect-video w-full items-center justify-center">
+                    {item.snapshot.status === 'processing' ||
+                    item.snapshot.status === 'pending' ? (
+                      <>
+                        <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
+                          <LoaderIcon className="animate-spin" size={14} />
+                          Generating preview...
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
+                          <InfoIcon size={14} />
+                          Preview not available.
+                        </p>
+                      </>
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
+            ) : (
+              <img
+                src={item.snapshot.url}
+                className="bg-muted-foreground/10 aspect-video w-full object-cover"
+                alt={`${item.name} preview`}
+              />
             )}
           </>
-        ) : (
-          <img
-            src={item.snapshot.url}
-            className="bg-muted-foreground/10 aspect-video w-full object-cover"
-            alt={`${item.name} preview`}
-          />
         )}
       </div>
 
@@ -426,8 +438,8 @@ const ProjectCard = ({
                 <p className="truncate font-medium">{item.name}</p>
 
                 <Badge
-                  variant="ghost"
-                  className={`h-5 shrink-0 px-1.5 text-[10px] uppercase ${
+                  variant="outline"
+                  className={`shrink-0 text-[10px] uppercase ${
                     isActive ? 'text-primary' : 'text-muted-foreground'
                   }`}
                 >
