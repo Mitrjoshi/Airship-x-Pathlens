@@ -22,7 +22,10 @@ import {
 } from "../controllers/workspace.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { getAuditLogsController } from "../controllers/audit-logs.controller";
-import { requireWorkspaceOrProjectPermission } from "../middleware/permission.middleware";
+import {
+  requireWorkspaceOrProjectPermission,
+  requireWorkspacePermission,
+} from "../middleware/permission.middleware";
 
 const router = Router();
 

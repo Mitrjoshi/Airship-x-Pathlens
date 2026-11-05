@@ -1,0 +1,2 @@
+ALTER TABLE "project_integrations" ADD COLUMN "settings" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "project_integrations" ADD COLUMN "notification_preferences" jsonb DEFAULT '{}'::jsonb NOT NULL;

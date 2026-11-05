@@ -40,6 +40,9 @@ function anchorId(fingerprint: string): string {
 
 const stickyAnchorId = anchorId('explicit:sticky-contact')
 const fixedAnchorId = anchorId('explicit:fixed-contact')
+const nestedAnchorId = anchorId('explicit:nested-target')
+const transformedAnchorId = anchorId('explicit:transformed-target')
+const stickyTextAnchorId = anchorId('explicit:sticky-contact|text:0:0')
 
 class FixtureRequest extends EventEmitter implements RequestLike {
   setTimeout() {
@@ -184,7 +187,7 @@ test('runs only the explicitly enabled isolated script subset', async (t) => {
   const parent = createServer((_request, reply) => {
     reply.setHeader('content-type', 'text/html; charset=utf-8')
     reply.end(
-      `<iframe id="preview" src="${proxyOrigin}/v1/session/session-one/page/contact" sandbox="allow-scripts" referrerpolicy="no-referrer" allow=""></iframe><script>const frame=document.querySelector('#preview');const ids=${JSON.stringify([stickyAnchorId, fixedAnchorId])};window.addEventListener('message',(event)=>{if(event.source===frame.contentWindow&&event.data?.type==='PATHLENS_MEASURE_STATE'){document.body.dataset.anchorState=JSON.stringify(event.data);document.body.dataset.anchorRequestIds=(document.body.dataset.anchorRequestIds??'')+','+event.data.requestId}});frame.addEventListener('load',()=>{const base={version:1,type:'PATHLENS_MEASURE_REQUEST',sessionId:${JSON.stringify(claims.sessionId)},nonce:'0123456789abcdef0123456789abcdef'};frame.contentWindow.postMessage({...base,requestId:'invalid-anchor-request',anchorIds:Array(257).fill(ids[0])},'*');frame.contentWindow.postMessage({...base,requestId:'anchor-request',anchorIds:ids},'*')});</script>`
+      `<iframe id="preview" src="${proxyOrigin}/v1/session/session-one/page/contact" sandbox="allow-scripts" referrerpolicy="no-referrer" allow=""></iframe><script>const frame=document.querySelector('#preview');const ids=${JSON.stringify([stickyAnchorId, fixedAnchorId, nestedAnchorId, transformedAnchorId, stickyTextAnchorId])};window.addEventListener('message',(event)=>{if(event.source===frame.contentWindow&&event.data?.type==='PATHLENS_MEASURE_STATE'){document.body.dataset.anchorState=JSON.stringify(event.data);document.body.dataset.anchorRequestIds=(document.body.dataset.anchorRequestIds??'')+','+event.data.requestId}});frame.addEventListener('load',()=>{const base={version:1,type:'PATHLENS_MEASURE_REQUEST',sessionId:${JSON.stringify(claims.sessionId)},nonce:'0123456789abcdef0123456789abcdef'};frame.contentWindow.postMessage({...base,requestId:'invalid-anchor-request',anchorIds:Array(257).fill(ids[0])},'*');frame.contentWindow.postMessage({...base,requestId:'anchor-request',anchorIds:ids},'*')});</script>`
     )
   })
   const parentPort = await listen(parent)
@@ -301,6 +304,9 @@ test('runs only the explicitly enabled isolated script subset', async (t) => {
     [
       { anchorId: stickyAnchorId, status: 'matched' },
       { anchorId: fixedAnchorId, status: 'matched' },
+      { anchorId: nestedAnchorId, status: 'matched' },
+      { anchorId: transformedAnchorId, status: 'matched' },
+      { anchorId: stickyTextAnchorId, status: 'matched' },
     ]
   )
   const initialRects = await frame.evaluate(() =>
@@ -320,12 +326,40 @@ test('runs only the explicitly enabled isolated script subset', async (t) => {
     })
   )
   assert.deepEqual(
-    anchorState.anchorResolutions.map(
-      (item: {
-        rect?: { left: number; top: number; width: number; height: number }
-      }) => item.rect
-    ),
+    anchorState.anchorResolutions
+      .filter(
+        (item: { anchorId: string }) =>
+          item.anchorId === stickyAnchorId || item.anchorId === fixedAnchorId
+      )
+      .map(
+        (item: {
+          rect?: { left: number; top: number; width: number; height: number }
+        }) => item.rect
+      ),
     initialRects
+  )
+  const textRect = await frame.evaluate(() => {
+    const element = document.querySelector(
+      '[data-pathlens-anchor="sticky-contact"]'
+    )
+    const text = element?.firstChild
+    if (!text) return null
+    const range = document.createRange()
+    range.setStart(text, 0)
+    range.setEnd(text, 1)
+    const rect = range.getBoundingClientRect()
+    return {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    }
+  })
+  assert.deepEqual(
+    anchorState.anchorResolutions.find(
+      (item: { anchorId: string }) => item.anchorId === stickyTextAnchorId
+    )?.rect,
+    textRect
   )
   assert.equal(
     await frame.evaluate(() => document.body.dataset.parentAccess),
@@ -363,7 +397,10 @@ test('runs only the explicitly enabled isolated script subset', async (t) => {
   await frame.waitForFunction(() => window.scrollY > 0)
   await page.waitForFunction(() => {
     const state = JSON.parse(document.body.dataset.anchorState ?? '{}')
-    return state.anchorResolutions?.length === 2
+    return (
+      state.anchorResolutions?.length === 5 &&
+      state.anchorResolutions[0]?.rect?.top === 0
+    )
   })
   const scrolledState = await page.evaluate(() =>
     JSON.parse(document.body.dataset.anchorState ?? '{}')
@@ -384,11 +421,16 @@ test('runs only the explicitly enabled isolated script subset', async (t) => {
     })
   )
   assert.deepEqual(
-    scrolledState.anchorResolutions.map(
-      (item: {
-        rect?: { left: number; top: number; width: number; height: number }
-      }) => item.rect
-    ),
+    scrolledState.anchorResolutions
+      .filter(
+        (item: { anchorId: string }) =>
+          item.anchorId === stickyAnchorId || item.anchorId === fixedAnchorId
+      )
+      .map(
+        (item: {
+          rect?: { left: number; top: number; width: number; height: number }
+        }) => item.rect
+      ),
     scrolledRects
   )
   await frame.evaluate(() => history.back())

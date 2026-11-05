@@ -4,6 +4,7 @@ import {
   applyHeatmapIdentityToFilters,
   buildClickSampleCoverage,
   buildMovementCoverage,
+  normalizeHeatmapPagePath,
   selectHeatmapIdentityId,
   type HeatmapsFilters,
 } from "./heatmaps.model";
@@ -61,6 +62,15 @@ test("heatmap page identity selection is stable and device-specific", () => {
   assert.equal(selectHeatmapIdentityId(candidates, "mobile"), "mobile-id");
   assert.equal(selectHeatmapIdentityId(candidates, "tablet"), null);
   assert.equal(selectHeatmapIdentityId(candidates, "all"), "all-id");
+});
+
+test("normalizes page paths consistently for list and detail filters", () => {
+  assert.equal(
+    normalizeHeatmapPagePath("/pricing/?tab=plans#details"),
+    "/pricing"
+  );
+  assert.equal(normalizeHeatmapPagePath("/pricing"), "/pricing");
+  assert.equal(normalizeHeatmapPagePath(), undefined);
 });
 
 test("click sample coverage makes bounded truncation explicit", () => {

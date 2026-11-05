@@ -786,6 +786,116 @@ test('heatmap mode blocks React controls but preserves controlled scrolling', as
   assert.ok(await result.frame.evaluate(() => window.scrollY > 0))
 })
 
+test('heatmap measurement resolves live regions and preserves safe failures', async (t) => {
+  assertFixtureExists('react')
+  const sessions = { react: claimsFor('react', 'heatmap') }
+  const config = makeConfig('http://127.0.0.1:0', 'http://127.0.0.1:0')
+  const result = await openFixture('react', config, sessions, 'heatmap')
+  t.after(async () => {
+    await result.browser.close()
+    await new Promise<void>((resolve) => result.proxy.close(() => resolve()))
+    await new Promise<void>((resolve) => result.parent.close(() => resolve()))
+  })
+
+  await result.frame.waitForSelector('body')
+  const region = await result.frame.evaluate(() => {
+    const element = document.createElement('div')
+    element.dataset.pathlensRegion = 'protocol-region'
+    element.style.cssText = 'width: 200px; height: 100px;'
+    document.body.append(element)
+
+    let hash = 2166136261
+    const fingerprint = 'explicit-region:protocol-region'
+    for (let index = 0; index < fingerprint.length; index += 1) {
+      hash ^= fingerprint.charCodeAt(index)
+      hash = Math.imul(hash, 16777619)
+    }
+    const rect = element.getBoundingClientRect()
+    return {
+      regionId: `fnv1a32-${(hash >>> 0).toString(16).padStart(8, '0')}`,
+      fingerprint,
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      },
+    }
+  })
+
+  const measure = async (regionIds: string[], requestId: string) =>
+    (async () => {
+      await result.page.evaluate(
+        ({ regionIds: ids, requestId: id }) => {
+          const iframe = document.querySelector('#preview') as HTMLIFrameElement
+          window.addEventListener('message', (event) => {
+            if (
+              event.source === iframe.contentWindow &&
+              event.data?.type === 'PATHLENS_MEASURE_STATE' &&
+              event.data.requestId === id
+            ) {
+              document.body.dataset.regionMeasurement = JSON.stringify(
+                event.data
+              )
+            }
+          })
+          iframe.contentWindow?.postMessage(
+            {
+              version: 1,
+              type: 'PATHLENS_MEASURE_REQUEST',
+              sessionId: '00000000-0000-4000-8000-000000000021',
+              nonce: '0123456789abcdef0123456789abcdef',
+              requestId: id,
+              regionIds: ids,
+            },
+            '*'
+          )
+        },
+        { regionIds, requestId }
+      )
+      await result.page.waitForFunction((id) => {
+        const value = document.body.dataset.regionMeasurement
+        return value !== undefined && JSON.parse(value).requestId === id
+      }, requestId)
+      return JSON.parse(
+        await result.page
+          .locator('body')
+          .getAttribute('data-region-measurement')
+      ) as Record<string, unknown>
+    })()
+
+  const matched = await measure([region.regionId], 'region-matched')
+  assert.deepEqual(matched.regionResolutions, [
+    {
+      regionId: region.regionId,
+      status: 'matched',
+      rect: region.rect,
+      positionMode: 'static',
+      regionKind: 'explicit',
+      structuralFingerprint: region.fingerprint,
+    },
+  ])
+  assert.equal(matched.nonce, '0123456789abcdef0123456789abcdef')
+  assert.equal(matched.sessionId, sessions.react.sessionId)
+  assert.equal(matched.requestId, 'region-matched')
+
+  const missing = await measure(['fnv1a32-00000000'], 'region-missing')
+  assert.deepEqual(missing.regionResolutions, [
+    { regionId: 'fnv1a32-00000000', status: 'missing' },
+  ])
+
+  await result.frame.evaluate(() => {
+    const duplicate = document.createElement('div')
+    duplicate.dataset.pathlensRegion = 'protocol-region'
+    duplicate.style.cssText = 'width: 200px; height: 100px;'
+    document.body.append(duplicate)
+  })
+  const ambiguous = await measure([region.regionId], 'region-ambiguous')
+  assert.deepEqual(ambiguous.regionResolutions, [
+    { regionId: region.regionId, status: 'ambiguous' },
+  ])
+})
+
 test('renders Next SSR output and reports the opaque-origin hydration boundary', async (t) => {
   assertFixtureExists('next')
   const sessions = { next: claimsFor('next') }

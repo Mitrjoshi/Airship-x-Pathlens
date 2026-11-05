@@ -13,6 +13,7 @@
     "migrate": "drizzle-kit migrate",
     "backfill:campaigns": "tsx --env-file=.env src/scripts/backfill-campaign-attribution.ts",
     "pause:expired-workspaces": "tsx --env-file=.env src/scripts/pause-expired-workspaces.ts",
+    "seed:integrations": "tsx --env-file=.env src/scripts/seed-integrations.ts",
     "test:geoip": "tsx --test src/lib/geoip.test.ts",
     "test:heatmaps": "tsx --test src/lib/page-path.test.ts src/lib/heatmap-coordinates.test.ts src/lib/heatmap-aggregation.test.ts",
     "test:preview-sessions": "node --experimental-test-module-mocks --import tsx --test src/routes/preview-sessions.route.test.ts",

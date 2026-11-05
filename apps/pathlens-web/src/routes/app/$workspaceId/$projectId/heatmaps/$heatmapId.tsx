@@ -1,6 +1,6 @@
 import {
   getPreviewViewportForDevice,
-  getHeatmapPreviewViewport,
+  getRepresentativeClickOverlayViewport,
   getSnapshotScrollOverlayDimensions,
   getSharedOverlayDimensions,
   selectClickAnchorIds,
@@ -16,6 +16,7 @@ import type {
   PreviewAnchorResolution,
   PreviewMeasurementState,
   PreviewRegionResolution,
+  HeatmapScrollReach,
 } from '@workspace/contracts'
 import {
   LivePreviewIframe,
@@ -30,7 +31,7 @@ import {
 } from '@/queries/heatmaps'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Separator } from '@workspace/ui/components/separator'
 import { ArrowLeftIcon, CheckIcon, RefreshCcwIcon } from 'lucide-react'
 import { Button } from '@workspace/ui/components/button'
@@ -138,7 +139,10 @@ function RouteComponent() {
   const previewReadyForDevice =
     previewState.session?.device === toPreviewDevice(device)
   const visualizationReady = heatmapDataReady && previewReadyForDevice
-  const heatmapViewport = getHeatmapPreviewViewport(previewDevice)
+  const heatmapViewport = getRepresentativeClickOverlayViewport(
+    heatmap?.clickGroups ?? [],
+    previewDevice
+  )
   const clickAnchorSelection =
     heatmapType === 'click' && heatmap?.clickSamples
       ? selectClickAnchorIds(
@@ -170,7 +174,10 @@ function RouteComponent() {
     },
     {
       title: 'Avg. Scroll',
-      label: `${heatmap?.averageScroll.toFixed(0) ?? 0}%`,
+      label:
+        heatmap?.averageScroll === null || heatmap?.averageScroll === undefined
+          ? '—'
+          : `${heatmap.averageScroll.toFixed(0)}%`,
     },
   ]
 
@@ -374,6 +381,18 @@ function RouteComponent() {
                             )
                           : undefined
                       }
+                      scrollReach={
+                        visualizationReady
+                          ? (heatmap?.scrollReach?.find(
+                              (reach) => reach.device === previewDevice
+                            ) ?? null)
+                          : null
+                      }
+                      averageScroll={
+                        visualizationReady
+                          ? (heatmap?.averageScroll ?? null)
+                          : null
+                      }
                       heatmapDataReady={visualizationReady}
                       clickCoverage={
                         visualizationReady
@@ -422,7 +441,7 @@ function RouteComponent() {
                               </CardDescription>
 
                               <CardTitle className="text-2xl font-semibold tracking-tight tabular-nums">
-                                {heatmapLoading ? (
+                                {globalLoading ? (
                                   <Skeleton className="h-8 w-12" />
                                 ) : (
                                   item.label
@@ -440,14 +459,14 @@ function RouteComponent() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold">Hot Areas</h3>
-                      {!heatmapLoading && (
+                      {!globalLoading && (
                         <span className="text-muted-foreground text-xs">
                           {hotAreas.length} areas
                         </span>
                       )}
                     </div>
 
-                    {heatmapLoading ? (
+                    {globalLoading ? (
                       <div className="divide-border divide-y">
                         {Array.from({ length: 8 }).map((_, index) => (
                           <div key={index} className="space-y-2 py-3">
@@ -601,19 +620,10 @@ function getHeatmapEmptyStateMessage(
       : 'No movement data available for the selected filters.'
   }
 
-  const hasScrollObservations = (heatmap.scrollGroups ?? []).some(
-    (group) =>
-      group.device === device &&
-      group.sessionCount > 0 &&
-      group.reachPoints.some(
-        (point) =>
-          Number.isFinite(point.percentage) &&
-          point.percentage >= 0 &&
-          point.percentage <= 100 &&
-          point.count > 0
-      )
-  )
-  return hasScrollObservations
+  return heatmap.averageScroll !== null &&
+    Number.isFinite(heatmap.averageScroll) &&
+    heatmap.averageScroll >= 0 &&
+    heatmap.averageScroll <= 100
     ? null
     : 'No scroll data available for the selected filters.'
 }
@@ -628,6 +638,8 @@ function HeatmapLiveViewer({
   heatmapType,
   scrollSource,
   scrollGroups,
+  scrollReach,
+  averageScroll,
   heatmapDataReady,
   overlayViewport,
   anchorSelection,
@@ -645,6 +657,8 @@ function HeatmapLiveViewer({
   heatmapType: HeatmapOverlayType
   scrollSource: ScrollOverlayDimensions | null
   scrollGroups: HeatmapPageDetail['scrollGroups']
+  scrollReach: HeatmapScrollReach | null
+  averageScroll: number | null
   heatmapDataReady: boolean
   overlayViewport: { width: number; height: number } | null
   anchorSelection: ReturnType<typeof selectClickAnchorIds> | null
@@ -670,16 +684,20 @@ function HeatmapLiveViewer({
         ? 'mx-auto max-w-[768px]'
         : 'w-full'
 
-  const handleMeasurementChange = (next: PreviewMeasurementState | null) => {
-    setMeasurement(next)
-    setMeasurementSessionKey(next ? sessionKey : '')
-  }
+  const handleMeasurementChange = useCallback(
+    (next: PreviewMeasurementState | null) => {
+      setMeasurement(next)
+      setMeasurementSessionKey(next ? sessionKey : '')
+    },
+    [sessionKey]
+  )
 
-  const handleAnchorResolutionChange = (
-    next: PreviewAnchorResolution[] | null
-  ) => {
-    setAnchorResolutions(next)
-  }
+  const handleAnchorResolutionChange = useCallback(
+    (next: PreviewAnchorResolution[] | null) => {
+      setAnchorResolutions(next)
+    },
+    []
+  )
 
   return (
     <>
@@ -699,6 +717,7 @@ function HeatmapLiveViewer({
           <>
             <HeatmapOverlayLayer
               sessionKey={sessionKey}
+              clickPoints={heatmapDataReady ? (heatmap?.clickPoints ?? []) : []}
               clickGroups={heatmapDataReady ? (heatmap?.clickGroups ?? []) : []}
               clickSampleGroups={
                 heatmapDataReady ? heatmap?.clickSamples : undefined
@@ -709,6 +728,10 @@ function HeatmapLiveViewer({
               anchorResolutions={anchorResolutions}
               anchorSelection={anchorSelection}
               regionResolutions={regionResolutions}
+              movementPoints={
+                heatmapDataReady ? (heatmap?.movementPoints ?? []) : []
+              }
+              legacySourceViewport={heatmapDataReady ? heatmap?.viewport : null}
               movementGroups={
                 heatmapDataReady ? (heatmap?.movementGroups ?? []) : []
               }
@@ -717,6 +740,8 @@ function HeatmapLiveViewer({
                 heatmapDataReady ? (heatmap?.scrollPoints ?? []) : []
               }
               scrollGroups={heatmapDataReady ? scrollGroups : undefined}
+              scrollReach={heatmapDataReady ? scrollReach : null}
+              averageScroll={averageScroll}
               scrollSource={heatmapDataReady ? scrollSource : null}
               measurement={
                 measurementSessionKey === sessionKey ? measurement : null

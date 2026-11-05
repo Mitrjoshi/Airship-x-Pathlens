@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { aggregateScrollGroups } from "./scroll-aggregation";
+import {
+  aggregateScrollGroups,
+  aggregateScrollReach,
+} from "./scroll-aggregation";
 
 function event(
   sessionId: string,
@@ -123,4 +126,64 @@ test("does not fabricate reach for legacy offset-only events", () => {
 
   assert.equal(groups[0]?.maximumReachPercent, null);
   assert.deepEqual(groups[0]?.reachPoints, []);
+});
+
+test("combines relative reach across desktop geometries by session", () => {
+  const reach = aggregateScrollReach(
+    [
+      event("wide", 0, {
+        scrollY: 1000,
+        viewport: { width: 1920, height: 900 },
+        document: { width: 1920, height: 4000 },
+      }),
+      event("wide", 0, {
+        scrollY: 2500,
+        viewport: { width: 1440, height: 800 },
+        document: { width: 1440, height: 3000 },
+      }),
+      event("short", 0, {
+        scrollY: 500,
+        viewport: { width: 1920, height: 900 },
+        document: { width: 1920, height: 2000 },
+      }),
+    ],
+    { device: "desktop", totalEligibleSessions: 4 }
+  );
+
+  assert.equal(reach.validScrollSessions, 2);
+  assert.equal(reach.sessionsWithoutScrollEvents, 2);
+  assert.equal(reach.excludedSessions, 2);
+  assert.equal(reach.geometryVariableSessions, 1);
+  const middleBand = reach.bands.find((band) => band.percentage === 52.5);
+  assert.equal(middleBand?.count, 2);
+  assert.equal(middleBand?.intensity, 0.5);
+});
+
+test("keeps devices isolated and rejects invalid relative observations", () => {
+  const reach = aggregateScrollReach(
+    [
+      event("desktop", 50),
+      { ...event("mobile", 50), device: "mobile" },
+      event("invalid", 50, {
+        scrollY: 10,
+        viewport: { width: 0, height: 0 },
+      }),
+    ],
+    { device: "desktop", totalEligibleSessions: 2 }
+  );
+
+  assert.equal(reach.device, "desktop");
+  assert.equal(reach.validScrollSessions, 1);
+  assert.equal(reach.excludedSessions, 1);
+  assert.equal(reach.excludedReasons["invalid-scroll-observation"], 1);
+});
+
+test("clamps relative reach and preserves truncation metadata", () => {
+  const reach = aggregateScrollReach(
+    [event("clamped", 0, { scrollY: 10_000 })],
+    { device: "desktop", totalEligibleSessions: 1, truncated: true }
+  );
+
+  assert.equal(reach.truncated, true);
+  assert.equal(reach.bands[reach.bands.length - 1]?.percentage, 97.5);
 });

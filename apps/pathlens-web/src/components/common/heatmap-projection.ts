@@ -291,10 +291,17 @@ export function projectClickSample(
   }
 
   if (sample.regionAnchor) {
+    const projection = projectRegionSample(
+      sample,
+      regionResolutions.get(sample.regionAnchor.regionId),
+      measurement,
+      display
+    )
+    if (projection) return { projection, mode: 'region' }
     return {
       projection: null,
       mode: 'excluded',
-      reason: 'anchor-unresolved',
+      reason: 'region-unresolved',
     }
   }
 

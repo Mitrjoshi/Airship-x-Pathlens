@@ -125,6 +125,63 @@ function getElementKey(
   return regionKey;
 }
 
+function trackClick(
+  tracker: PathLensTracker,
+  event: MouseEvent | PointerEvent
+) {
+  const el = event.target instanceof HTMLElement ? event.target : null;
+
+  if (!el) return;
+
+  const button = el.closest("button");
+  const documentDimensions = getDocumentDimensions();
+  const elementAnchor = createClickElementAnchor(
+    el,
+    event.clientX,
+    event.clientY
+  );
+  const regionAnchor = createClickRegionAnchor(
+    el,
+    event.clientX,
+    event.clientY
+  );
+
+  tracker.track("click", {
+    coordinateSchemaVersion: COORDINATE_SCHEMA_VERSION,
+    x: event.clientX,
+    y: event.clientY,
+    pageX: event.pageX,
+    pageY: event.pageY,
+    scrollX: window.scrollX,
+    scrollY: window.scrollY,
+    viewport: {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    },
+    document: documentDimensions,
+    tag: el.tagName,
+    id: el.id,
+    className: el.className,
+    text: getSafeClickText(el),
+    ...(button ? { buttonText: getNormalizedButtonText(button) } : {}),
+    ...(elementAnchor ? { elementAnchor } : {}),
+    ...(regionAnchor ? { regionAnchor } : {}),
+    elementKey: getElementKey(
+      el,
+      button,
+      event.pageX,
+      event.pageY,
+      documentDimensions
+    ),
+  });
+}
+
+export function isPrimaryPointerInteraction(
+  event: Pick<PointerEvent, "isPrimary" | "button">
+): boolean {
+  return event.isPrimary && event.button === 0;
+}
+
 export function registerEvents(tracker: PathLensTracker): void {
   pageView(tracker);
 
@@ -147,44 +204,17 @@ function pageView(tracker: PathLensTracker) {
 function registerClicks(tracker: PathLensTracker) {
   if (!tracker.config.captureClicks) return;
 
-  document.addEventListener("click", (e: MouseEvent) => {
-    const el = e.target as HTMLElement | null;
-
-    if (!el) return;
-
-    const button = el.closest("button");
-    const documentDimensions = getDocumentDimensions();
-    const elementAnchor = createClickElementAnchor(el, e.clientX, e.clientY);
-    const regionAnchor = createClickRegionAnchor(el, e.clientX, e.clientY);
-
-    tracker.track("click", {
-      coordinateSchemaVersion: COORDINATE_SCHEMA_VERSION,
-      x: e.clientX,
-      y: e.clientY,
-      pageX: e.pageX,
-      pageY: e.pageY,
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-      document: documentDimensions,
-      tag: el.tagName,
-      id: el.id,
-      className: el.className,
-      text: getSafeClickText(el),
-      ...(button ? { buttonText: getNormalizedButtonText(button) } : {}),
-      ...(elementAnchor ? { elementAnchor } : {}),
-      ...(regionAnchor ? { regionAnchor } : {}),
-      elementKey: getElementKey(
-        el,
-        button,
-        e.pageX,
-        e.pageY,
-        documentDimensions
-      ),
+  if ("PointerEvent" in window) {
+    document.addEventListener("pointerup", (event: PointerEvent) => {
+      if (!isPrimaryPointerInteraction(event)) return;
+      trackClick(tracker, event);
     });
+    return;
+  }
+
+  // Older browsers do not expose PointerEvent, so retain the click fallback.
+  document.addEventListener("click", (event: MouseEvent) => {
+    trackClick(tracker, event);
   });
 }
 

@@ -19,6 +19,7 @@ import replayRouter from "./replay.route";
 import userJourneyRouter from "./user-journey.route";
 import billingRouter from "./billing.route";
 import previewSessionsRouter from "./preview-sessions.route";
+import integrationsRouter from "./integrations.route";
 import { validatePreviewSession } from "../controllers/preview-sessions.controller";
 import { proxyAuthMiddleware } from "../middleware/proxy-auth.middleware";
 import { ApiKeyMiddleware } from "../middleware/apiKey.middleware";
@@ -32,6 +33,7 @@ import {
   googleCallback,
   googleLogin,
 } from "../controllers/google-auth.controller";
+import { slackCallback } from "../controllers/project-integrations.controller";
 
 const router = Router();
 
@@ -43,6 +45,8 @@ router.get("/auth/github", githubLogin);
 router.get("/auth/github/callback", githubCallback);
 router.get("/auth/google", googleLogin);
 router.get("/auth/google/callback", googleCallback);
+// The callback is authenticated by the short-lived, cookie-bound OAuth state.
+router.get("/integrations/slack/callback", slackCallback);
 router.post(
   "/internal/heatmap-proxy/validate",
   proxyAuthMiddleware,
@@ -53,6 +57,7 @@ router.use(ApiKeyMiddleware);
 
 router.get("/projects/active", getActiveProjectDomainsCount);
 router.use("/auth", usersRouter);
+router.use("/integrations", integrationsRouter);
 router.use("/errors", errorsRouter);
 router.use("/campaigns", campaignsRouter);
 router.use("/workspaces", workspacesRouter);

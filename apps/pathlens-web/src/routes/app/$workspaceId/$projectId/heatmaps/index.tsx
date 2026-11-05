@@ -303,7 +303,7 @@ function RouteComponent() {
                           Clicks
                         </TableHead>
                         <TableHead className="w-32 text-center">
-                          Max Scroll
+                          Avg. Scroll
                         </TableHead>
                         <TableHead className="w-32 text-center">
                           Heatmap
@@ -400,7 +400,9 @@ function RouteComponent() {
                               </TableCell>
 
                               <TableCell className="w-32 text-center whitespace-nowrap">
-                                {item.maxScroll}%
+                                {item.averageScroll === null
+                                  ? '—'
+                                  : `${item.averageScroll}%`}
                               </TableCell>
 
                               <TableCell className="w-20 text-center">

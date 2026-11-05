@@ -293,8 +293,9 @@ export function createMeasurementControllerScript(
        const matching = matches.get(anchorId) || [];
        if (matching.length === 0) return { anchorId, status: 'missing' };
        if (matching.length !== 1) return { anchorId, status: 'ambiguous' };
-       const element = matching[0];
-       const rect = element.getBoundingClientRect();
+        const candidate = matching[0];
+        const element = candidate.element;
+        const rect = candidate.rect || element.getBoundingClientRect();
        if (!Number.isFinite(rect.left) || !Number.isFinite(rect.top) ||
            !Number.isFinite(rect.width) || !Number.isFinite(rect.height) ||
            rect.width <= 0 || rect.height <= 0 ||
@@ -332,9 +333,8 @@ export function createMeasurementControllerScript(
         const matching = matches.get(regionId) || [];
         if (matching.length === 0) return { regionId, status: 'missing' };
         if (matching.length !== 1) return { regionId, status: 'ambiguous' };
-        const candidate = matching[0];
-        const element = candidate.element;
-        const rect = candidate.rect || element.getBoundingClientRect();
+         const element = matching[0];
+         const rect = element.getBoundingClientRect();
         if (!Number.isFinite(rect.left) || !Number.isFinite(rect.top) ||
             !Number.isFinite(rect.width) || !Number.isFinite(rect.height) ||
             rect.width <= 0 || rect.height <= 0 ||
@@ -446,8 +446,11 @@ export function createMeasurementControllerScript(
     debug('measurement-response-sent');
   }
 
-  function scheduleMeasurement() {
-    if (!frame) frame = requestAnimationFrame(sendMeasurement);
+  function scheduleMeasurement(reason) {
+    if (!frame) {
+      debug('measurement-scheduled', reason || 'unspecified');
+      frame = requestAnimationFrame(sendMeasurement);
+    }
   }
 
   window.addEventListener('message', (event) => {
@@ -496,26 +499,28 @@ export function createMeasurementControllerScript(
        requestId = data.requestId;
         activeAnchorIds = data.anchorIds === undefined ? null : data.anchorIds.slice();
         activeRegionIds = data.regionIds === undefined ? null : data.regionIds.slice();
-       scheduleMeasurement();
+        scheduleMeasurement('request');
       return;
     }
 
     if (data.type !== SCROLL_MESSAGE || !nonce || data.nonce !== nonce || !finite(data.delta) || Math.abs(data.delta) > MAX_SCROLL_DELTA) return;
     window.scrollBy(0, data.delta);
-    scheduleMeasurement();
+     scheduleMeasurement('scroll-message');
   });
 
-   window.addEventListener('scroll', scheduleMeasurement, { passive: true, capture: true });
-   window.addEventListener('resize', scheduleMeasurement, { passive: true });
-  if (typeof ResizeObserver === 'function') {
-    const observer = new ResizeObserver(scheduleMeasurement);
+    window.addEventListener('scroll', () => scheduleMeasurement('scroll'), { passive: true, capture: true });
+    window.addEventListener('resize', () => scheduleMeasurement('resize'), { passive: true });
+   if (typeof ResizeObserver === 'function') {
+     const observer = new ResizeObserver(() => scheduleMeasurement('resize-observer'));
     if (document.documentElement) observer.observe(document.documentElement);
     if (document.body) observer.observe(document.body);
   }
-   if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleMeasurement).catch(() => {});
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => scheduleMeasurement('fonts-ready')).catch(() => {});
    if (typeof MutationObserver === 'function' && document.documentElement) {
-     const observer = new MutationObserver(scheduleMeasurement);
-     observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
-   }
+      const observer = new MutationObserver(() =>
+        scheduleMeasurement('mutation-observer')
+      );
+      observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+    }
  })();`
 }

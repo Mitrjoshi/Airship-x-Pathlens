@@ -258,10 +258,13 @@ test('mounts click hotspots on a scaled matching viewport and suppresses incompa
   })
   await page.waitForFunction(() => {
     const element = document.querySelector('canvas[data-overlay-status]')
+    const context = (element as HTMLCanvasElement | null)?.getContext('2d')
+    const pixel = context?.getImageData(960, 45, 1, 1).data[3] ?? 0
     return (
       element?.dataset.overlayType === 'scroll' &&
       element.dataset.overlayDrawnPoints === '2' &&
-      element.dataset.overlayReachPercent === '100'
+      element.dataset.overlayReachPercent === '100' &&
+      pixel > 0
     )
   })
   const scrollState = await canvas.evaluate((element) => {
@@ -269,7 +272,7 @@ test('mounts click hotspots on a scaled matching viewport and suppresses incompa
     const top = Array.from(context.getImageData(960, 45, 1, 1).data)
     const bottom = Array.from(context.getImageData(960, 900, 1, 1).data)
     return {
-      oldClickPixel: context.getImageData(432, 472, 1, 1).data[3],
+      scrollOverlayPixel: context.getImageData(432, 472, 1, 1).data[3],
       top,
       bottom,
       type: element.getAttribute('data-overlay-type'),
@@ -281,7 +284,7 @@ test('mounts click hotspots on a scaled matching viewport and suppresses incompa
     }
   })
   assert.deepEqual(scrollState, {
-    oldClickPixel: 41,
+    scrollOverlayPixel: 41,
     top: [31, 199, 93, 41],
     bottom: [31, 199, 93, 41],
     type: 'scroll',
@@ -291,6 +294,66 @@ test('mounts click hotspots on a scaled matching viewport and suppresses incompa
     regions: '2',
     rejectionReasons: '{"document-dimensions-incompatible":1}',
   })
+
+  await page.evaluate(() => {
+    ;(
+      window as Window & {
+        setFixtureRelativeReach?: (
+          value: {
+            device: 'desktop'
+            totalEligibleSessions: number
+            validScrollSessions: number
+            excludedSessions: number
+            excludedReasons: Record<string, number>
+            sessionsWithoutScrollEvents: number
+            geometryVariableSessions: number
+            truncated: boolean
+            bands: Array<{
+              percentage: number
+              count: number
+              intensity: number
+            }>
+          } | null
+        ) => void
+      }
+    ).setFixtureRelativeReach?.({
+      device: 'desktop',
+      totalEligibleSessions: 4,
+      validScrollSessions: 3,
+      excludedSessions: 1,
+      excludedReasons: { 'no-scroll-event': 1 },
+      sessionsWithoutScrollEvents: 1,
+      geometryVariableSessions: 1,
+      truncated: false,
+      bands: [
+        { percentage: 2.5, count: 3, intensity: 0.75 },
+        { percentage: 52.5, count: 2, intensity: 0.5 },
+        { percentage: 97.5, count: 1, intensity: 0.25 },
+      ],
+    })
+  })
+  await page.waitForFunction(() => {
+    const element = document.querySelector('canvas[data-overlay-status]')
+    return (
+      element?.dataset.overlayRelativeRendering === 'true' &&
+      element.dataset.overlayRelativeBandCount === '3' &&
+      element.dataset.overlayRelativeEligibleSessions === '4' &&
+      element.dataset.overlayRelativeExcludedSessions === '1'
+    )
+  })
+  assert.equal(await canvas.getAttribute('data-overlay-drawn-points'), '3')
+  await page.evaluate(() => {
+    ;(
+      window as Window & {
+        setFixtureRelativeReach?: (value: null) => void
+      }
+    ).setFixtureRelativeReach?.(null)
+  })
+  await page.waitForFunction(
+    () =>
+      document.querySelector('canvas')?.dataset.overlayRelativeRendering ===
+      'false'
+  )
 
   await page.evaluate(() => {
     ;(

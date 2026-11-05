@@ -24,6 +24,10 @@ import {
   getSharedOverlayDimensions,
   projectScrollDepth,
 } from '../src/components/common/heatmap-overlay-layer'
+import {
+  getLegacyScrollReach,
+  getSafeLegacyPoints,
+} from '../src/components/common/heatmap-legacy'
 
 const measurement: PreviewMeasurementState = {
   viewportWidth: 1000,
@@ -403,6 +407,40 @@ test('projects scroll reach percentages from the tracked scrollable distance', (
   )
 })
 
+test('accepts only normalized viewport legacy points as safe fallbacks', () => {
+  assert.deepEqual(
+    getSafeLegacyPoints(
+      [
+        { x: 0.2, y: 0.3, count: 1, intensity: 1, coordinateMode: 'viewport' },
+        { x: 0.2, y: 0.3, count: 1, intensity: 1, coordinateMode: 'document' },
+        { x: 1.2, y: 0.3, count: 1, intensity: 1, coordinateMode: 'viewport' },
+      ],
+      { width: 390, height: 844 },
+      { width: 412, height: 915 }
+    ),
+    [{ x: 0.2, y: 0.3, count: 1, intensity: 1, coordinateMode: 'viewport' }]
+  )
+  assert.deepEqual(
+    getSafeLegacyPoints(
+      [{ x: 0.2, y: 0.3, count: 1, intensity: 1, coordinateMode: 'viewport' }],
+      { width: 390, height: 844 },
+      { width: 1280, height: 720 }
+    ),
+    []
+  )
+})
+
+test('uses the highest valid legacy scroll reach', () => {
+  assert.equal(
+    getLegacyScrollReach([
+      { percentage: 25, count: 2, intensity: 0.5 },
+      { percentage: 75, count: 1, intensity: 0.25 },
+      { percentage: 101, count: 10, intensity: 1 },
+    ]),
+    75
+  )
+})
+
 test('requires scroll source dimensions before accepting scroll overlay data', () => {
   assert.deepEqual(getScrollOverlayDecision(null, measurement), {
     compatible: false,
@@ -595,6 +633,17 @@ test('selects recorded viewports by device and falls back without crossing devic
 })
 
 test('selects the highest-volume compatible Click geometry', () => {
+  const viewport1440 = getRepresentativeClickOverlayViewport(
+    [
+      group({
+        sourceViewport: { width: 1440, height: 900 },
+        sourceDocument: { width: 1440, height: 3000 },
+      }),
+    ],
+    'desktop'
+  )
+  assert.deepEqual(viewport1440, { width: 1440, height: 900 })
+
   assert.deepEqual(
     getRepresentativeClickOverlayViewport(
       [
@@ -613,6 +662,22 @@ test('selects the highest-volume compatible Click geometry', () => {
       'desktop'
     ),
     { width: 1920, height: 911 }
+  )
+
+  assert.deepEqual(
+    getRepresentativeClickOverlayViewport(
+      [
+        group({
+          coordinateMode: 'viewport',
+          alignment: 'viewport-only',
+          safeForDocumentOverlay: false,
+          sourceViewport: { width: 1920, height: 1080 },
+          sourceDocument: null,
+        }),
+      ],
+      'desktop'
+    ),
+    { width: 1280, height: 720 }
   )
 })
 
@@ -728,6 +793,46 @@ test('reports a constrained iframe viewport without accepting a mismatched group
     compatible: false,
     reason: 'document-height-incompatible',
   })
+})
+
+test('rejects normalized viewport groups across responsive viewport sizes', () => {
+  assert.deepEqual(
+    getClickGroupOverlayDecision(
+      group({
+        coordinateMode: 'viewport',
+        alignment: 'viewport-only',
+        safeForDocumentOverlay: false,
+        sourceViewport: { width: 390, height: 844 },
+        sourceDocument: null,
+      }),
+      {
+        ...measurement,
+        viewportWidth: 500,
+        viewportHeight: 900,
+      }
+    ),
+    { compatible: false, reason: 'viewport-dimensions-incompatible' }
+  )
+})
+
+test('rejects normalized viewport groups from another responsive device class', () => {
+  assert.deepEqual(
+    getClickGroupOverlayDecision(
+      group({
+        coordinateMode: 'viewport',
+        alignment: 'viewport-only',
+        safeForDocumentOverlay: false,
+        sourceViewport: { width: 390, height: 844 },
+        sourceDocument: null,
+      }),
+      {
+        ...measurement,
+        viewportWidth: 1280,
+        viewportHeight: 720,
+      }
+    ),
+    { compatible: false, reason: 'viewport-device-incompatible' }
+  )
 })
 
 test('requires an authoritative measurement before rendering', () => {

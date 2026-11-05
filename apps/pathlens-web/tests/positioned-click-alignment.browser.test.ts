@@ -62,12 +62,34 @@ const positionedChildHtml = `<!doctype html>
     }, '*')
     let layoutVersion = 0
     let activeRequest = null
-    const measure = (request) => {
-      activeRequest = request
-      const documentWidth = Math.max(innerWidth, document.documentElement.scrollWidth)
-      const documentHeight = Math.max(innerHeight, document.documentElement.scrollHeight)
-      parent.postMessage({ version: 1, type: 'PATHLENS_MEASURE_STATE', sessionId: request.sessionId, nonce: request.nonce, requestId: request.requestId, viewportWidth: innerWidth, viewportHeight: innerHeight, documentWidth, documentHeight, scrollX: scrollX, scrollY: scrollY, maxScrollX: Math.max(0, documentWidth - innerWidth), maxScrollY: Math.max(0, documentHeight - innerHeight), layoutVersion: ++layoutVersion }, '*')
-    }
+     const measure = (request) => {
+       activeRequest = request
+       const documentWidth = Math.max(innerWidth, document.documentElement.scrollWidth)
+       const documentHeight = Math.max(innerHeight, document.documentElement.scrollHeight)
+       const anchorResolutions = Array.isArray(request.anchorIds)
+         ? request.anchorIds.map((anchorId) => {
+             const queuedClick = (window.__PATHLENS__?.queue ?? []).find(
+               (event) => event.type === 'click' && event.elementAnchor?.anchorId === anchorId
+             )
+             const element = queuedClick?.id ? document.getElementById(queuedClick.id) : null
+             const rect = element?.getBoundingClientRect()
+             if (!queuedClick?.elementAnchor || !element || !rect || rect.width <= 0 || rect.height <= 0) {
+               return { anchorId, status: 'missing' }
+             }
+             const anchor = queuedClick.elementAnchor
+             return {
+               anchorId,
+               status: 'matched',
+               rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+               positionMode: getComputedStyle(element).position,
+               ...(anchor.effectivePositionMode ? { effectivePositionMode: anchor.effectivePositionMode } : {}),
+               ...(anchor.positioningAncestorDepth !== undefined ? { positioningAncestorDepth: anchor.positioningAncestorDepth } : {}),
+               ...(anchor.positioningAncestorAnchorId ? { positioningAncestorAnchorId: anchor.positioningAncestorAnchorId } : {}),
+             }
+           })
+         : undefined
+       parent.postMessage({ version: 1, type: 'PATHLENS_MEASURE_STATE', sessionId: request.sessionId, nonce: request.nonce, requestId: request.requestId, viewportWidth: innerWidth, viewportHeight: innerHeight, documentWidth, documentHeight, scrollX: scrollX, scrollY: scrollY, maxScrollX: Math.max(0, documentWidth - innerWidth), maxScrollY: Math.max(0, documentHeight - innerHeight), layoutVersion: ++layoutVersion, anchorResolutions }, '*')
+     }
     addEventListener('message', (event) => {
       if (event.source !== parent || !event.data) return
       if (event.data.type === 'PATHLENS_MEASURE_REQUEST') measure(event.data)
@@ -149,11 +171,21 @@ test('diagnoses positioned click alignment through the tracker and live overlay 
     await frame.evaluate((targetId) => {
       const target = document.getElementById(targetId) as HTMLElement
       const rect = target.getBoundingClientRect()
+      const eventInit = {
+        bubbles: true,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+        button: 0,
+        isPrimary: true,
+        pointerId: 1,
+        pointerType: 'mouse',
+      }
+      target.dispatchEvent(new PointerEvent('pointerup', eventInit))
       target.dispatchEvent(
         new MouseEvent('click', {
           bubbles: true,
-          clientX: rect.left + rect.width / 2,
-          clientY: rect.top + rect.height / 2,
+          clientX: eventInit.clientX,
+          clientY: eventInit.clientY,
         })
       )
     }, id)
@@ -173,20 +205,63 @@ test('diagnoses positioned click alignment through the tracker and live overlay 
   await clickTarget('nested-button')
   await clickTarget('sticky-contact')
   await clickTarget('fixed-contact')
-  await page.waitForFunction(
-    () =>
-      Number(
-        document.querySelector('canvas')?.dataset.overlayDrawnPoints ?? 0
-      ) > 0
-  )
+  try {
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector('canvas')
+      return (
+        Number(canvas?.dataset.overlayDrawnPoints ?? 0) === 4 &&
+        Number(canvas?.dataset.overlayCandidateClicks ?? 0) === 8 &&
+        Number(canvas?.dataset.overlayMappedClicks ?? 0) === 6 &&
+        Number(canvas?.dataset.overlayUnmappedClicks ?? 0) === 2 &&
+        Number(canvas?.dataset.overlayElementAnchoredClicks ?? 0) === 4
+      )
+    })
+  } catch (error) {
+    t.diagnostic(
+      JSON.stringify(
+        await page.locator('canvas').evaluate((element) => ({
+          candidate: element.getAttribute('data-overlay-candidate-clicks'),
+          mapped: element.getAttribute('data-overlay-mapped-clicks'),
+          anchored: element.getAttribute(
+            'data-overlay-element-anchored-clicks'
+          ),
+          drawn: element.getAttribute('data-overlay-drawn-points'),
+          groups: element.getAttribute('data-overlay-groups'),
+          sourceViewports: element.getAttribute(
+            'data-overlay-source-viewports'
+          ),
+          rejectionReasons: element.getAttribute(
+            'data-overlay-click-rejection-reasons'
+          ),
+        }))
+      )
+    )
+    throw error
+  }
 
   const initial = await page.evaluate(() => ({
     clicks: (window as Window & { __positionedClicks?: unknown[] })
       .__positionedClicks,
     measurement: document.querySelector('canvas')?.dataset.overlayLiveScroll,
+    candidateClicks:
+      document.querySelector('canvas')?.dataset.overlayCandidateClicks,
+    mappedClicks: document.querySelector('canvas')?.dataset.overlayMappedClicks,
+    elementAnchoredClicks:
+      document.querySelector('canvas')?.dataset.overlayElementAnchoredClicks,
+    sourceViewports:
+      document.querySelector('canvas')?.dataset.overlaySourceViewports,
+    compatibleGroups:
+      document.querySelector('canvas')?.dataset.overlayCompatibleGroups,
+    drawnPoints: document.querySelector('canvas')?.dataset.overlayDrawnPoints,
   }))
   assert.equal(initial.measurement, '0x0')
   assert.equal((initial.clicks as unknown[]).length, 8)
+  assert.equal(initial.candidateClicks, '8')
+  assert.equal(initial.mappedClicks, '6')
+  assert.equal(initial.elementAnchoredClicks, '4')
+  assert.equal(initial.sourceViewports, '1280x720,1536x695,1920x1080')
+  assert.equal(initial.compatibleGroups, '3')
+  assert.equal(initial.drawnPoints, '4')
 
   const initialStickyClicks = (
     initial.clicks as Array<{

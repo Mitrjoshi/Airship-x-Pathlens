@@ -40,7 +40,7 @@ export interface HeatmapPage {
   clicks: number
   scrollEvents: number
   maxScroll: number
-  averageScroll: number
+  averageScroll: number | null
   reach25: number
   reach50: number
   reach75: number
@@ -69,6 +69,7 @@ export interface HeatmapClickSample {
   y: number
   weight: number
   coordinateMode: HeatmapCoordinateMode
+  interactionId?: string
   anchorId?: string
   relativeX?: number
   relativeY?: number
@@ -141,6 +142,18 @@ export interface HeatmapScrollPoint {
   intensity: number
 }
 
+export interface HeatmapScrollReach {
+  device: Exclude<HeatmapDevice, 'all'>
+  totalEligibleSessions: number
+  validScrollSessions: number
+  excludedSessions: number
+  excludedReasons: Record<string, number>
+  sessionsWithoutScrollEvents: number
+  geometryVariableSessions: number
+  truncated: boolean
+  bands: HeatmapScrollPoint[]
+}
+
 export interface HeatmapScrollGroup {
   groupId: string
   device: Exclude<HeatmapDevice, 'all'>
@@ -181,6 +194,7 @@ export interface HeatmapPageDetail extends HeatmapPage {
   hotAreas: HeatmapHotArea[]
   scrollPoints: HeatmapScrollPoint[]
   scrollGroups?: HeatmapScrollGroup[]
+  scrollReach?: HeatmapScrollReach[]
   replayEvents: ReplayEvent[]
   replayViewport: {
     width: number

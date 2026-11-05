@@ -24,6 +24,7 @@ import {
   revokePreviewSession,
 } from '@/queries/preview-sessions'
 import { Button } from '@workspace/ui/components/button'
+import { isCurrentPreviewMessage } from './live-preview-validation'
 
 export interface LivePreviewContext {
   workspaceId: string
@@ -536,6 +537,11 @@ export function LivePreviewIframe({
     }
 
     const generation = generationRef.current
+    debugMeasurement('measurement-effect-started', {
+      generation,
+      hasAnchorIds: Boolean(anchorIdsKey),
+      hasRegionIds: Boolean(regionIdsKey),
+    })
     const expectedOrigin = new URL(previewIframeUrl!).origin
     const handleMessage = (event: MessageEvent<unknown>) => {
       if (generation !== generationRef.current) {
@@ -566,10 +572,14 @@ export function LivePreviewIframe({
 
       const message = event.data
       if (
-        message.sessionId !== previewSessionId ||
-        message.nonce !== nonceRef.current ||
-        message.requestId !== requestIdRef.current ||
-        message.layoutVersion <= sequenceRef.current
+        !nonceRef.current ||
+        !requestIdRef.current ||
+        !isCurrentPreviewMessage(message, {
+          sessionId: previewSessionId,
+          nonce: nonceRef.current,
+          requestId: requestIdRef.current,
+          lastLayoutVersion: sequenceRef.current,
+        })
       ) {
         debugMeasurement('measurement-response-rejected', {
           reason:
@@ -677,6 +687,7 @@ export function LivePreviewIframe({
     }
 
     return () => {
+      debugMeasurement('measurement-effect-cleanup', { generation })
       window.removeEventListener('message', handleMessage)
       clearMeasurementRetries()
     }
@@ -781,6 +792,21 @@ export function LivePreviewIframe({
     if (isExpired) onExpired?.()
   }, [isExpired, onExpired])
 
+  const handleIframeError = () => {
+    generationRef.current += 1
+    clearMeasurementRetries()
+    loadedRef.current = false
+    acceptedRef.current = false
+    requestIdRef.current = null
+    measurementRef.current = null
+    setMeasurement(null)
+    onMeasurementChange?.(null)
+    onAnchorResolutionChange?.(null)
+    onRegionResolutionChange?.(null)
+    setMeasurementTimedOut(false)
+    setLoadError(true)
+  }
+
   if (
     (status !== 'error' && status !== 'expired' && !preview) ||
     status === 'idle' ||
@@ -812,13 +838,9 @@ export function LivePreviewIframe({
         <div className="flex max-w-md flex-col items-center gap-3">
           <span>{error ?? 'Live preview is unavailable.'}</span>
           {onRetry ? (
-            <button
-              type="button"
-              className="rounded-md border px-3 py-1.5 text-sm"
-              onClick={onRetry}
-            >
+            <Button variant={'outline'} onClick={onRetry}>
               Try again
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -867,7 +889,7 @@ export function LivePreviewIframe({
           tabIndex={isHeatmapPreview ? -1 : undefined}
           aria-hidden={isHeatmapPreview}
           loading="eager"
-          onError={() => setLoadError(true)}
+          onError={handleIframeError}
           onLoad={(event) => {
             if (event.currentTarget !== iframeRef.current) return
             loadedRef.current = true

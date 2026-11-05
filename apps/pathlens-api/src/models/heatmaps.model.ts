@@ -23,7 +23,12 @@ import {
   aggregateMovementHeatmap,
   collectClickSamples,
 } from "../lib/heatmap-aggregation";
-import { aggregateScrollGroups } from "../lib/scroll-aggregation";
+import {
+  aggregateScrollGroups,
+  aggregateScrollReach,
+  normalizeScrollDevice,
+  type ScrollAggregationEvent,
+} from "../lib/scroll-aggregation";
 import { getCompleteReplayDataModel } from "./replay.model";
 
 export const MAX_HEATMAP_EVENTS = 20_000;
@@ -74,6 +79,12 @@ export interface HeatmapsFilters {
   pageSize?: number;
   includeDetails?: boolean;
   heatmapId?: string;
+}
+
+export function normalizeHeatmapPagePath(
+  pagePath?: string
+): string | undefined {
+  return pagePath ? normalizePagePath(pagePath) : undefined;
 }
 
 export function buildClickSampleCoverage(
@@ -146,6 +157,7 @@ export interface HeatmapIdentityCandidate {
 
 interface HeatmapEventRow extends Record<string, unknown> {
   type: "click" | "mousemove";
+  event_id?: string;
   session_id: string;
   payload: Record<string, unknown> | null;
   viewport_width: number | string | null;
@@ -169,6 +181,11 @@ interface ScrollSessionRow extends Record<string, unknown> {
   device: string | null;
   payloads: Record<string, unknown>[] | null;
   max_scroll: number | string | null;
+}
+
+interface EligibleScrollSessionRow extends Record<string, unknown> {
+  device: string | null;
+  total_sessions: number | string | null;
 }
 
 interface ReplaySessionRow extends Record<string, unknown> {
@@ -654,7 +671,7 @@ function mapPage(row: PageRow): HeatmapPage {
     clicks: toNumber(row.clicks),
     scrollEvents: toNumber(row.scroll_events),
     maxScroll: 0,
-    averageScroll: 0,
+    averageScroll: null,
     reach25: 0,
     reach50: 0,
     reach75: 0,
@@ -872,10 +889,10 @@ export async function getHeatmapsModel(
     : sql``;
   const page = filters.page ?? 1;
   const pageSize = filters.pageSize ?? 50;
-  const pagePathFilter =
-    filters.includeDetails && filters.pagePath
-      ? sql`AND ${normalizedPathSql("path")} = ${normalizePagePath(filters.pagePath)}`
-      : sql``;
+  const normalizedPagePath = normalizeHeatmapPagePath(filters.pagePath);
+  const pagePathFilter = normalizedPagePath
+    ? sql`AND ${normalizedPathSql("path")} = ${normalizedPagePath}`
+    : sql``;
   const normalizedPath = normalizedPathSql("path");
   const pageResult = await db.execute<PageRow>(sql`
     WITH page_metrics AS (
@@ -952,7 +969,7 @@ export async function getHeatmapsModel(
     SELECT
       path,
       COUNT(*) FILTER (WHERE max_scroll IS NOT NULL)::int AS sessions,
-      COALESCE(AVG(max_scroll), 0)::float AS average_scroll,
+       AVG(max_scroll)::float AS average_scroll,
       COALESCE(MAX(max_scroll), 0)::float AS max_scroll,
       COUNT(*) FILTER (WHERE max_scroll >= 25)::int AS reach25,
       COUNT(*) FILTER (WHERE max_scroll >= 50)::int AS reach50,
@@ -978,7 +995,11 @@ export async function getHeatmapsModel(
       return {
         ...page,
         id: persistedId ?? "",
-        averageScroll: toNumber(summary?.average_scroll),
+        averageScroll:
+          summary?.average_scroll === null ||
+          summary?.average_scroll === undefined
+            ? null
+            : toNumber(summary.average_scroll),
         maxScroll: toNumber(summary?.max_scroll),
         reach25:
           sessions > 0 ? (toNumber(summary?.reach25) / sessions) * 100 : 0,
@@ -1012,7 +1033,7 @@ export async function getHeatmapsModel(
 
   const selectedPage =
     (filters.pagePath
-      ? pages.find((page) => page.path === normalizePagePath(filters.pagePath))
+      ? pages.find((page) => page.path === normalizedPagePath)
       : pages[0]) ?? null;
 
   if (!selectedPage) {
@@ -1020,6 +1041,7 @@ export async function getHeatmapsModel(
   }
   const clickEventResult = await db.execute<HeatmapEventRow>(sql`
     SELECT
+      id::text AS event_id,
       type,
       session_id,
       payload,
@@ -1076,8 +1098,25 @@ export async function getHeatmapsModel(
       AND type = 'scroll'
       ${deviceFilter}
       ${domainFilter}
-    GROUP BY session_id, device;
-  `);
+     GROUP BY session_id, device;
+   `);
+  const eligibleScrollSessionsResult =
+    await db.execute<EligibleScrollSessionRow>(
+      sql`
+      SELECT
+        ${normalizedDeviceSql("device")} AS device,
+        COUNT(DISTINCT session_id)::int AS total_sessions
+      FROM events
+      WHERE workspace_id = ${filters.workspaceId}
+        AND project_id = ${filters.projectId}
+        AND occurred_at >= NOW() - make_interval(days => ${rangeDays})
+        AND ${normalizedPathSql("path")} = ${selectedPage.path}
+        AND type = 'page_view'
+        ${deviceFilter}
+        ${domainFilter}
+      GROUP BY ${normalizedDeviceSql("device")};
+    `
+    );
   const replaySession = await getRepresentativeReplaySession(
     filters,
     selectedPage.path,
@@ -1124,6 +1163,41 @@ export async function getHeatmapsModel(
   const heatmapSnapshot = await getHeatmapSnapshot(filters, selectedPage);
   const selectedScrollSummary = scrollSummaries.get(selectedPage.path);
   const sessionCount = toNumber(selectedScrollSummary?.sessions);
+  const scrollRowsByDevice = new Map<string, ScrollAggregationEvent[]>();
+  for (const row of selectedScrollResult.rows) {
+    const device = normalizeScrollDevice(row.device);
+    const deviceRows = scrollRowsByDevice.get(device) ?? [];
+    deviceRows.push(
+      ...((row.payloads ?? []).map((payload) => ({
+        sessionId: row.session_id,
+        device: row.device,
+        payload,
+      })) satisfies ScrollAggregationEvent[])
+    );
+    scrollRowsByDevice.set(device, deviceRows);
+  }
+  const eligibleScrollSessionsByDevice = new Map(
+    eligibleScrollSessionsResult.rows.map((row) => [
+      normalizeScrollDevice(row.device),
+      toNumber(row.total_sessions),
+    ])
+  );
+  const scrollReachDevices = new Set([
+    ...eligibleScrollSessionsByDevice.keys(),
+    ...scrollRowsByDevice.keys(),
+  ]);
+  const scrollReach = Array.from(scrollReachDevices)
+    .filter(
+      (device): device is Exclude<HeatmapDevice, "all"> =>
+        device === "desktop" || device === "mobile" || device === "tablet"
+    )
+    .sort()
+    .map((device) =>
+      aggregateScrollReach(scrollRowsByDevice.get(device) ?? [], {
+        device,
+        totalEligibleSessions: eligibleScrollSessionsByDevice.get(device) ?? 0,
+      })
+    );
   const pageDetail: HeatmapPageDetail = {
     ...selectedPage,
     clickPoints: clickAggregation.points,
@@ -1147,6 +1221,7 @@ export async function getHeatmapsModel(
         }))
       )
     ),
+    scrollReach,
     replayEvents: replay?.events ?? [],
     replayViewport:
       replaySession &&

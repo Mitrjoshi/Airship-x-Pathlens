@@ -9,6 +9,7 @@ import type {
   HeatmapClickSampleGroup,
   HeatmapMovementGroup,
   HeatmapScrollGroup,
+  HeatmapScrollReach,
   HeatmapScrollPoint,
   PreviewMeasurementState,
   PreviewAnchorResolution,
@@ -293,6 +294,9 @@ function Fixture() {
     'click' | 'movement' | 'scroll'
   >('click')
   const [coverageTruncated, setCoverageTruncated] = useState(false)
+  const [scrollReach, setScrollReach] = useState<HeatmapScrollReach | null>(
+    null
+  )
 
   useEffect(() => {
     ;(
@@ -327,8 +331,14 @@ function Fixture() {
     ;(
       window as Window & {
         setFixtureCoverageTruncated?: (value: boolean) => void
+        setFixtureRelativeReach?: (value: HeatmapScrollReach | null) => void
       }
     ).setFixtureCoverageTruncated = setCoverageTruncated
+    ;(
+      window as Window & {
+        setFixtureRelativeReach?: (value: HeatmapScrollReach | null) => void
+      }
+    ).setFixtureRelativeReach = setScrollReach
     return () => {
       delete (window as Window & { setFixtureScroll?: unknown })
         .setFixtureScroll
@@ -343,6 +353,8 @@ function Fixture() {
         .setFixtureHeatmapType
       delete (window as Window & { setFixtureCoverageTruncated?: unknown })
         .setFixtureCoverageTruncated
+      delete (window as Window & { setFixtureRelativeReach?: unknown })
+        .setFixtureRelativeReach
     }
   }, [])
 
@@ -420,6 +432,7 @@ function Fixture() {
               maximumReachPercent:
                 index === 0 ? maximumReachPercent : group.maximumReachPercent,
             }))}
+            scrollReach={scrollReach}
             scrollSource={{
               viewport: { width: 1920, height: 911 },
               document: { width: 1920, height: 2700 },

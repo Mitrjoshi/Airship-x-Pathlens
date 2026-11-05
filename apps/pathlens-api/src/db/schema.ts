@@ -1,6 +1,7 @@
 import {
   bigint,
   boolean,
+  check,
   date,
   doublePrecision,
   index,
@@ -14,7 +15,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import type { Permission } from "@workspace/contracts";
+import type { IntegrationStatus, Permission } from "@workspace/contracts";
 import type { ReplayEvent } from "@workspace/contracts";
 
 /* -------------------------------------------------------------------------- */
@@ -31,6 +32,124 @@ export const avatars = pgTable("avatars", {
     .defaultNow()
     .notNull(),
 });
+
+export const integrations = pgTable(
+  "integrations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    category: text("category").notNull(),
+    iconUrl: text("icon_url"),
+    status: text("status")
+      .$type<IntegrationStatus>()
+      .notNull()
+      .default("available"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isVisible: boolean("is_visible").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    statusCheck: check(
+      "integrations_status_check",
+      sql`${table.status} IN ('available', 'coming_soon', 'disabled')`
+    ),
+    visibleSortIdx: index("integrations_visible_sort_idx").on(
+      table.isVisible,
+      table.sortOrder,
+      table.name
+    ),
+  })
+);
+
+export const projectIntegrations = pgTable(
+  "project_integrations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    integrationId: uuid("integration_id")
+      .notNull()
+      .references(() => integrations.id, { onDelete: "cascade" }),
+    providerWorkspaceId: text("provider_workspace_id").notNull(),
+    providerWorkspaceName: text("provider_workspace_name").notNull(),
+    encryptedCredentials: text("encrypted_credentials").notNull(),
+    credentialKeyVersion: integer("credential_key_version")
+      .notNull()
+      .default(1),
+    providerBotUserId: text("provider_bot_user_id"),
+    grantedScopes: text("granted_scopes")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
+    settings: jsonb("settings")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    notificationPreferences: jsonb("notification_preferences")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    status: text("status").notNull().default("connected"),
+    connectedByUserId: uuid("connected_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    connectedAt: timestamp("connected_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastError: text("last_error"),
+  },
+  (table) => ({
+    projectIntegrationUnique: uniqueIndex(
+      "project_integrations_project_integration_idx"
+    ).on(table.projectId, table.integrationId),
+    projectIdx: index("project_integrations_project_idx").on(table.projectId),
+    statusCheck: check(
+      "project_integrations_status_check",
+      sql`${table.status} IN ('connected', 'disconnected', 'error')`
+    ),
+  })
+);
+
+export const slackOauthStates = pgTable(
+  "slack_oauth_states",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    nonceHash: text("nonce_hash").notNull().unique(),
+    returnPath: text("return_path").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    expiryIdx: index("slack_oauth_states_expiry_idx").on(table.expiresAt),
+    workspaceIdx: index("slack_oauth_states_workspace_idx").on(
+      table.workspaceId
+    ),
+    projectIdx: index("slack_oauth_states_project_idx").on(table.projectId),
+  })
+);
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),

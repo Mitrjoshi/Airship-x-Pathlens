@@ -288,6 +288,7 @@ test("collects individual document click samples without bucket-centering", () =
     [
       {
         type: "click",
+        event_id: "101",
         payload: {
           pageX: 100,
           pageY: 200,
@@ -298,6 +299,7 @@ test("collects individual document click samples without bucket-centering", () =
       },
       {
         type: "click",
+        event_id: "102",
         payload: {
           pageX: 120,
           pageY: 300,
@@ -312,8 +314,20 @@ test("collects individual document click samples without bucket-centering", () =
 
   assert.equal(result.eligibleEventCount, 2);
   assert.deepEqual(result.groups[0]?.samples, [
-    { x: 0.1, y: 0.1, weight: 1, coordinateMode: "document" },
-    { x: 0.12, y: 0.15, weight: 1, coordinateMode: "document" },
+    {
+      x: 0.1,
+      y: 0.1,
+      weight: 1,
+      coordinateMode: "document",
+      interactionId: "101",
+    },
+    {
+      x: 0.12,
+      y: 0.15,
+      weight: 1,
+      coordinateMode: "document",
+      interactionId: "102",
+    },
   ]);
 });
 
@@ -346,6 +360,24 @@ test("rejects unsafe individual click coordinates instead of clamping them", () 
   assert.equal(result.eligibleEventCount, 1);
   assert.equal(result.groups[0]?.sampleCount, 3);
   assert.equal(result.groups[0]?.samples[0]?.weight, 3);
+});
+
+test("deduplicates canonical click samples by persisted event identity", () => {
+  const row = {
+    type: "click" as const,
+    event_id: "duplicate-1",
+    payload: {
+      pageX: 100,
+      pageY: 200,
+      viewport: { width: 1000, height: 500 },
+      document: { width: 1000, height: 2000 },
+    },
+  };
+  const result = collectClickSamples([row, row], fallbackViewport);
+
+  assert.equal(result.eligibleEventCount, 1);
+  assert.equal(result.groups[0]?.samples.length, 1);
+  assert.equal(result.groups[0]?.samples[0]?.interactionId, "duplicate-1");
 });
 
 test("propagates and deduplicates valid element anchors without merging samples", () => {

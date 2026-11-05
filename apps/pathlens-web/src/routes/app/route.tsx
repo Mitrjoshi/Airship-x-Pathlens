@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { getUsersOptions, type T_User } from '@/queries/user'
 import { motion } from 'motion/react'
+import { Button } from '@workspace/ui/components/button'
 
 type AuthContext = {
   user: T_User
@@ -90,13 +91,14 @@ const ErrorComponent = ({ reset, error }: ErrorComponentProps) => {
             className="bg-destructive mx-auto mt-5 h-1 w-32"
           />
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={reset}
-            className="text-muted-foreground hover:text-foreground mt-4 cursor-pointer text-xs transition-colors"
+            className={'mt-2'}
           >
             Try again
-          </button>
+          </Button>
         </motion.div>
       </div>
     </div>

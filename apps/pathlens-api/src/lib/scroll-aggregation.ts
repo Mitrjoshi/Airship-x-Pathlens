@@ -2,6 +2,7 @@ import type {
   HeatmapDevice,
   HeatmapScrollGroup,
   HeatmapScrollPoint,
+  HeatmapScrollReach,
   HeatmapSourceDimensions,
 } from "@workspace/contracts/heatmaps";
 
@@ -14,6 +15,12 @@ export interface ScrollAggregationEvent {
   sessionId: string;
   device: string | null;
   payload: Record<string, unknown> | null;
+}
+
+export interface ScrollReachAggregationOptions {
+  device: Exclude<HeatmapDevice, "all">;
+  totalEligibleSessions: number;
+  truncated?: boolean;
 }
 
 interface SessionData {
@@ -40,6 +47,12 @@ function normalizeDevice(value: string | null): Exclude<HeatmapDevice, "all"> {
     default:
       return "unknown";
   }
+}
+
+export function normalizeScrollDevice(
+  value: string | null
+): Exclude<HeatmapDevice, "all"> {
+  return normalizeDevice(value);
 }
 
 function finiteNumber(value: unknown): number | null {
@@ -158,6 +171,82 @@ function buildReachPoints(
       intensity: sessionCount > 0 ? count / sessionCount : 0,
     }))
     .sort((left, right) => left.percentage - right.percentage);
+}
+
+export function aggregateScrollReach(
+  rows: readonly ScrollAggregationEvent[],
+  options: ScrollReachAggregationOptions
+): HeatmapScrollReach {
+  const sessions = new Map<
+    string,
+    { maximumReachPercent: number | null; geometries: Set<string> }
+  >();
+  const observedSessions = new Set<string>();
+
+  for (const row of rows) {
+    if (normalizeDevice(row.device) !== options.device) continue;
+    observedSessions.add(row.sessionId);
+    const session = sessions.get(row.sessionId) ?? {
+      maximumReachPercent: null,
+      geometries: new Set<string>(),
+    };
+    const geometry = readGeometry(row.payload);
+    if (geometry) session.geometries.add(geometryKey(geometry));
+    const reachPercent = readDocumentReachPercent(row.payload);
+    if (reachPercent !== null) {
+      session.maximumReachPercent = Math.max(
+        session.maximumReachPercent ?? 0,
+        reachPercent
+      );
+    }
+    sessions.set(row.sessionId, session);
+  }
+
+  const validSessions = Array.from(sessions.values()).filter(
+    (session) => session.maximumReachPercent !== null
+  );
+  const totalEligibleSessions = Math.max(0, options.totalEligibleSessions);
+  const sessionsWithoutScrollEvents = Math.max(
+    0,
+    totalEligibleSessions - observedSessions.size
+  );
+  const invalidScrollSessions = Math.max(
+    0,
+    observedSessions.size - validSessions.length
+  );
+  const geometryVariableSessions = validSessions.filter(
+    (session) => session.geometries.size > 1
+  ).length;
+  const excludedSessions = Math.max(
+    0,
+    totalEligibleSessions - validSessions.length
+  );
+
+  return {
+    device: options.device,
+    totalEligibleSessions,
+    validScrollSessions: validSessions.length,
+    excludedSessions,
+    excludedReasons: {
+      ...(sessionsWithoutScrollEvents > 0
+        ? { "no-scroll-event": sessionsWithoutScrollEvents }
+        : {}),
+      ...(invalidScrollSessions > 0
+        ? { "invalid-scroll-observation": invalidScrollSessions }
+        : {}),
+    },
+    sessionsWithoutScrollEvents,
+    geometryVariableSessions,
+    truncated: options.truncated ?? false,
+    bands: buildReachPoints(
+      validSessions.flatMap((session) =>
+        session.maximumReachPercent === null
+          ? []
+          : [session.maximumReachPercent]
+      ),
+      totalEligibleSessions
+    ),
+  };
 }
 
 function createGroup(

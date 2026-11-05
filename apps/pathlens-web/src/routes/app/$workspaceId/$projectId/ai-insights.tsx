@@ -35,7 +35,7 @@ function RouteComponent() {
           <NoPermissionView />
         ) : (
           <>
-            <div className="mt-40 flex flex-col items-center justify-center space-y-2 text-center">
+            <div className="mt-40 flex flex-col items-center justify-center text-center">
               <p className="text-lg font-medium">AI Insights is coming soon</p>
               <p className="text-muted-foreground max-w-md text-sm">
                 We're working on AI-powered reports to help you uncover trends,

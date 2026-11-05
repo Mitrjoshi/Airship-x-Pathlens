@@ -60,6 +60,50 @@ test('projects an independently testable element anchor exactly once', () => {
   })
 })
 
+test('maps the same element anchor across desktop source viewports', () => {
+  const sample: HeatmapClickSample = {
+    x: 0.5,
+    y: 0.5,
+    weight: 1,
+    coordinateMode: 'document',
+    interactionId: 'desktop-1920-click',
+    anchorId: definition.anchorId,
+    relativeX: 0.75,
+    relativeY: 0.25,
+  }
+  const resolutions = new Map([
+    [
+      definition.anchorId,
+      {
+        anchorId: definition.anchorId,
+        status: 'matched' as const,
+        rect: { left: 200, top: 100, width: 400, height: 80 },
+        positionMode: 'static' as const,
+      },
+    ],
+  ])
+
+  for (const sourceViewport of [1280, 1536, 1920]) {
+    const result = projectClickSample(
+      sample,
+      {
+        ...measurement,
+        viewportWidth: sourceViewport,
+        documentWidth: sourceViewport,
+      },
+      { width: 500, height: 250 },
+      new Map([[definition.anchorId, definition]]),
+      resolutions
+    )
+    assert.equal(result.mode, 'anchored')
+    assert.ok(result.projection)
+    assert.deepEqual(result.projection, {
+      x: (500 / sourceViewport) * 500,
+      y: 60,
+    })
+  }
+})
+
 test('prefers a resolved element anchor over a broader region anchor', () => {
   const sample: HeatmapClickSample = {
     x: 0.5,
@@ -155,4 +199,60 @@ test('excludes a region when the structural fingerprint changes', () => {
 
   assert.equal(decision.mode, 'excluded')
   assert.equal(decision.reason, 'region-unresolved')
+})
+
+test('falls back to a valid region when an element anchor is unresolved', () => {
+  const sample: HeatmapClickSample = {
+    x: 0.5,
+    y: 0.5,
+    weight: 1,
+    coordinateMode: 'document',
+    anchorId: definition.anchorId,
+    relativeX: 0.25,
+    relativeY: 0.75,
+    regionAnchor: {
+      schemaVersion: 1,
+      regionId: 'fnv1a32-region002',
+      regionKind: 'semantic',
+      structuralFingerprint: 'html:0/body:0/main:0',
+      positionMode: 'static',
+      relativeX: 0.25,
+      relativeY: 0.75,
+      capturedRect: { left: 0, top: 0, width: 800, height: 400 },
+    },
+  }
+  const decision = projectClickSample(
+    sample,
+    measurement,
+    { width: 500, height: 250 },
+    new Map([[definition.anchorId, definition]]),
+    new Map([
+      [
+        definition.anchorId,
+        {
+          anchorId: definition.anchorId,
+          status: 'missing' as const,
+        },
+      ],
+    ]),
+    undefined,
+    new Map([
+      [
+        sample.regionAnchor.regionId,
+        {
+          regionId: sample.regionAnchor.regionId,
+          status: 'matched' as const,
+          rect: { left: 100, top: 50, width: 400, height: 200 },
+          positionMode: 'static' as const,
+          regionKind: 'semantic' as const,
+          structuralFingerprint: 'html:0/body:0/main:0',
+        },
+      ],
+    ])
+  )
+
+  assert.deepEqual(decision, {
+    projection: { x: 100, y: 100 },
+    mode: 'region',
+  })
 })

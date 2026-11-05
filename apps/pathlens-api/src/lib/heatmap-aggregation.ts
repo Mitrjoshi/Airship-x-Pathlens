@@ -26,6 +26,7 @@ export const MOVEMENT_GRID_SIZE = 40;
 export interface HeatmapAggregationEvent {
   type: "click" | "mousemove";
   payload: Record<string, unknown> | null;
+  event_id?: string;
 }
 
 interface MutableGroup {
@@ -368,6 +369,7 @@ export function collectClickSamples(
   const regionDefinitions = new Map<string, HeatmapClickRegionDefinition>();
   const conflictingAnchorIds = new Set<string>();
   const seenAnchorIds = new Set<string>();
+  const seenEventIds = new Set<string>();
   let eligibleEventCount = 0;
   let anchorCapableEvents = 0;
   let legacyEvents = 0;
@@ -382,6 +384,10 @@ export function collectClickSamples(
     const point = getStrictClickPoint(row.payload, fallbackViewport);
     const weight = readPointWeight(row.payload);
     if (!point || weight === null) continue;
+    if (row.event_id) {
+      if (seenEventIds.has(row.event_id)) continue;
+      seenEventIds.add(row.event_id);
+    }
 
     const groupId = getGroupId("click", point);
     const existing = groups.get(groupId);
@@ -487,6 +493,7 @@ export function collectClickSamples(
       y: point.y,
       weight,
       coordinateMode: point.coordinateMode,
+      ...(row.event_id ? { interactionId: row.event_id } : {}),
       ...(anchor &&
       anchorDefinitions.has(anchor.anchorId) &&
       !conflictingAnchorIds.has(anchor.anchorId)
@@ -531,7 +538,8 @@ export function collectClickSamples(
             left.x - right.x ||
             left.y - right.y ||
             left.weight - right.weight ||
-            left.coordinateMode.localeCompare(right.coordinateMode)
+            left.coordinateMode.localeCompare(right.coordinateMode) ||
+            (left.interactionId ?? "").localeCompare(right.interactionId ?? "")
         ),
       }))
       .sort((left, right) => left.groupId.localeCompare(right.groupId)),

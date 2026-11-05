@@ -17,6 +17,15 @@ import {
   updateProjectApiKey,
 } from "../controllers/project-api-keys.controller";
 import { requireWorkspacePermission } from "../middleware/permission.middleware";
+import { requireWorkspaceProjectPermission } from "../middleware/permission.middleware";
+import {
+  disconnectSlack,
+  getSlackChannels,
+  getSlackSettings,
+  getProjectIntegrations,
+  sendSlackTestMessage,
+  updateSlackSettings,
+} from "../controllers/project-integrations.controller";
 import {
   createProjectDomain,
   deleteProjectDomain,
@@ -28,6 +37,36 @@ const router = Router();
 
 router.use(authMiddleware);
 router.get("/", requireWorkspacePermission("projects.view"), getProjects);
+router.get(
+  "/:project_id/integrations",
+  requireWorkspaceProjectPermission("project.settings.view"),
+  getProjectIntegrations
+);
+router.get(
+  "/:project_id/integrations/slack/channels",
+  requireWorkspaceProjectPermission("project.settings.view"),
+  getSlackChannels
+);
+router.get(
+  "/:project_id/integrations/slack/settings",
+  requireWorkspaceProjectPermission("project.settings.view"),
+  getSlackSettings
+);
+router.put(
+  "/:project_id/integrations/slack/settings",
+  requireWorkspaceProjectPermission("project.settings.update"),
+  updateSlackSettings
+);
+router.post(
+  "/:project_id/integrations/slack/test",
+  requireWorkspaceProjectPermission("project.settings.update"),
+  sendSlackTestMessage
+);
+router.delete(
+  "/:project_id/integrations/slack",
+  requireWorkspaceProjectPermission("project.settings.update"),
+  disconnectSlack
+);
 router.post(
   "/create",
   requireWorkspacePermission("projects.create"),
