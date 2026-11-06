@@ -13,9 +13,17 @@ export const integrationSchema = z.object({
   slug: z.string().min(1),
   name: z.string().min(1),
   description: z.string(),
+  content: z.string(),
+  assets: z.array(z.string()),
+  support: z.url().nullable(),
+  documentation: z.url().nullable(),
+  terms: z.url().nullable(),
+  privacy: z.url().nullable(),
+  website: z.url().nullable(),
   category: z.string().min(1),
   iconUrl: z.url().nullable(),
   status: integrationStatusSchema,
+  installsCount: z.number().int().nonnegative(),
 })
 
 export type Integration = z.infer<typeof integrationSchema>
@@ -29,6 +37,17 @@ export type GetIntegrationsResponse = z.infer<
   typeof getIntegrationsResponseSchema
 >
 
+export const getIntegrationResponseSchema = z.object({
+  success: z.boolean(),
+  data: integrationSchema.extend({
+    isConnected: z.boolean(),
+  }),
+})
+
+export type GetIntegrationResponse = z.infer<
+  typeof getIntegrationResponseSchema
+>
+
 export const projectIntegrationConnectionSchema = z.object({
   id: z.uuid(),
   providerWorkspaceId: z.string().min(1),
@@ -40,6 +59,7 @@ export const projectIntegrationConnectionSchema = z.object({
 })
 
 export const projectIntegrationSchema = integrationSchema.extend({
+  isConnected: z.boolean(),
   connection: projectIntegrationConnectionSchema.nullable(),
 })
 

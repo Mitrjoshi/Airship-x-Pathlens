@@ -40,6 +40,16 @@ export const integrations = pgTable(
     slug: text("slug").notNull().unique(),
     name: text("name").notNull(),
     description: text("description").notNull(),
+    content: text("content").notNull().default(""),
+    assets: jsonb("assets")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    support: text("support"),
+    documentation: text("documentation"),
+    terms: text("terms"),
+    privacy: text("privacy"),
+    website: text("website"),
     category: text("category").notNull(),
     iconUrl: text("icon_url"),
     status: text("status")

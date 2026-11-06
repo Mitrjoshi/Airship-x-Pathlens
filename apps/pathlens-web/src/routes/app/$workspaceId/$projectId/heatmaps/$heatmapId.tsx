@@ -30,7 +30,7 @@ import {
   type HeatmapsRange,
 } from '@/queries/heatmaps'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { useCallback, useState } from 'react'
 import { Separator } from '@workspace/ui/components/separator'
 import { ArrowLeftIcon, CheckIcon, RefreshCcwIcon } from 'lucide-react'
@@ -80,7 +80,7 @@ export const Route = createFileRoute(
 
 function RouteComponent() {
   const { workspaceId, projectId, heatmapId } = Route.useParams()
-  const navigate = useNavigate()
+  const router = useRouter()
 
   const rangeLocal = localStorage.getItem('range')
   const deviceLocal = localStorage.getItem('device')
@@ -209,12 +209,7 @@ function RouteComponent() {
               variant="outline"
               size="icon"
               aria-label="Back to goals"
-              onClick={() =>
-                navigate({
-                  to: '/app/$workspaceId/$projectId/heatmaps',
-                  params: { workspaceId, projectId },
-                })
-              }
+              onClick={() => router.history.back()}
             >
               <ArrowLeftIcon />
             </Button>

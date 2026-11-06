@@ -40,11 +40,43 @@ mock.module(sourcePath("models/integrations.model.ts"), {
           slug: "slack",
           name: "Slack",
           description: "Slack description",
+          content: "# Slack",
+          assets: ["https://example.com/slack.png"],
+          support: "https://example.com/support",
+          documentation: "https://example.com/docs",
+          terms: "https://example.com/terms",
+          privacy: "https://example.com/privacy",
+          website: "https://slack.com",
           category: "Notifications",
           iconUrl: "https://example.com/slack.png",
           status: "available",
+          installsCount: 3,
         },
       ];
+    },
+    getVisibleIntegrationByIdModel: async (id: string, projectId?: string) => {
+      if (shouldFail) throw new Error("database unavailable");
+
+      if (id !== "integration-1") return null;
+
+      return {
+        id: "integration-1",
+        slug: "slack",
+        name: "Slack",
+        description: "Slack description",
+        content: "# Slack",
+        assets: ["https://example.com/slack.png"],
+        support: "https://example.com/support",
+        documentation: "https://example.com/docs",
+        terms: "https://example.com/terms",
+        privacy: "https://example.com/privacy",
+        website: "https://slack.com",
+        category: "Notifications",
+        iconUrl: "https://example.com/slack.png",
+        status: "available",
+        installsCount: 3,
+        isConnected: projectId === "project-1",
+      };
     },
   },
 });
@@ -56,7 +88,7 @@ async function getRouter() {
   return integrationsRouter;
 }
 
-async function request() {
+async function request(path = "/integrations") {
   const app = express();
   app.use("/integrations", await getRouter());
   const server = createServer(app);
@@ -66,7 +98,7 @@ async function request() {
   assert.ok(address && typeof address !== "string");
 
   try {
-    return await fetch(`http://127.0.0.1:${address.port}/integrations`);
+    return await fetch(`http://127.0.0.1:${address.port}${path}`);
   } finally {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve()))
@@ -89,11 +121,77 @@ test("returns the visible integration catalog", async () => {
         slug: "slack",
         name: "Slack",
         description: "Slack description",
+        content: "# Slack",
+        assets: ["https://example.com/slack.png"],
+        support: "https://example.com/support",
+        documentation: "https://example.com/docs",
+        terms: "https://example.com/terms",
+        privacy: "https://example.com/privacy",
+        website: "https://slack.com",
         category: "Notifications",
         iconUrl: "https://example.com/slack.png",
         status: "available",
+        installsCount: 3,
       },
     ],
+  });
+});
+
+test("returns a visible integration by id", async () => {
+  authenticated = true;
+  shouldFail = false;
+
+  const response = await request("/integrations/integration-1");
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    success: true,
+    data: {
+      id: "integration-1",
+      slug: "slack",
+      name: "Slack",
+      description: "Slack description",
+      content: "# Slack",
+      assets: ["https://example.com/slack.png"],
+      support: "https://example.com/support",
+      documentation: "https://example.com/docs",
+      terms: "https://example.com/terms",
+      privacy: "https://example.com/privacy",
+      website: "https://slack.com",
+      category: "Notifications",
+      iconUrl: "https://example.com/slack.png",
+      status: "available",
+      installsCount: 3,
+      isConnected: false,
+    },
+  });
+});
+
+test("returns project connection status when project id is provided", async () => {
+  authenticated = true;
+  shouldFail = false;
+
+  const response = await request(
+    "/integrations/integration-1?project_id=project-1"
+  );
+
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as {
+    data: { isConnected: boolean };
+  };
+  assert.equal(body.data.isConnected, true);
+});
+
+test("returns 404 when an integration does not exist", async () => {
+  authenticated = true;
+  shouldFail = false;
+
+  const response = await request("/integrations/missing");
+
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), {
+    success: false,
+    message: "Integration not found.",
   });
 });
 
@@ -115,5 +213,18 @@ test("returns a safe error when the catalog cannot be loaded", async () => {
   assert.deepEqual(await response.json(), {
     success: false,
     message: "Unable to load integrations.",
+  });
+});
+
+test("returns a safe error when an integration cannot be loaded", async () => {
+  authenticated = true;
+  shouldFail = true;
+
+  const response = await request("/integrations/integration-1");
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), {
+    success: false,
+    message: "Unable to load integration.",
   });
 });

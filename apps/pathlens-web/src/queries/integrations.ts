@@ -1,10 +1,10 @@
 import { queryOptions } from '@tanstack/react-query'
 import type {
   GetSlackChannelsResponse,
+  GetIntegrationResponse,
   GetIntegrationsResponse,
   GetProjectIntegrationsResponse,
   GetSlackSettingsResponse,
-  SlackProjectSettings,
 } from '@workspace/contracts'
 
 import apiClient from '@/lib/apiClient'
@@ -15,10 +15,31 @@ const getIntegrations = async (): Promise<GetIntegrationsResponse> => {
   return response.data
 }
 
+const getIntegrationById = async (
+  integrationId: string,
+  projectId?: string
+): Promise<GetIntegrationResponse> => {
+  const response = await apiClient.get(`/integrations/${integrationId}`, {
+    params: projectId ? { project_id: projectId } : undefined,
+  })
+
+  return response.data
+}
+
 export const getIntegrationsOptions = () =>
   queryOptions({
     queryKey: ['INTEGRATIONS'],
     queryFn: getIntegrations,
+  })
+
+export const getIntegrationByIdOptions = (
+  integrationId: string,
+  projectId?: string
+) =>
+  queryOptions({
+    queryKey: ['INTEGRATION', integrationId, projectId],
+    queryFn: () => getIntegrationById(integrationId, projectId),
+    enabled: Boolean(integrationId),
   })
 
 const getProjectIntegrations = async (
@@ -40,40 +61,9 @@ export const getProjectIntegrationsOptions = (
     queryFn: () => getProjectIntegrations(workspaceId, projectId),
   })
 
-export const connectSlack = async (
-  workspaceId: string,
-  projectId: string,
-  returnPath: string
-) => {
-  const response = await apiClient.get<{ success: boolean; url: string }>(
-    '/integrations/slack/connect',
-    {
-      params: {
-        workspace_id: workspaceId,
-        project_id: projectId,
-        return_path: returnPath,
-        response: 'json',
-      },
-    }
-  )
-  window.location.assign(response.data.url)
-}
-
-export const disconnectSlack = async (
-  workspaceId: string,
-  projectId: string
-) => {
-  const response = await apiClient.delete(
-    `/projects/${projectId}/integrations/slack`,
-    { params: { workspace_id: workspaceId } }
-  )
-  return response.data
-}
-
 export const getSlackChannelsOptions = (
   workspaceId: string,
-  projectId: string,
-  enabled: boolean
+  projectId: string
 ) =>
   queryOptions({
     queryKey: ['PROJECT_SLACK_CHANNELS', workspaceId, projectId],
@@ -84,13 +74,11 @@ export const getSlackChannelsOptions = (
       )
       return response.data
     },
-    enabled,
   })
 
 export const getSlackSettingsOptions = (
   workspaceId: string,
-  projectId: string,
-  enabled: boolean
+  projectId: string
 ) =>
   queryOptions({
     queryKey: ['PROJECT_SLACK_SETTINGS', workspaceId, projectId],
@@ -101,30 +89,4 @@ export const getSlackSettingsOptions = (
       )
       return response.data
     },
-    enabled,
   })
-
-export const saveSlackSettings = async (
-  workspaceId: string,
-  projectId: string,
-  settings: SlackProjectSettings
-) => {
-  const response = await apiClient.put(
-    `/projects/${projectId}/integrations/slack/settings`,
-    settings,
-    { params: { workspace_id: workspaceId } }
-  )
-  return response.data
-}
-
-export const sendSlackTestMessage = async (
-  workspaceId: string,
-  projectId: string
-) => {
-  const response = await apiClient.post(
-    `/projects/${projectId}/integrations/slack/test`,
-    null,
-    { params: { workspace_id: workspaceId } }
-  )
-  return response.data
-}

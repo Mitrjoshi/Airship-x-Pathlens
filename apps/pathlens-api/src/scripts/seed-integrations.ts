@@ -8,6 +8,13 @@ const catalog = {
   name: "Slack",
   description:
     "Receive real-time notifications, performance alerts, and important analytics updates in your workspace.",
+  content: "",
+  assets: [],
+  support: null,
+  documentation: null,
+  terms: null,
+  privacy: null,
+  website: null,
   category: "Notifications",
   iconUrl: "https://www.google.com/s2/favicons?domain=slack.com&sz=128",
   status: "available" as const,

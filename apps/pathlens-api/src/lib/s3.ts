@@ -10,6 +10,7 @@ const DEFAULT_SNAPSHOT_BUCKET = "project-snapshots";
 const SIGNED_URL_EXPIRES_IN = 24 * 60 * 60;
 const HEATMAP_SIGNED_URL_EXPIRES_IN = 15 * 60;
 const AVATAR_SIGNED_URL_EXPIRES_IN = 60 * 60;
+const INTEGRATION_ASSET_SIGNED_URL_EXPIRES_IN = 60 * 60;
 
 let s3Client: S3Client | null | undefined;
 
@@ -86,6 +87,26 @@ export async function createAvatarSignedUrl(
     );
   } catch (error) {
     console.error("Unable to create avatar URL.", error);
+    return null;
+  }
+}
+
+export async function createIntegrationAssetSignedUrl(
+  storageKey: string
+): Promise<string | null> {
+  const client = getS3Client();
+  const bucket = process.env.S3_BUCKET?.trim() || DEFAULT_SNAPSHOT_BUCKET;
+
+  if (!client) return null;
+
+  try {
+    return await getSignedUrl(
+      client,
+      new GetObjectCommand({ Bucket: bucket, Key: storageKey }),
+      { expiresIn: INTEGRATION_ASSET_SIGNED_URL_EXPIRES_IN }
+    );
+  } catch (error) {
+    console.error("Unable to create integration asset URL.", error);
     return null;
   }
 }
