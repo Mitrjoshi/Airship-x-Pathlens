@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, exists } from "drizzle-orm";
 
 import { db } from "../db/client";
 import { integrations, projectIntegrations } from "../db/schema";
@@ -17,7 +17,38 @@ async function withSignedAssetUrls<T extends { assets: string[] }>(
   };
 }
 
-export async function getVisibleIntegrationsModel() {
+export type IntegrationCatalogFilters = {
+  category?: string;
+  filter?: "all" | "installed";
+  projectId?: string;
+};
+
+export async function getVisibleIntegrationsModel(
+  filters: IntegrationCatalogFilters = {}
+) {
+  const conditions = [eq(integrations.isVisible, true)];
+
+  if (filters.category) {
+    conditions.push(eq(integrations.category, filters.category));
+  }
+
+  if (filters.filter === "installed" && filters.projectId) {
+    conditions.push(
+      exists(
+        db
+          .select({ id: projectIntegrations.id })
+          .from(projectIntegrations)
+          .where(
+            and(
+              eq(projectIntegrations.integrationId, integrations.id),
+              eq(projectIntegrations.projectId, filters.projectId),
+              eq(projectIntegrations.status, "connected")
+            )
+          )
+      )
+    );
+  }
+
   const rows = await db
     .select({
       id: integrations.id,
@@ -41,12 +72,38 @@ export async function getVisibleIntegrationsModel() {
           eq(projectIntegrations.status, "connected")
         )
       ),
+      ...(filters.projectId
+        ? {
+            isConnected: exists(
+              db
+                .select({ id: projectIntegrations.id })
+                .from(projectIntegrations)
+                .where(
+                  and(
+                    eq(projectIntegrations.integrationId, integrations.id),
+                    eq(projectIntegrations.projectId, filters.projectId),
+                    eq(projectIntegrations.status, "connected")
+                  )
+                )
+            ),
+          }
+        : {}),
     })
     .from(integrations)
-    .where(eq(integrations.isVisible, true))
+    .where(and(...conditions))
     .orderBy(asc(integrations.sortOrder), asc(integrations.name));
 
   return Promise.all(rows.map(withSignedAssetUrls));
+}
+
+export async function getVisibleIntegrationCategoriesModel() {
+  const rows = await db
+    .selectDistinct({ category: integrations.category })
+    .from(integrations)
+    .where(eq(integrations.isVisible, true))
+    .orderBy(asc(integrations.category));
+
+  return rows.map((row) => row.category);
 }
 
 export async function getVisibleIntegrationByIdModel(

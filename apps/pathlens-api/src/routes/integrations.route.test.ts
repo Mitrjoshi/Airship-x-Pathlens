@@ -10,6 +10,7 @@ const sourcePath = (relativePath: string) =>
 
 let authenticated = true;
 let shouldFail = false;
+let receivedFilters: unknown;
 
 mock.module(sourcePath("middleware/auth.middleware.ts"), {
   namedExports: {
@@ -29,10 +30,26 @@ mock.module(sourcePath("middleware/auth.middleware.ts"), {
   },
 });
 
+mock.module(sourcePath("middleware/permission.middleware.ts"), {
+  namedExports: {
+    requireWorkspaceOrProjectPermission:
+      () => (_req: unknown, _res: unknown, next: () => void) =>
+        next(),
+  },
+});
+
 mock.module(sourcePath("models/integrations.model.ts"), {
   namedExports: {
-    getVisibleIntegrationsModel: async () => {
+    getVisibleIntegrationsModel: async (filters: unknown) => {
+      receivedFilters = filters;
       if (shouldFail) throw new Error("database unavailable");
+
+      const projectId =
+        typeof filters === "object" &&
+        filters !== null &&
+        "projectId" in filters
+          ? filters.projectId
+          : undefined;
 
       return [
         {
@@ -51,8 +68,14 @@ mock.module(sourcePath("models/integrations.model.ts"), {
           iconUrl: "https://example.com/slack.png",
           status: "available",
           installsCount: 3,
+          ...(projectId ? { isConnected: true } : {}),
         },
       ];
+    },
+    getVisibleIntegrationCategoriesModel: async () => {
+      if (shouldFail) throw new Error("database unavailable");
+
+      return ["Notifications"];
     },
     getVisibleIntegrationByIdModel: async (id: string, projectId?: string) => {
       if (shouldFail) throw new Error("database unavailable");
@@ -109,10 +132,16 @@ async function request(path = "/integrations") {
 test("returns the visible integration catalog", async () => {
   authenticated = true;
   shouldFail = false;
+  receivedFilters = undefined;
 
   const response = await request();
 
   assert.equal(response.status, 200);
+  assert.deepEqual(receivedFilters, {
+    category: undefined,
+    filter: "all",
+    projectId: undefined,
+  });
   assert.deepEqual(await response.json(), {
     success: true,
     data: [
@@ -134,6 +163,50 @@ test("returns the visible integration catalog", async () => {
         installsCount: 3,
       },
     ],
+  });
+});
+
+test("filters integrations by category and installed project connections", async () => {
+  authenticated = true;
+  shouldFail = false;
+  receivedFilters = undefined;
+
+  const response = await request(
+    "/integrations?category=Notifications&filter=installed&project_id=project-1"
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).data[0].isConnected, true);
+  assert.deepEqual(receivedFilters, {
+    category: "Notifications",
+    filter: "installed",
+    projectId: "project-1",
+  });
+});
+
+test("requires a project for installed integrations", async () => {
+  authenticated = true;
+  shouldFail = false;
+
+  const response = await request("/integrations?filter=installed");
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    success: false,
+    message: "project_id is required when filter is installed.",
+  });
+});
+
+test("returns visible integration categories", async () => {
+  authenticated = true;
+  shouldFail = false;
+
+  const response = await request("/integrations/categories");
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    success: true,
+    data: ["Notifications"],
   });
 });
 

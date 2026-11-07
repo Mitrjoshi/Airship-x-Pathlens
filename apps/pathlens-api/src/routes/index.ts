@@ -34,6 +34,7 @@ import {
   googleLogin,
 } from "../controllers/google-auth.controller";
 import { slackCallback } from "../controllers/project-integrations.controller";
+import { googleSearchConsoleCallback } from "../controllers/google-search-console.controller";
 
 const router = Router();
 
@@ -47,6 +48,10 @@ router.get("/auth/google", googleLogin);
 router.get("/auth/google/callback", googleCallback);
 // The callback is authenticated by the short-lived, cookie-bound OAuth state.
 router.get("/integrations/slack/callback", slackCallback);
+router.get(
+  "/integrations/google-search-console/callback",
+  googleSearchConsoleCallback
+);
 router.post(
   "/internal/heatmap-proxy/validate",
   proxyAuthMiddleware,

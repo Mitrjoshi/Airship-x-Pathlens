@@ -24,6 +24,7 @@ export const integrationSchema = z.object({
   iconUrl: z.url().nullable(),
   status: integrationStatusSchema,
   installsCount: z.number().int().nonnegative(),
+  isConnected: z.boolean().optional(),
 })
 
 export type Integration = z.infer<typeof integrationSchema>
@@ -37,6 +38,15 @@ export type GetIntegrationsResponse = z.infer<
   typeof getIntegrationsResponseSchema
 >
 
+export const getIntegrationCategoriesResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.array(z.string().min(1)),
+})
+
+export type GetIntegrationCategoriesResponse = z.infer<
+  typeof getIntegrationCategoriesResponseSchema
+>
+
 export const getIntegrationResponseSchema = z.object({
   success: z.boolean(),
   data: integrationSchema.extend({
@@ -46,32 +56,6 @@ export const getIntegrationResponseSchema = z.object({
 
 export type GetIntegrationResponse = z.infer<
   typeof getIntegrationResponseSchema
->
-
-export const projectIntegrationConnectionSchema = z.object({
-  id: z.uuid(),
-  providerWorkspaceId: z.string().min(1),
-  providerWorkspaceName: z.string().min(1),
-  status: z.enum(['connected', 'disconnected', 'error']),
-  connectedAt: z.string().datetime().nullable(),
-  updatedAt: z.string().datetime().nullable(),
-  lastError: z.string().nullable(),
-})
-
-export const projectIntegrationSchema = integrationSchema.extend({
-  isConnected: z.boolean(),
-  connection: projectIntegrationConnectionSchema.nullable(),
-})
-
-export type ProjectIntegration = z.infer<typeof projectIntegrationSchema>
-
-export const getProjectIntegrationsResponseSchema = z.object({
-  success: z.boolean(),
-  data: z.array(projectIntegrationSchema),
-})
-
-export type GetProjectIntegrationsResponse = z.infer<
-  typeof getProjectIntegrationsResponseSchema
 >
 
 export const slackProjectSettingsSchema = z.object({
@@ -123,3 +107,66 @@ export const getSlackSettingsResponseSchema = z.object({
 export type GetSlackSettingsResponse = z.infer<
   typeof getSlackSettingsResponseSchema
 >
+
+export const pageSpeedStrategySchema = z.enum(['mobile', 'desktop'])
+export type PageSpeedStrategy = z.infer<typeof pageSpeedStrategySchema>
+
+export const pageSpeedResultSchema = z.object({
+  url: z.url(),
+  strategy: pageSpeedStrategySchema,
+  fetchedAt: z.string(),
+  scores: z.object({
+    performance: z.number().int().min(0).max(100).nullable(),
+    accessibility: z.number().int().min(0).max(100).nullable(),
+    bestPractices: z.number().int().min(0).max(100).nullable(),
+    seo: z.number().int().min(0).max(100).nullable(),
+  }),
+  metrics: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      displayValue: z.string().nullable(),
+      numericValue: z.number().nullable(),
+    })
+  ),
+})
+
+export type PageSpeedResult = z.infer<typeof pageSpeedResultSchema>
+
+export const pageSpeedResponseSchema = z.object({
+  success: z.boolean(),
+  data: pageSpeedResultSchema,
+})
+
+export type PageSpeedResponse = z.infer<typeof pageSpeedResponseSchema>
+
+export const searchConsoleRowSchema = z.object({
+  key: z.string(),
+  clicks: z.number().nonnegative(),
+  impressions: z.number().nonnegative(),
+  ctr: z.number().nonnegative(),
+  position: z.number().nonnegative(),
+})
+
+export const searchConsoleResultSchema = z.object({
+  siteUrl: z.string().min(1),
+  startDate: z.string(),
+  endDate: z.string(),
+  summary: z.object({
+    clicks: z.number().nonnegative(),
+    impressions: z.number().nonnegative(),
+    ctr: z.number().nonnegative(),
+    position: z.number().nonnegative(),
+  }),
+  topQueries: z.array(searchConsoleRowSchema),
+  topPages: z.array(searchConsoleRowSchema),
+})
+
+export type SearchConsoleResult = z.infer<typeof searchConsoleResultSchema>
+
+export const searchConsoleResponseSchema = z.object({
+  success: z.boolean(),
+  data: searchConsoleResultSchema,
+})
+
+export type SearchConsoleResponse = z.infer<typeof searchConsoleResponseSchema>

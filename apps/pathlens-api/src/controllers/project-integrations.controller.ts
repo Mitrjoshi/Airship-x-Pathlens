@@ -11,10 +11,7 @@ import {
   projectIntegrations,
 } from "../db/schema";
 import { createAuditLog } from "../models/audit-logs.model";
-import {
-  getProjectIntegrationBySlugModel,
-  getProjectIntegrationsModel,
-} from "../models/project-integrations.model";
+import { getProjectIntegrationBySlugModel } from "../models/project-integrations.model";
 import {
   decryptIntegrationCredentials,
   encryptIntegrationCredentials,
@@ -445,13 +442,6 @@ export async function slackCallback(req: AuthRequest, res: Response) {
       "Unable to connect Slack. Please try again."
     );
   }
-}
-
-export async function getProjectIntegrations(req: AuthRequest, res: Response) {
-  const projectId =
-    typeof req.params.project_id === "string" ? req.params.project_id : "";
-  const data = await getProjectIntegrationsModel(projectId);
-  return res.json({ success: true, data });
 }
 
 export async function getSlackChannels(req: AuthRequest, res: Response) {

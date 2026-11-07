@@ -22,10 +22,14 @@ import {
   disconnectSlack,
   getSlackChannels,
   getSlackSettings,
-  getProjectIntegrations,
   sendSlackTestMessage,
   updateSlackSettings,
 } from "../controllers/project-integrations.controller";
+import {
+  checkGooglePageSpeed,
+  installGooglePageSpeed,
+} from "../controllers/google-pagespeed.controller";
+import { checkGoogleSearchConsole } from "../controllers/google-search-console.controller";
 import {
   createProjectDomain,
   deleteProjectDomain,
@@ -37,10 +41,20 @@ const router = Router();
 
 router.use(authMiddleware);
 router.get("/", requireWorkspacePermission("projects.view"), getProjects);
-router.get(
-  "/:project_id/integrations",
+router.post(
+  "/:project_id/integrations/pagespeed-insights",
+  requireWorkspaceProjectPermission("project.settings.update"),
+  installGooglePageSpeed
+);
+router.post(
+  "/:project_id/integrations/pagespeed-insights/check",
   requireWorkspaceProjectPermission("project.settings.view"),
-  getProjectIntegrations
+  checkGooglePageSpeed
+);
+router.post(
+  "/:project_id/integrations/google-search-console/check",
+  requireWorkspaceProjectPermission("project.settings.view"),
+  checkGoogleSearchConsole
 );
 router.get(
   "/:project_id/integrations/slack/channels",

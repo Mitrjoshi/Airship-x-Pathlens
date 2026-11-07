@@ -1,9 +1,4 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@workspace/ui/components/avatar'
 import { Badge } from '@workspace/ui/components/badge'
 import {
   Card,
@@ -18,12 +13,21 @@ import {
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
 import { SearchIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getProjectIntegrationsOptions } from '@/queries/integrations'
+import {
+  getIntegrationCategoriesOptions,
+  getIntegrationsOptions,
+} from '@/queries/integrations'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { ErrorScreen } from '../-components/common/error-screen'
-import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@workspace/ui/components/select'
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/integrations/'
@@ -33,18 +37,10 @@ export const Route = createFileRoute(
 
 function RouteComponent() {
   const { projectId, workspaceId } = Route.useParams()
-  const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const slackStatus = params.get('slack')
-    if (slackStatus === 'connected') toast.success('Slack connected.')
-    if (slackStatus === 'error') {
-      toast.error(params.get('message') ?? 'Unable to connect Slack.')
-    }
-    if (slackStatus)
-      window.history.replaceState({}, document.title, window.location.pathname)
-  }, [])
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('all')
+  const [filter, setFilter] = useState<'all' | 'installed' | undefined>('all')
 
   const {
     data: integrationsData,
@@ -52,13 +48,46 @@ function RouteComponent() {
     isError: integrationError,
     refetch: integrationsRefetch,
     isRefetching: integrationsRefetching,
-  } = useQuery(getProjectIntegrationsOptions(workspaceId, projectId))
+  } = useQuery(
+    getIntegrationsOptions({
+      category: category === 'all' ? undefined : category,
+      filter: filter,
+      projectId,
+    })
+  )
+
+  const {
+    data: integrationsCategoriesData,
+    isLoading: integrationsCategoriesLoading,
+    isError: integrationsCategoriesError,
+    refetch: integrationsCategoriesRefetch,
+    isRefetching: integrationsCategoriesRefetching,
+  } = useQuery(getIntegrationCategoriesOptions())
 
   const integrations = integrationsData?.data
+  const integrationsCategories = integrationsCategoriesData?.data
 
   const searchedIntegrations = (integrations ?? []).filter((integration) =>
     integration.name.toLowerCase().includes(search.toLowerCase())
   )
+
+  const globalLoading = integrationLoading || integrationsCategoriesLoading
+  const globalError = integrationError || integrationsCategoriesError
+  const globalRefetching =
+    integrationsRefetching || integrationsCategoriesRefetching
+  const refetch = () =>
+    Promise.all([integrationsRefetch(), integrationsCategoriesRefetch()])
+
+  const categories = [
+    {
+      value: 'all',
+      label: 'All Categories',
+    },
+    ...(integrationsCategories?.map((item) => ({
+      value: item,
+      label: item,
+    })) ?? []),
+  ]
 
   return (
     <div>
@@ -70,18 +99,18 @@ function RouteComponent() {
           </p>
         </div>
 
-        {integrationError && !integrationLoading ? (
+        {globalError && !globalLoading ? (
           <>
             <ErrorScreen
-              refetch={integrationsRefetch}
-              refetching={integrationsRefetching}
+              refetch={refetch}
+              refetching={globalRefetching}
               project_id={projectId}
               workspace_id={workspaceId}
             />
           </>
         ) : (
           <>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
               <InputGroup className="w-120">
                 <InputGroupButton>
                   <SearchIcon />
@@ -94,9 +123,74 @@ function RouteComponent() {
                   placeholder="Search..."
                 />
               </InputGroup>
+
+              <div className="flex items-center gap-2">
+                <Select
+                  disabled={globalLoading}
+                  value={category}
+                  items={categories}
+                  onValueChange={(e) => {
+                    setCategory(e as string)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent
+                    alignItemWithTrigger={false}
+                    className={'w-fit'}
+                  >
+                    {categories?.map((item, index) => (
+                      <SelectItem key={index} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  onValueChange={(e) => {
+                    setFilter(e as 'all' | 'installed')
+                  }}
+                  value={filter}
+                  items={[
+                    {
+                      value: 'all',
+                      label: 'All Integrations',
+                    },
+                    {
+                      value: 'installed',
+                      label: 'Installed Integrations',
+                    },
+                  ]}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+
+                  <SelectContent
+                    alignItemWithTrigger={false}
+                    className={'w-fit'}
+                  >
+                    {[
+                      {
+                        value: 'all',
+                        label: 'All Integrations',
+                      },
+                      {
+                        value: 'installed',
+                        label: 'Installed Integrations',
+                      },
+                    ].map((item, index) => (
+                      <SelectItem key={index} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {integrationLoading ? (
+            {globalLoading ? (
               <div className="grid grid-cols-3 gap-4">
                 {[...Array(3)].map((_, index) => (
                   <Card
@@ -105,8 +199,10 @@ function RouteComponent() {
                   >
                     <CardHeader className="space-y-4">
                       <Skeleton className="size-12" />
-                      <Skeleton className="h-5 w-2/3" />
-                      <Skeleton className="h-10 w-full" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-5 w-2/3" />
+                        <Skeleton className="h-5 w-1/3" />
+                      </div>
                     </CardHeader>
                   </Card>
                 ))}
@@ -115,6 +211,7 @@ function RouteComponent() {
               <div className="grid grid-cols-3 gap-4">
                 {searchedIntegrations.map((item) => (
                   <Link
+                    disabled={item.status === 'coming_soon'}
                     to="/app/$workspaceId/$projectId/integrations/$integrationId"
                     params={{
                       workspaceId,
@@ -123,36 +220,29 @@ function RouteComponent() {
                     }}
                   >
                     <Card
-                      className="bg-card/30 rounded-none border-2 border-dashed duration-200"
+                      data-disabled={item.status === 'coming_soon'}
+                      className="bg-card/30 hover:bg-card/60 rounded-none border-2 border-dashed duration-200 data-[disabled=true]:opacity-50"
                       key={item.id}
                     >
-                      <CardContent className="p-0">
+                      <CardContent className="space-y-4 p-0">
                         <CardHeader>
                           <div className="flex items-start justify-between">
-                            <Avatar className={'bg-transparent'} size="lg">
-                              <AvatarImage src={item.iconUrl ?? undefined} />
-                              <AvatarFallback>
-                                {item.name.charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
+                            <img
+                              className="size-10"
+                              src={item.iconUrl ?? undefined}
+                              alt=""
+                            />
 
-                            <Badge variant="outline">{item.category}</Badge>
+                            <div className="mt-2 flex items-center gap-2">
+                              <Badge variant="outline">{item.category}</Badge>
+                              {item.isConnected && <Badge>Connected</Badge>}
+                              {item.status === 'coming_soon' && (
+                                <Badge variant="outline">Coming Soon</Badge>
+                              )}
+                            </div>
                           </div>
-                          <div className="mt-2 flex items-center gap-2">
-                            <CardTitle>{item.name}</CardTitle>
-                            {item.connection?.status === 'connected' ? (
-                              <Badge>Connected</Badge>
-                            ) : null}
-                          </div>
+                          <CardTitle>{item.name}</CardTitle>
                           <CardDescription>{item.description}</CardDescription>
-                          {item.connection?.status === 'connected' ? (
-                            <p className="text-muted-foreground mt-2 text-sm">
-                              Slack Workspace:{' '}
-                              <span className="text-foreground font-medium">
-                                {item.connection.providerWorkspaceName}
-                              </span>
-                            </p>
-                          ) : null}
                         </CardHeader>
                       </CardContent>
                     </Card>

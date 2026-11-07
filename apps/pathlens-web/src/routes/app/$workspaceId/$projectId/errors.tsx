@@ -465,7 +465,7 @@ function RouteComponent() {
                           {!globalLoading && !errors?.errors?.length && (
                             <TableRow>
                               <TableCell
-                                colSpan={8}
+                                colSpan={9}
                                 className="h-32 text-center"
                               >
                                 <p className="text-muted-foreground text-sm">
