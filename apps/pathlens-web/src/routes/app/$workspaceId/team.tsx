@@ -443,7 +443,7 @@ function RouteComponent() {
                                       </DialogDescription>
                                     </DialogHeader>
 
-                                    <DialogFooter className="py-2">
+                                    <DialogFooter className="bg-transparent">
                                       <DialogClose
                                         render={<Button variant="outline" />}
                                       >
@@ -527,7 +527,7 @@ function RouteComponent() {
             </Select>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="bg-transparent">
             <Button
               variant="outline"
               disabled={updateMemberPending}
@@ -577,7 +577,7 @@ function RouteComponent() {
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter>
+          <DialogFooter className="bg-transparent">
             <Button
               variant="outline"
               disabled={removeMemberPending}

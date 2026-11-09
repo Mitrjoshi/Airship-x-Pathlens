@@ -261,7 +261,7 @@ function RouteComponent() {
                 </form>
               </CardContent>
               <CardFooter className="border-t-2 border-dashed bg-transparent">
-                <Button type="submit" form="invite-form" variant="secondary">
+                <Button type="submit" form="invite-form">
                   <LoadingSwap isLoading={createInvitation.isPending}>
                     Send Invitation
                   </LoadingSwap>
