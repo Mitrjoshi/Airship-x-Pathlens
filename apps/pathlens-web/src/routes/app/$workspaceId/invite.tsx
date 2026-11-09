@@ -71,6 +71,7 @@ function RouteComponent() {
     isPending: profilesPending,
     error: profileError,
     refetch,
+    isRefetching,
   } = useQuery(getWorkspacePermissionProfilesOptions(workspaceId))
   const createInvitation = useCreateWorkspaceInvitation(workspaceId)
 
@@ -188,6 +189,7 @@ function RouteComponent() {
                                 <ErrorScreen
                                   workspace_id={workspaceId}
                                   refetch={refetch}
+                                  refetching={isRefetching}
                                 />
                               ) : (
                                 profiles.map((plan) => (

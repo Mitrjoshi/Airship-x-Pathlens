@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useRemoveWorkspaceMember } from '@/mutations/workspace'
 import { getUserByIdOptions } from '@/queries/user'
-import { getWorkspaceByIdOptions } from '@/queries/workspace'
 import { capitalizeFirstLetter } from '@/utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -33,7 +32,7 @@ import {
 } from '@workspace/ui/components/sheet'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { ArrowUpRightIcon, ExternalLinkIcon } from 'lucide-react'
-import { useNavigate, useRouteContext } from '@tanstack/react-router'
+import { useRouteContext } from '@tanstack/react-router'
 import { cn } from '@workspace/ui'
 import { PermissionProfileSheet } from '../../../-components/permission-profile-sheet'
 

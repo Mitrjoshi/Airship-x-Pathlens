@@ -1,6 +1,3 @@
-import apiClient from '@/lib/apiClient'
-import { queryOptions } from '@tanstack/react-query'
-
 export type AnalyticsRange = '24h' | '7d' | '30d' | '90d'
 export type AnalyticsDevice = 'all' | 'desktop' | 'mobile' | 'tablet'
 
@@ -57,18 +54,3 @@ export interface AnalyticsParams {
   range: AnalyticsRange
   device: AnalyticsDevice
 }
-
-const getAnalytics = async (
-  params: AnalyticsParams
-): Promise<AnalyticsResponse> => {
-  const response = await apiClient.get('/analytics', { params })
-
-  return response.data
-}
-
-export const getAnalyticsOptions = (params: AnalyticsParams) =>
-  queryOptions({
-    queryKey: ['ANALYTICS', params],
-    queryFn: () => getAnalytics(params),
-    enabled: !!params.workspace_id,
-  })

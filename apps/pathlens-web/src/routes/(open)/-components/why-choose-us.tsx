@@ -267,37 +267,3 @@ export const WhyChooseUs = () => {
     </div>
   )
 }
-
-type AnimatedDashedPathProps = {
-  className?: string
-  strokeWidth?: number
-}
-
-export const AnimatedDashedLine = ({
-  className,
-  strokeWidth = 1.5,
-}: AnimatedDashedPathProps) => {
-  return (
-    <svg
-      viewBox="0 0 600 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M0 10H600"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        strokeDasharray="8 8"
-      >
-        <animate
-          attributeName="stroke-dashoffset"
-          from="0"
-          to="-16"
-          dur="0.8s"
-          repeatCount="indefinite"
-        />
-      </path>
-    </svg>
-  )
-}

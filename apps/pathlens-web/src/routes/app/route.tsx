@@ -23,6 +23,8 @@ export const Route = createFileRoute('/app')({
     //add interval
     // await new Promise((resolve) => setTimeout(resolve, 300_000))
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
     const res = await context.queryClient.ensureQueryData(getUsersOptions())
     return { user: res.data }
   },

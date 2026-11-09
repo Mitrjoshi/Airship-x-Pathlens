@@ -210,6 +210,7 @@ function RouteComponent() {
     },
 
     validators: {
+      //@ts-ignore
       onSubmit: formSchema,
     },
 

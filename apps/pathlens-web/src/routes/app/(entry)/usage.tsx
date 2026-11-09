@@ -78,7 +78,7 @@ function RouteComponent() {
     isPending: usageDataLoading,
     isError: usageError,
     refetch,
-    refetching,
+    isRefetching,
   } = useQuery({
     ...getUsageOptions(
       resolvedWorkspaceId ?? '',
@@ -169,11 +169,8 @@ function RouteComponent() {
     {
       label: 'Team Members',
       value: formatNumber(usage?.usage?.members),
-      percentage: calculatePercentage(
-        usage?.usage?.members,
-        usage?.limits?.members
-      ),
-      limit: usage?.limits?.members,
+      percentage: 0,
+      limit: null,
     },
     {
       label: 'Funnels',
@@ -196,11 +193,8 @@ function RouteComponent() {
     {
       label: 'Workspaces',
       value: formatNumber(usage?.usage?.workspaces),
-      percentage: calculatePercentage(
-        usage?.usage?.workspaces,
-        usage?.limits?.workspaces
-      ),
-      limit: usage?.limits?.workspaces,
+      percentage: 0,
+      limit: null,
     },
     {
       label: 'Heatmaps',
@@ -294,7 +288,7 @@ function RouteComponent() {
             workspace_id={workspaceId}
             project_id={projectId}
             refetch={refetch}
-            refetching={refetching}
+            refetching={isRefetching}
           />
         ) : (
           <>

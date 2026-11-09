@@ -19,7 +19,7 @@ import {
 } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'
 import { Separator } from '@workspace/ui/components/separator'
-import { DownloadIcon, InfoIcon, PlayIcon } from 'lucide-react'
+import { DownloadIcon, InfoIcon } from 'lucide-react'
 import { useState, type PropsWithChildren } from 'react'
 import { z } from 'zod'
 import { NoPermissionView } from './-components/common/no-permission-view'

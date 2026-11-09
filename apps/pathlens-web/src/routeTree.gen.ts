@@ -20,6 +20,7 @@ import { Route as authPasswordResetRouteImport } from './routes/(auth)/password-
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as openIndexRouteImport } from './routes/(open)/index'
 import { Route as openPricingRouteImport } from './routes/(open)/pricing'
+import { Route as referencesCookiesRouteImport } from './routes/(references)/cookies'
 import { Route as referencesPrivacyRouteImport } from './routes/(references)/privacy'
 import { Route as referencesTermsRouteImport } from './routes/(references)/terms'
 import { Route as AppWorkspaceIdRouteRouteImport } from './routes/app/$workspaceId/route'
@@ -120,6 +121,11 @@ const openPricingRoute = openPricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
   getParentRoute: () => openRouteRoute,
+} as any)
+const referencesCookiesRoute = referencesCookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => referencesRouteRoute,
 } as any)
 const referencesPrivacyRoute = referencesPrivacyRouteImport.update({
   id: '/privacy',
@@ -396,6 +402,7 @@ export interface FileRoutesByFullPath {
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/pricing': typeof openPricingRoute
+  '/cookies': typeof referencesCookiesRoute
   '/privacy': typeof referencesPrivacyRoute
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
@@ -452,6 +459,7 @@ export interface FileRoutesByTo {
   '/password-reset': typeof authPasswordResetRoute
   '/sign-up': typeof authSignUpRoute
   '/pricing': typeof openPricingRoute
+  '/cookies': typeof referencesCookiesRoute
   '/privacy': typeof referencesPrivacyRoute
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
@@ -513,6 +521,7 @@ export interface FileRoutesById {
   '/(auth)/password-reset': typeof authPasswordResetRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(open)/pricing': typeof openPricingRoute
+  '/(references)/cookies': typeof referencesCookiesRoute
   '/(references)/privacy': typeof referencesPrivacyRoute
   '/(references)/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
@@ -572,6 +581,7 @@ export interface FileRouteTypes {
     | '/password-reset'
     | '/sign-up'
     | '/pricing'
+    | '/cookies'
     | '/privacy'
     | '/terms'
     | '/app/checkout'
@@ -628,6 +638,7 @@ export interface FileRouteTypes {
     | '/password-reset'
     | '/sign-up'
     | '/pricing'
+    | '/cookies'
     | '/privacy'
     | '/terms'
     | '/app/checkout'
@@ -688,6 +699,7 @@ export interface FileRouteTypes {
     | '/(auth)/password-reset'
     | '/(auth)/sign-up'
     | '/(open)/pricing'
+    | '/(references)/cookies'
     | '/(references)/privacy'
     | '/(references)/terms'
     | '/app/checkout'
@@ -822,6 +834,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/pricing'
       preLoaderRoute: typeof openPricingRouteImport
       parentRoute: typeof openRouteRoute
+    }
+    '/(references)/cookies': {
+      id: '/(references)/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof referencesCookiesRouteImport
+      parentRoute: typeof referencesRouteRoute
     }
     '/(references)/privacy': {
       id: '/(references)/privacy'
@@ -1209,11 +1228,13 @@ const openRouteRouteWithChildren = openRouteRoute._addFileChildren(
 )
 
 interface referencesRouteRouteChildren {
+  referencesCookiesRoute: typeof referencesCookiesRoute
   referencesPrivacyRoute: typeof referencesPrivacyRoute
   referencesTermsRoute: typeof referencesTermsRoute
 }
 
 const referencesRouteRouteChildren: referencesRouteRouteChildren = {
+  referencesCookiesRoute: referencesCookiesRoute,
   referencesPrivacyRoute: referencesPrivacyRoute,
   referencesTermsRoute: referencesTermsRoute,
 }

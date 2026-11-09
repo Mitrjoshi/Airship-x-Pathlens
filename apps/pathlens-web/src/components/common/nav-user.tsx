@@ -9,7 +9,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuSub,
@@ -22,7 +21,6 @@ import { ArrowUpRightIcon, CheckIcon } from 'lucide-react'
 import { useTheme } from '@/components/common/theme-provider'
 import { motion, useMotionValue, useTransform, animate } from 'motion/react'
 import { useEffect } from 'react'
-import { Progress } from '@workspace/ui/components/progress'
 
 export interface NavUserData {
   name: string

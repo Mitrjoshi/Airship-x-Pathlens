@@ -29,7 +29,6 @@ import {
   normalizeScrollDevice,
   type ScrollAggregationEvent,
 } from "../lib/scroll-aggregation";
-import { getCompleteReplayDataModel } from "./replay.model";
 
 export const MAX_HEATMAP_EVENTS = 20_000;
 const MAX_HOT_AREA_LABEL_LENGTH = 56;
@@ -1122,13 +1121,6 @@ export async function getHeatmapsModel(
     selectedPage.path,
     rangeDays
   );
-  const replay = replaySession
-    ? await getCompleteReplayDataModel(
-        filters.workspaceId,
-        filters.projectId,
-        replaySession.session_id
-      )
-    : null;
   const fallbackViewport = getPageViewport(selectedPage, {
     payload: null,
   } as HeatmapEventRow);
@@ -1222,7 +1214,6 @@ export async function getHeatmapsModel(
       )
     ),
     scrollReach,
-    replayEvents: replay?.events ?? [],
     replayViewport:
       replaySession &&
       replaySession.viewport_width &&
@@ -1233,7 +1224,7 @@ export async function getHeatmapsModel(
           }
         : selectedPage.viewport,
     coordinateMode: clickAggregation.coordinateMode,
-    replayAvailable: Boolean(replay?.available),
+    replayAvailable: Boolean(replaySession),
     screenshotUrl: heatmapSnapshot.url,
     screenshotStatus: heatmapSnapshot.status,
     screenshotCapturedAt: heatmapSnapshot.capturedAt,

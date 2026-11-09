@@ -257,7 +257,6 @@ function RouteComponent() {
       const payload: GoalPayload = {
         workspace_id: workspaceId,
         project_id: projectId,
-        domain_id: value.domain_id,
         name: value.name.trim(),
         type: value.type,
         target: Number(value.target),
@@ -267,12 +266,18 @@ function RouteComponent() {
         deadline: value.deadline || null,
       }
 
-      createGoal(payload, {
-        onSuccess: () => {
-          form.reset()
-          setDialogOpen(false)
+      createGoal(
+        {
+          ...payload,
+          domain_id: '',
         },
-      })
+        {
+          onSuccess: () => {
+            form.reset()
+            setDialogOpen(false)
+          },
+        }
+      )
     },
   })
 
@@ -509,7 +514,7 @@ function RouteComponent() {
                                   {field.state.meta.isTouched &&
                                     !field.state.meta.isValid && (
                                       <FieldError
-                                        errors={field.state.meta.errors}
+                                        errors={field.state.meta.errors as any}
                                       />
                                     )}
                                 </Field>
@@ -561,7 +566,7 @@ function RouteComponent() {
                                   {field.state.meta.isTouched &&
                                     !field.state.meta.isValid && (
                                       <FieldError
-                                        errors={field.state.meta.errors}
+                                        errors={field.state.meta.errors as any}
                                       />
                                     )}
                                 </Field>
@@ -682,7 +687,9 @@ function RouteComponent() {
                                     {field.state.meta.isTouched &&
                                       !field.state.meta.isValid && (
                                         <FieldError
-                                          errors={field.state.meta.errors}
+                                          errors={
+                                            field.state.meta.errors as any
+                                          }
                                         />
                                       )}
                                   </Field>
@@ -742,7 +749,7 @@ function RouteComponent() {
                                   {field.state.meta.isTouched &&
                                     !field.state.meta.isValid && (
                                       <FieldError
-                                        errors={field.state.meta.errors}
+                                        errors={field.state.meta.errors as any}
                                       />
                                     )}
                                 </Field>
@@ -805,7 +812,9 @@ function RouteComponent() {
                                         {field.state.meta.isTouched &&
                                           !field.state.meta.isValid && (
                                             <FieldError
-                                              errors={field.state.meta.errors}
+                                              errors={
+                                                field.state.meta.errors as any
+                                              }
                                             />
                                           )}
                                       </Field>
@@ -869,7 +878,7 @@ function RouteComponent() {
                                   {field.state.meta.isTouched &&
                                     !field.state.meta.isValid && (
                                       <FieldError
-                                        errors={field.state.meta.errors}
+                                        errors={field.state.meta.errors as any}
                                       />
                                     )}
                                 </Field>
@@ -1123,7 +1132,7 @@ const GoalCard = ({
           payload: {
             workspace_id: workspaceId,
             project_id: projectId,
-            domain_id: value.domain_id || null,
+            domain_id: value.domain_id!,
             name: value.name.trim(),
             type: value.type,
             target: Number(value.target),
@@ -1165,6 +1174,8 @@ const GoalCard = ({
             to: '/app/$workspaceId/$projectId/goals/$goalId',
             params: {
               goalId: item.id,
+              workspaceId: workspaceId,
+              projectId: projectId,
             },
           })
         }}

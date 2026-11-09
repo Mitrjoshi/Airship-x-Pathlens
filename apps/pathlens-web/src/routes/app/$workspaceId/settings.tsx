@@ -10,7 +10,7 @@ import {
 } from '@/queries/workspace'
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import {
   Card,
@@ -312,16 +312,6 @@ function RouteComponent() {
                                     <Button
                                       className={'text-foreground'}
                                       variant="link"
-                                      render={
-                                        <Link
-                                          to="/app/$workspaceId/permissions/$permissionId"
-                                          params={{
-                                            workspaceId,
-                                            permissionId:
-                                              item.permissionProfileId!,
-                                          }}
-                                        />
-                                      }
                                     >
                                       {item.permissionProfileName}
                                       <ArrowUpRightIcon />

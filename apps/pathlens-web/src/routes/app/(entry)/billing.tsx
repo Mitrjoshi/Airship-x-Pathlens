@@ -28,10 +28,10 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="mx-auto max-w-4xl py-10">
+      <div className="mx-auto w-full max-w-4xl p-6 pt-10">
         <div className="space-y-6">
           <div>
-            <p className="text-xl font-semibold">Billing</p>
+            <p className="text-xl font-medium">Billing</p>
             <p className="text-muted-foreground text-sm">
               Manage your PathLens plan and billing access.
             </p>

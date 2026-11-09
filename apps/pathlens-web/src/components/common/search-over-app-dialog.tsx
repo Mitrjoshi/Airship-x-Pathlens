@@ -467,7 +467,7 @@ export const SearchOverAppDialog = ({
     closeDialog()
 
     navigate({
-      to: page.to,
+      to: page.to as any,
     })
   }
 

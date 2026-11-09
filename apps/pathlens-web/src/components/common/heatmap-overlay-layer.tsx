@@ -16,7 +16,11 @@ import type {
   PreviewRegionResolution,
 } from '@workspace/contracts'
 import { useEffect, useRef, useState } from 'react'
-import { projectClickPoint, projectClickSample } from './heatmap-projection'
+import {
+  projectClickPoint,
+  projectClickSample,
+  projectViewportPoint,
+} from './heatmap-projection'
 import { getSafeLegacyPoints } from './heatmap-legacy'
 import type { ClickHotspotProjection } from './heatmap-projection'
 export {
@@ -319,18 +323,6 @@ export function getSharedOverlayDimensions(
   }
 }
 
-export const getMovementOverlayViewport = getClickOverlayViewport
-
-export function getScrollOverlayViewport(
-  source: ScrollOverlayDimensions | null
-): ClickOverlayViewport | null {
-  return source &&
-    validDimensions(source.viewport) &&
-    validDimensions(source.document)
-    ? source.viewport
-    : null
-}
-
 export function getSnapshotScrollOverlayDimensions(
   snapshot: HeatmapSnapshot | null,
   device: PreviewDevice
@@ -355,35 +347,6 @@ export function getSnapshotScrollOverlayDimensions(
     document: { width: snapshot.pageWidth, height: snapshot.pageHeight },
     provenance: 'snapshot',
   }
-}
-
-export function getScrollGroupOverlayViewport(
-  groups: readonly HeatmapScrollGroup[],
-  device: PreviewDevice
-): ClickOverlayViewport | null {
-  const candidates = groups.filter(
-    (group) =>
-      group.device === device &&
-      group.safeForDocumentOverlay &&
-      group.alignment === 'document-compatible' &&
-      validDimensions(group.sourceViewport) &&
-      matchesPreviewDevice(group.sourceViewport.width, device)
-  )
-  const representative = candidates.reduce<HeatmapScrollGroup | null>(
-    (current, candidate) =>
-      !current || candidate.sessionCount > current.sessionCount
-        ? candidate
-        : current,
-    null
-  )
-  const viewport = representative?.sourceViewport
-  return viewport ? { width: viewport.width, height: viewport.height } : null
-}
-
-export function getHeatmapPreviewViewport(
-  device: PreviewDevice
-): ClickOverlayViewport {
-  return getPreviewViewportForDevice([], device)
 }
 
 function dimensionsCompatible(source: Dimensions, live: Dimensions): boolean {
@@ -413,39 +376,6 @@ function validMeasurementDimensions(
       height: measurement.documentHeight,
     })
   )
-}
-
-export function getScrollOverlayDecision(
-  source: ScrollOverlayDimensions | null,
-  measurement: PreviewMeasurementState | null
-): ClickGroupOverlayDecision {
-  if (!source) {
-    return { compatible: false, reason: 'source-dimensions-unavailable' }
-  }
-  if (!measurement) {
-    return { compatible: false, reason: 'measurement-unavailable' }
-  }
-  if (measurement.layoutVersion <= 0) {
-    return { compatible: false, reason: 'layout-not-stable' }
-  }
-  if (!validDimensions(source.viewport)) {
-    return { compatible: false, reason: 'source-viewport-invalid' }
-  }
-  if (!validDimensions(source.document)) {
-    return { compatible: false, reason: 'source-document-invalid' }
-  }
-  if (!validMeasurementDimensions(measurement)) {
-    return { compatible: false, reason: 'live-dimensions-invalid' }
-  }
-  if (
-    !dimensionsCompatible(source.document, {
-      width: measurement.documentWidth,
-      height: measurement.documentHeight,
-    })
-  ) {
-    return { compatible: false, reason: 'document-dimensions-incompatible' }
-  }
-  return { compatible: true, reason: 'compatible' }
 }
 
 export function getClickGroupOverlayDecision(
@@ -513,13 +443,6 @@ export function getClickGroupOverlayDecision(
   }
 
   return { compatible: true, reason: 'document-compatible-cross-viewport' }
-}
-
-export function isClickGroupOverlayCompatible(
-  group: HeatmapOverlayGroup,
-  measurement: PreviewMeasurementState | null
-): boolean {
-  return getClickGroupOverlayDecision(group, measurement).compatible
 }
 
 /* Legacy projection implementation moved to heatmap-projection.ts.
@@ -788,35 +711,6 @@ export function projectClickSample(
 }
 
 */
-
-export function projectScrollDepth(
-  point: HeatmapScrollPoint,
-  measurement: PreviewMeasurementState,
-  display: Dimensions
-): ClickHotspotProjection | null {
-  if (
-    !validDimensions(display) ||
-    !Number.isFinite(point.percentage) ||
-    point.percentage < 0 ||
-    point.percentage > 100 ||
-    !validMeasurementDimensions(measurement)
-  ) {
-    return null
-  }
-
-  const maxScrollY = Math.max(
-    0,
-    measurement.documentHeight - measurement.viewportHeight
-  )
-  const documentY = (point.percentage / 100) * maxScrollY
-
-  return {
-    x: 0,
-    y:
-      ((documentY - measurement.scrollY) / measurement.viewportHeight) *
-      display.height,
-  }
-}
 
 function hotspotRadius(
   point: HeatmapOverlayPoint,
@@ -1577,7 +1471,7 @@ export function HeatmapOverlayLayer({
           diagnosticGroups
             .map((group) => group.sourceViewport)
             .filter(Boolean)
-            .map((dimensions) => `${dimensions.width}x${dimensions.height}`)
+            .map((dimensions) => `${dimensions?.width}x${dimensions?.height}`)
         )
       ).join(',')
       canvas.dataset.overlaySourceDocuments = Array.from(
@@ -1585,7 +1479,7 @@ export function HeatmapOverlayLayer({
           diagnosticGroups
             .map((group) => group.sourceDocument)
             .filter(Boolean)
-            .map((dimensions) => `${dimensions.width}x${dimensions.height}`)
+            .map((dimensions) => `${dimensions?.width}x${dimensions?.height}`)
         )
       ).join(',')
       canvas.dataset.overlayLayoutVersion = String(

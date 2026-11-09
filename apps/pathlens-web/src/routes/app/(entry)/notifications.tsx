@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
-import { BellOffIcon, CheckIcon, Loader2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/app/(entry)/notifications')({
@@ -15,9 +14,6 @@ function RouteComponent() {
   const { data, isPending, isError } = useQuery(getNotificationsOptions())
   const acceptNotification = useAcceptNotification()
   const notifications = data?.data ?? []
-  const unreadNotifications = notifications.filter(
-    (notification) => !notification.readAt
-  )
 
   const getNotificationMessage = (type: string) => {
     if (type.startsWith('usage_limit_exceeded:')) {
@@ -47,10 +43,10 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="mx-auto max-w-4xl py-10">
+      <div className="mx-auto w-full max-w-4xl p-6 pt-10">
         <div className="space-y-6">
           <div>
-            <p className="text-xl font-semibold">Notifications</p>
+            <p className="text-xl font-medium">Notifications</p>
             <p className="text-muted-foreground text-sm">
               Stay updated on important activity and alerts.
             </p>

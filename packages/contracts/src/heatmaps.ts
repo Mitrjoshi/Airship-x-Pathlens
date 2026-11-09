@@ -1,4 +1,3 @@
-import type { ReplayEvent } from './replay'
 import type {
   ClickElementRect,
   ClickElementScrollAncestor,
@@ -195,7 +194,6 @@ export interface HeatmapPageDetail extends HeatmapPage {
   scrollPoints: HeatmapScrollPoint[]
   scrollGroups?: HeatmapScrollGroup[]
   scrollReach?: HeatmapScrollReach[]
-  replayEvents: ReplayEvent[]
   replayViewport: {
     width: number
     height: number

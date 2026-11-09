@@ -67,32 +67,6 @@ export const useCreateProjectApiKey = (projectId: string) => {
   })
 }
 
-export const useUpdateProjectApiKey = (projectId: string, keyId: string) => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (
-      payload: ProjectApiKeyPayload
-    ): Promise<ProjectApiKeyResponse> => {
-      const response = await apiClient.patch<ProjectApiKeyResponse>(
-        `/projects/${projectId}/api-keys/${keyId}`,
-        payload
-      )
-
-      return response.data
-    },
-    onSuccess: async (data) => {
-      if (!data.success) {
-        throw new Error(data.message ?? 'Unable to update API key.')
-      }
-
-      await invalidateProjectApiKeys(queryClient, projectId)
-      toast.success('API key updated.')
-    },
-    onError: (error) => toast.error(error.message),
-  })
-}
-
 export const useRevokeProjectApiKey = (projectId: string) => {
   const queryClient = useQueryClient()
 

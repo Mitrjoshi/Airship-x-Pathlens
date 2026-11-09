@@ -1,7 +1,6 @@
 import apiClient from '@/lib/apiClient'
 import type { ReplayEvent } from '@workspace/contracts'
 import { queryOptions } from '@tanstack/react-query'
-import { param } from 'motion/react-client'
 
 export type SessionReplayRange = '24h' | '7d' | '30d' | '90d'
 export type SessionReplayDevice = 'all' | 'desktop' | 'mobile' | 'tablet'

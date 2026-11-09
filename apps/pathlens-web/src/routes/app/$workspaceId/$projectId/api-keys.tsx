@@ -734,7 +734,9 @@ function CreateApiKeyForm({
                     autoFocus
                   />
 
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                  {isInvalid && (
+                    <FieldError errors={field.state.meta.errors as any} />
+                  )}
                 </Field>
               )
             }}

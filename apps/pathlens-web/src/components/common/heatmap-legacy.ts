@@ -2,7 +2,6 @@ import type {
   HeatmapClickPoint,
   HeatmapMovementPoint,
   HeatmapSourceDimensions,
-  HeatmapScrollPoint,
 } from '@workspace/contracts'
 
 export type LegacyHeatmapPoint = HeatmapClickPoint | HeatmapMovementPoint
@@ -45,24 +44,4 @@ export function getSafeLegacyPoints(
       Number.isFinite(point.count) &&
       point.count > 0
   )
-}
-
-export function getLegacyScrollReach(
-  points: readonly HeatmapScrollPoint[]
-): number | null {
-  return points
-    .filter(
-      (point) =>
-        Number.isFinite(point.percentage) &&
-        point.percentage >= 0 &&
-        point.percentage <= 100 &&
-        point.count > 0
-    )
-    .reduce<number | null>(
-      (maximum, point) =>
-        maximum === null
-          ? point.percentage
-          : Math.max(maximum, point.percentage),
-      null
-    )
 }

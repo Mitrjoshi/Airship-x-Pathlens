@@ -60,15 +60,6 @@ export interface ReportGenerationsResponse {
   }
 }
 
-export interface ReportDownloadResponse {
-  success: boolean
-  data: {
-    id: string
-    downloadUrl: string
-    expiresAt: string
-  }
-}
-
 export const getReportGenerationsOptions = (params: ReportGenerationsParams) =>
   queryOptions({
     queryKey: ['REPORT_GENERATIONS', params],
@@ -81,21 +72,4 @@ export const getReportGenerationsOptions = (params: ReportGenerationsParams) =>
       return response.data
     },
     enabled: Boolean(params.workspace_id),
-  })
-
-export const getReportDownloadOptions = (params: {
-  reportId: string
-  workspace_id: string
-}) =>
-  queryOptions({
-    queryKey: ['REPORT_DOWNLOAD', params],
-    queryFn: async (): Promise<ReportDownloadResponse> => {
-      const response = await apiClient.get(
-        `/analytics/reports/${encodeURIComponent(params.reportId)}/download`,
-        { params: { workspace_id: params.workspace_id } }
-      )
-
-      return response.data
-    },
-    enabled: Boolean(params.reportId && params.workspace_id),
   })

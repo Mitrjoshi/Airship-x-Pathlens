@@ -30,7 +30,7 @@ import {
   type HeatmapsRange,
 } from '@/queries/heatmaps'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useCallback, useState } from 'react'
 import { Separator } from '@workspace/ui/components/separator'
 import { ArrowLeftIcon, CheckIcon, RefreshCcwIcon } from 'lucide-react'
@@ -401,11 +401,7 @@ function RouteComponent() {
                       }
                       emptyStateMessage={
                         visualizationReady
-                          ? getHeatmapEmptyStateMessage(
-                              heatmap,
-                              heatmapType,
-                              previewDevice
-                            )
+                          ? getHeatmapEmptyStateMessage(heatmap, heatmapType)
                           : null
                       }
                       // heatmapEmpty={
@@ -583,8 +579,7 @@ function hasUsablePoint(point: { x: number; y: number }, weight: number) {
 
 function getHeatmapEmptyStateMessage(
   heatmap: HeatmapPageDetail | null | undefined,
-  type: HeatmapOverlayType,
-  device: PreviewDevice
+  type: HeatmapOverlayType
 ) {
   if (!heatmap) return null
 

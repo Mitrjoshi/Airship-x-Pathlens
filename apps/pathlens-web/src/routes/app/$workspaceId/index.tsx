@@ -11,7 +11,6 @@ import {
 } from '@workspace/ui/components/input-group'
 import {
   AlertCircleIcon,
-  ArrowUpRightIcon,
   EllipsisIcon,
   ExternalLinkIcon,
   InfoIcon,

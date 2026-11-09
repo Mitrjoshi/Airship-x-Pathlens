@@ -143,7 +143,7 @@ function AvatarDialogContent({
 
       <Separator />
 
-      <DialogFooter>
+      <DialogFooter className="bg-transparent">
         <Button
           type="button"
           disabled={!avatarPreview || isSaving}
@@ -175,6 +175,8 @@ function DeleteAccountDialogContent({
       confirmation: '',
     },
     validators: {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
       onChange: getDeleteAccountSchema(hasPassword),
     },
     onSubmit: async ({ value }) => {
@@ -264,7 +266,7 @@ function DeleteAccountDialogContent({
           </deleteForm.Field>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="bg-transparent">
           <DialogClose>
             <Button type="button" variant="ghost">
               Cancel
@@ -389,6 +391,8 @@ function RouteComponent() {
       confirmPassword: '',
     },
     validators: {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
       onChange: getPasswordSchema(user?.hasPassword),
     },
     onSubmit: async ({ value }) => {
@@ -410,9 +414,9 @@ function RouteComponent() {
 
   return (
     <div>
-      <div className="mx-auto max-w-4xl py-10">
+      <div className="mx-auto w-full max-w-4xl p-6 pt-10">
         <div className="space-y-5">
-          <p className="text-xl font-semibold">Account Settings</p>
+          <p className="text-xl font-medium">Account Settings</p>
 
           <Card className="bg-card/30 rounded-none border-2 border-dashed">
             <form

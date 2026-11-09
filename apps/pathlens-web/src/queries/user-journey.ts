@@ -9,10 +9,6 @@ import type {
 } from '@workspace/contracts/user-journey'
 
 export type { UserJourneyDevice, UserJourneyRange }
-export type {
-  UserJourneyNode,
-  UserJourneyEdge,
-} from '@workspace/contracts/user-journey'
 
 const getUserJourney = async (
   params: UserJourneyParams

@@ -27,13 +27,11 @@ import {
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  CircleIcon,
   Maximize2Icon,
   Minimize2Icon,
   PauseIcon,
   PlayIcon,
   RadioIcon,
-  WifiIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import 'rrweb/dist/style.css'
@@ -60,10 +58,6 @@ function formatElapsed(milliseconds: number): string {
   const seconds = totalSeconds % 60
 
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
-}
-
-function getEventPath(event: SessionReplayEvent | undefined): string {
-  return event?.path || event?.title || '/'
 }
 
 function getEventOffset(
@@ -155,7 +149,6 @@ export function SessionReplayPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   const events = detail?.events ?? EMPTY_SESSION_EVENTS
-  const currentEvent = events[currentEventIndex]
   const initialReplayEvents = detail?.replay?.events ?? EMPTY_REPLAY_EVENTS
   const replayEvents = initialReplayEvents.concat(appendedReplayEvents)
   const replayAvailable = Boolean(detail?.replay?.available)

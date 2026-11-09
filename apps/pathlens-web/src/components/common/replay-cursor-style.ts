@@ -269,10 +269,10 @@ export function installReplayClickEffect(replayer: Replayer): () => void {
     })
   }
 
-  replayer.on(ReplayerEvents.EventCast, handleEvent)
+  replayer.on(ReplayerEvents.EventCast, handleEvent as any)
 
   return () => {
-    replayer.off(ReplayerEvents.EventCast, handleEvent)
+    replayer.off(ReplayerEvents.EventCast, handleEvent as any)
 
     for (const marker of markers) {
       marker.remove()
