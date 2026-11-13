@@ -15,7 +15,9 @@
     "dev": "npx serve .",
     "build": "tsup",
     "clean": "rimraf dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:queue": "pnpm exec tsx --test src/queue.test.ts",
+    "test:replay": "pnpm exec tsx --test src/replay.test.ts"
   },
   "dependencies": {
     "@workspace/contracts": "workspace:*",

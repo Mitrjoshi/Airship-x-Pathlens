@@ -1,7 +1,7 @@
 import apiClient from '@/lib/apiClient'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 
 interface CreateProjectPayload {
   name: string

@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { formatNumber } from '@/utils/utils'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   Dialog,

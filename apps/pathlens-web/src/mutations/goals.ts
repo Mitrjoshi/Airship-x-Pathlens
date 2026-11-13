@@ -1,7 +1,7 @@
 import apiClient from '@/lib/apiClient'
 import type { GoalPayload } from '@/queries/goals'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 
 interface GoalMutationResponse {
   success: boolean

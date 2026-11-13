@@ -136,6 +136,7 @@ export const clickRegionAnchorSchema = z
 export const incomingEventSchema = z
   .object({
     projectId: z.string().min(1),
+    eventId: z.string().min(1).max(128).optional(),
     visitorId: z.string().min(1).max(255),
     sessionId: z.string().min(1).max(255),
     type: z.string().min(1).max(64),

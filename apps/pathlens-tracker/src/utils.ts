@@ -9,7 +9,12 @@ import type {
   TrackingScope,
   TrackedEvent,
 } from "@workspace/contracts/tracker";
-import { postEncryptedPayload } from "./crypto";
+import {
+  postPreparedEncryptedPayload,
+  prepareEncryptedPayload,
+  utf8ByteLength,
+  type PreparedEncryptedPayload,
+} from "./crypto";
 
 const VISITOR_KEY = "pathlens_visitor";
 const SESSION_KEY = "pathlens_session";
@@ -17,6 +22,17 @@ const SESSION_LAST_ACTIVE_KEY = "pathlens_session_last_active";
 const CAMPAIGN_KEY_PREFIX = "pathlens_campaign:";
 const CAMPAIGN_VALUE_LIMIT = 512;
 const SESSION_TIMEOUT = 30 * 60 * 1000;
+export const MAX_ANALYTICS_BATCH_EVENTS = 25;
+export const MAX_ANALYTICS_REQUEST_BYTES = 64 * 1024;
+export const MAX_ANALYTICS_EVENT_BYTES = 16 * 1024;
+export const MAX_KEEPALIVE_REQUEST_BYTES = 32 * 1024;
+export const MAX_ANALYTICS_QUEUE_EVENTS = 500;
+export const MAX_ANALYTICS_QUEUE_BYTES = 512 * 1024;
+export const MAX_ANALYTICS_RETRY_ATTEMPTS = 5;
+export const MAX_ANALYTICS_RETRY_AGE_MS = 15 * 60 * 1000;
+const PLAINTEXT_BATCH_ESTIMATE_RATIO = 0.68;
+const RETRY_BASE_DELAY_MS = 500;
+const RETRY_MAX_DELAY_MS = 30_000;
 const DEFAULT_API_URL =
   process.env.API_URL ??
   "https://t1xg2ok5i0.execute-api.ap-south-1.amazonaws.com/dev/api/events";
@@ -339,27 +355,399 @@ export function debug(
   console.log(`[Pathlens] ${message}`, ...args);
 }
 
+interface RetryState {
+  attempts: number;
+  firstAttemptAt: number;
+}
+
+interface AnalyticsQueueState {
+  inFlight: Set<TrackedEvent>;
+  retries: WeakMap<TrackedEvent, RetryState>;
+  worker?: Promise<void>;
+  finalFlushStarted: boolean;
+  keepaliveBytesSent: number;
+}
+
+const queueStates = new WeakMap<TrackedEvent[], AnalyticsQueueState>();
+const eventRetryStates = new WeakMap<TrackedEvent, RetryState>();
+
+function getQueueState(queue: TrackedEvent[]): AnalyticsQueueState {
+  let state = queueStates.get(queue);
+
+  if (!state) {
+    state = {
+      inFlight: new Set(),
+      retries: new WeakMap(),
+      finalFlushStarted: false,
+      keepaliveBytesSent: 0,
+    };
+    queueStates.set(queue, state);
+  }
+
+  return state;
+}
+
+function eventBytes(event: TrackedEvent): number {
+  return utf8ByteLength(JSON.stringify(event));
+}
+
+function queueBytes(queue: TrackedEvent[]): number {
+  return queue.reduce((total, event) => total + eventBytes(event), 0);
+}
+
+function diagnostic(
+  reason: string,
+  config: PathLensConfig,
+  events: TrackedEvent[],
+  extra: Record<string, unknown> = {}
+): void {
+  const metadata = {
+    endpoint: "analytics",
+    eventTypes: [...new Set(events.map((event) => event.type))].slice(0, 10),
+    eventCount: events.length,
+    retryCount: Math.max(
+      0,
+      ...events.map((event) => getQueueStateForEvent(event)?.attempts ?? 0)
+    ),
+    reason,
+    ...extra,
+  };
+
+  console.warn("[Pathlens] ingestion_diagnostic", metadata);
+}
+
+function getQueueStateForEvent(event: TrackedEvent): RetryState | undefined {
+  return eventRetryStates.get(event);
+}
+
+function removeEvent(queue: TrackedEvent[], event: TrackedEvent): void {
+  const index = queue.indexOf(event);
+  if (index >= 0) queue.splice(index, 1);
+}
+
+/**
+ * Adds an event to the bounded analytics queue. Overflow drops the oldest
+ * event that is not currently in flight, preserving the newest data while
+ * preventing failed networks from growing browser memory without bound.
+ */
+export function enqueueEvent(
+  config: PathLensConfig,
+  queue: TrackedEvent[],
+  event: TrackedEvent
+): void {
+  const state = getQueueState(queue);
+  queue.push(event);
+
+  while (
+    queue.length > MAX_ANALYTICS_QUEUE_EVENTS ||
+    queueBytes(queue) > MAX_ANALYTICS_QUEUE_BYTES
+  ) {
+    const dropIndex = queue.findIndex((candidate) => !state.inFlight.has(candidate));
+    if (dropIndex < 0) break;
+
+    const [dropped] = queue.splice(dropIndex, 1);
+    if (dropped) {
+      state.retries.delete(dropped);
+      eventRetryStates.delete(dropped);
+      diagnostic("queue_overflow", config, [dropped], {
+        queueEventCount: queue.length,
+        queueBytes: queueBytes(queue),
+      });
+    }
+  }
+}
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+function getRetryDelay(attempt: number): number {
+  const exponential = Math.min(
+    RETRY_MAX_DELAY_MS,
+    RETRY_BASE_DELAY_MS * 2 ** Math.max(0, attempt - 1)
+  );
+  return Math.floor(exponential * (0.75 + Math.random() * 0.5));
+}
+
+function getRetryAfter(response: Response): number | undefined {
+  const value = response.headers.get("Retry-After");
+  if (!value) return undefined;
+
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.min(RETRY_MAX_DELAY_MS, seconds * 1000);
+  }
+
+  const date = Date.parse(value);
+  if (!Number.isNaN(date)) return Math.max(0, Math.min(RETRY_MAX_DELAY_MS, date - Date.now()));
+
+  return undefined;
+}
+
+function markAcknowledged(
+  queue: TrackedEvent[],
+  state: AnalyticsQueueState,
+  events: TrackedEvent[]
+): void {
+  for (const event of events) {
+    state.inFlight.delete(event);
+    state.retries.delete(event);
+    eventRetryStates.delete(event);
+    removeEvent(queue, event);
+  }
+}
+
+function markRetryable(
+  state: AnalyticsQueueState,
+  events: TrackedEvent[]
+): RetryState | undefined {
+  let highest: RetryState | undefined;
+  const nowMs = Date.now();
+
+  for (const event of events) {
+    const current = state.retries.get(event) ?? {
+      attempts: 0,
+      firstAttemptAt: nowMs,
+    };
+    current.attempts += 1;
+    state.retries.set(event, current);
+    eventRetryStates.set(event, current);
+    if (!highest || current.attempts > highest.attempts) highest = current;
+  }
+
+  return highest;
+}
+
+function retryAllowed(
+  state: AnalyticsQueueState,
+  events: TrackedEvent[]
+): boolean {
+  const nowMs = Date.now();
+  return events.every((event) => {
+    const retry = state.retries.get(event);
+    return (
+      !retry ||
+      (retry.attempts < MAX_ANALYTICS_RETRY_ATTEMPTS &&
+        nowMs - retry.firstAttemptAt < MAX_ANALYTICS_RETRY_AGE_MS)
+    );
+  });
+}
+
+function selectBatch(
+  config: PathLensConfig,
+  queue: TrackedEvent[],
+  state: AnalyticsQueueState,
+  maxRequestBytes: number
+): TrackedEvent[] {
+  const batch: TrackedEvent[] = [];
+  const estimateLimit = Math.floor(maxRequestBytes * PLAINTEXT_BATCH_ESTIMATE_RATIO);
+  let estimatedBytes = 2;
+
+  for (const event of [...queue]) {
+    if (state.inFlight.has(event)) continue;
+
+    const bytes = eventBytes(event);
+    if (bytes > MAX_ANALYTICS_EVENT_BYTES) {
+      removeEvent(queue, event);
+      diagnostic("event_too_large", config, [event], {
+        serializedBytes: bytes,
+        maxEventBytes: MAX_ANALYTICS_EVENT_BYTES,
+      });
+      continue;
+    }
+
+    if (
+      batch.length >= MAX_ANALYTICS_BATCH_EVENTS ||
+      (batch.length > 0 && estimatedBytes + bytes + 1 > estimateLimit)
+    ) {
+      break;
+    }
+
+    batch.push(event);
+    estimatedBytes += bytes + 1;
+  }
+
+  for (const event of batch) state.inFlight.add(event);
+  return batch;
+}
+
+async function sendPreparedBatch(
+  config: PathLensConfig,
+  queue: TrackedEvent[],
+  state: AnalyticsQueueState,
+  events: TrackedEvent[],
+  keepalive: boolean,
+  maxRequestBytes: number
+): Promise<void> {
+  let prepared: PreparedEncryptedPayload;
+
+  try {
+    prepared = await prepareEncryptedPayload(events, config.apiKey);
+  } catch {
+    markAcknowledged(queue, state, events);
+    diagnostic("serialization_failure", config, events);
+    return;
+  }
+
+  if (prepared.byteLength > maxRequestBytes) {
+    if (events.length === 1) {
+      markAcknowledged(queue, state, events);
+      diagnostic("event_request_too_large", config, events, {
+        serializedBytes: prepared.byteLength,
+        maxRequestBytes,
+      });
+      return;
+    }
+
+    const midpoint = Math.ceil(events.length / 2);
+    const left = events.slice(0, midpoint);
+    const right = events.slice(midpoint);
+    diagnostic("batch_split", config, events, {
+      serializedBytes: prepared.byteLength,
+      maxRequestBytes,
+    });
+    await sendPreparedBatch(config, queue, state, left, keepalive, maxRequestBytes);
+    await sendPreparedBatch(config, queue, state, right, keepalive, maxRequestBytes);
+    return;
+  }
+
+  if (
+    keepalive &&
+    state.keepaliveBytesSent + prepared.byteLength > MAX_KEEPALIVE_REQUEST_BYTES
+  ) {
+    markAcknowledged(queue, state, events);
+    diagnostic("keepalive_budget_exceeded", config, events, {
+      serializedBytes: prepared.byteLength,
+      maxKeepaliveBytes: MAX_KEEPALIVE_REQUEST_BYTES,
+    });
+    return;
+  }
+
+  if (keepalive) state.keepaliveBytesSent += prepared.byteLength;
+
+  let response: Response | undefined;
+  try {
+    response = await postPreparedEncryptedPayload(
+      config.apiUrl,
+      config.apiKey,
+      prepared,
+      keepalive
+    );
+  } catch {
+    response = undefined;
+  }
+
+  if (response && response.status >= 200 && response.status < 300) {
+    markAcknowledged(queue, state, events);
+    return;
+  }
+
+  if (response?.status === 413) {
+    if (events.length === 1) {
+      markAcknowledged(queue, state, events);
+      diagnostic("single_event_413", config, events, { status: 413 });
+      return;
+    }
+
+    const midpoint = Math.ceil(events.length / 2);
+    diagnostic("http_413_split", config, events, {
+      status: 413,
+      serializedBytes: prepared.byteLength,
+    });
+    await sendPreparedBatch(config, queue, state, events.slice(0, midpoint), keepalive, maxRequestBytes);
+    await sendPreparedBatch(config, queue, state, events.slice(midpoint), keepalive, maxRequestBytes);
+    return;
+  }
+
+  if (response?.status === 400 || response?.status === 422) {
+    markAcknowledged(queue, state, events);
+    diagnostic("permanent_validation_failure", config, events, {
+      status: response.status,
+    });
+    return;
+  }
+
+  if (response?.status === 401 || response?.status === 403) {
+    markAcknowledged(queue, state, events);
+    diagnostic("authorization_failure", config, events, {
+      status: response.status,
+    });
+    return;
+  }
+
+  const retry = markRetryable(state, events);
+  if (!retryAllowed(state, events)) {
+    markAcknowledged(queue, state, events);
+    diagnostic("retry_exhausted", config, events, {
+      status: response?.status || "network",
+    });
+    return;
+  }
+
+  const delay =
+    response?.status === 429
+      ? getRetryAfter(response) ?? getRetryDelay(retry?.attempts ?? 1)
+      : getRetryDelay(retry?.attempts ?? 1);
+  diagnostic("retry_scheduled", config, events, {
+    status: response?.status || "network",
+    delayMs: delay,
+  });
+  await sleep(delay);
+  await sendPreparedBatch(
+    config,
+    queue,
+    state,
+    events,
+    keepalive,
+    maxRequestBytes
+  );
+}
+
+async function runQueue(
+  config: PathLensConfig,
+  queue: TrackedEvent[],
+  state: AnalyticsQueueState,
+  keepalive: boolean
+): Promise<void> {
+  const maxRequestBytes = keepalive
+    ? MAX_KEEPALIVE_REQUEST_BYTES
+    : MAX_ANALYTICS_REQUEST_BYTES;
+
+  while (true) {
+    const batch = selectBatch(config, queue, state, maxRequestBytes);
+    if (batch.length === 0) return;
+
+    await sendPreparedBatch(
+      config,
+      queue,
+      state,
+      batch,
+      keepalive,
+      maxRequestBytes
+    );
+
+    // A final keepalive flush is deliberately limited to one selected batch.
+    // Browser shutdown does not provide guaranteed delivery for later batches.
+    if (keepalive) return;
+  }
+}
+
 export function flushQueue(
   config: PathLensConfig,
-  queue: TrackedEvent[]
-): void {
-  if (!queue.length) return;
+  queue: TrackedEvent[],
+  keepalive = false
+): Promise<void> {
+  const state = getQueueState(queue);
+  if (keepalive && state.finalFlushStarted) return Promise.resolve();
+  if (keepalive) state.finalFlushStarted = true;
+  if (state.worker) return state.worker;
+  if (queue.length === 0) return Promise.resolve();
 
-  const events = queue.splice(0, queue.length);
+  state.worker = runQueue(config, queue, state, keepalive).finally(() => {
+    state.worker = undefined;
+  });
 
-  debug(config, `Flushing ${events.length} events`);
-
-  void postEncryptedPayload(config.apiUrl, config.apiKey, events, true)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(
-          `Tracking request failed with status ${response.status}`
-        );
-      }
-    })
-    .catch((err) => {
-      console.error("[Pathlens]", err);
-    });
+  return state.worker;
 }
 
 export function readConfig(): PathLensConfig {

@@ -46,7 +46,7 @@ import {
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './-components/common/no-permission-view'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { ErrorScreen } from './-components/common/error-screen'
 import {
   InputGroup,

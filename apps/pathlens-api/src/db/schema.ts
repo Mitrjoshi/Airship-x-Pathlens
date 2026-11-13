@@ -1044,6 +1044,9 @@ export const events = pgTable(
         onDelete: "cascade",
       }),
 
+    // Nullable so events from older SDK versions remain supported.
+    eventId: text("event_id"),
+
     workspaceId: uuid("workspace_id")
       .notNull()
       .references(() => workspaces.id, {
@@ -1113,6 +1116,11 @@ export const events = pgTable(
     }).defaultNow(),
   },
   (table) => ({
+    // PostgreSQL permits multiple NULLs in a unique index, preserving legacy rows.
+    projectEventIdUnique: uniqueIndex("events_project_event_id_unique_idx").on(
+      table.projectId,
+      table.eventId
+    ),
     projectIdx: index("events_project_idx").on(table.projectId),
     workspaceIdx: index("events_workspace_idx").on(table.workspaceId),
 

@@ -78,7 +78,7 @@ import {
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { NoPermissionView } from './-components/common/no-permission-view'
 import { ErrorScreen } from './-components/common/error-screen'
 

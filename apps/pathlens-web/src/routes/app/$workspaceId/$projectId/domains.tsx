@@ -46,7 +46,7 @@ import {
 } from '@workspace/ui/components/dropdown-menu'
 import { Badge } from '@workspace/ui/components/badge'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { NoPermissionView } from './-components/common/no-permission-view'
 import {
   InputGroup,

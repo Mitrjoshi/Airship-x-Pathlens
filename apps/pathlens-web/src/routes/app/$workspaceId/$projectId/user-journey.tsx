@@ -433,7 +433,7 @@ function JourneyNode({ data, selected }: NodeProps<JourneyFlowNode>) {
   return (
     <div
       data-selected={selected}
-      className={`bg-background data-[selected=true]:ring-primary/30 w-[280px] overflow-hidden border-2 border-dashed shadow-sm transition-all duration-200 data-[selected=true]:ring-2 ${styles.container} `}
+      className={`bg-background data-[selected=true]:ring-primary/30 w-[280px] overflow-hidden border-2 border-dashed shadow-sm transition-all duration-200 data-[selected=true]:ring-2 ${styles?.container} `}
     >
       {data.type !== 'entry' && (
         <Handle
@@ -447,10 +447,10 @@ function JourneyNode({ data, selected }: NodeProps<JourneyFlowNode>) {
         <div className="mb-3 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="mb-2 flex items-center gap-2">
-              <div className={`size-2 rounded-full ${styles.indicator}`} />
+              <div className={`size-2 rounded-full ${styles?.indicator}`} />
 
               <span
-                className={`text-[10px] font-semibold tracking-wider uppercase ${styles.label}`}
+                className={`text-[10px] font-semibold tracking-wider uppercase ${styles?.label}`}
               >
                 {getJourneyNodeLabel(data.type)}
               </span>

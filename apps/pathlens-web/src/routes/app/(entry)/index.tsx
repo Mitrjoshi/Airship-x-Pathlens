@@ -63,14 +63,14 @@ const formSchema = z.object({
 
 export const Route = createFileRoute('/app/(entry)/')({
   component: RouteComponent,
-  validateSearch: z.object({ create: z.boolean().default(false) }),
+  validateSearch: z.object({ create: z.boolean().optional() }),
 })
 
 function RouteComponent() {
   const { create } = Route.useSearch()
   const navigate = useNavigate()
 
-  const [open, setOpen] = React.useState(create)
+  const [open, setOpen] = React.useState(create || false)
   const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
 
   const { data: workspaceData, isLoading: workspaceDataLoading } = useQuery(

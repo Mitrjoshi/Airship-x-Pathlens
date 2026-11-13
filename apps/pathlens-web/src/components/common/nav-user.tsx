@@ -243,7 +243,7 @@ export function NavUser({ user }: { user: NavUserData }) {
           }
           onClick={() => {
             localStorage.removeItem('pathlens-token')
-            navigate({ to: '/login', replace: true })
+            window.location.reload()
           }}
         >
           Log out

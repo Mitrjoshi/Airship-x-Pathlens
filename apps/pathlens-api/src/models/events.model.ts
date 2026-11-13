@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { db } from "../db/client";
 import { events, projects, visitorCampaignAttribution } from "../db/schema";
 import type {
@@ -242,6 +243,7 @@ function getEventDetails(
   } else if (type === "custom" && payload) {
     const ignoredKeys = new Set([
       "projectId",
+      "eventId",
       "visitorId",
       "sessionId",
       "timestamp",
@@ -467,6 +469,9 @@ export async function createEvents(
       projectId: project.projectId,
       workspaceId: project.workspaceId,
 
+      eventId:
+        typeof event.eventId === "string" ? event.eventId : randomUUID(),
+
       visitorId: event.visitorId,
       sessionId: event.sessionId,
 
@@ -522,7 +527,12 @@ export async function createEvents(
   }
 
   await db.transaction(async (transaction) => {
-    await transaction.insert(events).values(rows);
+    await transaction
+      .insert(events)
+      .values(rows)
+      .onConflictDoNothing({
+        target: [events.projectId, events.eventId],
+      });
 
     for (const [projectId, faviconUrl] of faviconUpdates) {
       await transaction

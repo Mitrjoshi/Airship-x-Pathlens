@@ -22,8 +22,19 @@ function hasValidDomainSuffix(hostname: string): boolean {
   );
 }
 
+function isLocalDevelopmentDomain(hostname: string): boolean {
+  const normalizedHostname = hostname.toLowerCase();
+
+  return (
+    normalizedHostname === "localhost" ||
+    normalizedHostname === "127.0.0.1" ||
+    normalizedHostname === "[::1]"
+  );
+}
+
 export function normalizeProjectHostname(value: string): string | null {
   const url = toUrl(value);
+
   return (
     url?.hostname
       .toLowerCase()
@@ -35,7 +46,23 @@ export function normalizeProjectHostname(value: string): string | null {
 export function normalizeProjectDomain(value: string): string | null {
   const url = toUrl(value.trim());
 
-  if (!url || !hasValidDomainSuffix(url.hostname)) return null;
+  if (!url) return null;
+
+  const hostname = url.hostname.toLowerCase();
+
+  const isValidPublicDomain = hasValidDomainSuffix(hostname);
+
+  const isValidLocalDomain =
+    process.env.NODE_ENV === "development" &&
+    isLocalDevelopmentDomain(hostname);
+
+  if (!isValidPublicDomain && !isValidLocalDomain) {
+    return null;
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return null;
+  }
 
   url.pathname = "/";
   url.search = "";

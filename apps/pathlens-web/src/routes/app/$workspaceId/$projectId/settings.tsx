@@ -34,7 +34,7 @@ import {
   useResetProjectAnalytics,
   useResumeProject,
 } from '@/mutations/projects'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import {
   InputGroup,
   InputGroupAddon,

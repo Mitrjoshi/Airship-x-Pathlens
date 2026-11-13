@@ -1,5 +1,4 @@
 import { ArrowRightIcon, ChevronRightIcon } from 'lucide-react'
-
 import { ModeToggle } from '@/components/common/mode-toggle'
 import { Button } from '@workspace/ui/components/button'
 import {
@@ -12,7 +11,6 @@ import {
   navigationMenuTriggerStyle,
 } from '@workspace/ui/components/navigation-menu'
 import { Separator } from '@workspace/ui/components/separator'
-
 import { productSections } from '../products/-constants/products'
 import { solutionSections } from '../solutions/-constants/solutions'
 import { Link } from '@tanstack/react-router'
@@ -78,6 +76,10 @@ export const Header = () => {
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
+
+            <Link target="_blank" to="/docs">
+              <p className={navigationMenuTriggerStyle()}>Docs</p>
+            </Link>
 
             <Link to="/pricing">
               <p className={navigationMenuTriggerStyle()}>Pricing</p>

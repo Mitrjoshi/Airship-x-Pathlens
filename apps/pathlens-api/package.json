@@ -24,6 +24,7 @@
     "test:heatmaps": "tsx --test src/lib/page-path.test.ts src/lib/heatmap-coordinates.test.ts src/lib/heatmap-aggregation.test.ts",
     "test:preview-sessions": "node --experimental-test-module-mocks --import tsx --test src/routes/preview-sessions.route.test.ts",
     "test:authorization": "node --experimental-test-module-mocks --import tsx --test src/routes/heatmaps.route.test.ts src/routes/preview-sessions.route.test.ts",
+    "test:events": "node --experimental-test-module-mocks --import tsx --test src/models/events.idempotency.test.ts",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio"
   },

@@ -44,10 +44,6 @@ export const Hero = () => {
               <Link to="/login">
                 <Button className="w-32">Get started</Button>
               </Link>
-
-              <Button className="w-32" variant="outline">
-                Request a demo
-              </Button>
             </div>
           </div>
         </div>

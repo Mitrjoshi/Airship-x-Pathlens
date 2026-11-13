@@ -78,6 +78,8 @@ export type EventType =
   | 'custom'
 
 export interface BaseEvent {
+  eventId: string
+
   type: EventType
 
   timestamp: string

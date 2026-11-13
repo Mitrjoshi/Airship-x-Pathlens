@@ -1,7 +1,7 @@
 import apiClient from '@/lib/apiClient'
 import type { FunnelPayload } from '@/queries/funnels'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 
 interface FunnelMutationResponse {
   success: boolean

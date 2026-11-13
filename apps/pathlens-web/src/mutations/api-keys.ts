@@ -1,7 +1,7 @@
 import apiClient from '@/lib/apiClient'
 import type { TrackingScope } from '@workspace/contracts'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type {
   T_CreatedProjectApiKey,
   T_ProjectApiKey,

@@ -82,7 +82,7 @@ import {
 import { Separator } from '@workspace/ui/components/separator'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from '../-components/common/no-permission-view'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import { ErrorScreen } from '../-components/common/error-screen'
 

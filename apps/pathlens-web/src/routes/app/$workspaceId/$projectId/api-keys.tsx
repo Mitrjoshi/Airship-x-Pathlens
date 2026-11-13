@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useForm } from '@tanstack/react-form'
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import {
   CalendarIcon,
   CheckIcon,

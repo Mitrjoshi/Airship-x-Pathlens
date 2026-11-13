@@ -1,7 +1,7 @@
 import apiClient from '@/lib/apiClient'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 
 interface LoginPayload {
   email: string

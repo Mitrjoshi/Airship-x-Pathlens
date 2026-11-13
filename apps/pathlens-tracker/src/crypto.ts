@@ -63,13 +63,52 @@ export async function encryptPayload(
   };
 }
 
+export interface PreparedEncryptedPayload {
+  body: string;
+  byteLength: number;
+}
+
+export function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+export async function prepareEncryptedPayload(
+  payload: unknown,
+  apiKey: string
+): Promise<PreparedEncryptedPayload> {
+  const encryptedPayload = await encryptPayload(payload, apiKey);
+  const body = JSON.stringify(encryptedPayload);
+
+  return {
+    body,
+    byteLength: utf8ByteLength(body),
+  };
+}
+
+export async function postPreparedEncryptedPayload(
+  url: string,
+  apiKey: string,
+  prepared: PreparedEncryptedPayload,
+  keepalive = false
+): Promise<Response> {
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Project-Key": apiKey,
+    },
+    body: prepared.body,
+    keepalive,
+  });
+}
+
 export async function postEncryptedPayload(
   url: string,
   apiKey: string,
   payload: unknown,
   keepalive = false
 ): Promise<Response> {
-  const encryptedPayload = await encryptPayload(payload, apiKey);
+  const prepared = await prepareEncryptedPayload(payload, apiKey);
 
   return fetch(url, {
     method: "POST",
@@ -77,7 +116,7 @@ export async function postEncryptedPayload(
       "Content-Type": "application/json",
       "X-Project-Key": apiKey,
     },
-    body: JSON.stringify(encryptedPayload),
+    body: prepared.body,
     keepalive,
   });
 }

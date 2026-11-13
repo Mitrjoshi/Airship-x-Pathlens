@@ -13,6 +13,7 @@ import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as openRouteRouteImport } from './routes/(open)/route'
 import { Route as referencesRouteRouteImport } from './routes/(references)/route'
 import { Route as AppRouteRouteImport } from './routes/app/route'
+import { Route as DocsRouteRouteImport } from './routes/docs/route'
 import { Route as authGithubCallbackRouteImport } from './routes/(auth)/github-callback'
 import { Route as authGoogleCallbackRouteImport } from './routes/(auth)/google-callback'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
@@ -26,11 +27,11 @@ import { Route as referencesTermsRouteImport } from './routes/(references)/terms
 import { Route as AppWorkspaceIdRouteRouteImport } from './routes/app/$workspaceId/route'
 import { Route as AppentryRouteRouteImport } from './routes/app/(entry)/route'
 import { Route as AppCheckoutRouteImport } from './routes/app/checkout'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as openCareersIndexRouteImport } from './routes/(open)/careers/index'
 import { Route as openCareersJobsRouteImport } from './routes/(open)/careers/jobs'
 import { Route as openProductsIndexRouteImport } from './routes/(open)/products/index'
 import { Route as openSolutionsIndexRouteImport } from './routes/(open)/solutions/index'
-import { Route as referencesDocsIndexRouteImport } from './routes/(references)/docs/index'
 import { Route as AppWorkspaceIdIndexRouteImport } from './routes/app/$workspaceId/index'
 import { Route as AppWorkspaceIdAuditLogsRouteImport } from './routes/app/$workspaceId/audit-logs'
 import { Route as AppWorkspaceIdCreateRouteImport } from './routes/app/$workspaceId/create'
@@ -86,6 +87,11 @@ const referencesRouteRoute = referencesRouteRouteImport.update({
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/app',
   path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRouteRoute = DocsRouteRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authGithubCallbackRoute = authGithubCallbackRouteImport.update({
@@ -152,6 +158,11 @@ const AppCheckoutRoute = AppCheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
 const openCareersIndexRoute = openCareersIndexRouteImport.update({
   id: '/careers/',
   path: '/careers/',
@@ -171,11 +182,6 @@ const openSolutionsIndexRoute = openSolutionsIndexRouteImport.update({
   id: '/solutions/',
   path: '/solutions/',
   getParentRoute: () => openRouteRoute,
-} as any)
-const referencesDocsIndexRoute = referencesDocsIndexRouteImport.update({
-  id: '/docs/',
-  path: '/docs/',
-  getParentRoute: () => referencesRouteRoute,
 } as any)
 const AppWorkspaceIdIndexRoute = AppWorkspaceIdIndexRouteImport.update({
   id: '/',
@@ -401,6 +407,7 @@ const AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute =
 
 export interface FileRoutesByFullPath {
   '/app': typeof AppentryRouteRouteWithChildren
+  '/docs': typeof DocsRouteRouteWithChildren
   '/app/$workspaceId': typeof AppWorkspaceIdRouteRouteWithChildren
   '/github-callback': typeof authGithubCallbackRoute
   '/google-callback': typeof authGoogleCallbackRoute
@@ -413,6 +420,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
   '/': typeof openIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/careers/jobs': typeof openCareersJobsRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
@@ -429,7 +437,6 @@ export interface FileRoutesByFullPath {
   '/careers/': typeof openCareersIndexRoute
   '/products/': typeof openProductsIndexRoute
   '/solutions/': typeof openSolutionsIndexRoute
-  '/docs/': typeof referencesDocsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
   '/app/': typeof AppentryIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
@@ -471,6 +478,7 @@ export interface FileRoutesByTo {
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
   '/': typeof openIndexRoute
+  '/docs': typeof DocsIndexRoute
   '/careers/jobs': typeof openCareersJobsRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
@@ -487,7 +495,6 @@ export interface FileRoutesByTo {
   '/careers': typeof openCareersIndexRoute
   '/products': typeof openProductsIndexRoute
   '/solutions': typeof openSolutionsIndexRoute
-  '/docs': typeof referencesDocsIndexRoute
   '/app/$workspaceId': typeof AppWorkspaceIdIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
@@ -521,6 +528,7 @@ export interface FileRoutesById {
   '/(open)': typeof openRouteRouteWithChildren
   '/(references)': typeof referencesRouteRouteWithChildren
   '/app': typeof AppRouteRouteWithChildren
+  '/docs': typeof DocsRouteRouteWithChildren
   '/app/$workspaceId': typeof AppWorkspaceIdRouteRouteWithChildren
   '/app/(entry)': typeof AppentryRouteRouteWithChildren
   '/(auth)/github-callback': typeof authGithubCallbackRoute
@@ -534,6 +542,7 @@ export interface FileRoutesById {
   '/(references)/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
   '/(open)/': typeof openIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/(open)/careers/jobs': typeof openCareersJobsRoute
   '/app/$workspaceId/audit-logs': typeof AppWorkspaceIdAuditLogsRoute
   '/app/$workspaceId/create': typeof AppWorkspaceIdCreateRoute
@@ -550,7 +559,6 @@ export interface FileRoutesById {
   '/(open)/careers/': typeof openCareersIndexRoute
   '/(open)/products/': typeof openProductsIndexRoute
   '/(open)/solutions/': typeof openSolutionsIndexRoute
-  '/(references)/docs/': typeof referencesDocsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
   '/app/(entry)/': typeof AppentryIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
@@ -583,6 +591,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/app'
+    | '/docs'
     | '/app/$workspaceId'
     | '/github-callback'
     | '/google-callback'
@@ -595,6 +604,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/app/checkout'
     | '/'
+    | '/docs/'
     | '/careers/jobs'
     | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
@@ -611,7 +621,6 @@ export interface FileRouteTypes {
     | '/careers/'
     | '/products/'
     | '/solutions/'
-    | '/docs/'
     | '/app/$workspaceId/'
     | '/app/'
     | '/app/$workspaceId/$projectId/ai-insights'
@@ -653,6 +662,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/app/checkout'
     | '/'
+    | '/docs'
     | '/careers/jobs'
     | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
@@ -669,7 +679,6 @@ export interface FileRouteTypes {
     | '/careers'
     | '/products'
     | '/solutions'
-    | '/docs'
     | '/app/$workspaceId'
     | '/app/$workspaceId/$projectId/ai-insights'
     | '/app/$workspaceId/$projectId/api-keys'
@@ -702,6 +711,7 @@ export interface FileRouteTypes {
     | '/(open)'
     | '/(references)'
     | '/app'
+    | '/docs'
     | '/app/$workspaceId'
     | '/app/(entry)'
     | '/(auth)/github-callback'
@@ -715,6 +725,7 @@ export interface FileRouteTypes {
     | '/(references)/terms'
     | '/app/checkout'
     | '/(open)/'
+    | '/docs/'
     | '/(open)/careers/jobs'
     | '/app/$workspaceId/audit-logs'
     | '/app/$workspaceId/create'
@@ -731,7 +742,6 @@ export interface FileRouteTypes {
     | '/(open)/careers/'
     | '/(open)/products/'
     | '/(open)/solutions/'
-    | '/(references)/docs/'
     | '/app/$workspaceId/'
     | '/app/(entry)/'
     | '/app/$workspaceId/$projectId/ai-insights'
@@ -766,6 +776,7 @@ export interface RootRouteChildren {
   openRouteRoute: typeof openRouteRouteWithChildren
   referencesRouteRoute: typeof referencesRouteRouteWithChildren
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  DocsRouteRoute: typeof DocsRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -796,6 +807,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/github-callback': {
@@ -889,6 +907,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCheckoutRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
     '/(open)/careers/': {
       id: '/(open)/careers/'
       path: '/careers'
@@ -916,13 +941,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/solutions/'
       preLoaderRoute: typeof openSolutionsIndexRouteImport
       parentRoute: typeof openRouteRoute
-    }
-    '/(references)/docs/': {
-      id: '/(references)/docs/'
-      path: '/docs'
-      fullPath: '/docs/'
-      preLoaderRoute: typeof referencesDocsIndexRouteImport
-      parentRoute: typeof referencesRouteRoute
     }
     '/app/$workspaceId/': {
       id: '/app/$workspaceId/'
@@ -1250,14 +1268,12 @@ interface referencesRouteRouteChildren {
   referencesCookiesRoute: typeof referencesCookiesRoute
   referencesPrivacyRoute: typeof referencesPrivacyRoute
   referencesTermsRoute: typeof referencesTermsRoute
-  referencesDocsIndexRoute: typeof referencesDocsIndexRoute
 }
 
 const referencesRouteRouteChildren: referencesRouteRouteChildren = {
   referencesCookiesRoute: referencesCookiesRoute,
   referencesPrivacyRoute: referencesPrivacyRoute,
   referencesTermsRoute: referencesTermsRoute,
-  referencesDocsIndexRoute: referencesDocsIndexRoute,
 }
 
 const referencesRouteRouteWithChildren = referencesRouteRoute._addFileChildren(
@@ -1383,11 +1399,24 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
   AppRouteRouteChildren,
 )
 
+interface DocsRouteRouteChildren {
+  DocsIndexRoute: typeof DocsIndexRoute
+}
+
+const DocsRouteRouteChildren: DocsRouteRouteChildren = {
+  DocsIndexRoute: DocsIndexRoute,
+}
+
+const DocsRouteRouteWithChildren = DocsRouteRoute._addFileChildren(
+  DocsRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   authRouteRoute: authRouteRouteWithChildren,
   openRouteRoute: openRouteRouteWithChildren,
   referencesRouteRoute: referencesRouteRouteWithChildren,
   AppRouteRoute: AppRouteRouteWithChildren,
+  DocsRouteRoute: DocsRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -14,6 +14,7 @@ import {
   createSessionId,
   createVisitorId,
   debug,
+  enqueueEvent,
   flushQueue,
   getAnalyticsInfo,
   getCampaignAttribution,
@@ -105,14 +106,15 @@ export class PathLensTracker {
       ...this.analyticsInfo,
       ...this.campaignAttribution,
       type,
+      eventId: crypto.randomUUID(),
       timestamp: now(),
       sessionId: this.sessionId,
       visitorId: this.visitorId,
     };
 
-    this.queue.push(event);
+    enqueueEvent(this.config, this.queue, event);
 
-    debug(this.config, type, event);
+    debug(this.config, type, { eventId: event.eventId, eventType: type });
 
     if (this.queue.length >= (this.config.batchSize ?? 25)) {
       this.flush();
@@ -129,7 +131,7 @@ export class PathLensTracker {
     }
 
     this.replayRecorder?.stop();
-    this.flush();
+    flushQueue(this.config, this.queue, true);
   }
 
   private startFlushTimer(): void {

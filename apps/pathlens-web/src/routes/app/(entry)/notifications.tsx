@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 
 export const Route = createFileRoute('/app/(entry)/notifications')({
   component: RouteComponent,

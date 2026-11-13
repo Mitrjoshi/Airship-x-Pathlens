@@ -68,7 +68,7 @@ import {
   SheetTitle,
 } from '@workspace/ui/components/sheet'
 import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { ErrorScreen } from './$projectId/-components/common/error-screen'
 
 export const Route = createFileRoute('/app/$workspaceId/permissions')({

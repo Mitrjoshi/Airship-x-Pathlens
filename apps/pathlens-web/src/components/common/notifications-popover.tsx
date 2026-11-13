@@ -10,7 +10,7 @@ import { useAcceptNotification } from '@/mutations/workspace'
 import { getNotificationsOptions } from '@/queries/workspace'
 import { useQuery } from '@tanstack/react-query'
 import { BellIcon, CheckIcon, Loader2Icon } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 
 export function NotificationsPopover() {
   const { data, isPending, isError } = useQuery(getNotificationsOptions())
