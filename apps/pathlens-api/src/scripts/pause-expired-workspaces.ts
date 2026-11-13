@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../config/load-env";
 import { pauseExpiredWorkspacesModel } from "../models/usage.model";
 
 async function main() {

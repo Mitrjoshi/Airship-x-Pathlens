@@ -43,8 +43,10 @@ import { useRelativeTime } from '@/hooks/use-relative-time'
 import { getProjectDomainsOptions } from '@/queries/domains'
 import { DomainSwitcher } from './-components/common/domain-switcher'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
+import { getDashboardIntegrationsOptions } from '@/queries/dashboard-integrations'
 import { NoPermissionView } from './-components/common/no-permission-view'
 import { ErrorScreen } from './-components/common/error-screen'
+import { DashboardIntegrationSection } from '@/components/integrations/dashboard-integration-section'
 
 const visitorsChartConfig = {
   value: {
@@ -134,7 +136,13 @@ function RouteComponent() {
     refetchInterval: liveMode ? 5000 : undefined,
   })
 
+  const { data: dashboardIntegrationsData } = useQuery({
+    ...getDashboardIntegrationsOptions(workspaceId, projectId),
+    enabled: !!hasViewPermission && Boolean(workspaceId && projectId),
+  })
+
   const dashboard = dashboardData?.data
+  const dashboardIntegrations = dashboardIntegrationsData?.data ?? []
 
   const lastUpdated = useRelativeTime(dataUpdatedAt)
 
@@ -550,6 +558,16 @@ function RouteComponent() {
           </>
         )}
       </div>
+
+      <Separator />
+
+      <DashboardIntegrationSection
+        integrations={dashboardIntegrations}
+        workspaceId={workspaceId}
+        projectId={projectId}
+        domain={activeDomain}
+        range={range}
+      />
     </div>
   )
 }

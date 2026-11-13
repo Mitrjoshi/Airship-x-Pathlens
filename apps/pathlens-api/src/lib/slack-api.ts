@@ -2,6 +2,27 @@ const SLACK_API_URL = "https://slack.com/api";
 const REQUEST_TIMEOUT_MS = 10_000;
 const MAX_CHANNEL_PAGES = 20;
 
+export type SlackMessageResult = { ts?: string; channel?: string };
+export type SlackMessageTransport = (
+  accessToken: string,
+  channelId: string,
+  text: string,
+  blocks?: ReadonlyArray<Record<string, unknown>>
+) => Promise<SlackMessageResult>;
+
+let testMessageTransport: SlackMessageTransport | undefined;
+
+export function setSlackMessageTransportForTests(
+  transport: SlackMessageTransport | undefined
+) {
+  if (process.env.PATHLENS_NOTIFICATION_MOCK_SLACK !== "true") {
+    throw new Error(
+      "PATHLENS_NOTIFICATION_MOCK_SLACK=true is required for a test Slack transport."
+    );
+  }
+  testMessageTransport = transport;
+}
+
 export class SlackApiError extends Error {
   constructor(
     public readonly code: string,
@@ -16,7 +37,8 @@ async function slackRequest<T>(
   accessToken: string,
   method: string,
   params: Record<string, string> = {},
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  strictOneAttempt = false
 ) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -26,6 +48,7 @@ async function slackRequest<T>(
       url.searchParams.set(key, value);
     }
     const response = await fetch(url, {
+      ...(strictOneAttempt ? { redirect: "error" as const } : {}),
       method: body ? "POST" : "GET",
       signal: controller.signal,
       headers: {
@@ -51,6 +74,13 @@ async function slackRequest<T>(
     if (!response.ok || data.ok === false) {
       throw new SlackApiError(
         data.error ?? "request_failed",
+        undefined,
+        response.status
+      );
+    }
+    if (strictOneAttempt && body && data.ok !== true) {
+      throw new SlackApiError(
+        "unconfirmed_response",
         undefined,
         response.status
       );
@@ -87,7 +117,7 @@ export async function listSlackChannels(accessToken: string) {
       channels?: SlackChannel[];
       response_metadata?: { next_cursor?: string };
     }>(accessToken, "conversations.list", {
-      types: "public_channel",
+      types: "public_channel,private_channel",
       exclude_archived: "true",
       limit: "200",
       ...(cursor ? { cursor } : {}),
@@ -111,15 +141,58 @@ export async function getSlackChannel(accessToken: string, channelId: string) {
   return data.channel;
 }
 
+export async function getSlackCanaryIdentity(accessToken: string) {
+  return slackRequest<{ team: string; team_id: string }>(
+    accessToken,
+    "auth.test"
+  );
+}
+
+export async function readSlackCanaryMessage(
+  accessToken: string,
+  channel: string,
+  ts: string
+) {
+  return slackRequest<{ messages?: Array<{ ts?: string; text?: string }> }>(
+    accessToken,
+    "conversations.history",
+    { channel, oldest: ts, latest: ts, inclusive: "true", limit: "1" }
+  );
+}
+
 export async function postSlackMessage(
   accessToken: string,
   channelId: string,
-  text: string
+  text: string,
+  blocks?: ReadonlyArray<Record<string, unknown>>,
+  strictOneAttempt = false
 ) {
+  if (process.env.PATHLENS_NOTIFICATION_MOCK_SLACK === "true") {
+    if (!testMessageTransport) {
+      throw new Error(
+        "The notification test Slack transport is not configured."
+      );
+    }
+    return testMessageTransport(accessToken, channelId, text, blocks);
+  }
   return slackRequest<{ ts?: string; channel?: string }>(
     accessToken,
     "chat.postMessage",
     {},
-    { channel: channelId, text }
+    { channel: channelId, text, ...(blocks?.length ? { blocks } : {}) },
+    strictOneAttempt
+  );
+}
+
+export async function inviteSlackUser(
+  accessToken: string,
+  channelId: string,
+  userId: string
+) {
+  return slackRequest<{ channel?: SlackChannel }>(
+    accessToken,
+    "conversations.invite",
+    {},
+    { channel: channelId, users: userId }
   );
 }

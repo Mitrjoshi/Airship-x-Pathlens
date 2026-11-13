@@ -227,7 +227,7 @@ function PageSpeedResults({ result }: { result: PageSpeedResult }) {
                 className="text-2xl font-semibold transition-colors duration-500"
                 style={color ? { color } : undefined}
               >
-                {score ?? '-'}
+                {score ? `${score}%` : '-'}
               </p>
             </div>
           )

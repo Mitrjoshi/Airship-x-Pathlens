@@ -1,4 +1,7 @@
-import 'dotenv/config'
+import './load-env.js'
+
+import fs from 'node:fs'
+import path from 'node:path'
 
 import { Pool, type PoolClient, type QueryResultRow } from 'pg'
 import { normalizePagePath } from '@workspace/contracts'
@@ -8,8 +11,29 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL is required')
 }
 
+const sslRequired = process.env.DATABASE_SSL_REQUIRED === 'true'
+const caPath = process.env.DATABASE_SSL_CA
+if (sslRequired && !caPath) {
+  throw new Error('DATABASE_SSL_CA is required when DATABASE_SSL_REQUIRED=true')
+}
+
+const databaseUrlWithTls = new URL(databaseUrl)
+if (caPath) {
+  for (const parameter of ['sslmode', 'sslrootcert', 'sslcert', 'sslkey']) {
+    databaseUrlWithTls.searchParams.delete(parameter)
+  }
+}
+
 export const pool = new Pool({
-  connectionString: databaseUrl,
+  connectionString: databaseUrlWithTls.toString(),
+  ...(caPath
+    ? {
+        ssl: {
+          ca: fs.readFileSync(path.resolve(caPath), 'utf8'),
+          rejectUnauthorized: true,
+        },
+      }
+    : {}),
 })
 
 export interface SnapshotJob {

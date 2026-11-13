@@ -8,7 +8,11 @@ import {
 import { authMiddleware } from "../middleware/auth.middleware";
 import { requireWorkspaceOrProjectPermission } from "../middleware/permission.middleware";
 import { requireWorkspaceProjectPermission } from "../middleware/permission.middleware";
-import { connectSlack } from "../controllers/project-integrations.controller";
+import {
+  connectSlack,
+  getStripeOverview,
+  StripeAuthConnect,
+} from "../controllers/project-integrations.controller";
 import { connectGoogleSearchConsole } from "../controllers/google-search-console.controller";
 
 const router = Router();
@@ -31,6 +35,7 @@ router.get(
   getIntegrationsController
 );
 router.get("/slack/connect", connectSlack);
+router.get("/stripe/connect", StripeAuthConnect);
 router.get(
   "/google-search-console/connect",
   requireWorkspaceProjectPermission("project.settings.update"),

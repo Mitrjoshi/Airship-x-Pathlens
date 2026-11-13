@@ -43,14 +43,6 @@ export const PERMISSIONS = [
   'analytics.user_journey.view',
   'analytics.heatmaps.view',
   'analytics.errors.view',
-  'chat.view',
-  'chat.send',
-  'chat.create_channels',
-  'chat.manage_channels',
-  'chat.manage_members',
-  'chat.delete_messages',
-  'chat.pin_messages',
-  'chat.share_context',
 ] as const
 
 export type Permission = (typeof PERMISSIONS)[number]
@@ -339,9 +331,6 @@ export const DEFAULT_VIEWER_PERMISSIONS = [
   'analytics.user_journey.view',
   'analytics.heatmaps.view',
   'analytics.errors.view',
-  'chat.view',
-  'chat.send',
-  'chat.share_context',
 ] as const satisfies readonly Permission[]
 
 export const DEFAULT_FULL_ACCESS_PERMISSIONS = PERMISSIONS

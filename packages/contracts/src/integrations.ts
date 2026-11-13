@@ -58,15 +58,41 @@ export type GetIntegrationResponse = z.infer<
   typeof getIntegrationResponseSchema
 >
 
+export const slackWeekdaySchema = z.number().int().min(1).max(7)
+export type SlackWeekday = z.infer<typeof slackWeekdaySchema>
+
 export const slackProjectSettingsSchema = z.object({
   channelId: z.string().min(1),
   dailyEnabled: z.boolean(),
   weeklyEnabled: z.boolean(),
   dailyHour: z.number().int().min(0).max(23),
-  weeklyDay: z.number().int().min(1).max(7),
+  weeklyDay: slackWeekdaySchema,
   weeklyHour: z.number().int().min(0).max(23),
-  timezone: z.string().min(1),
+  timezone: z
+    .string()
+    .min(1)
+    .refine(
+      (timezone) => {
+        try {
+          new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format()
+          return true
+        } catch {
+          return false
+        }
+      },
+      { message: 'Timezone must be a valid IANA timezone.' }
+    ),
 })
+
+export const slackProjectSettingsDefaults = {
+  channelId: null,
+  dailyEnabled: false,
+  weeklyEnabled: false,
+  dailyHour: 9,
+  weeklyDay: 1,
+  weeklyHour: 9,
+  timezone: 'UTC',
+} as const
 
 export const slackProjectSettingsResponseSchema =
   slackProjectSettingsSchema.extend({
@@ -106,6 +132,37 @@ export const getSlackSettingsResponseSchema = z.object({
 
 export type GetSlackSettingsResponse = z.infer<
   typeof getSlackSettingsResponseSchema
+>
+
+export const slackNotificationHistoryItemSchema = z.object({
+  id: z.uuid(),
+  reportType: z.enum(['daily', 'weekly']),
+  status: z.enum([
+    'pending',
+    'processing',
+    'delivered',
+    'retrying',
+    'failed',
+    'delivery_unconfirmed',
+  ]),
+  scheduledAt: z.iso.datetime(),
+  createdAt: z.iso.datetime(),
+  deliveredAt: z.iso.datetime().nullable(),
+  failureCategory: z
+    .enum(['provider_outcome_unknown', 'retryable', 'permanent', 'cancelled'])
+    .nullable(),
+})
+
+export const getSlackNotificationHistoryResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    items: z.array(slackNotificationHistoryItemSchema),
+    nextCursor: z.string().nullable(),
+  }),
+})
+
+export type GetSlackNotificationHistoryResponse = z.infer<
+  typeof getSlackNotificationHistoryResponseSchema
 >
 
 export const pageSpeedStrategySchema = z.enum(['mobile', 'desktop'])

@@ -1,0 +1,382 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Pathlens staging scheduled Slack notification delivery
+
+Parameters:
+  ResourcePrefix:
+    Type: String
+    Default: pathlens-notification-staging
+    AllowedPattern: ^pathlens-notification-staging$
+    Description: Fixed staging-only prefix for notification resources
+  ImageUri:
+    Type: String
+    Description: ECR image URI containing the notification handlers
+  AlertTopicArn:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^arn:aws:sns:ap-south-1:176246209215:[A-Za-z0-9_-]+$"
+    Description: Approved existing SNS topic; verified subscriptions required before activation
+  ReserveNotificationConcurrency:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Set true only after regional concurrency quota is at least 13
+  EnableHeartbeatAlarm:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Enable missing-dispatch alerts as part of separately approved schedule activation
+
+Conditions:
+  HasAlertDestination: !Not [!Equals [!Ref AlertTopicArn, ""]]
+  ReservedConcurrencyApproved:
+    !Equals [!Ref ReserveNotificationConcurrency, "true"]
+  HeartbeatEnabled: !Equals [!Ref EnableHeartbeatAlarm, "true"]
+
+Globals:
+  Function:
+    MemorySize: 1024
+
+Resources:
+  NotificationDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${ResourcePrefix}-dlq
+      MessageRetentionPeriod: 1209600
+
+  NotificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${ResourcePrefix}-queue
+      VisibilityTimeout: 720
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NotificationDeadLetterQueue.Arn
+        maxReceiveCount: 3
+
+  NotificationWorkerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: notification-worker-runtime
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ResourcePrefix}-worker:*
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:ChangeMessageVisibility
+                Resource: !GetAtt NotificationQueue.Arn
+
+  NotificationWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Ref ImageUri
+      FunctionName: !Sub ${ResourcePrefix}-worker
+      Role: !GetAtt NotificationWorkerExecutionRole.Arn
+      Timeout: 120
+      ReservedConcurrentExecutions:
+        !If [ReservedConcurrencyApproved, 2, !Ref AWS::NoValue]
+      ImageConfig:
+        Command:
+          - dist/notifications/notification-worker-entrypoint.handler
+      Events:
+        NotificationQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt NotificationQueue.Arn
+            BatchSize: 5
+            Enabled: false
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+
+  NotificationWorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ResourcePrefix}-worker
+      RetentionInDays: 14
+
+  NotificationDispatcherFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Ref ImageUri
+      FunctionName: !Sub ${ResourcePrefix}-dispatcher
+      Timeout: 60
+      ReservedConcurrentExecutions:
+        !If [ReservedConcurrencyApproved, 1, !Ref AWS::NoValue]
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: !GetAtt NotificationQueue.Arn
+      ImageConfig:
+        Command:
+          - dist/notifications/notification-dispatcher-entrypoint.handler
+      Events:
+        EveryMinute:
+          Type: Schedule
+          Properties:
+            Name: !Sub ${ResourcePrefix}-schedule
+            Schedule: rate(1 minute)
+            Enabled: false
+
+  NotificationDispatcherLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ResourcePrefix}-dispatcher
+      RetentionInDays: 14
+
+  NotificationDeadLetterAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-dlq-alarm
+      TreatMissingData: notBreaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+      AlarmDescription: Staging notification messages are in the dead-letter queue
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt NotificationDeadLetterQueue.QueueName
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  NotificationQueueAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-queue-age-alarm
+      TreatMissingData: notBreaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+      AlarmDescription: Staging notification delivery queue is delayed
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt NotificationQueue.QueueName
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 900
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  NotificationWorkerErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-worker-error-alarm
+      TreatMissingData: notBreaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+      AlarmDescription: Staging notification worker Lambda errors are occurring
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref NotificationWorkerFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  NotificationDispatcherErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-dispatcher-error-alarm
+      TreatMissingData: notBreaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+      AlarmDescription: Staging notification dispatcher Lambda errors are occurring
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref NotificationDispatcherFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  DispatcherThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-dispatcher-throttle-alarm
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref NotificationDispatcherFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+
+  WorkerThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-worker-throttle-alarm
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref NotificationWorkerFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+
+  DispatcherFailureMetric:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref NotificationDispatcherLogGroup
+      FilterPattern: '{ ($.event = "notification_schedule_failed") || ($.event = "notification_enqueue_partial_failure") }'
+      MetricTransformations:
+        - MetricNamespace: !Sub Pathlens/${ResourcePrefix}/Notifications
+          MetricName: DispatcherFailures
+          MetricValue: "1"
+          DefaultValue: 0
+
+  WorkerFailureMetric:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref NotificationWorkerLogGroup
+      FilterPattern: '{ ($.event = "notification_delivery_failed") || ($.event = "notification_record_failed") }'
+      MetricTransformations:
+        - MetricNamespace: !Sub Pathlens/${ResourcePrefix}/Notifications
+          MetricName: DeliveryFailures
+          MetricValue: "1"
+          DefaultValue: 0
+
+  UnknownOutcomeMetric:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref NotificationWorkerLogGroup
+      FilterPattern: '{ $.event = "notification_provider_outcome_unknown" }'
+      MetricTransformations:
+        - MetricNamespace: !Sub Pathlens/${ResourcePrefix}/Notifications
+          MetricName: UnknownOutcomes
+          MetricValue: $.unknownCount
+          DefaultValue: 0
+
+  UnknownBacklogMetric:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref NotificationDispatcherLogGroup
+      FilterPattern: '{ $.event = "notification_unknown_backlog" }'
+      MetricTransformations:
+        - MetricNamespace: !Sub Pathlens/${ResourcePrefix}/Notifications
+          MetricName: UnknownOutcomes
+          MetricValue: $.unknownCount
+          DefaultValue: 0
+
+  DispatcherHeartbeatMetric:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref NotificationDispatcherLogGroup
+      FilterPattern: '{ $.event = "notification_dispatch_completed" }'
+      MetricTransformations:
+        - MetricNamespace: !Sub Pathlens/${ResourcePrefix}/Notifications
+          MetricName: DispatcherHeartbeat
+          MetricValue: "1"
+          DefaultValue: 0
+
+  DispatcherApplicationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-dispatcher-application-alarm
+      Namespace: !Sub Pathlens/${ResourcePrefix}/Notifications
+      MetricName: DispatcherFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+
+  WorkerApplicationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-worker-application-alarm
+      Namespace: !Sub Pathlens/${ResourcePrefix}/Notifications
+      MetricName: DeliveryFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+
+  UnknownOutcomeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-unknown-outcome-alarm
+      Namespace: !Sub Pathlens/${ResourcePrefix}/Notifications
+      MetricName: UnknownOutcomes
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+
+  DispatcherHeartbeatAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HeartbeatEnabled
+    Properties:
+      AlarmName: !Sub ${ResourcePrefix}-dispatcher-heartbeat-alarm
+      Namespace: !Sub Pathlens/${ResourcePrefix}/Notifications
+      MetricName: DispatcherHeartbeat
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions:
+        !If [HasAlertDestination, [!Ref AlertTopicArn], !Ref AWS::NoValue]
+
+Outputs:
+  NotificationQueueUrl:
+    Value: !Ref NotificationQueue
+  NotificationQueueArn:
+    Value: !GetAtt NotificationQueue.Arn
+  NotificationDeadLetterQueueUrl:
+    Value: !Ref NotificationDeadLetterQueue

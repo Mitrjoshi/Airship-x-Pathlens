@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   listSlackChannels,
+  inviteSlackUser,
   postSlackMessage,
   SlackApiError,
 } from "./slack-api";
@@ -53,8 +54,22 @@ test("lists public, non-archived channels across cursors", async () => {
     channels.map((channel) => channel.id),
     ["C1", "C3"]
   );
-  assert.match(urls[0], /types=public_channel/);
+  assert.match(urls[0], /types=public_channel%2Cprivate_channel/);
   assert.match(urls[1], /cursor=next/);
+});
+
+test("invites a Slack user to a channel", async () => {
+  let request: Request | undefined;
+  globalThis.fetch = (async (input, init) => {
+    request = new Request(input, init);
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  }) as typeof fetch;
+
+  await inviteSlackUser("user-token", "C1", "U1");
+
+  assert.equal(request?.method, "POST");
+  assert.equal(request?.headers.get("authorization"), "Bearer user-token");
+  assert.deepEqual(await request?.json(), { channel: "C1", users: "U1" });
 });
 
 test("surfaces Slack rate limits without leaking response data", async () => {
@@ -89,5 +104,25 @@ test("posts a test message through Slack chat.postMessage", async () => {
   assert.deepEqual(await request?.json(), {
     channel: "C1",
     text: "Pathlens test",
+  });
+});
+
+test("posts Block Kit blocks while retaining the plain-text fallback", async () => {
+  let request: Request | undefined;
+  globalThis.fetch = (async (input, init) => {
+    request = new Request(input, init);
+    return new Response(JSON.stringify({ ok: true, ts: "123.457" }), {
+      status: 200,
+    });
+  }) as typeof fetch;
+
+  await postSlackMessage("token", "C1", "Fallback report", [
+    { type: "header", text: { type: "plain_text", text: "Report" } },
+  ]);
+
+  assert.deepEqual(await request?.json(), {
+    channel: "C1",
+    text: "Fallback report",
+    blocks: [{ type: "header", text: { type: "plain_text", text: "Report" } }],
   });
 });

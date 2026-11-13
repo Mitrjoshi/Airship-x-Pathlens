@@ -8,8 +8,6 @@ import {
 
 import { db } from "../db/client";
 import {
-  chatChannels,
-  chatMessages,
   notifications,
   permissionProfiles,
   projects,
@@ -787,10 +785,6 @@ export async function getUserNotificationsModel(userId: string) {
       permissionProfileName: permissionProfiles.name,
       workspaceId: notifications.workspaceId,
       workspaceName: workspaces.name,
-      channelId: notifications.channelId,
-      channelName: chatChannels.name,
-      messageId: notifications.messageId,
-      messagePreview: chatMessages.content,
       senderName: users.name,
       senderEmail: users.email,
       readAt: notifications.readAt,
@@ -804,8 +798,6 @@ export async function getUserNotificationsModel(userId: string) {
       permissionProfiles,
       eq(permissionProfiles.id, notifications.permissionProfileId)
     )
-    .leftJoin(chatChannels, eq(chatChannels.id, notifications.channelId))
-    .leftJoin(chatMessages, eq(chatMessages.id, notifications.messageId))
     .where(eq(notifications.recipientUserId, userId))
     .orderBy(desc(notifications.createdAt));
 }

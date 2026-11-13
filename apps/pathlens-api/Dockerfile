@@ -18,5 +18,6 @@ FROM public.ecr.aws/lambda/nodejs:22
 COPY --from=build /out/node_modules ${LAMBDA_TASK_ROOT}/node_modules
 COPY --from=build /workspace/apps/pathlens-api/dist ${LAMBDA_TASK_ROOT}/dist
 COPY --from=build /workspace/apps/pathlens-api/package.json ${LAMBDA_TASK_ROOT}/package.json
+COPY --from=build /workspace/apps/pathlens-api/certs/supabase-ca.crt ${LAMBDA_TASK_ROOT}/certs/supabase-ca.crt
 
 CMD ["dist/index.handler"]

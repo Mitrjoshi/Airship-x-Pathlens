@@ -21,7 +21,10 @@ import { requireWorkspaceProjectPermission } from "../middleware/permission.midd
 import {
   disconnectSlack,
   getSlackChannels,
+  getSlackNotificationHistory,
   getSlackSettings,
+  getStripeOverview,
+  invitePathlensToSlackChannel,
   sendSlackTestMessage,
   updateSlackSettings,
 } from "../controllers/project-integrations.controller";
@@ -30,6 +33,10 @@ import {
   installGooglePageSpeed,
 } from "../controllers/google-pagespeed.controller";
 import { checkGoogleSearchConsole } from "../controllers/google-search-console.controller";
+import { getGoogleSearchConsoleDashboard } from "../controllers/google-search-console-dashboard.controller";
+import { getPageSpeedDashboard } from "../controllers/page-speed-dashboard.controller";
+import { getStripeDashboard } from "../controllers/stripe-dashboard.controller";
+import { getDashboardIntegrations } from "../controllers/dashboard-integrations.controller";
 import {
   createProjectDomain,
   deleteProjectDomain,
@@ -41,6 +48,26 @@ const router = Router();
 
 router.use(authMiddleware);
 router.get("/", requireWorkspacePermission("projects.view"), getProjects);
+router.get(
+  "/:project_id/dashboard-integrations",
+  requireWorkspaceProjectPermission("analytics.dashboard.view"),
+  getDashboardIntegrations
+);
+router.get(
+  "/:project_id/dashboard-integrations/google-search-console",
+  requireWorkspaceProjectPermission("analytics.dashboard.view"),
+  getGoogleSearchConsoleDashboard
+);
+router.get(
+  "/:project_id/dashboard-integrations/pagespeed-insights",
+  requireWorkspaceProjectPermission("analytics.dashboard.view"),
+  getPageSpeedDashboard
+);
+router.get(
+  "/:project_id/dashboard-integrations/stripe",
+  requireWorkspaceProjectPermission("analytics.dashboard.view"),
+  getStripeDashboard
+);
 router.post(
   "/:project_id/integrations/pagespeed-insights",
   requireWorkspaceProjectPermission("project.settings.update"),
@@ -62,6 +89,16 @@ router.get(
   getSlackChannels
 );
 router.get(
+  "/:project_id/integrations/slack/notifications",
+  requireWorkspaceProjectPermission("project.settings.view"),
+  getSlackNotificationHistory
+);
+router.post(
+  "/:project_id/integrations/slack/channels/:channel_id/invite",
+  requireWorkspaceProjectPermission("project.settings.update"),
+  invitePathlensToSlackChannel
+);
+router.get(
   "/:project_id/integrations/slack/settings",
   requireWorkspaceProjectPermission("project.settings.view"),
   getSlackSettings
@@ -80,6 +117,11 @@ router.delete(
   "/:project_id/integrations/slack",
   requireWorkspaceProjectPermission("project.settings.update"),
   disconnectSlack
+);
+router.get(
+  "/:project_id/integrations/stripe/overview",
+  requireWorkspaceProjectPermission("project.settings.view"),
+  getStripeOverview
 );
 router.post(
   "/create",

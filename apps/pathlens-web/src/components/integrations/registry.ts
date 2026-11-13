@@ -4,6 +4,7 @@ import type { Integration } from '@workspace/contracts'
 import { SlackIntegrationActions } from './providers/slack/slack-integration-actions'
 import { GooglePageSpeedIntegrationActions } from './providers/google-pagespeed/google-pagespeed-integration-actions'
 import { GoogleSearchConsoleIntegrationActions } from './providers/google-search-console/google-search-console-integration-actions'
+import { StripeIntegrationActions } from './providers/stripe/stripe-integration-actions'
 
 export type IntegrationProviderProps = {
   workspaceId: string
@@ -26,5 +27,8 @@ export const integrationProviderRegistry: Record<string, IntegrationProvider> =
     },
     'google-search-console': {
       Actions: GoogleSearchConsoleIntegrationActions,
+    },
+    stripe: {
+      Actions: StripeIntegrationActions,
     },
   }

@@ -21,7 +21,7 @@ export interface Funnel {
   updatedAt: string;
 }
 
-interface FunnelEventRow extends Record<string, unknown> {
+export interface FunnelEventRow extends Record<string, unknown> {
   visitor_id: string;
   session_id: string;
   occurred_at: Date | string | null;
@@ -65,7 +65,7 @@ function toTimestamp(value: unknown): number | null {
   return Number.isNaN(timestamp) ? null : timestamp;
 }
 
-function matchesStep(
+export function matchesStep(
   event: FunnelEventRow,
   step: FunnelStepDefinition
 ): boolean {
@@ -78,7 +78,7 @@ function matchesStep(
   return event.type.toLowerCase() === target.toLowerCase();
 }
 
-function calculateStepVisitors(
+export function calculateStepVisitors(
   eventsInRange: FunnelEventRow[],
   steps: FunnelStepDefinition[]
 ): number[] {

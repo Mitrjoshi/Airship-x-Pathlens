@@ -11,6 +11,8 @@ export async function getProjectIntegrationBySlugModel(
     .select({
       projectName: projects.name,
       integrationId: integrations.id,
+      integrationStatus: integrations.status,
+      integrationIsVisible: integrations.isVisible,
       connection: projectIntegrations,
     })
     .from(projects)

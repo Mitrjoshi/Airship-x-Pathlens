@@ -11,7 +11,13 @@ import { TooltipProvider } from '@workspace/ui/components/tooltip'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NotFound } from './components/common/not-found'
 
-export const queryClient = new QueryClient()
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 // Create a new router instance
 const router = createRouter({
@@ -33,7 +39,7 @@ if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <TooltipProvider>
           <Toaster position="bottom-right" richColors />
           <QueryClientProvider client={queryClient}>

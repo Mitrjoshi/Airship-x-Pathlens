@@ -30,6 +30,7 @@ import { Route as openCareersIndexRouteImport } from './routes/(open)/careers/in
 import { Route as openCareersJobsRouteImport } from './routes/(open)/careers/jobs'
 import { Route as openProductsIndexRouteImport } from './routes/(open)/products/index'
 import { Route as openSolutionsIndexRouteImport } from './routes/(open)/solutions/index'
+import { Route as referencesDocsIndexRouteImport } from './routes/(references)/docs/index'
 import { Route as AppWorkspaceIdIndexRouteImport } from './routes/app/$workspaceId/index'
 import { Route as AppWorkspaceIdAuditLogsRouteImport } from './routes/app/$workspaceId/audit-logs'
 import { Route as AppWorkspaceIdCreateRouteImport } from './routes/app/$workspaceId/create'
@@ -170,6 +171,11 @@ const openSolutionsIndexRoute = openSolutionsIndexRouteImport.update({
   id: '/solutions/',
   path: '/solutions/',
   getParentRoute: () => openRouteRoute,
+} as any)
+const referencesDocsIndexRoute = referencesDocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
+  getParentRoute: () => referencesRouteRoute,
 } as any)
 const AppWorkspaceIdIndexRoute = AppWorkspaceIdIndexRouteImport.update({
   id: '/',
@@ -423,6 +429,7 @@ export interface FileRoutesByFullPath {
   '/careers/': typeof openCareersIndexRoute
   '/products/': typeof openProductsIndexRoute
   '/solutions/': typeof openSolutionsIndexRoute
+  '/docs/': typeof referencesDocsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
   '/app/': typeof AppentryIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
@@ -480,6 +487,7 @@ export interface FileRoutesByTo {
   '/careers': typeof openCareersIndexRoute
   '/products': typeof openProductsIndexRoute
   '/solutions': typeof openSolutionsIndexRoute
+  '/docs': typeof referencesDocsIndexRoute
   '/app/$workspaceId': typeof AppWorkspaceIdIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
@@ -542,6 +550,7 @@ export interface FileRoutesById {
   '/(open)/careers/': typeof openCareersIndexRoute
   '/(open)/products/': typeof openProductsIndexRoute
   '/(open)/solutions/': typeof openSolutionsIndexRoute
+  '/(references)/docs/': typeof referencesDocsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
   '/app/(entry)/': typeof AppentryIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
@@ -602,6 +611,7 @@ export interface FileRouteTypes {
     | '/careers/'
     | '/products/'
     | '/solutions/'
+    | '/docs/'
     | '/app/$workspaceId/'
     | '/app/'
     | '/app/$workspaceId/$projectId/ai-insights'
@@ -659,6 +669,7 @@ export interface FileRouteTypes {
     | '/careers'
     | '/products'
     | '/solutions'
+    | '/docs'
     | '/app/$workspaceId'
     | '/app/$workspaceId/$projectId/ai-insights'
     | '/app/$workspaceId/$projectId/api-keys'
@@ -720,6 +731,7 @@ export interface FileRouteTypes {
     | '/(open)/careers/'
     | '/(open)/products/'
     | '/(open)/solutions/'
+    | '/(references)/docs/'
     | '/app/$workspaceId/'
     | '/app/(entry)/'
     | '/app/$workspaceId/$projectId/ai-insights'
@@ -904,6 +916,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/solutions/'
       preLoaderRoute: typeof openSolutionsIndexRouteImport
       parentRoute: typeof openRouteRoute
+    }
+    '/(references)/docs/': {
+      id: '/(references)/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof referencesDocsIndexRouteImport
+      parentRoute: typeof referencesRouteRoute
     }
     '/app/$workspaceId/': {
       id: '/app/$workspaceId/'
@@ -1231,12 +1250,14 @@ interface referencesRouteRouteChildren {
   referencesCookiesRoute: typeof referencesCookiesRoute
   referencesPrivacyRoute: typeof referencesPrivacyRoute
   referencesTermsRoute: typeof referencesTermsRoute
+  referencesDocsIndexRoute: typeof referencesDocsIndexRoute
 }
 
 const referencesRouteRouteChildren: referencesRouteRouteChildren = {
   referencesCookiesRoute: referencesCookiesRoute,
   referencesPrivacyRoute: referencesPrivacyRoute,
   referencesTermsRoute: referencesTermsRoute,
+  referencesDocsIndexRoute: referencesDocsIndexRoute,
 }
 
 const referencesRouteRouteWithChildren = referencesRouteRoute._addFileChildren(

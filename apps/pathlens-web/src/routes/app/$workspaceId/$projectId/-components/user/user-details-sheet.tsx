@@ -87,8 +87,7 @@ export const UserDetailsSheet = ({
             <Skeleton className="h-5 w-40" />
           ) : (
             <>
-              {userData?.email}
-
+              {userData?.name}
               <ArrowUpRightIcon className="size-4" />
             </>
           )}

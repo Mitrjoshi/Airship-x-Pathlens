@@ -157,7 +157,9 @@ function RouteComponent() {
 
               <div className="w-full space-y-1">
                 <div className="flex w-full items-center justify-between">
-                  <p className="font-medium">Lifetime access enabled</p>
+                  <p className="leading-4 font-medium">
+                    Lifetime access enabled
+                  </p>
                   <p className="text-muted-foreground text-xs">
                     {access.stripe_payment_id}
                   </p>

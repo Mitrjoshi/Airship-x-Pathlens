@@ -23,7 +23,6 @@ import {
   KeyRoundIcon,
   LogsIcon,
   MegaphoneIcon,
-  MessageSquareTextIcon,
   MousePointerClickIcon,
   ReceiptTextIcon,
   RouteIcon,
@@ -84,6 +83,5 @@ export const navigationIcons = {
   trash: TrashIcon,
   copy: CopyIcon,
   edit: EditIcon,
-  chat: MessageSquareTextIcon,
   integrations: BlocksIcon,
 } as const

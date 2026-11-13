@@ -33,7 +33,10 @@ import {
   googleCallback,
   googleLogin,
 } from "../controllers/google-auth.controller";
-import { slackCallback } from "../controllers/project-integrations.controller";
+import {
+  slackCallback,
+  stripeCallback,
+} from "../controllers/project-integrations.controller";
 import { googleSearchConsoleCallback } from "../controllers/google-search-console.controller";
 
 const router = Router();
@@ -46,8 +49,10 @@ router.get("/auth/github", githubLogin);
 router.get("/auth/github/callback", githubCallback);
 router.get("/auth/google", googleLogin);
 router.get("/auth/google/callback", googleCallback);
+
 // The callback is authenticated by the short-lived, cookie-bound OAuth state.
 router.get("/integrations/slack/callback", slackCallback);
+router.get("/integrations/stripe/callback", stripeCallback);
 router.get(
   "/integrations/google-search-console/callback",
   googleSearchConsoleCallback

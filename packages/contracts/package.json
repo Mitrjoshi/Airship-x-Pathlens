@@ -19,11 +19,6 @@
       "import": "./dist/campaigns.js",
       "require": "./dist/campaigns.js"
     },
-    "./chat": {
-      "types": "./src/chat.ts",
-      "import": "./dist/chat.js",
-      "require": "./dist/chat.js"
-    },
     "./encrypted-payload": {
       "types": "./src/encrypted-payload.ts",
       "import": "./dist/encrypted-payload.js",

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import Markdown from 'react-markdown'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeftIcon,
@@ -21,10 +21,18 @@ import { Skeleton } from '@workspace/ui/components/skeleton'
 import { Separator } from '@workspace/ui/components/separator'
 import { ErrorScreen } from '../-components/common/error-screen'
 import { BlurImage } from '@/components/common/blur-image'
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '@workspace/ui/components/dialog'
+import { Badge } from '@workspace/ui/components/badge'
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/integrations/$integrationId'
-)({ component: RouteComponent })
+)({
+  component: RouteComponent,
+})
 
 function ResourceLink({
   href,
@@ -60,14 +68,19 @@ function ResourceLink({
 
 function RouteComponent() {
   const { workspaceId, projectId, integrationId } = Route.useParams()
+
   const navigate = useNavigate()
-  const [selectedAsset, setSelectedAsset] = useState<string | null>(null)
-  const { data, isLoading, error, refetch, isRefetching } = useQuery(
-    getIntegrationByIdOptions(integrationId, projectId)
-  )
-  const integration = data?.data
+
+  const {
+    data: integrationData,
+    isLoading: integrationLoading,
+    error: integrationError,
+    refetch: integrationRefetch,
+    isRefetching: integrationRefetching,
+  } = useQuery(getIntegrationByIdOptions(integrationId, projectId))
+  const integration = integrationData?.data
+
   const provider = integration && integrationProviderRegistry[integration.slug]
-  const activeAsset = selectedAsset || integration?.assets[0]
   const Actions = provider?.Actions
 
   return (
@@ -87,7 +100,7 @@ function RouteComponent() {
           <ArrowLeftIcon />
         </Button>
         <div className="flex items-center gap-2">
-          {!isLoading && integration && Actions && (
+          {!integrationLoading && integration && Actions && (
             <>
               <Actions
                 workspaceId={workspaceId}
@@ -98,26 +111,29 @@ function RouteComponent() {
               <Separator orientation="vertical" />
             </>
           )}
-          <Button variant="outline">
+          <Button
+            render={<Link target="_blank" to="/docs" />}
+            variant="outline"
+          >
             <BookOpenIcon /> Docs <ArrowUpRightIcon />
           </Button>
         </div>
       </div>
 
-      {error ? (
+      {integrationError ? (
         <ErrorScreen
           workspace_id={workspaceId}
           project_id={projectId}
-          refetch={refetch}
-          refetching={isRefetching}
+          refetch={integrationRefetch}
+          refetching={integrationRefetching}
         />
       ) : (
         <div className="6 mx-auto space-y-4 p-6">
-          {isLoading ? (
+          {integrationLoading ? (
             <div className="flex items-center gap-4">
               <Skeleton className="size-10" />
               <div className="space-y-1">
-                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-5 w-20" />
                 <Skeleton className="h-4 w-64" />
               </div>
             </div>
@@ -125,44 +141,61 @@ function RouteComponent() {
             <div className="flex items-center gap-4">
               <img className="size-10" src={integration?.iconUrl as string} />
               <div>
-                <p className="text-3xl font-semibold">{integration?.name}</p>
-                <p className="text-muted-foreground text-sm leading-3">
+                <p className="text-xl font-medium">{integration?.name} </p>
+                <p className="text-muted-foreground text-sm">
                   {integration?.description}
                 </p>
               </div>
             </div>
           )}
 
-          {isLoading ? (
+          {integrationLoading ? (
             <LoadingContent />
           ) : (
             integration && (
               <div className="relative grid grid-cols-[minmax(0,1fr)_250px] gap-6">
                 <div className="min-w-0 space-y-4">
-                  <BlurImage
-                    src={activeAsset!}
-                    alt={integration.name}
-                    wrapperClassName="aspect-video w-full border-2 border-dashed"
-                  />
-                  {integration.assets && (
-                    <div className="flex h-40 items-center gap-4 overflow-auto">
-                      {integration.assets.map((item, index) => (
-                        <BlurImage
-                          data-active={activeAsset === item}
-                          onClick={() => setSelectedAsset(item)}
-                          key={index}
-                          src={item}
-                          alt={integration.name}
-                          wrapperClassName="data-[active=true]:border-primary aspect-video h-full cursor-pointer border-2 border-dashed"
-                          className="h-full w-full object-cover object-center"
-                        />
-                      ))}
-                    </div>
+                  {integration.assets.length > 0 && (
+                    <>
+                      {/* <BlurImage
+                        src={activeAsset!}
+                        alt={integration.name}
+                        wrapperClassName="aspect-video w-full border-2 border-dashed"
+                      /> */}
+                      <div className="mt-6 flex items-center gap-4 overflow-auto">
+                        {integration.assets.map((item, index) => (
+                          <Dialog key={index}>
+                            <DialogTrigger>
+                              <BlurImage
+                                src={item}
+                                alt={integration.name}
+                                wrapperClassName="h-40 aspect-video cursor-pointer border-2 border-dashed"
+                                className="h-full w-full object-cover object-center"
+                              />
+                            </DialogTrigger>
+
+                            <DialogContent
+                              showCloseButton={false}
+                              className={
+                                'flex max-h-[90dvh] w-full max-w-[70dvw]! items-center justify-center rounded-none p-0'
+                              }
+                            >
+                              <BlurImage
+                                src={item}
+                                alt={integration.name}
+                                wrapperClassName=" h-full aspect-video cursor-pointer "
+                                className="bg-background h-full w-full object-contain"
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        ))}
+                      </div>
+                    </>
                   )}
                   <Markdown
                     components={{
                       h2: ({ children }) => (
-                        <h2 className="mt-12 mb-4 text-2xl font-semibold">
+                        <h2 className="mt-6 mb-4 text-2xl font-semibold">
                           {children}
                         </h2>
                       ),
@@ -267,17 +300,42 @@ function RouteComponent() {
 
 function LoadingContent() {
   return (
-    <div className="relative grid grid-cols-[minmax(0,1fr)_250px] gap-6">
+    <div className="relative mt-10 grid grid-cols-[minmax(0,1fr)_250px] gap-6">
       <div className="space-y-4">
-        <Skeleton className="aspect-video h-full w-full" />
-        <div className="flex h-40 items-center gap-4 overflow-auto">
-          {Array.from({ length: 4 }, (_, index) => (
-            <Skeleton key={index} className="aspect-video h-full w-full" />
+        <div className="flex items-center gap-4 overflow-auto">
+          {Array.from({ length: 3 }, (_, index) => (
+            <Skeleton
+              key={index}
+              className="data-[active=true]:border-primary aspect-video h-40 cursor-pointer rounded-none border-2 border-dashed"
+            />
           ))}
         </div>
-        <div className="mt-12 space-y-12">
+        <div className="mt-10 space-y-4">
           <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-20 w-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-[30%]" />
+          </div>
+        </div>
+        <div className="mt-10 space-y-4">
+          <Skeleton className="h-8 w-40" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-[30%]" />
+          </div>
+        </div>
+        <div className="mt-10 space-y-4">
+          <Skeleton className="h-8 w-40" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-[30%]" />
+          </div>
         </div>
       </div>
       <div className="space-y-4">

@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../config/load-env";
 
 import { db } from "../db/client";
 import { integrations } from "../db/schema";

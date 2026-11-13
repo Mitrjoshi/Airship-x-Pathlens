@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import routes from "./routes";
+import { getSafeRequestPath } from "./lib/request-logging";
 
 const app = express();
 
@@ -46,7 +47,7 @@ app.use(express.json({ limit: "5mb" }));
 app.set("trust proxy", true);
 
 app.use((req, _, next) => {
-  console.log(req.method, req.url);
+  console.log(req.method, getSafeRequestPath(req.originalUrl ?? req.url));
   next();
 });
 

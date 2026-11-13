@@ -237,15 +237,45 @@ export const useSaveSlackSettings = (
   })
 }
 
+export const useInviteSlackToChannel = (
+  workspaceId: string,
+  projectId: string
+) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (channelId: string) => {
+      const response = await apiClient.post<SlackMutationResponse>(
+        `/projects/${projectId}/integrations/slack/channels/${channelId}/invite`,
+        null,
+        { params: { workspace_id: workspaceId } }
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to invite Pathlens.')
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['PROJECT_SLACK_CHANNELS', workspaceId, projectId],
+      })
+      toast.success('Pathlens invited to the Slack channel.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
 export const useSendSlackTestMessage = (
   workspaceId: string,
   projectId: string
 ) =>
   useMutation({
-    mutationFn: async () => {
+    mutationFn: async (input: { channelId: string }) => {
       const response = await apiClient.post<SlackMutationResponse>(
         `/projects/${projectId}/integrations/slack/test`,
-        null,
+        input,
         { params: { workspace_id: workspaceId } }
       )
 
@@ -257,6 +287,33 @@ export const useSendSlackTestMessage = (
       }
 
       toast.success('Slack test message sent.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+
+export const useConnectStripe = (workspaceId: string, projectId: string) =>
+  useMutation({
+    mutationFn: async (returnPath: string) => {
+      const response = await apiClient.get<ConnectSlackResponse>(
+        '/integrations/stripe/connect',
+        {
+          params: {
+            workspace_id: workspaceId,
+            project_id: projectId,
+            return_path: returnPath,
+            response: 'json',
+          },
+        }
+      )
+
+      return response.data
+    },
+    onSuccess: (data) => {
+      if (!data.success || !data.url) {
+        throw new Error(data.message ?? 'Unable to connect Slack.')
+      }
+
+      window.location.assign(data.url)
     },
     onError: (error) => toast.error(error.message),
   })

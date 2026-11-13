@@ -194,7 +194,7 @@ function RouteComponent() {
               <div className="grid grid-cols-3 gap-4">
                 {[...Array(3)].map((_, index) => (
                   <Card
-                    className="bg-card/30 rounded-none border-2 border-dashed"
+                    className="bg-card/30 h-full rounded-none border-2 border-dashed"
                     key={index}
                   >
                     <CardHeader className="space-y-4">
@@ -211,7 +211,6 @@ function RouteComponent() {
               <div className="grid grid-cols-3 gap-4">
                 {searchedIntegrations.map((item) => (
                   <Link
-                    disabled={item.status === 'coming_soon'}
                     to="/app/$workspaceId/$projectId/integrations/$integrationId"
                     params={{
                       workspaceId,
@@ -220,8 +219,7 @@ function RouteComponent() {
                     }}
                   >
                     <Card
-                      data-disabled={item.status === 'coming_soon'}
-                      className="bg-card/30 hover:bg-card/60 rounded-none border-2 border-dashed duration-200 data-[disabled=true]:opacity-50"
+                      className="bg-card/30 hover:bg-input/40 h-full rounded-none border-2 border-dashed duration-200"
                       key={item.id}
                     >
                       <CardContent className="space-y-4 p-0">
@@ -236,12 +234,17 @@ function RouteComponent() {
                             <div className="mt-2 flex items-center gap-2">
                               <Badge variant="outline">{item.category}</Badge>
                               {item.isConnected && <Badge>Connected</Badge>}
-                              {item.status === 'coming_soon' && (
-                                <Badge variant="outline">Coming Soon</Badge>
-                              )}
                             </div>
                           </div>
-                          <CardTitle>{item.name}</CardTitle>
+                          <CardTitle>
+                            {item.name}
+
+                            {item.status === 'coming_soon' && (
+                              <Badge className="ml-2" variant="secondary">
+                                Coming Soon
+                              </Badge>
+                            )}
+                          </CardTitle>
                           <CardDescription>{item.description}</CardDescription>
                         </CardHeader>
                       </CardContent>
