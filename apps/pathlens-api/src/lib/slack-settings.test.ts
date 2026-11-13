@@ -12,8 +12,10 @@ const baseSettings = {
   dailyEnabled: true,
   weeklyEnabled: false,
   dailyHour: 9,
+  dailyMinute: 0,
   weeklyDay: 1,
   weeklyHour: 17,
+  weeklyMinute: 0,
   timezone: "America/New_York",
 };
 
@@ -62,6 +64,20 @@ test("validates reporting hours and IANA timezones", () => {
       false
     );
   }
+  for (const dailyMinute of [-1, 60, 1.5]) {
+    assert.equal(
+      slackProjectSettingsSchema.safeParse({ ...baseSettings, dailyMinute })
+        .success,
+      false
+    );
+  }
+  for (const weeklyMinute of [-1, 60, 1.5]) {
+    assert.equal(
+      slackProjectSettingsSchema.safeParse({ ...baseSettings, weeklyMinute })
+        .success,
+      false
+    );
+  }
 
   assert.equal(
     slackProjectSettingsSchema.safeParse({
@@ -85,8 +101,10 @@ test("keeps new-connection defaults and nullable response channel", () => {
     dailyEnabled: false,
     weeklyEnabled: false,
     dailyHour: 9,
+    dailyMinute: 0,
     weeklyDay: 1,
     weeklyHour: 9,
+    weeklyMinute: 0,
     timezone: "UTC",
   });
 
@@ -115,4 +133,14 @@ test("preserves daily and weekly preferences during round trips", () => {
   );
 
   assert.deepEqual(fetched, settings);
+});
+
+test("defaults missing minute fields for existing hourly settings", () => {
+  const parsed = slackProjectSettingsSchema.parse({
+    ...baseSettings,
+    dailyMinute: undefined,
+    weeklyMinute: undefined,
+  });
+  assert.equal(parsed.dailyMinute, 0);
+  assert.equal(parsed.weeklyMinute, 0);
 });

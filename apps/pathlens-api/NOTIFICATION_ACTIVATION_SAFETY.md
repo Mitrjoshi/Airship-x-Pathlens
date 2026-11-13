@@ -132,9 +132,17 @@ delivery rows are retained for explicit operator review, not silently deleted or
 cancelled. The approved first report may naturally summarize the previous local
 day/week; exclusion is based on schedule time, not analytics event age.
 
-For Portfolio's existing 15:00 Asia/Kolkata daily schedule, approve a specific
-future 15:00 local instant and its reporting period. The eight-shard dispatcher
-may process it several minutes later. Do not alter daily/weekly preferences.
+Preference changes are read by the dispatcher on each run. A delivery already
+created with the old channel, timezone, enabled state, or scheduled instant is
+cancelled by worker revalidation rather than sent or automatically replaced.
+The reporting-period uniqueness constraint prevents a second delivery for that
+same period, so changing preferences after creation can intentionally result in
+a skipped period. Do not replay that period automatically; future periods use
+the new preferences and UNKNOWN outcomes remain terminal until reconciliation.
+
+For a project's configured local schedule, approve a specific future instant
+and its reporting period. The eight-shard dispatcher may process it several
+minutes later. Do not alter daily/weekly preferences as part of cutoff approval.
 
 ## Validation and deployment boundary
 

@@ -21,8 +21,6 @@ export const NotFound = () => {
   )
 }
 
-type Pt = readonly [number, number]
-
 /* ---------- Glyphs (1 char = 1 block) ---------- */
 
 const GLYPH_4 = [
@@ -57,73 +55,6 @@ const BLOCKS = [
   ...toBlocks(GLYPH_0, 7),
   ...toBlocks(GLYPH_4, 13),
 ]
-
-/* ---------- Cat sprite (faces left, 16 x 15 pixels) ---------- */
-
-const CAT_WIDTH = 0.75 // in grid cells
-const S = CAT_WIDTH / 16
-
-/* ---------- Walk loops (grid vertices) ----------
-   Each loop is ordered so the surface is on the cat's feet side:
-   outer edges counter-clockwise, the hollow of the 0 clockwise. */
-
-const OUTER_4: Pt[] = [
-  [4, 1],
-  [3, 1],
-  [3, 2],
-  [2, 2],
-  [2, 3],
-  [1, 3],
-  [1, 4],
-  [0, 4],
-  [0, 6],
-  [4, 6],
-  [4, 8],
-  [5, 8],
-  [5, 6],
-  [6, 6],
-  [6, 5],
-  [5, 5],
-  [5, 0],
-  [4, 0],
-]
-const HOLLOW_0: Pt[] = [
-  [1, 1],
-  [4, 1],
-  [4, 7],
-  [1, 7],
-]
-
-const prepare = (pts: Pt[], dx: number) => {
-  const v = pts.map(([x, y]) => [x + dx, y] as Pt)
-  const lens = v.map((a, i) => {
-    const b = v[(i + 1) % v.length]
-    return Math.hypot(b[0] - a[0], b[1] - a[1])
-  })
-  const total = lens.reduce((a, b) => a + b, 0)
-  const starts = lens.map((_, i) => lens.slice(0, i).reduce((a, b) => a + b, 0))
-  return { v, lens, total, starts }
-}
-
-type Loop = ReturnType<typeof prepare>
-
-const place = (loop: Loop, dist: number) => {
-  let d = ((dist % loop.total) + loop.total) % loop.total
-  let i = 0
-  while (i < loop.lens.length - 1 && d > loop.lens[i]) {
-    d -= loop.lens[i]
-    i++
-  }
-  const a = loop.v[i]
-  const b = loop.v[(i + 1) % loop.v.length]
-  const t = d / loop.lens[i]
-  const dirX = (b[0] - a[0]) / loop.lens[i]
-  const dirY = (b[1] - a[1]) / loop.lens[i]
-  const x = a[0] + (b[0] - a[0]) * t
-  const y = a[1] + (b[1] - a[1]) * t
-  const angle = (Math.atan2(dirY, dirX) * 180) / Math.PI - 180
-  return `translate(${x} ${y}) rotate(${angle}) translate(${-8 * S} ${-15 * S})`
-}
 
 const CSS = `
 @keyframes nf-pop { 0% { opacity: 0 } 35% { opacity: .3 } 100% { opacity: 1 } }

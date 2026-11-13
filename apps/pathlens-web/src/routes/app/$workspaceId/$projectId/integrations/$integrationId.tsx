@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import Markdown from 'react-markdown'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
@@ -26,7 +26,6 @@ import {
   DialogContent,
   DialogTrigger,
 } from '@workspace/ui/components/dialog'
-import { Badge } from '@workspace/ui/components/badge'
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/integrations/$integrationId'

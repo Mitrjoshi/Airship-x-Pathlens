@@ -1056,8 +1056,10 @@ export async function updateSlackSettings(req: AuthRequest, res: Response) {
         settings: {
           channelId: parsed.data.channelId,
           dailyHour: parsed.data.dailyHour,
+          dailyMinute: parsed.data.dailyMinute,
           weeklyDay: parsed.data.weeklyDay,
           weeklyHour: parsed.data.weeklyHour,
+          weeklyMinute: parsed.data.weeklyMinute,
           timezone: parsed.data.timezone,
           weeklyDayConfirmed: true,
         },

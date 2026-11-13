@@ -18,6 +18,11 @@ import { getNotificationScheduleNotBefore } from "./notification-activation";
 const sqs = new SQSClient({});
 const MAX_INTEGRATIONS_PER_RUN = 500;
 const MAX_ENQUEUES_PER_RUN = 100;
+export const NOTIFICATION_SHARD_COUNT = 8;
+
+export function getNotificationShard(now: Date) {
+  return Math.floor(now.getTime() / 60000) % NOTIFICATION_SHARD_COUNT;
+}
 
 type IntegrationRow = {
   integration_id: string;
@@ -90,8 +95,8 @@ export async function runNotificationDispatcher(now = new Date()) {
   logNotification("info", "notification_unknown_backlog", {
     unknownCount: await countUnknownNotificationOutcomes(),
   });
-  const bucketCount = 8;
-  const bucket = Math.floor(now.getTime() / 60000) % bucketCount;
+  const bucketCount = NOTIFICATION_SHARD_COUNT;
+  const bucket = getNotificationShard(now);
   const integrations = await listSchedulableSlackIntegrations(
     MAX_INTEGRATIONS_PER_RUN,
     bucket,

@@ -57,6 +57,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@workspace/ui/components/sheet'
+import { ErrorScreen } from '@/routes/app/$workspaceId/$projectId/-components/common/error-screen'
+import { Skeleton } from '@workspace/ui/components/skeleton'
 
 const weeks = [
   { label: 'Monday', value: 1 },
@@ -88,7 +90,16 @@ export function SlackIntegrationActions({
     ...getSlackSettingsOptions(workspaceId, projectId),
     enabled: integration.isConnected && open,
   })
-  const historyQuery = useInfiniteQuery({
+  const {
+    data: notificationHistoryData,
+    isLoading: notificationHistoryLoading,
+    refetch: notificationHistoryRefetch,
+    isRefetching: notificationHistoryRefetching,
+    hasNextPage: notificationHistoryHasNextPage,
+    fetchNextPage: notificationHistoryFetchNextPage,
+    isError: notificationHistoryError,
+    isFetchingNextPage: notificationHistoryFetchingNextPage,
+  } = useInfiniteQuery({
     ...getSlackNotificationHistoryOptions(workspaceId, projectId),
     enabled: integration.isConnected && historyOpen,
   })
@@ -100,6 +111,10 @@ export function SlackIntegrationActions({
     workspaceId,
     projectId
   )
+
+  const notificationHistory =
+    notificationHistoryData?.pages.map((page) => page.data.items).flat() || []
+
   const { mutate: saveSettings, isPending: settingsPending } =
     useSaveSlackSettings(workspaceId, projectId)
   const { mutate: sendTestMessage, isPending: sendingTestMessage } =
@@ -120,11 +135,17 @@ export function SlackIntegrationActions({
         slackProjectSettingsDefaults.weeklyEnabled,
       dailyHour:
         settings?.settings.dailyHour ?? slackProjectSettingsDefaults.dailyHour,
+      dailyMinute:
+        settings?.settings.dailyMinute ??
+        slackProjectSettingsDefaults.dailyMinute,
       weeklyDay:
         settings?.settings.weeklyDay ?? slackProjectSettingsDefaults.weeklyDay,
       weeklyHour:
         settings?.settings.weeklyHour ??
         slackProjectSettingsDefaults.weeklyHour,
+      weeklyMinute:
+        settings?.settings.weeklyMinute ??
+        slackProjectSettingsDefaults.weeklyMinute,
       timezone:
         settings?.settings.timezone ?? slackProjectSettingsDefaults.timezone,
     }),
@@ -132,6 +153,8 @@ export function SlackIntegrationActions({
   )
   const form = useForm({
     defaultValues: formDefaults,
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
     validators: { onSubmit: slackProjectSettingsSchema },
     onSubmit: ({ value }) =>
       saveSettings(value, { onSuccess: () => setOpen(false) }),
@@ -264,8 +287,10 @@ export function SlackIntegrationActions({
                           checked={field.state.value}
                           onCheckedChange={(checked) => {
                             field.handleChange(checked)
-                            if (checked)
+
+                            if (checked) {
                               form.setFieldValue('weeklyEnabled', false)
+                            }
                           }}
                         />
                       </Field>
@@ -294,8 +319,10 @@ export function SlackIntegrationActions({
                           checked={field.state.value}
                           onCheckedChange={(checked) => {
                             field.handleChange(checked)
-                            if (checked)
+
+                            if (checked) {
                               form.setFieldValue('dailyEnabled', false)
+                            }
                           }}
                         />
                       </Field>
@@ -313,11 +340,18 @@ export function SlackIntegrationActions({
                   {([dailyEnabled, weeklyEnabled]) => (
                     <FieldGroup className="flex flex-row items-center gap-4">
                       {dailyEnabled && (
-                        <form.Field name="dailyHour">
-                          {(field) => (
-                            <HourField field={field} label="Daily Time" />
-                          )}
-                        </form.Field>
+                        <>
+                          <form.Field name="dailyHour">
+                            {(field) => (
+                              <HourField field={field} label="Daily Hour" />
+                            )}
+                          </form.Field>
+                          <form.Field name="dailyMinute">
+                            {(field) => (
+                              <MinuteField field={field} label="Minute" />
+                            )}
+                          </form.Field>
+                        </>
                       )}
                       {weeklyEnabled && (
                         <>
@@ -361,7 +395,12 @@ export function SlackIntegrationActions({
                           </form.Field>
                           <form.Field name="weeklyHour">
                             {(field) => (
-                              <HourField field={field} label="Weekly Time" />
+                              <HourField field={field} label="Weekly Hour" />
+                            )}
+                          </form.Field>
+                          <form.Field name="weeklyMinute">
+                            {(field) => (
+                              <MinuteField field={field} label="Minute" />
                             )}
                           </form.Field>
                         </>
@@ -441,28 +480,29 @@ export function SlackIntegrationActions({
               </SheetDescription>
             </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              {historyQuery.isLoading && (
-                <p className="text-muted-foreground text-sm">
-                  Loading notification history...
-                </p>
-              )}
-
-              {historyQuery.isError && (
-                <div className="space-y-3">
-                  <p className="text-destructive text-sm">
-                    Unable to load notification history.
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => historyQuery.refetch()}
-                  >
-                    Retry
-                  </Button>
+            <div className="flex-1 overflow-y-auto p-4">
+              {notificationHistoryLoading && (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, index) => (
+                    <div className="space-y-2 border-2 border-dashed p-4">
+                      <Skeleton className="h-5 w-[20%]" key={index} />
+                      <Skeleton className="mt-4 h-3 w-full" key={index} />
+                      <Skeleton className="h-3 w-[80%]" key={index} />
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {historyQuery.data?.pages[0]?.data.items.length === 0 && (
+              {notificationHistoryError && (
+                <ErrorScreen
+                  refetch={notificationHistoryRefetch}
+                  refetching={notificationHistoryRefetching}
+                  project_id={projectId}
+                  workspace_id={workspaceId}
+                />
+              )}
+
+              {notificationHistory.length === 0 && (
                 <div className="space-y-1">
                   <p className="font-medium">No notifications yet</p>
                   <p className="text-muted-foreground text-sm">
@@ -472,43 +512,44 @@ export function SlackIntegrationActions({
                 </div>
               )}
 
-              <div className="space-y-3">
-                {historyQuery.data?.pages.flatMap((page) =>
-                  page.data.items.map((notification) => (
-                    <div
-                      className="space-y-2 rounded-md border p-4"
-                      key={notification.id}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-medium">
-                          {notification.reportType === 'daily'
-                            ? 'Daily'
-                            : 'Weekly'}{' '}
-                          report
-                        </p>
-                        <Badge
-                          variant={
-                            notification.status === 'delivered'
-                              ? 'secondary'
-                              : notification.status === 'failed' ||
-                                  notification.status === 'delivery_unconfirmed'
-                                ? 'destructive'
-                                : 'outline'
-                          }
-                        >
-                          {notification.status === 'delivery_unconfirmed'
-                            ? 'Delivery unconfirmed'
-                            : notification.status === 'pending'
-                              ? 'Pending'
-                              : notification.status === 'processing'
-                                ? 'Processing'
-                                : notification.status === 'delivered'
-                                  ? 'Delivered'
-                                  : notification.status === 'retrying'
-                                    ? 'Retrying'
-                                    : 'Failed'}
-                        </Badge>
-                      </div>
+              <div className="space-y-2">
+                {notificationHistory?.map((notification) => (
+                  <div
+                    className="space-y-2 border-2 border-dashed p-2"
+                    key={notification.id}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium">
+                        {notification.reportType === 'daily'
+                          ? 'Daily'
+                          : 'Weekly'}{' '}
+                        report
+                      </p>
+                      <Badge
+                        variant={
+                          notification.status === 'delivered'
+                            ? 'default'
+                            : notification.status === 'failed' ||
+                                notification.status === 'delivery_unconfirmed'
+                              ? 'destructive'
+                              : 'outline'
+                        }
+                      >
+                        {notification.status === 'delivery_unconfirmed'
+                          ? 'Delivery unconfirmed'
+                          : notification.status === 'pending'
+                            ? 'Pending'
+                            : notification.status === 'processing'
+                              ? 'Processing'
+                              : notification.status === 'delivered'
+                                ? 'Delivered'
+                                : notification.status === 'retrying'
+                                  ? 'Retrying'
+                                  : 'Failed'}
+                      </Badge>
+                    </div>
+
+                    <div>
                       <p className="text-muted-foreground text-sm">
                         Scheduled{' '}
                         {new Date(notification.scheduledAt).toLocaleString()}
@@ -520,18 +561,20 @@ export function SlackIntegrationActions({
                         </p>
                       )}
                     </div>
-                  ))
-                )}
+                  </div>
+                ))}
               </div>
 
-              {historyQuery.hasNextPage && (
+              {notificationHistoryHasNextPage && (
                 <Button
                   className="mt-4 w-full"
-                  disabled={historyQuery.isFetchingNextPage}
+                  disabled={notificationHistoryFetchingNextPage}
                   variant="outline"
-                  onClick={() => historyQuery.fetchNextPage()}
+                  onClick={() => notificationHistoryFetchNextPage()}
                 >
-                  {historyQuery.isFetchingNextPage ? 'Loading...' : 'Load more'}
+                  {notificationHistoryFetchingNextPage
+                    ? 'Loading...'
+                    : 'Load more'}
                 </Button>
               )}
             </div>
@@ -566,6 +609,29 @@ function HourField({ field, label }: HourFieldProps) {
           {Array.from({ length: 24 }, (_, hour) => (
             <SelectItem key={hour} value={String(hour)}>
               {String(hour).padStart(2, '0')}:00
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Field>
+  )
+}
+
+function MinuteField({ field, label }: HourFieldProps) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      <Select
+        value={String(field.state.value)}
+        onValueChange={(value) => field.handleChange(Number(value))}
+      >
+        <SelectTrigger id={field.name} className="w-full flex-1">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {Array.from({ length: 60 }, (_, minute) => (
+            <SelectItem key={minute} value={String(minute)}>
+              {String(minute).padStart(2, '0')}
             </SelectItem>
           ))}
         </SelectContent>

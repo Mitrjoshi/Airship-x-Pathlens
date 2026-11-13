@@ -12,8 +12,10 @@ const baseSettings: NotificationSettings = {
   dailyEnabled: true,
   weeklyEnabled: false,
   dailyHour: 9,
+  dailyMinute: 0,
   weeklyDay: 1,
   weeklyHour: 9,
+  weeklyMinute: 0,
   timezone: "America/New_York",
   weeklyDayConfirmed: true,
 };
@@ -64,6 +66,80 @@ test("does not schedule before the fifteen-minute reporting grace period", () =>
     true
   );
   assert.equal(DEFAULT_NOTIFICATION_GRACE_PERIOD_MS, 900000);
+});
+
+test("supports daily minute precision and late-night schedules", () => {
+  const halfPastNine = getNotificationCandidates(
+    { ...baseSettings, dailyHour: 9, dailyMinute: 30 },
+    new Date("2024-03-11T14:15:00.000Z")
+  );
+  assert.equal(
+    halfPastNine
+      .find(
+        (candidate) =>
+          candidate.scheduledFor.toISOString() === "2024-03-11T13:30:00.000Z"
+      )
+      ?.scheduledFor.toISOString(),
+    "2024-03-11T13:30:00.000Z"
+  );
+
+  const lateNight = getNotificationCandidates(
+    { ...baseSettings, dailyHour: 23, dailyMinute: 59 },
+    new Date("2024-03-12T00:00:00.000Z")
+  );
+  assert.equal(
+    lateNight
+      .find(
+        (candidate) =>
+          candidate.scheduledFor.toISOString() === "2024-03-11T03:59:00.000Z"
+      )
+      ?.scheduledFor.toISOString(),
+    "2024-03-11T03:59:00.000Z"
+  );
+});
+
+test("supports independent daily and weekly candidates", () => {
+  const candidates = getNotificationCandidates(
+    {
+      ...baseSettings,
+      dailyEnabled: true,
+      weeklyEnabled: true,
+      weeklyDay: 1,
+      weeklyHour: 9,
+    },
+    new Date("2024-01-15T18:00:00.000Z")
+  );
+  assert.ok(candidates.some((candidate) => candidate.reportType === "daily"));
+  assert.ok(candidates.some((candidate) => candidate.reportType === "weekly"));
+  assert.equal(
+    getNotificationCandidates(
+      { ...baseSettings, dailyEnabled: false, weeklyEnabled: false },
+      new Date("2024-01-15T18:00:00.000Z")
+    ).length,
+    0
+  );
+});
+
+test("supports weekly weekday and minute precision", () => {
+  const candidates = getNotificationCandidates(
+    {
+      ...baseSettings,
+      dailyEnabled: false,
+      weeklyEnabled: true,
+      weeklyDay: 5,
+      weeklyHour: 17,
+      weeklyMinute: 30,
+    },
+    new Date("2024-01-19T18:00:00.000Z")
+  );
+  const candidate = candidates.find(
+    (item) => item.scheduledFor.toISOString() === "2024-01-12T22:30:00.000Z"
+  );
+  assert.equal(candidate?.reportType, "weekly");
+  assert.equal(
+    candidate?.scheduledFor.toISOString(),
+    "2024-01-12T22:30:00.000Z"
+  );
 });
 
 test("limits daily catch-up to two local reporting periods", () => {

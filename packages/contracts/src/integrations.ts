@@ -66,8 +66,10 @@ export const slackProjectSettingsSchema = z.object({
   dailyEnabled: z.boolean(),
   weeklyEnabled: z.boolean(),
   dailyHour: z.number().int().min(0).max(23),
+  dailyMinute: z.number().int().min(0).max(59).default(0),
   weeklyDay: slackWeekdaySchema,
   weeklyHour: z.number().int().min(0).max(23),
+  weeklyMinute: z.number().int().min(0).max(59).default(0),
   timezone: z
     .string()
     .min(1)
@@ -89,8 +91,10 @@ export const slackProjectSettingsDefaults = {
   dailyEnabled: false,
   weeklyEnabled: false,
   dailyHour: 9,
+  dailyMinute: 0,
   weeklyDay: 1,
   weeklyHour: 9,
+  weeklyMinute: 0,
   timezone: 'UTC',
 } as const
 

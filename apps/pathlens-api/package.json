@@ -16,6 +16,7 @@
     "seed:integrations": "tsx src/scripts/seed-integrations.ts",
     "inventory:slack-weekdays": "tsx src/scripts/inventory-slack-weekdays.ts",
     "verify:notification-environment": "tsx src/scripts/verify-notification-environment.ts",
+    "test:notifications": "tsx --test src/notifications/*.test.ts",
     "reconcile:0062": "tsx src/scripts/reconcile-migration-0062.ts",
     "test:geoip": "tsx --test src/lib/geoip.test.ts",
     "test:pagespeed": "tsx --test src/lib/google-pagespeed.test.ts",

@@ -101,7 +101,9 @@ Resources:
           Type: SQS
           Properties:
             Queue: !GetAtt NotificationQueue.Arn
-            BatchSize: 5
+            BatchSize: 1
+            ScalingConfig:
+              MaximumConcurrency: 2
             Enabled: false
             FunctionResponseTypes:
               - ReportBatchItemFailures

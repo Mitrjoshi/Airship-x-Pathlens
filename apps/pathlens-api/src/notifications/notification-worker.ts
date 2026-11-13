@@ -229,6 +229,9 @@ export async function processNotificationDelivery(deliveryId: string) {
       expectedScheduledFor.getTime() !==
         new Date(context.scheduled_for).getTime()
     ) {
+      // A delivery created with an older schedule is cancelled rather than
+      // replaced. The reporting-period uniqueness constraint prevents a
+      // preference edit from creating a duplicate for the same period.
       throw new NotificationPermanentError(
         "configuration_changed",
         "Slack scheduling configuration changed.",

@@ -17,8 +17,10 @@ export type NotificationSettings = {
   dailyEnabled: boolean;
   weeklyEnabled: boolean;
   dailyHour: number;
+  dailyMinute?: number;
   weeklyDay: number;
   weeklyHour: number;
+  weeklyMinute?: number;
   timezone: string;
   weeklyDayConfirmed: boolean;
 };
@@ -102,7 +104,8 @@ function getDailyCandidate(
   const scheduledFor = localDateTimeToUtc(
     endDate,
     settings.dailyHour,
-    settings.timezone
+    settings.timezone,
+    settings.dailyMinute ?? 0
   );
   if (!periodEnd || !periodStart || !previousStart || !scheduledFor)
     return null;
@@ -139,7 +142,8 @@ function getWeeklyCandidate(
   const scheduledFor = localDateTimeToUtc(
     scheduleDate,
     settings.weeklyHour,
-    settings.timezone
+    settings.timezone,
+    settings.weeklyMinute ?? 0
   );
   if (!periodEnd || !periodStart || !previousStart || !scheduledFor)
     return null;
@@ -207,7 +211,10 @@ export function getExpectedScheduledFor(
   return localDateTimeToUtc(
     scheduleDate,
     reportType === "daily" ? settings.dailyHour : settings.weeklyHour,
-    settings.timezone
+    settings.timezone,
+    reportType === "daily"
+      ? (settings.dailyMinute ?? 0)
+      : (settings.weeklyMinute ?? 0)
   );
 }
 
