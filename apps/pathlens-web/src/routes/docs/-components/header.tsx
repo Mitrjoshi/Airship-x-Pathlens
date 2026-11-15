@@ -1,12 +1,11 @@
 import { NavUser } from '@/components/common/nav-user'
 import { getUsersOptions } from '@/queries/user'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useRouteContext } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import {
   InputGroup,
   InputGroupAddon,
-  InputGroupButton,
   InputGroupInput,
   InputGroupText,
 } from '@workspace/ui/components/input-group'
@@ -25,20 +24,20 @@ export const Header = () => {
   const user = userData?.data
 
   return (
-    <div className="sticky top-0 z-12 border-b-2 border-dashed">
-      <nav className="bg-background z-12 w-full border-dashed px-5 py-2">
+    <div className="sticky top-0 z-12 flex h-14.25 items-center border-b-2 border-dashed">
+      <nav className="bg-background z-12 w-full border-dashed px-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-12">
-            <Link to="/docs" className="flex items-center">
-              <img
-                src="/logo.png"
-                className="size-10 dark:invert"
-                alt="Pathlens"
-              />
+            <Link to="/docs" className="group flex items-center gap-2">
+              <img src="/logo.svg" className="size-8" alt="Pathlens" />
 
-              <div className="flex items-end gap-2">
-                <p className="text-lg font-bold">Pathlens</p>
-                <p className="text-primary mb-1 text-xs font-bold">DOCS</p>
+              <div className="flex items-center gap-2">
+                <p className="group-hover:text-primary text-2xl font-bold duration-200">
+                  Pathlens
+                </p>
+                <Button size="xs" className={'mt-0.75'} variant={'outline'}>
+                  DOCS
+                </Button>
               </div>
             </Link>
 
@@ -51,7 +50,7 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <InputGroup className="w-xs">
+            <InputGroup className="w-70">
               <InputGroupAddon>
                 <SearchIcon />
               </InputGroupAddon>

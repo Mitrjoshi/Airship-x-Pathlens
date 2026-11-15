@@ -6,7 +6,7 @@ import type {
 } from '@workspace/contracts'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { AlertCircleIcon, PlayIcon, RefreshCcwIcon } from 'lucide-react'
+import { AlertCircleIcon, RefreshCcwIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
 import { Button } from '@workspace/ui/components/button'
@@ -266,9 +266,7 @@ function StripeWidget({ workspaceId, projectId, range, integrations }: Props) {
           <p className="text-muted-foreground text-sm">
             Load Stripe analytics for the selected period.
           </p>
-          <Button onClick={() => setRequested(true)}>
-            <PlayIcon /> Load analytics
-          </Button>
+          <Button onClick={() => setRequested(true)}>Load analytics</Button>
         </div>
       ) : query.isLoading ? (
         <WidgetSkeleton />

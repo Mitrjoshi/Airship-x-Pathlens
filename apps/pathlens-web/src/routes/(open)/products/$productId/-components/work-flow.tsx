@@ -321,7 +321,7 @@ const ArchitectureNode = ({ data }: NodeProps<Node<ArchitectureNodeData>>) => {
           </div>
 
           <div className="ml-2 flex h-6 min-w-24 items-center gap-1 rounded-md border-2 pl-1">
-            <img src="/logo.png" className="size-4 dark:invert" alt="" />
+            <img src="/logo.svg" className="size-4" alt="" />
             <p className="text-muted-foreground text-xs">Pathlens</p>
           </div>
         </div>

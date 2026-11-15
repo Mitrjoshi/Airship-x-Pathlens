@@ -16,7 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { ArrowUpRightIcon, CheckIcon } from 'lucide-react'
 import { useTheme } from '@/components/common/theme-provider'
 import { motion, useMotionValue, useTransform, animate } from 'motion/react'
@@ -30,7 +30,6 @@ export interface NavUserData {
 }
 
 export function NavUser({ user }: { user: NavUserData }) {
-  const navigate = useNavigate()
   const { theme, setTheme } = useTheme()
 
   const progress = useMotionValue(0)

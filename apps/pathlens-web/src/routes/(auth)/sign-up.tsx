@@ -333,7 +333,18 @@ function RouteComponent() {
           </p>
         </div>
       </div>
-      <div></div>
+      <div className="relative flex h-screen flex-1 items-center justify-center overflow-hidden">
+        <video
+          muted
+          loop
+          autoPlay
+          className="h-[80dvh]"
+          playsInline
+          preload="auto"
+        >
+          <source src="/visuals_clean.webm" type="video/webm" />
+        </video>
+      </div>
     </div>
   )
 }

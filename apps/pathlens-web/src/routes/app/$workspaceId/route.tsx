@@ -327,15 +327,7 @@ export const AppSidebar = ({
   return (
     <>
       <Sidebar>
-        <SidebarHeader className="bg-background shrink-0 flex-row items-center gap-0 border-b py-2">
-          <Link to="/app" className="shrink-0">
-            <img
-              src="/logo.png"
-              className="size-10 dark:invert"
-              alt="Pathlens"
-            />
-          </Link>
-
+        <SidebarHeader className="bg-background h-14.25 shrink-0 flex-row items-center gap-0 border-b py-2">
           <WorkspaceSwitcher
             workspaceDataLoading={workspaceDataLoading}
             workspaceData={workspaceData!}
@@ -528,7 +520,7 @@ export const WorkspaceSwitcher = ({
         variant="link"
         size="lg"
         className={
-          'text-foreground text-md w-full flex-1 justify-start overflow-hidden pl-1'
+          'text-foreground w-full flex-1 justify-start overflow-hidden pl-1 text-lg'
         }
       >
         {workspaceDataLoading ? (

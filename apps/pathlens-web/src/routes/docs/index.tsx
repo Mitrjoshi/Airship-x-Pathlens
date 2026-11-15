@@ -1,4 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { HomeLayout } from '../(open)/-components/home-layout'
+import { DotLayout } from '../(open)/-components/dot-layout'
 
 export const Route = createFileRoute('/docs/')({
   component: RouteComponent,
@@ -7,20 +9,17 @@ export const Route = createFileRoute('/docs/')({
 function RouteComponent() {
   return (
     <>
-      <div className="h-[40dvh] border-b">
-        <div className="mx-auto flex h-full max-w-[70%] items-center gap-4">
-          <div className="flex-1 space-y-2">
-            <p className="text-3xl font-semibold">Pathlens Documentation</p>
+      <HomeLayout>
+        <DotLayout className="border-x-2 border-dashed">
+          <div className="bg-background mx-auto max-w-[75%] border-x-2 border-dashed p-20">
+            <p className="text-4xl font-semibold">Pathlens Docs</p>
             <p className="text-muted-foreground">
-              Lorem, ipsum dolor sit amet consectetur adipisicing elit. Unde
-              sit, fugit expedita culpa repudiandae nesciunt consectetur.
-              Obcaecati dolores commodi perspiciatis illo cum sunt magni sequi
-              earum quos! Sit, nihil ullam.
+              Explore guides and tutorials to start tracking on Pathlens's
+              platform
             </p>
           </div>
-          <div className="flex-1"></div>
-        </div>
-      </div>
+        </DotLayout>
+      </HomeLayout>
     </>
   )
 }

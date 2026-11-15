@@ -1,5 +1,7 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { Header } from './-components/header'
+import { Footer } from '../(open)/-components/footer'
+import { FAQ } from '../(open)/-components/faq'
 
 export const Route = createFileRoute('/docs')({
   component: RouteComponent,
@@ -8,8 +10,12 @@ export const Route = createFileRoute('/docs')({
 function RouteComponent() {
   return (
     <>
-      <Header />
-      <Outlet />
+      <div className="w-full">
+        <Header />
+        <Outlet />
+        <FAQ />
+        <Footer />
+      </div>
     </>
   )
 }

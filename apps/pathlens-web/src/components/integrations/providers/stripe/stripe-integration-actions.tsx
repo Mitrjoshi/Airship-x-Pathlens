@@ -274,7 +274,11 @@ export const StripeIntegrationActions = ({
     <>
       <Button
         variant={integration.isConnected ? 'destructive' : 'default'}
-        onClick={() => connect(returnPath)}
+        onClick={() => {
+          if (integration.isConnected) {
+          }
+          connect(returnPath)
+        }}
       >
         <LoadingSwap isLoading={connecting}>
           {integration.isConnected ? 'Disconnect' : 'Connect'}

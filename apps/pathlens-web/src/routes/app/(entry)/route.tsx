@@ -99,13 +99,9 @@ export const EntrySidebar = () => {
   return (
     <>
       <Sidebar>
-        <SidebarHeader className="bg-background border-b py-2">
-          <Link to="/app" className="flex items-center">
-            <img
-              src="/logo.png"
-              className="size-10 dark:invert"
-              alt="Pathlens"
-            />
+        <SidebarHeader className="bg-background flex h-14.25 flex-row items-center border-b py-2">
+          <Link to="/app" className="flex items-center gap-2">
+            <img src="/logo.svg" className="size-8" alt="Pathlens" />
 
             <p className="text-2xl font-bold">Pathlens</p>
           </Link>
