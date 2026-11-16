@@ -276,135 +276,99 @@ html {
   background-color: var(--color-background);
 }
 
+/* Shared styles */
 .nut-top-left,
 .nut-top-right,
 .nut-bottom-left,
 .nut-bottom-right,
 .nut-all {
   position: relative;
+  --nut-size: 14px;
+  --nut-offset: -7px;
+  --nut-radius: 3px;
+  --nut-color: var(--color-border);
 }
 
-/* =========================================
-   SINGLE CORNER NUTS
-   ========================================= */
-
+/* Individual corner nuts */
 .nut-top-left::before,
 .nut-top-right::after,
 .nut-bottom-left::before,
 .nut-bottom-right::after {
   content: '';
-
   position: absolute;
   z-index: 2;
+  pointer-events: none;
 
-  width: 12px;
-  height: 12px;
+  width: var(--nut-size);
+  height: var(--nut-size);
 
-  border: 3px solid color-mix(in srgb, var(--color-border) 100%, transparent);
+  border: 2px solid var(--nut-color);
+  border-radius: var(--nut-radius);
   background: var(--background);
-
-  clip-path: polygon(
-    15% 0%,
-    85% 0%,
-    92% 2%,
-    98% 8%,
-    100% 15%,
-    100% 85%,
-    98% 92%,
-    92% 98%,
-    85% 100%,
-    15% 100%,
-    8% 98%,
-    2% 92%,
-    0% 85%,
-    0% 15%,
-    2% 8%,
-    8% 2%
-  );
 }
 
+/* Corner positions */
 .nut-top-left::before {
-  top: -7px;
-  left: -7px;
+  top: var(--nut-offset);
+  left: var(--nut-offset);
 }
 
 .nut-top-right::after {
-  top: -7px;
-  right: -7px;
+  top: var(--nut-offset);
+  right: var(--nut-offset);
 }
 
 .nut-bottom-left::before {
-  bottom: -7px;
-  left: -7px;
+  bottom: var(--nut-offset);
+  left: var(--nut-offset);
 }
 
 .nut-bottom-right::after {
-  bottom: -7px;
-  right: -7px;
+  bottom: var(--nut-offset);
+  right: var(--nut-offset);
 }
 
-/* =========================================
-   ALL 4 CORNERS
-   ========================================= */
-
-.nut-all {
-  --nut-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='8,0 92,0 100,8 100,92 92,100 8,100 0,92 0,8'/%3E%3C/svg%3E");
-}
-
+/* All four corners using repeated box shadows */
 .nut-all::before,
 .nut-all::after {
   content: '';
   position: absolute;
-  inset: -6px;
   z-index: 2;
   pointer-events: none;
 
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
+  width: var(--nut-size);
+  height: var(--nut-size);
 
-  -webkit-mask-image:
-    var(--nut-shape), var(--nut-shape), var(--nut-shape), var(--nut-shape);
-  mask-image:
-    var(--nut-shape), var(--nut-shape), var(--nut-shape), var(--nut-shape);
-}
-
-/* Outer octagon */
-.nut-all::before {
-  background: color-mix(in srgb, var(--color-border) 100%, transparent);
-
-  -webkit-mask-size: 12px 12px;
-  mask-size: 12px 12px;
-
-  -webkit-mask-position:
-    top left,
-    top right,
-    bottom left,
-    bottom right;
-  mask-position:
-    top left,
-    top right,
-    bottom left,
-    bottom right;
-}
-
-/* Inner octagon
-   3px inset = 6px smaller */
-.nut-all::after {
+  border: 2px solid var(--nut-color);
+  border-radius: var(--nut-radius);
   background: var(--background);
+}
 
-  -webkit-mask-size: 6px 6px;
-  mask-size: 6px 6px;
+.nut-all::before {
+  top: var(--nut-offset);
+  left: var(--nut-offset);
+}
 
-  -webkit-mask-position:
-    left 3px top 3px,
-    right 3px top 3px,
-    left 3px bottom 3px,
-    right 3px bottom 3px;
-  mask-position:
-    left 3px top 3px,
-    right 3px top 3px,
-    left 3px bottom 3px,
-    right 3px bottom 3px;
+.nut-all::after {
+  top: var(--nut-offset);
+  right: var(--nut-offset);
+}
+
+/* Remaining bottom corners */
+.nut-all {
+  background-image:
+    linear-gradient(var(--background), var(--background)),
+    linear-gradient(var(--background), var(--background));
+
+  background-size:
+    var(--nut-size) var(--nut-size),
+    var(--nut-size) var(--nut-size);
+
+  background-position:
+    bottom left,
+    bottom right;
+
+  background-repeat: no-repeat;
 }
 
 .flashlight-bottom {

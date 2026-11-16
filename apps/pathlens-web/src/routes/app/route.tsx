@@ -7,6 +7,7 @@ import {
 import { getUsersOptions, type T_User } from '@/queries/user'
 import { motion } from 'motion/react'
 import { Button } from '@workspace/ui/components/button'
+import { NotFound } from '@/components/common/not-found'
 
 type AuthContext = {
   user: T_User
@@ -31,6 +32,7 @@ export const Route = createFileRoute('/app')({
   pendingComponent: () => <LoadingComponent />,
   pendingMinMs: 1000,
   errorComponent: (props) => <ErrorComponent {...props} />,
+  notFoundComponent: () => <NotFound />,
 })
 
 function RouteComponent() {
@@ -51,21 +53,9 @@ const LoadingComponent = () => {
           transition={{ duration: 0.4 }}
           className="text-center"
         >
-          <p className="text-xl font-medium">Loading...</p>
-
-          <div className="bg-muted mx-auto mt-5 h-1 w-32 overflow-hidden">
-            <motion.div
-              className="bg-foreground h-full w-1/3"
-              animate={{
-                x: ['-100%', '300%'],
-              }}
-              transition={{
-                duration: 1.4,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
-          </div>
+          <p className="shimmer text-muted-foreground text-xl font-bold">
+            Loading...
+          </p>
         </motion.div>
       </div>
     </div>

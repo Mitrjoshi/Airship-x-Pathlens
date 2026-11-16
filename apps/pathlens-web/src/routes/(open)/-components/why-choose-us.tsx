@@ -127,12 +127,12 @@ export const WhyChooseUs = () => {
 
   return (
     <div className="space-y-20">
-      <div className="space-y-2 px-8 pt-20">
-        <p className="text-center text-4xl font-medium">
+      <div className="px-8 pt-20 md:space-y-2">
+        <p className="text-center text-3xl font-medium md:text-4xl">
           Why Choose <span className="text-primary">Pathlens</span>
         </p>
 
-        <p className="text-muted-foreground mx-auto flex w-fit items-center gap-1 text-center">
+        <p className="text-muted-foreground mx-auto flex flex-wrap items-center justify-center gap-x-1 text-center">
           Everything you need to{' '}
           <AnimatedWords
             className="text-muted-foreground"
@@ -143,7 +143,7 @@ export const WhyChooseUs = () => {
 
       <div
         onMouseMove={handleMouseMove}
-        className="group/grid relative grid grid-cols-3 overflow-hidden border-t"
+        className="group/grid relative grid grid-cols-2 divide-x divide-y overflow-hidden border-t md:grid-cols-3"
       >
         {/* Soft cursor blob */}
         <div className="bg-primary/10 pointer-events-none absolute top-(--mouse-y) left-(--mouse-x) z-0 size-80 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 blur-3xl transition-opacity duration-300 group-hover/grid:opacity-100" />
@@ -183,11 +183,11 @@ export const WhyChooseUs = () => {
           }}
         />
 
-        {reasons.map((reason, index) => (
+        {reasons.map((reason) => (
           <div
             key={reason.number}
             data-reason-card
-            className={`relative min-h-64 overflow-hidden ${index % 3 !== 2 ? 'border-r' : ''} ${index < 3 ? 'border-b' : ''} `}
+            className={`relative min-h-64 overflow-hidden`}
           >
             {/* Normal card content */}
             <div className="relative z-10 flex h-full min-h-64 flex-col justify-between space-y-6 p-5">

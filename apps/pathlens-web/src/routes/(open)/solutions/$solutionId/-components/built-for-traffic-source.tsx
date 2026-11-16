@@ -6,7 +6,6 @@ import {
   MousePointerClickIcon,
   SearchIcon,
   Share2Icon,
-  TrafficCone,
 } from 'lucide-react'
 
 type TrafficSourceItem = {
@@ -166,12 +165,9 @@ export const BuiltForTrafficSource = () => {
     <div className="group">
       <div className="flex h-full flex-col justify-between gap-8 overflow-hidden p-5">
         <div>
-          <p className="text-muted-foreground font-medium">
-            <TrafficCone className="mr-2 inline-block" size={18} />
-            Traffic Source
-          </p>
+          <p className="font-medium">Traffic Source</p>
 
-          <p className="text-muted-foreground mt-2 text-sm">
+          <p className="text-muted-foreground text-sm">
             Understand which channels, campaigns, referrals, and search sources
             are actually driving people to your website.
           </p>

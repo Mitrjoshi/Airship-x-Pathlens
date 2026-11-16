@@ -5,9 +5,9 @@ import { RegionGlobe } from './region-globe'
 
 export const Region = () => {
   return (
-    <div className="space-y-20 px-8 py-20 pb-10">
-      <div className="space-y-2">
-        <p className="mx-auto flex w-fit items-center gap-2 text-center text-4xl font-medium">
+    <div className="space-y-10 px-5 py-20 pb-10 md:px-8">
+      <div className="md:space-y-2">
+        <p className="mx-auto flex w-fit items-center justify-center gap-2 text-center text-3xl font-medium md:text-4xl">
           Region:{' '}
           <AnimatedWords
             words={['Connected', 'Mapped', 'Tracked', 'Visible', 'Borderless']}
@@ -20,9 +20,9 @@ export const Region = () => {
         </p>
       </div>
 
-      <div>
+      <div className="">
         <RegionGlobe />
-        <div className="nut-all bg-background grid grid-cols-3 divide-x border">
+        <div className="nut-all bg-background grid divide-y border md:grid-cols-3 md:divide-x">
           <div className="w-full p-4">
             <GlobeIcon size={24} className="text-muted-foreground" />
 

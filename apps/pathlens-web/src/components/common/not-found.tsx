@@ -1,6 +1,4 @@
 import { DotLayout } from '@/routes/(open)/-components/dot-layout'
-import { Footer } from '@/routes/(open)/-components/footer'
-import { Header } from '@/routes/(open)/-components/header'
 import { HomeLayout } from '@/routes/(open)/-components/home-layout'
 import { Link } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
@@ -8,15 +6,11 @@ import { Button } from '@workspace/ui/components/button'
 export const NotFound = () => {
   return (
     <>
-      <Header />
-
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
           <NotFoundHero />
         </DotLayout>
       </HomeLayout>
-
-      <Footer />
     </>
   )
 }

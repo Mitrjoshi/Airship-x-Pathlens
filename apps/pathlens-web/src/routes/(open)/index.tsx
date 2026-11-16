@@ -19,7 +19,7 @@ function RouteComponent() {
     <>
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
-          <div className="bg-background mx-auto w-[75%] border-x-2 border-dashed">
+          <div className="bg-background mx-auto border-dashed md:w-[75%] md:border-x-2">
             <Hero />
           </div>
         </DotLayout>
@@ -27,7 +27,7 @@ function RouteComponent() {
 
       <HomeLayout>
         <DotLayout className="border-x-2 border-t-2 border-dashed">
-          <div className="bg-background nut-top-left nut-bottom-right mx-auto max-w-[75%] space-y-10 border-x-2 border-dashed px-10 py-20">
+          <div className="bg-background md:nut-top-left md:nut-bottom-right mx-auto space-y-10 border-dashed p-5 py-20 md:max-w-[75%] md:border-x-2 md:px-10">
             <BuiltFor />
           </div>
         </DotLayout>
@@ -35,7 +35,7 @@ function RouteComponent() {
 
       <HomeLayout className="border-x-2 border-t-2 border-dashed">
         <DotLayout>
-          <div className="bg-background nut-top-left nut-bottom-right mx-auto w-[75%] border-x-2 border-dashed">
+          <div className="bg-background md:nut-top-left md:nut-bottom-right mx-auto border-dashed md:w-[75%] md:border-x-2">
             <Region />
           </div>
         </DotLayout>
@@ -45,7 +45,7 @@ function RouteComponent() {
 
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
-          <div className="bg-background nut-top-left mx-auto w-[75%] border-x-2 border-dashed">
+          <div className="bg-background md:nut-top-left mx-auto border-dashed md:w-[75%] md:border-x-2">
             <WhyChooseUs />
           </div>
         </DotLayout>
@@ -53,7 +53,7 @@ function RouteComponent() {
 
       <HomeLayout>
         <DotLayout className="border-x-2 border-t-2 border-dashed">
-          <div className="bg-background nut-top-left mx-auto max-w-[75%] border-x-2 border-dashed p-20">
+          <div className="bg-background md:nut-top-left mx-auto border-dashed px-8 py-20 md:max-w-[75%] md:border-x-2 md:px-20">
             <FewLinesOfCode />
           </div>
         </DotLayout>
@@ -63,7 +63,7 @@ function RouteComponent() {
 
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
-          <div className="bg-background nut-bottom-right mx-auto w-[75%] border-x-2 border-dashed">
+          <div className="bg-background md:nut-bottom-right mx-auto border-dashed md:w-[75%] md:border-x-2">
             <Testimonials />
           </div>
         </DotLayout>
@@ -73,7 +73,7 @@ function RouteComponent() {
 
       <HomeLayout>
         <DotLayout className="border-x-2 border-dashed">
-          <div className="bg-background nut-bottom-right nut-top-left mx-auto w-[75%] border-x-2 border-dashed">
+          <div className="bg-background md:nut-bottom-right md:nut-top-left mx-auto border-dashed md:w-[75%] md:border-x-2">
             <WebsitesTracking />
           </div>
         </DotLayout>

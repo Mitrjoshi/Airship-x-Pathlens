@@ -62,8 +62,8 @@ function RouteComponent() {
   })
 
   return (
-    <div className="grid h-screen grid-cols-[0.5fr_1fr] items-center justify-center divide-x">
-      <div className="relative flex h-screen flex-1 items-center justify-center">
+    <div className="grid h-screen items-center md:grid-cols-[0.4fr_1fr] md:justify-center md:divide-x">
+      <div className="relative flex h-screen flex-1 items-center p-8 md:justify-center">
         <Button
           className="absolute top-4 left-4 flex items-center justify-between"
           render={<Link to="/" />}
@@ -72,7 +72,7 @@ function RouteComponent() {
           <ArrowLeft />
           Home
         </Button>
-        <div className="w-sm space-y-2">
+        <div className="w-full space-y-2 md:w-sm">
           <div className="mb-12">
             <p className="text-3xl font-semibold">Welcome Back</p>
             <p className="text-muted-foreground">Sign in to Continue</p>
@@ -246,12 +246,12 @@ function RouteComponent() {
         </div>
       </div>
 
-      <div className="relative flex h-screen flex-1 items-center justify-center overflow-hidden">
+      <div className="relative hidden h-screen flex-1 items-center justify-center overflow-hidden md:flex">
         <video
           muted
           loop
           autoPlay
-          className="h-[80dvh]"
+          className="md:h-[80dvh]"
           playsInline
           preload="auto"
         >

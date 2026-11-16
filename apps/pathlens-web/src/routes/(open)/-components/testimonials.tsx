@@ -204,14 +204,14 @@ export const Testimonials = () => {
   }, [isHovered, reducedMotion])
 
   return (
-    <div className="nut-top-right space-y-10 p-10 pt-20">
+    <div className="md:nut-top-right space-y-10 p-5 pt-20">
       <div className="mx-auto flex flex-col items-center justify-center gap-8 text-center">
-        <div>
-          <p className="mx-auto w-fit text-center text-4xl font-medium">
+        <div className="md:space-y-2">
+          <p className="mx-auto w-fit text-center text-3xl font-medium md:text-4xl">
             Join the <span className="text-primary">Community</span>
           </p>
 
-          <p className="text-muted-foreground mx-auto mt-3 max-w-lg">
+          <p className="text-muted-foreground mx-auto max-w-lg">
             Join a growing community of developers, creators, and businesses
             building better digital experiences with Pathlens. Discover their
             stories, share ideas, and learn from real experiences.

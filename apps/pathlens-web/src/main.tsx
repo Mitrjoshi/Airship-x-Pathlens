@@ -8,7 +8,6 @@ import { routeTree } from './routeTree.gen'
 import { ThemeProvider } from './components/common/theme-provider'
 import { TooltipProvider } from '@workspace/ui/components/tooltip'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { NotFound } from './components/common/not-found'
 import { Toaster } from '@workspace/ui/components/toast'
 
 export const queryClient = new QueryClient({})
@@ -17,7 +16,6 @@ export const queryClient = new QueryClient({})
 const router = createRouter({
   routeTree,
   context: { queryClient },
-  defaultNotFoundComponent: () => <NotFound />,
 })
 
 // Register the router instance for type safety

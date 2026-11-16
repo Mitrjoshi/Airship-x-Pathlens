@@ -1,6 +1,7 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { consumeGithubState, getGithubState } from '@/lib/github-auth'
+import { Button } from '@workspace/ui/components/button'
 
 export const Route = createFileRoute('/(auth)/github-callback')({
   component: GithubCallback,
@@ -29,9 +30,18 @@ function GithubCallback() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
-      <p className="text-muted-foreground text-sm">
-        {error ?? 'Completing GitHub login...'}
-      </p>
+      {error ? (
+        <div className="flex flex-col items-center justify-center gap-2">
+          <p className="text-destructive font-semibold">{error}</p>
+          <Button render={<Link to="/login" />} variant={'outline'}>
+            Back to Login
+          </Button>
+        </div>
+      ) : (
+        <p className="text-muted-foreground shimmer font-semibold">
+          {'Completing Github login...'}
+        </p>
+      )}
     </div>
   )
 }

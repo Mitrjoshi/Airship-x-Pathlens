@@ -9,8 +9,8 @@ export const WebsitesTracking = () => {
   const activeProjects = data?.data?.count
 
   return (
-    <div className="grid grid-cols-2 items-center divide-x-2 divide-dashed">
-      <div className="nut-top-right flex h-full flex-col justify-center pl-10">
+    <div className="grid items-center divide-y-2 divide-dashed md:grid-cols-2 md:divide-x-2">
+      <div className="md:nut-top-right flex h-full flex-col justify-center p-5 pl-5 md:p-10">
         <p className="text-4xl font-medium">Websites Tracked</p>
         <p className="text-muted-foreground mt-4 max-w-sm">
           Pathlens helps websites understand their visitors through powerful,
@@ -21,7 +21,7 @@ export const WebsitesTracking = () => {
         </p>
       </div>
 
-      <div className="nut-bottom-left">
+      <div className="md:nut-bottom-left">
         <DotMatrixText
           value={isLoading ? '' : formatNumber(activeProjects)}
           className="w-full"

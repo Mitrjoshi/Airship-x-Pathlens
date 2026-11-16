@@ -1,4 +1,3 @@
-import { UsersIcon } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
@@ -140,15 +139,12 @@ export const BuiltForVisitor = () => {
   }, [])
 
   return (
-    <div className="grid grid-cols-2 gap-4 p-5">
+    <div className="grid gap-4 p-5 md:grid-cols-2">
       <div className="flex flex-col justify-between gap-2 space-y-4">
         <div>
-          <p className="text-muted-foreground font-medium">
-            <UsersIcon className="mr-2 inline-block" size={18} />
-            Visitors
-          </p>
+          <p className="font-medium">Visitors</p>
 
-          <p className="text-muted-foreground mt-2 text-sm">
+          <p className="text-muted-foreground text-sm">
             See unique visitors, sessions, returning users, devices, browsers,
             countries, and more from{' '}
             <span className="text-foreground font-medium">

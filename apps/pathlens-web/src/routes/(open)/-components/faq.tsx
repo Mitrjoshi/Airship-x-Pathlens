@@ -65,21 +65,21 @@ export const FAQ = () => {
   return (
     <HomeLayout>
       <DotLayout className="border-x-2 border-t-2 border-dashed">
-        <div className="bg-background nut-top-left nut-top-right mx-auto grid max-w-[75%] grid-cols-2 border-x-2 border-dashed">
-          <div className="border-r-2 border-dashed p-20">
-            <p className="text-4xl font-medium">
+        <div className="bg-background md:nut-top-left md:nut-top-right mx-auto grid border-dashed md:max-w-[75%] md:grid-cols-2 md:border-x-2">
+          <div className="border-b-2 border-dashed p-5 md:space-y-2 md:border-r-2 md:p-20">
+            <p className="text-3xl font-medium md:text-4xl">
               Your questions,
               <br />
               answered
             </p>
 
-            <p className="text-muted-foreground mt-4 max-w-sm">
+            <p className="text-muted-foreground max-w-sm">
               Everything you need to know about tracking, privacy, analytics,
               and getting started with Pathlens.
             </p>
           </div>
 
-          <div className="p-10">
+          <div className="p-5 md:p-10">
             <FaqQuestions />
           </div>
         </div>

@@ -3,7 +3,6 @@ import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
 import type { LucideIcon } from 'lucide-react'
 import {
   DownloadIcon,
-  GoalIcon,
   MousePointerClickIcon,
   SendIcon,
   ShoppingBagIcon,
@@ -177,12 +176,9 @@ export const BuiltForGoals = () => {
     <div className="group">
       <div className="flex h-full flex-col justify-between overflow-hidden">
         <div className="p-5">
-          <p className="text-muted-foreground font-medium">
-            <GoalIcon className="mr-2 inline-block" size={18} />
-            Goals & Conversions
-          </p>
+          <p className="font-medium">Goals & Conversions</p>
 
-          <p className="text-muted-foreground mt-2 text-sm">
+          <p className="text-muted-foreground text-sm">
             Track{' '}
             <span className="text-foreground">
               sign-ups, purchases, form submissions, button clicks, downloads

@@ -12,7 +12,7 @@ function RouteComponent() {
   return (
     <HomeLayout>
       <DotLayout className="border-x-2 border-dashed">
-        <div className="bg-background mx-auto w-[75%] space-y-20 border-x-2 border-dashed py-20">
+        <div className="bg-background mx-auto space-y-20 border-dashed px-5 py-20 md:w-[75%] md:border-x-2">
           <div className="mx-auto w-fit">
             <div>
               <TitleReveal
@@ -23,8 +23,8 @@ function RouteComponent() {
             </div>
           </div>
 
-          <div className="nut-all mx-auto grid max-w-[75%] grid-cols-2 divide-x-2 divide-dashed border-2 border-dashed">
-            <div className="nut-top-right">
+          <div className="nut-all mx-auto grid divide-y-2 divide-dashed border-2 border-dashed md:max-w-[75%] md:grid-cols-2 md:divide-x-2">
+            <div className="md:nut-top-right nut-bottom-left">
               <PricingCard
                 plan="FREE"
                 price={0}
@@ -75,7 +75,7 @@ function RouteComponent() {
               />
             </div>
 
-            <div className="nut-bottom-left">
+            <div className="md:nut-bottom-left nut-top-right">
               <PricingCard
                 best
                 plan="UNLIMITED"

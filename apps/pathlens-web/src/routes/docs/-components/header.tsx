@@ -1,3 +1,4 @@
+import { ModeToggle } from '@/components/common/mode-toggle'
 import { NavUser } from '@/components/common/nav-user'
 import { getUsersOptions } from '@/queries/user'
 import { useQuery } from '@tanstack/react-query'
@@ -11,7 +12,7 @@ import {
 } from '@workspace/ui/components/input-group'
 import { Separator } from '@workspace/ui/components/separator'
 import { Skeleton } from '@workspace/ui/components/skeleton'
-import { SearchIcon, SparkleIcon } from 'lucide-react'
+import { SearchIcon } from 'lucide-react'
 
 export const Header = () => {
   const token = localStorage.getItem('pathlens-token')
@@ -25,16 +26,14 @@ export const Header = () => {
 
   return (
     <div className="sticky top-0 z-12 flex h-14.25 items-center border-b-2 border-dashed">
-      <nav className="bg-background z-12 w-full border-dashed px-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-12">
-            <Link to="/docs" className="group flex items-center gap-2">
+      <nav className="bg-background z-12 flex h-full w-full items-center border-dashed px-5">
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link to="/docs" className="flex items-center gap-2">
               <img src="/logo.svg" className="size-8" alt="Pathlens" />
 
               <div className="flex items-center gap-2">
-                <p className="group-hover:text-primary text-2xl font-bold duration-200">
-                  Pathlens
-                </p>
+                <p className="text-2xl font-bold duration-200">Pathlens</p>
                 <Button size="xs" className={'mt-0.75'} variant={'outline'}>
                   DOCS
                 </Button>
@@ -42,10 +41,9 @@ export const Header = () => {
             </Link>
 
             <div className="flex items-center">
-              <Button variant="ghost">Getting Started</Button>
-              <Button variant="ghost">Tracking</Button>
-              <Button variant="ghost">Integrations</Button>
-              <Button variant="ghost">API Reference</Button>
+              <Button render={<Link to="/docs/directory" />} variant="ghost">
+                Directory
+              </Button>
             </div>
           </div>
 
@@ -60,24 +58,25 @@ export const Header = () => {
               </InputGroupText>
             </InputGroup>
 
-            <Button variant={'outline'}>
-              <SparkleIcon />
-              Ask AI
-            </Button>
-
-            <Separator orientation="vertical" />
-
             {isLoading ? (
               <Skeleton className="aspect-square size-8 rounded-full" />
             ) : (
               <>
                 {user ? (
-                  <NavUser user={user!} />
+                  <>
+                    <Separator orientation="vertical" />
+                    <Button render={<Link to="/app" />}>Dashboard</Button>
+                    <NavUser user={user!} />
+                  </>
                 ) : (
-                  <Button render={<Link to="/login">Login</Link>}>Login</Button>
+                  <Button render={<Link to="/login" />}>Login</Button>
                 )}
               </>
             )}
+
+            <Separator orientation="vertical" />
+
+            <ModeToggle />
           </div>
         </div>
       </nav>

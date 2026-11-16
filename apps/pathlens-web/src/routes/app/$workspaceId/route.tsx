@@ -51,10 +51,11 @@ import { SearchOverAppDialog } from '@/components/common/search-over-app-dialog'
 import { navigationIcons } from '@/config/navigation-icons'
 import { GracePeriod } from '../-components/grace-period'
 import { ProjectPaused } from './$projectId/-components/common/project-paused'
+import { NotFound } from '@/components/common/not-found'
 
 export const Route = createFileRoute('/app/$workspaceId')({
   component: RouteComponent,
-  context: () => {},
+  notFoundComponent: () => <NotFound />,
 })
 
 function RouteComponent() {
@@ -508,27 +509,32 @@ export const WorkspaceSwitcher = ({
 
   return (
     <>
-      <Button
-        onClick={() => {
-          navigate({
-            to: '/app/$workspaceId',
-            params: {
-              workspaceId: activeWorkspace,
-            },
-          })
-        }}
-        variant="link"
-        size="lg"
-        className={
-          'text-foreground w-full flex-1 justify-start overflow-hidden pl-1 text-lg'
-        }
-      >
-        {workspaceDataLoading ? (
-          <Skeleton className="h-4 w-30" />
-        ) : (
-          <p className="truncate">{workspace?.name}</p>
-        )}
-      </Button>
+      <div className="flex items-center justify-start gap-2">
+        <Link to="/app" className="flex items-center gap-2">
+          <img src="/logo.svg" className="size-8" alt="Pathlens" />
+        </Link>
+        <Button
+          onClick={() => {
+            navigate({
+              to: '/app/$workspaceId',
+              params: {
+                workspaceId: activeWorkspace,
+              },
+            })
+          }}
+          variant="link"
+          size="lg"
+          className={
+            'text-foreground text-md w-full flex-1 items-center justify-start overflow-hidden pl-0'
+          }
+        >
+          {workspaceDataLoading ? (
+            <Skeleton className="h-4 w-30" />
+          ) : (
+            <p className="truncate">{workspace?.name}</p>
+          )}
+        </Button>
+      </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger

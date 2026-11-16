@@ -28,6 +28,7 @@ import { Route as AppWorkspaceIdRouteRouteImport } from './routes/app/$workspace
 import { Route as AppentryRouteRouteImport } from './routes/app/(entry)/route'
 import { Route as AppCheckoutRouteImport } from './routes/app/checkout'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as DocsDirectoryRouteImport } from './routes/docs/directory'
 import { Route as DocsQuickStartRouteRouteImport } from './routes/docs/quick-start/route'
 import { Route as openCareersIndexRouteImport } from './routes/(open)/careers/index'
 import { Route as openCareersJobsRouteImport } from './routes/(open)/careers/jobs'
@@ -163,6 +164,11 @@ const AppCheckoutRoute = AppCheckoutRouteImport.update({
 const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsDirectoryRoute = DocsDirectoryRouteImport.update({
+  id: '/directory',
+  path: '/directory',
   getParentRoute: () => DocsRouteRoute,
 } as any)
 const DocsQuickStartRouteRoute = DocsQuickStartRouteRouteImport.update({
@@ -432,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof referencesPrivacyRoute
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
+  '/docs/directory': typeof DocsDirectoryRoute
   '/': typeof openIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/careers/jobs': typeof openCareersJobsRoute
@@ -491,6 +498,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof referencesPrivacyRoute
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
+  '/docs/directory': typeof DocsDirectoryRoute
   '/': typeof openIndexRoute
   '/docs': typeof DocsIndexRoute
   '/careers/jobs': typeof openCareersJobsRoute
@@ -557,6 +565,7 @@ export interface FileRoutesById {
   '/(references)/privacy': typeof referencesPrivacyRoute
   '/(references)/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
+  '/docs/directory': typeof DocsDirectoryRoute
   '/(open)/': typeof openIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/(open)/careers/jobs': typeof openCareersJobsRoute
@@ -621,6 +630,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/app/checkout'
+    | '/docs/directory'
     | '/'
     | '/docs/'
     | '/careers/jobs'
@@ -680,6 +690,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/app/checkout'
+    | '/docs/directory'
     | '/'
     | '/docs'
     | '/careers/jobs'
@@ -745,6 +756,7 @@ export interface FileRouteTypes {
     | '/(references)/privacy'
     | '/(references)/terms'
     | '/app/checkout'
+    | '/docs/directory'
     | '/(open)/'
     | '/docs/'
     | '/(open)/careers/jobs'
@@ -934,6 +946,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/docs/'
       preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/docs/directory': {
+      id: '/docs/directory'
+      path: '/directory'
+      fullPath: '/docs/directory'
+      preLoaderRoute: typeof DocsDirectoryRouteImport
       parentRoute: typeof DocsRouteRoute
     }
     '/docs/quick-start': {
@@ -1448,11 +1467,13 @@ const DocsQuickStartRouteRouteWithChildren =
 
 interface DocsRouteRouteChildren {
   DocsQuickStartRouteRoute: typeof DocsQuickStartRouteRouteWithChildren
+  DocsDirectoryRoute: typeof DocsDirectoryRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
 const DocsRouteRouteChildren: DocsRouteRouteChildren = {
   DocsQuickStartRouteRoute: DocsQuickStartRouteRouteWithChildren,
+  DocsDirectoryRoute: DocsDirectoryRoute,
   DocsIndexRoute: DocsIndexRoute,
 }
 

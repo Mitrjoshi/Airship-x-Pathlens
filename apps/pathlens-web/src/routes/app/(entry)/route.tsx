@@ -25,9 +25,11 @@ import { SearchOverAppDialog } from '@/components/common/search-over-app-dialog'
 import { Header } from '../-components/header'
 import { Separator } from '@workspace/ui/components/separator'
 import { navigationIcons } from '@/config/navigation-icons'
+import { NotFound } from '@/components/common/not-found'
 
 export const Route = createFileRoute('/app/(entry)')({
   component: RouteComponent,
+  notFoundComponent: () => <NotFound />,
 })
 
 function RouteComponent() {

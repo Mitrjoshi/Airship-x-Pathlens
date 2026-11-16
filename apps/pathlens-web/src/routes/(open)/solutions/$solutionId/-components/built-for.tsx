@@ -10,8 +10,8 @@ import { Link } from '@tanstack/react-router'
 export const BuiltFor = () => {
   return (
     <div>
-      <div className="max-w-[50%] space-y-2">
-        <p className="text-4xl font-medium">Built for clarity</p>
+      <div className="space-y-2 md:max-w-[50%]">
+        <p className="text-3xl font-medium md:text-4xl">Built for clarity</p>
         <p className="text-muted-foreground">
           Website analytics shouldn’t take hours to understand. Pathlens turns
           visits, journeys, engagement, traffic sources, and conversions into
@@ -23,8 +23,8 @@ export const BuiltFor = () => {
         </p>
       </div>
 
-      <div className="mt-20 divide-y-2 divide-dashed border-2 border-dashed">
-        <div className="nut-all grid grid-cols-[1.3fr_1fr] divide-x-2 divide-dashed">
+      <div className="mt-10 divide-y-2 divide-dashed border-2 border-dashed md:mt-20">
+        <div className="nut-all grid divide-y-2 divide-dashed md:grid-cols-[1.3fr_1fr] md:divide-x-2">
           <div className="nut-top-right">
             <BuiltForVisitor />
           </div>
@@ -32,7 +32,7 @@ export const BuiltFor = () => {
             <BuiltForTrafficSource />
           </div>
         </div>
-        <div className="grid grid-cols-[1fr_1fr_1fr] divide-x-2 divide-dashed">
+        <div className="grid divide-y-2 divide-dashed md:grid-cols-[1fr_1fr_1fr] md:divide-x-2">
           <div className="nut-top-right nut-bottom-left">
             <BuiltForLiveActivity />
           </div>
@@ -44,7 +44,7 @@ export const BuiltFor = () => {
           </div>
         </div>
 
-        <div className="nut-bottom-left grid grid-cols-[1fr_2fr] divide-x-2 divide-dashed">
+        <div className="nut-bottom-left grid divide-y-2 divide-dashed md:grid-cols-[1fr_2fr] md:divide-x-2">
           <div className="">
             <BuiltForGoals />
           </div>

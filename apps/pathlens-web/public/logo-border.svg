@@ -1,0 +1,226 @@
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 500 500"
+  width="500"
+  height="500"
+  fill="none"
+>
+  <defs>
+    <!-- Animated metallic stroke -->
+    <linearGradient
+      id="logo-stroke-gradient"
+      x1="0"
+      y1="0"
+      x2="1"
+      y2="1"
+      gradientUnits="objectBoundingBox"
+    >
+      <stop offset="0%" stop-color="#5A5A5A" stop-opacity="0.2">
+        <animate
+          attributeName="stop-opacity"
+          values="0.2;0.4;0.2"
+          dur="7s"
+          repeatCount="indefinite"
+        />
+      </stop>
+
+      <stop offset="25%" stop-color="#838383" stop-opacity="0.55">
+        <animate
+          attributeName="stop-opacity"
+          values="0.55;0.8;0.55"
+          dur="7s"
+          repeatCount="indefinite"
+        />
+      </stop>
+
+      <stop offset="50%" stop-color="#BDBDBD" stop-opacity="0.95">
+        <animate
+          attributeName="stop-color"
+          values="#BDBDBD;#E0E0E0;#BDBDBD"
+          dur="7s"
+          repeatCount="indefinite"
+        />
+      </stop>
+
+      <stop offset="75%" stop-color="#838383" stop-opacity="0.55">
+        <animate
+          attributeName="stop-opacity"
+          values="0.55;0.35;0.55"
+          dur="7s"
+          repeatCount="indefinite"
+        />
+      </stop>
+
+      <stop offset="100%" stop-color="#5A5A5A" stop-opacity="0.2">
+        <animate
+          attributeName="stop-opacity"
+          values="0.2;0.35;0.2"
+          dur="7s"
+          repeatCount="indefinite"
+        />
+      </stop>
+
+      <animateTransform
+        attributeName="gradientTransform"
+        type="rotate"
+        values="0 0.5 0.5;180 0.5 0.5;360 0.5 0.5"
+        dur="18s"
+        repeatCount="indefinite"
+      />
+    </linearGradient>
+
+    <!-- Animated subtle fill -->
+    <linearGradient
+      id="logo-fill-gradient"
+      x1="0"
+      y1="0"
+      x2="1"
+      y2="1"
+      gradientUnits="objectBoundingBox"
+    >
+      <stop offset="0%" stop-color="#141414" stop-opacity="0.31">
+        <animate
+          attributeName="stop-opacity"
+          values="0.31;0.43;0.31"
+          dur="9s"
+          repeatCount="indefinite"
+        />
+      </stop>
+
+      <stop offset="35%" stop-color="#2A2A2A" stop-opacity="0.31">
+        <animate
+          attributeName="stop-opacity"
+          values="0.31;0.48;0.31"
+          dur="9s"
+          repeatCount="indefinite"
+        />
+      </stop>
+
+      <stop offset="65%" stop-color="#3B3B3B" stop-opacity="0.31">
+        <animate
+          attributeName="stop-opacity"
+          values="0.31;0.45;0.31"
+          dur="9s"
+          repeatCount="indefinite"
+        />
+      </stop>
+
+      <stop offset="100%" stop-color="#171717" stop-opacity="1">
+        <animate
+          attributeName="stop-color"
+          values="#171717;#242424;#171717"
+          dur="9s"
+          repeatCount="indefinite"
+        />
+      </stop>
+
+      <animateTransform
+        attributeName="gradientTransform"
+        type="rotate"
+        values="0 0.5 0.5;180 0.5 0.5;360 0.5 0.5"
+        dur="24s"
+        repeatCount="indefinite"
+      />
+    </linearGradient>
+
+    <!-- Soft ambient glow -->
+    <filter
+      id="logo-glow"
+      x="-25%"
+      y="-25%"
+      width="150%"
+      height="150%"
+    >
+      <feGaussianBlur
+        in="SourceGraphic"
+        stdDeviation="5"
+      >
+        <animate
+          attributeName="stdDeviation"
+          values="3;6;3"
+          dur="6s"
+          repeatCount="indefinite"
+        />
+      </feGaussianBlur>
+    </filter>
+
+    <!-- Moving metallic highlight -->
+    <linearGradient
+      id="logo-shimmer"
+      x1="-1"
+      y1="0"
+      x2="0"
+      y2="1"
+      gradientUnits="objectBoundingBox"
+    >
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset="42%" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.65" />
+      <stop offset="58%" stop-color="#FFFFFF" stop-opacity="0" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+
+      <animate
+        attributeName="x1"
+        values="-1;1"
+        dur="8s"
+        repeatCount="indefinite"
+      />
+      <animate
+        attributeName="x2"
+        values="0;2"
+        dur="8s"
+        repeatCount="indefinite"
+      />
+    </linearGradient>
+
+    <!-- Original logo shape -->
+    <path
+      id="pathlens-logo-shape"
+      d="M157.76 136.87C154.64 131.51 154.06 118.96 153.67 112.66C153.13 103.94 153.66 95.43 155.57 86.92C162.34 56.75 190.26 40.8 218.53 35.29C236.08 31.87 257.72 35.39 275.24 38.16C327.28 46.38 385.04 70.87 424.7 106.12C445.27 124.41 470.27 158.27 464.67 187.36C457.66 223.76 415.31 238.55 382.42 238.94C377.31 239 361.98 240.15 357.89 238.62C355.89 237.86 356.29 234.3 356.15 232.65C355.77 228.18 353.97 222.57 352.04 218.52C344.88 203.56 334.98 190.64 322.61 179.44C290.02 149.93 243.38 131.25 199.32 130.79C192.03 130.72 183.85 130.6 176.72 132.21C172.43 133.17 161.17 136.83 157.76 136.87ZM305.94 249.19C308.98 249.19 312.02 249.19 315.07 249.19C321.98 249.55 328.93 249.2 335.84 249.45C370.48 250.68 410.85 250.99 439.85 229.11C446.57 224.04 452.48 218.37 457.42 211.53C459.54 208.6 460.71 203.99 463.24 201.6C463.82 206.09 461.49 212.37 460.22 216.67C457.1 227.22 454.23 237.44 450.25 247.74C433.48 291.13 394.58 336.88 347.89 348.59C331.66 352.67 315.12 353.34 298.4 353.88C289.27 354.18 277.24 353.65 269.3 359.05C257.22 367.27 258.3 381.12 257.71 394.29C257.22 405.22 255.95 415.87 252.45 426.21C239.55 464.33 193.98 471.43 159.62 461.56C150.64 458.98 142.27 454.72 134.4 449.86C98.09 427.45 83.69 382.74 71.02 344.7C66.4 330.84 60.79 317.21 56.29 303.35C36.95 243.68 22.09 180.01 52.39 121.11C58.75 108.74 68.38 97 78.46 87.38C81.75 84.23 85.56 81.65 88.87 78.6C101.81 66.69 119.55 57.71 135.98 51.75C149.93 46.69 162.54 43.32 176.96 39.83C183.91 38.15 192.44 35.62 199.67 36.3C195.37 39.26 188.86 40.11 183.98 42.23C172.25 47.31 160.2 56.28 153.33 67.25C136.23 94.58 140.58 126.1 146.8 156.16C150.09 172.04 155.28 187.42 160.56 202.64C167.84 223.65 175.26 244.68 183.02 265.56C187.96 278.86 193.8 292.15 197.67 305.73C204.16 328.49 211.66 350.65 216.68 373.91C218.24 381.15 219.44 388.72 219.81 396.12C220.01 400.13 218.98 405.64 220.38 409.36C225.45 408.7 230.62 396.71 232.38 392.46C239.72 374.76 236.05 347.3 234.26 328.54C232.9 314.29 230.22 300 231.97 285.62C236.22 250.73 279.4 250.54 305.94 249.19Z"
+    />
+  </defs>
+
+  <!-- Breathing ambient glow -->
+  <use
+    href="#pathlens-logo-shape"
+    fill="none"
+    stroke="#BDBDBD"
+    stroke-width="5"
+    filter="url(#logo-glow)"
+    opacity="0.13"
+  >
+    <animate
+      attributeName="opacity"
+      values="0.08;0.2;0.08"
+      dur="6s"
+      repeatCount="indefinite"
+    />
+  </use>
+
+  <!-- Main logo -->
+  <use
+    href="#pathlens-logo-shape"
+    fill="url(#logo-fill-gradient)"
+    stroke="url(#logo-stroke-gradient)"
+    stroke-width="4"
+    stroke-linejoin="round"
+  />
+
+  <!-- Animated light reflection -->
+  <use
+    href="#pathlens-logo-shape"
+    fill="none"
+    stroke="url(#logo-shimmer)"
+    stroke-width="2"
+    stroke-linejoin="round"
+    opacity="0.45"
+  >
+    <animate
+      attributeName="opacity"
+      values="0.2;0.55;0.2"
+      dur="8s"
+      repeatCount="indefinite"
+    />
+  </use>
+</svg>

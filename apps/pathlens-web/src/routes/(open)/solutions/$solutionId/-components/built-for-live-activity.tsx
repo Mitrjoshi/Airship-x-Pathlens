@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { MousePointer2Icon, RadioIcon, UsersIcon } from 'lucide-react'
+import { MousePointer2Icon, UsersIcon } from 'lucide-react'
 
 const activePages = [
   {
@@ -46,12 +46,9 @@ export const BuiltForLiveActivity = () => {
     <div className="group">
       <div className="flex h-full flex-col justify-between overflow-hidden">
         <div className="p-5">
-          <p className="text-muted-foreground font-medium">
-            <RadioIcon className="mr-2 inline-block" size={18} />
-            Live Activity
-          </p>
+          <p className="font-medium">Live Activity</p>
 
-          <p className="text-muted-foreground mt-2 text-sm">
+          <p className="text-muted-foreground text-sm">
             Watch{' '}
             <span className="text-foreground font-medium">
               visitors, active pages, events, and interactions
@@ -66,7 +63,7 @@ export const BuiltForLiveActivity = () => {
 
           {/* live status */}
           <div className="absolute top-5 left-5 z-10 flex items-center gap-2">
-            <div className="bg-background/90 flex items-center gap-2 rounded-full border px-3 py-1.5 shadow-sm backdrop-blur">
+            <div className="bg-background/90 flex items-center gap-2 border px-3 py-1.5 shadow-sm backdrop-blur">
               <span className="relative flex size-2">
                 <span className="bg-primary absolute inline-flex size-full animate-ping rounded-full opacity-40" />
                 <span className="bg-primary relative inline-flex size-2 rounded-full" />
@@ -277,7 +274,7 @@ export const BuiltForLiveActivity = () => {
               repeat: Infinity,
               repeatDelay: 3,
             }}
-            className="bg-background absolute top-[42%] left-[18%] z-10 rounded-lg border px-2.5 py-1.5 shadow-sm"
+            className="bg-background absolute top-[42%] left-[18%] z-10 border px-2.5 py-1.5 shadow-sm"
           >
             <div className="flex items-center gap-2">
               <span className="bg-primary size-1.5 rounded-full" />

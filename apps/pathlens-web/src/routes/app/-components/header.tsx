@@ -137,7 +137,7 @@ export const ProjectSwitcher = ({
             })
           }}
           variant="link"
-          className="text-foreground text-lg"
+          className="text-foreground text-md"
         >
           {projectDataLoading ? (
             <Skeleton className="h-4 w-30" />

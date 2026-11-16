@@ -3,7 +3,6 @@ import {
   ArrowUpRightIcon,
   Clock3Icon,
   FileTextIcon,
-  LayersIcon,
   TrendingUpIcon,
 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
@@ -166,12 +165,9 @@ export const BuiltForPages = () => {
       <div className="flex h-full flex-col justify-between overflow-hidden">
         {/* Header */}
         <div className="p-5">
-          <p className="text-muted-foreground font-medium">
-            <LayersIcon className="mr-2 inline-block" size={18} />
-            Pages & Content
-          </p>
+          <p className="font-medium">Pages & Content</p>
 
-          <p className="text-muted-foreground mt-2 text-sm">
+          <p className="text-muted-foreground text-sm">
             Discover top pages, track engagement, and see what{' '}
             <span className="text-foreground">people love most</span>.
           </p>

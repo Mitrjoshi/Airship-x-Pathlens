@@ -187,21 +187,16 @@ export const FewLinesOfCode = () => {
 
   return (
     <div className="space-y-12">
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="mx-auto max-w-2xl md:space-y-2">
         <div>
-          <p className="text-center text-4xl font-medium">
+          <p className="text-center text-3xl font-medium md:text-4xl">
             A few lines of code.
           </p>
-          <p className="mx-auto w-fit text-center text-4xl font-medium">
+          <p className="mx-auto w-fit text-center text-3xl font-medium md:text-4xl">
             Complete website
             <AnimatedWords
               extraWidth={32}
-              words={[
-                ' Analytics.',
-                ' Insights.',
-                ' Behavior.',
-                ' Intelligence.',
-              ]}
+              words={['Analytics.', 'Insights.', 'Behavior.', 'Intelligence.']}
             />
           </p>
         </div>
@@ -214,39 +209,41 @@ export const FewLinesOfCode = () => {
       </div>
 
       <div className="space-y-8">
-        <div className="mx-auto flex w-fit items-center justify-center rounded-full border p-1">
-          {integrations.map((item) => {
-            const isActive = activeIntegration === item.id
+        <div className="w-full scrollbar-none overflow-x-auto">
+          <div className="mx-auto flex w-max min-w-fit items-center justify-center gap-1 rounded-full border p-1">
+            {integrations.map((item) => {
+              const isActive = activeIntegration === item.id
 
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveIntegration(item.id)}
-                className="hover:bg-secondary relative cursor-pointer rounded-full px-4 py-2 duration-150"
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="active-integration-tab-pill"
-                    className="bg-primary absolute inset-0 rounded-full"
-                    transition={{
-                      type: 'spring',
-                      stiffness: 380,
-                      damping: 30,
-                    }}
-                  />
-                )}
-
-                <span
-                  className={`relative z-10 transition-colors duration-200 ${
-                    isActive ? 'text-black' : 'text-muted-foreground'
-                  }`}
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveIntegration(item.id)}
+                  className="hover:bg-secondary relative shrink-0 cursor-pointer rounded-full px-3 py-2 text-xs whitespace-nowrap transition-colors duration-150 sm:px-4 sm:text-sm"
                 >
-                  {item.label}
-                </span>
-              </button>
-            )
-          })}
+                  {isActive && (
+                    <motion.div
+                      layoutId="active-integration-tab-pill"
+                      className="bg-primary absolute inset-0 rounded-full"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 380,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+
+                  <span
+                    className={`relative z-10 transition-colors duration-200 ${
+                      isActive ? 'text-black' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="nut-all mx-auto max-w-2xl border-2 border-dashed">

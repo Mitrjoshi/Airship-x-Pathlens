@@ -23,19 +23,19 @@ const words = ['Story.', 'Behavior.', 'Journey.', 'Experience.', 'Intent.']
 export const Hero = () => {
   return (
     <>
-      <div className="space-y-20 px-8 py-20 pb-10">
-        <div className="flex items-start justify-between">
+      <div className="space-y-10 p-20 px-5 pb-10 md:space-y-20 md:px-8">
+        <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
           <div className="space-y-8">
             <div>
-              <p className="text-5xl font-medium">Every path has</p>
-              <p className="flex items-center gap-3 text-5xl font-medium">
+              <p className="text-4xl font-medium md:text-5xl">Every path has</p>
+              <p className="flex items-center gap-3 text-4xl font-medium md:text-5xl">
                 a <AnimatedWords words={words} />
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <p className="text-muted-foreground max-w-[40ch]">
+            <p className="text-muted-foreground md:max-w-[40ch]">
               Understand how users interact with your product, discover where
               they struggle, and turn real behavior into better experiences.
             </p>
@@ -59,15 +59,15 @@ export const HeroIcons = () => {
 
   return (
     <div className="bg-primary dots-grid-uni rounded-xl">
-      <div className="flashlight-bottom @container relative flex w-full flex-col items-center justify-center space-y-6 overflow-hidden py-32">
+      <div className="flashlight-bottom @container relative flex w-full flex-col items-center justify-center space-y-6 overflow-hidden px-5 py-16 md:px-0 md:py-32">
         <IconAnimations grouped={grouped} />
-        <div className="relative z-10 flex max-w-3xl flex-col items-center space-y-6">
-          <p className="text-center text-5xl font-semibold text-black">
+        <div className="relative z-10 flex flex-col items-center space-y-6 md:max-w-3xl">
+          <p className="text-center text-3xl font-semibold text-black md:text-5xl">
             Your users leave clues.{' '}
             <span className="block">We capture them.</span>
           </p>
 
-          <p className="max-w-2xl text-center text-black/80">
+          <p className="w-full text-center text-black/80 md:max-w-2xl">
             Every click. Every scroll. Every hesitation. Pathlens turns real
             user behavior into a clear picture of what’s working, what isn’t,
             and where people get stuck.
@@ -315,7 +315,7 @@ export const IconAnimations = ({ grouped }: { grouped: boolean }) => {
   }, [])
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 z-0 hidden overflow-hidden md:block">
       {/* Square boxes that the icons group into */}
       {([-1, 1] as const).map((side) => (
         <div
