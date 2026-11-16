@@ -8,9 +8,10 @@ import { TitleReveal } from '../(open)/products/$productId/-components/title-rev
 import {
   InputGroup,
   InputGroupAddon,
+  InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
-import { SearchIcon } from 'lucide-react'
+import { SearchIcon, XIcon } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -26,17 +27,25 @@ export const Route = createFileRoute('/docs/directory')({
 const columns = 3
 
 function RouteComponent() {
-  const [activeFilter, setActiveFilter] = useState('all')
+  const [activeFilter, setActiveFilter] = useState('All')
+  const [search, setSearch] = useState('')
 
   const filteredDirectory = useMemo(() => {
-    if (activeFilter.toLowerCase() === 'all') {
-      return directory
-    }
+    const query = search.trim().toLowerCase()
 
-    return directory.filter(
-      (item) => item.category.toLowerCase() === activeFilter.toLowerCase()
-    )
-  }, [activeFilter])
+    return directory.filter((item) => {
+      const matchesCategory =
+        activeFilter.toLowerCase() === 'all' ||
+        item.category.toLowerCase() === activeFilter.toLowerCase()
+
+      const matchesSearch =
+        item.title.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query)
+
+      return matchesCategory && matchesSearch
+    })
+  }, [activeFilter, search])
 
   return (
     <>
@@ -69,7 +78,17 @@ function RouteComponent() {
                     <SearchIcon />
                   </InputGroupAddon>
 
-                  <InputGroupInput placeholder="Search..." />
+                  <InputGroupInput
+                    value={search}
+                    placeholder="Search..."
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+
+                  {search && (
+                    <InputGroupButton onClick={() => setSearch('')}>
+                      <XIcon />
+                    </InputGroupButton>
+                  )}
                 </InputGroup>
 
                 <Select
@@ -101,7 +120,7 @@ function RouteComponent() {
                     <Link to={item.href}>
                       <div
                         key={index}
-                        className={`border-border group relative cursor-pointer border-r-2 border-b-2 border-dashed p-4 ${
+                        className={`border-border group relative h-full cursor-pointer border-r-2 border-b-2 border-dashed p-4 ${
                           isFirstRow && isFirstColumn ? 'nut-top-left' : ''
                         } ${isFirstRow ? 'nut-top-right nut-bottom-left' : ''} ${
                           isFirstColumn ? 'nut-bottom-left nut-top-left' : ''
