@@ -1,7 +1,7 @@
 # Pathlens Full Application Audit
 
-**Audit date:** 2026-11-13  
-**Repository revision inspected:** `da584bb`  
+**Audit date:** 2026-11-17  
+**Repository revision inspected:** `1531852`  
 **Scope:** repository-driven, read-only review of source, contracts, schemas, workers, deployment templates, scripts, tests, and tracked artifacts. No application, configuration, dependency, database, migration, or infrastructure files were changed.
 
 ## 1. Executive Summary
@@ -19,13 +19,14 @@ The application is **not ready for production based on the inspected scope**. Th
 7. Project reset/deletion performs storage deletion before the database transaction and does not visibly cover every derived, queued, or external artifact.
 8. Deployment configuration contains mutable `latest` image deployment commands and hardcoded AWS account/region/resource identifiers.
 9. Web lint is failing, including React effect, ref, and type-safety violations in application code.
+10. The production dependency graph has an untriaged advisory backlog, including one critical advisory reported by `pnpm audit`.
 
 ### Finding counts
 
 | Classification | Count |
 |---|---:|
 | Confirmed | 42 |
-| Probable | 11 |
+| Probable | 12 |
 | Potential / follow-up | 6 |
 | Informational / cleanup | 5 |
 
@@ -89,7 +90,7 @@ The absence of a confirmed Critical finding is not evidence of production safety
 - Snapshot worker source, Dockerfile, SAM template, S3 policy, queue handler, message validation, browser and storage logic.
 - Frontend routes/components/hooks by repository inventory, suspicious-pattern search, and lint execution.
 - Environment examples without printing values from local environment files.
-- Package manifests and available dependency lockfile; no external vulnerability database result was available.
+- Package manifests, lockfile, and a read-only `pnpm audit --prod --json` advisory scan.
 
 ### Not verified
 
@@ -97,6 +98,7 @@ The absence of a confirmed Critical finding is not evidence of production safety
 - Production database contents, query plans, migration execution state, and historical Git secret exposure beyond current tracked-file inspection.
 - Browser/runtime behavior against real customer websites, OAuth providers, Stripe, Slack, Google, GitHub, and Resend.
 - CI/CD workflow files: no `.github` files were found by repository globbing.
+- Dependency advisory applicability and exploitability in deployed bundles; `pnpm audit --prod` was run, but package advisories still require package-usage and runtime triage.
 
 ## 4. Hardcoded Values
 
@@ -256,11 +258,19 @@ The matrix establishes route inventory and static checks; it does not prove live
 
 Historical migrations were not recommended for deletion.
 
+### Dependency and supply-chain scan
+
+| ID | Severity | Confidence | Evidence | Impact and remediation |
+|---|---|---|---|---|
+| DEP-001 | Critical advisory exposure; application impact not yet classified | Confirmed advisory, Probable runtime impact | `pnpm audit --prod --json` reported 1 critical, 38 high, 51 moderate, and 8 low advisories across 975 production dependency entries. High/critical paths include `proxy-addr` through Express, `axios`, `zod`, `body-parser`, `follow-redirects`, `seroval`, `source-map-js`, and other transitive packages in the lockfile. | Do not mass-upgrade blindly. Produce a package-by-package triage from the lockfile, determine whether affected code paths are shipped or reachable, then apply the smallest patched-version updates with lockfile review, typecheck, builds, and regression tests. The `proxy-addr` advisory deserves priority because the API enables `trust proxy`; verify the deployed proxy topology before rating exploitability. |
+
+This scan is not treated as proof that every advisory is exploitable in Pathlens. It is a confirmed supply-chain remediation backlog requiring version, usage, and deployment-context verification.
+
 ## 12. Frontend Issues
 
 ### Confirmed lint findings
 
-`pnpm --filter @pathlens/web lint` failed with **39 errors and 11 warnings**. Important locations include:
+`pnpm --filter @pathlens/web lint` failed with **41 errors and 11 warnings**. Important locations include:
 
 - `apps/pathlens-web/src/components/common/live-preview-iframe.tsx:220,472,489,534` — synchronous state updates in effects and ref mutation during render.
 - `apps/pathlens-web/src/components/common/search-over-app-dialog.tsx:470,682` — `any` and state update in effect.
@@ -367,12 +377,20 @@ No percentage improvement is claimed without measurement.
 - `pnpm --filter @pathlens/api typecheck` — passed.
 - `pnpm --filter @pathlens/web typecheck` — passed.
 - `pnpm --filter @pathlens/tracker typecheck` — passed.
-- `pnpm --filter @pathlens/heatmap-proxy typecheck` — passed.
+- `pnpm --filter @pathlens/heatmap-proxy typecheck` and `typecheck:e2e` — passed.
 - `pnpm --filter @pathlens/snapshot-worker typecheck` — passed.
-- `pnpm --filter @pathlens/web lint` — failed: 39 errors, 11 warnings.
+- `pnpm --filter @workspace/contracts typecheck`, `@workspace/backend-types typecheck`, and `@workspace/ui typecheck` — passed.
+- `pnpm --filter @pathlens/web lint` — failed: 41 errors, 11 warnings.
 - `pnpm --filter @pathlens/heatmap-proxy test` — passed: 49 tests.
+- `pnpm --filter @pathlens/snapshot-worker test` — passed: 3 tests.
+- `pnpm --filter @pathlens/tracker test:queue` — passed: 10 tests; `test:replay` — passed: 8 tests.
+- API focused tests `test:geoip`, `test:pagespeed`, `test:search-console`, `test:heatmaps`, and `test:events` — passed: 46 tests total.
+- API `test:authorization` — passed: 10 tests; `test:preview-sessions` — passed: 6 tests. These suites use isolated mocks and do not prove database-backed authorization.
+- API `test:notifications` — passed: 96 tests and skipped 17 tests because isolated PostgreSQL/notification test environment variables were not configured.
+- `pnpm audit --prod --json` — exited non-zero and reported 1 critical, 38 high, 51 moderate, and 8 low advisories across 975 production dependency entries. Advisory presence is confirmed; reachability and exploitability remain to be triaged.
+- `pnpm format:check` — failed; 206 files were reported, including generated `.next`/fixture outputs and source files. The command was read-only.
 
-No database-backed API tests, live cloud tests, production builds, dependency advisory scan, or destructive tests were run.
+No database-backed API tests, live cloud tests, production builds, live dependency exploitability tests, or destructive tests were run.
 
 ### Missing tests
 
@@ -426,7 +444,7 @@ No database-backed API tests, live cloud tests, production builds, dependency ad
 6. **Privacy:** establish default masking/redaction, consent behavior, URL query stripping, stack scrubbing, retention, and deletion verification.
 7. **Deletion reliability:** use an outbox/deletion state machine for DB, S3, queues, cache, and derived data; make all steps idempotent.
 8. **Error/headers:** add structured safe error envelopes, correlation IDs, security headers, explicit cache controls, and trusted proxy configuration.
-9. **Deployment:** replace `latest` with digest-pinned images, pin base image digests, add CI gates and deployment approvals, and validate AWS account/region.
+9. **Deployment and dependency hygiene:** replace `latest` with digest-pinned images, pin base image digests, add CI gates and deployment approvals, validate AWS account/region, and triage `pnpm audit` results before upgrading.
 10. **Frontend/SDK quality:** fix lint violations, listener cleanup, bounded tracker queues, and preview effect/ref issues without changing UI behavior.
 
 Each fix should ship with negative authorization tests, failure injection where applicable, and rollback-safe deployment sequencing.
@@ -446,6 +464,7 @@ No confirmed Critical finding. Treat any discovery of an active exposed producti
 5. AUTH-001/TENANT-004 centralized permission context and complete route enforcement.
 6. TENANT-005 deletion/reset state machine and queue/storage cleanup.
 7. INFRA-001 immutable deployment artifacts.
+8. DEP-001 dependency advisories, beginning with the critical `proxy-addr` advisory and any runtime-reachable high findings.
 
 ### P2 — Medium
 
@@ -535,7 +554,7 @@ There are fewer than ten confirmed Critical findings. The ten highest-priority c
 - Inspect queue visibility timeout, max receive count, DLQs, event age, and duplicate delivery metrics.
 - Confirm product/legal decisions for consent, PII masking, recording retention, visitor identifiers, and deletion scope.
 - Run browser tests against representative customer frameworks and SSR/prerender environments.
-- Run dependency advisory scanning against `pnpm-lock.yaml`; no advisory tool result was available in this audit.
+- Triage the `pnpm audit --prod` results against shipped bundles and runtime paths; the scan reported one critical, 38 high, 51 moderate, and 8 low advisories.
 - Confirm whether email verification, account disablement, logout, and session revocation are product requirements.
 - Confirm all frontend TanStack Query keys include workspace/project scope and invalidation occurs after role changes.
 
@@ -600,6 +619,7 @@ The blocking issues are plaintext credential handling, secret-material exposure 
 | INFRA-004 | Medium | Confirmed | Broad snapshot S3 write scope |
 | INFRA-005 | Low | Potential | Queue/Lambda timeout alignment |
 | INFRA-007 | Medium | Not Verified | No CI workflow evidence |
+| DEP-001 | Critical advisory exposure | Probable runtime impact | Untriaged production dependency advisories from `pnpm audit` |
 | INT-003 | Medium | Probable | Provider timeout gaps |
 | INT-004 | Medium | Confirmed | Credential key rotation gap |
 | BILL-001 | Medium | Probable | No persisted webhook event IDs |

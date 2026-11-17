@@ -14,7 +14,7 @@ import { Separator } from '@workspace/ui/components/separator'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { SearchIcon } from 'lucide-react'
 
-export const Header = () => {
+export const Header = ({ showLogo = true }: { showLogo?: boolean }) => {
   const token = localStorage.getItem('pathlens-token')
 
   const { data: userData, isLoading } = useQuery({
@@ -26,23 +26,31 @@ export const Header = () => {
 
   return (
     <div className="sticky top-0 z-12 flex h-14.25 items-center border-b-2 border-dashed">
-      <nav className="bg-background z-12 flex h-full w-full items-center border-dashed px-5">
+      <nav className="bg-background z-12 flex h-full w-full items-center px-5">
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link to="/docs" className="flex items-center gap-2">
-              <img src="/logo.svg" className="size-8" alt="Pathlens" />
+            {showLogo && (
+              <>
+                <Link to="/docs" className="flex items-center gap-2">
+                  <img src="/logo.svg" className="size-8" alt="Pathlens" />
 
-              <div className="flex items-center gap-2">
-                <p className="text-2xl font-bold duration-200">Pathlens</p>
-                <Button size="xs" className={'mt-0.75'} variant={'outline'}>
-                  DOCS
-                </Button>
-              </div>
-            </Link>
+                  <div className="flex items-center gap-2">
+                    <p className="text-2xl font-bold duration-200">Pathlens</p>
+                    <Button size="xs" className={'mt-0.75'} variant={'outline'}>
+                      DOCS
+                    </Button>
+                  </div>
+                </Link>
+              </>
+            )}
 
             <div className="flex items-center">
               <Button render={<Link to="/docs/directory" />} variant="ghost">
                 Directory
+              </Button>
+
+              <Button render={<Link to="/docs/products" />} variant="ghost">
+                Products
               </Button>
             </div>
           </div>

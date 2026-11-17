@@ -2,7 +2,6 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { HomeLayout } from '../(open)/-components/home-layout'
 import { DotLayout } from '../(open)/-components/dot-layout'
 import { Separator } from '@workspace/ui/components/separator'
-import { directory, directoryFilters } from './constants/directory'
 import { useMemo, useState } from 'react'
 import { TitleReveal } from '../(open)/products/$productId/-components/title-reveal'
 import {
@@ -19,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select'
+import { directory, directoryFilters } from './-constants/directory'
 
 export const Route = createFileRoute('/docs/directory')({
   component: RouteComponent,

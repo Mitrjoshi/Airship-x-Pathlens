@@ -402,7 +402,7 @@ function RouteComponent() {
                               <TableCell className="w-32 text-center whitespace-nowrap">
                                 {item.averageScroll === null
                                   ? '—'
-                                  : `${item.averageScroll}%`}
+                                  : `${item.averageScroll.toFixed(0)}%`}
                               </TableCell>
 
                               <TableCell className="w-20 text-center">

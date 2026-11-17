@@ -10,13 +10,14 @@
     "verify": "turbo run lint typecheck build",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,css,md}\"",
+    "secrets:scan": "node scripts/scan-secrets.mjs",
     "clean": "turbo run clean",
     "layer": "node scripts/build-lambda-layer.mjs",
     "deploy:notifications": "node scripts/deploy-notifications.mjs",
     "deploy:notifications:staging": "node scripts/deploy-notifications.mjs --target staging",
-    "deploy:heatmap-proxy": "docker build --platform linux/amd64 --provenance=false -t pathlens-heatmap-proxy:latest -f apps/pathlens-heatmap-proxy/Dockerfile . && docker tag pathlens-heatmap-proxy:latest 176246209215.dkr.ecr.ap-south-1.amazonaws.com/pathlens/heatmap-proxy:latest && docker push 176246209215.dkr.ecr.ap-south-1.amazonaws.com/pathlens/heatmap-proxy:latest && aws lambda update-function-code --function-name pathlens-heatmap-proxy --image-uri 176246209215.dkr.ecr.ap-south-1.amazonaws.com/pathlens/heatmap-proxy:latest --region ap-south-1",
-    "deploy:snapshot-worker": "docker build --platform linux/amd64 --provenance=false -t pathlens-snapshot-worker:latest -f apps/pathlens-snapshot-worker/Dockerfile . && docker tag pathlens-snapshot-worker:latest 176246209215.dkr.ecr.ap-south-1.amazonaws.com/pathlens/snapshot-worker:latest && docker push 176246209215.dkr.ecr.ap-south-1.amazonaws.com/pathlens/snapshot-worker:latest && aws lambda update-function-code --function-name pathlens-snapshot-worker --image-uri 176246209215.dkr.ecr.ap-south-1.amazonaws.com/pathlens/snapshot-worker:latest --region ap-south-1",
-    "deploy:pathlens-api": "docker build --platform linux/amd64 --provenance=false -t pathlens-api:latest -f apps/pathlens-api/Dockerfile . && docker tag pathlens-api:latest 176246209215.dkr.ecr.ap-south-1.amazonaws.com/pathlens/api:latest && docker push 176246209215.dkr.ecr.ap-south-1.amazonaws.com/pathlens/api:latest && aws lambda update-function-code --function-name pathlens-api-dev --image-uri 176246209215.dkr.ecr.ap-south-1.amazonaws.com/pathlens/api:latest --region ap-south-1",
+    "deploy:heatmap-proxy": "node scripts/deploy-image.mjs --dockerfile apps/pathlens-heatmap-proxy/Dockerfile --repository pathlens/heatmap-proxy --function pathlens-heatmap-proxy",
+    "deploy:snapshot-worker": "node scripts/deploy-image.mjs --dockerfile apps/pathlens-snapshot-worker/Dockerfile --repository pathlens/snapshot-worker --function pathlens-snapshot-worker",
+    "deploy:pathlens-api": "node scripts/deploy-image.mjs --dockerfile apps/pathlens-api/Dockerfile --repository pathlens/api --function pathlens-api-dev",
     "ecr-login": "aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 176246209215.dkr.ecr.ap-south-1.amazonaws.com"
   },
   "devDependencies": {

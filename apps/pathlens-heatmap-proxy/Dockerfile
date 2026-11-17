@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/nodejs:24 AS build
+FROM public.ecr.aws/lambda/nodejs@sha256:a5a2e1a8334f3adc93c93ec8ce064995309b37a0e0cca3d00c7798790465a912 AS build
 
 WORKDIR /workspace
 
@@ -17,7 +17,7 @@ RUN test -f /out/node_modules/@workspace/contracts/dist/index.js
 RUN test ! -f /out/node_modules/@workspace/contracts/src/index.ts
 RUN node --input-type=module -e "import('./apps/pathlens-heatmap-proxy/dist/handler.js').then((module) => { if (typeof module.handler !== 'function') process.exit(1) })"
 
-FROM public.ecr.aws/lambda/nodejs:24
+FROM public.ecr.aws/lambda/nodejs@sha256:a5a2e1a8334f3adc93c93ec8ce064995309b37a0e0cca3d00c7798790465a912
 
 COPY --from=build /out/node_modules ${LAMBDA_TASK_ROOT}/node_modules
 COPY --from=build /workspace/apps/pathlens-heatmap-proxy/dist ${LAMBDA_TASK_ROOT}/dist

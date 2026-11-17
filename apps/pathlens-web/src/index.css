@@ -116,6 +116,16 @@
 
   --sidebar-border: #e5e5e5;
   --sidebar-ring: #41ce8f;
+
+  /* Logo fill — Light */
+  --logo-fill-start: #f5f5f5;
+  --logo-fill-mid: #e5e5e5;
+  --logo-fill-end: #ffffff;
+
+  /* Logo stroke — Light */
+  --logo-stroke-start: #737373;
+  --logo-stroke-mid: #a3a3a3;
+  --logo-stroke-end: #0a0a0a;
 }
 
 .dark {
@@ -178,6 +188,16 @@
 
   --sidebar-border: #262626;
   --sidebar-ring: #41ce8f;
+
+  /* Logo fill — Dark */
+  --logo-fill-start: #171717;
+  --logo-fill-mid: #262626;
+  --logo-fill-end: #121212;
+
+  /* Logo stroke — Dark */
+  --logo-stroke-start: #737373;
+  --logo-stroke-mid: #a3a3a3;
+  --logo-stroke-end: #fafafa;
 }
 
 @layer base {

@@ -1,7 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Separator } from '@workspace/ui/components/separator'
 import { HomeLayout } from '../(open)/-components/home-layout'
 import { DotLayout } from '../(open)/-components/dot-layout'
+import AnimatedLogo from '@/components/common/animated-logo'
+import { Button } from '@workspace/ui/components/button'
 
 export const Route = createFileRoute('/docs/')({
   component: RouteComponent,
@@ -10,17 +12,21 @@ export const Route = createFileRoute('/docs/')({
 function RouteComponent() {
   return (
     <>
-      <div className="mx-auto max-w-[75%] p-20">
-        <div className="flex items-center gap-4">
+      <div className="mx-auto max-w-[100rem] p-20 py-10">
+        <div className="mx-auto flex max-w-[75%] items-center justify-between gap-4">
           <div>
-            <img className="size-20 shrink-0" src="/logo-border.svg" />
+            <p className="text-4xl font-semibold">Pathlens Documentation</p>
+            <p className="text-muted-foreground">
+              Everything you need to integrate, configure, and get the most out
+              of Pathlens.
+            </p>
+
+            <Button render={<Link to="/docs/guides" />} className={'mt-5'}>
+              Getting Started
+            </Button>
           </div>
           <div>
-            <p className="text-4xl font-semibold">Pathlens Docs</p>
-            <p className="text-muted-foreground">
-              Explore guides and tutorials to start tracking on Pathlens's
-              platform
-            </p>
+            <AnimatedLogo size={220} />
           </div>
         </div>
       </div>

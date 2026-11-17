@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/nodejs:22 AS build
+FROM public.ecr.aws/lambda/nodejs@sha256:6258c45169364d8d816cd7d37e5109737ab84f6c602b74c324ffa02e779aa9fd AS build
 
 WORKDIR /workspace
 
@@ -13,7 +13,7 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @pathlens/api build
 RUN pnpm --filter @pathlens/api deploy --prod --legacy /out
 
-FROM public.ecr.aws/lambda/nodejs:22
+FROM public.ecr.aws/lambda/nodejs@sha256:6258c45169364d8d816cd7d37e5109737ab84f6c602b74c324ffa02e779aa9fd
 
 COPY --from=build /out/node_modules ${LAMBDA_TASK_ROOT}/node_modules
 COPY --from=build /workspace/apps/pathlens-api/dist ${LAMBDA_TASK_ROOT}/dist

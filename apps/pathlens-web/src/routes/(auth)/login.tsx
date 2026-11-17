@@ -6,7 +6,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
-import { ArrowLeft, EyeIcon, EyeOffIcon } from 'lucide-react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useLogin } from '@/mutations/auth'
 import { useForm } from '@tanstack/react-form'
@@ -62,62 +62,52 @@ function RouteComponent() {
   })
 
   return (
-    <div className="grid h-screen items-center md:grid-cols-[0.4fr_1fr] md:justify-center md:divide-x">
-      <div className="relative flex h-screen flex-1 items-center p-8 md:justify-center">
+    <div className="w-full space-y-2 md:w-sm">
+      <div className="mb-12">
+        <p className="text-3xl font-semibold">Welcome Back</p>
+        <p className="text-muted-foreground">Sign in to Continue</p>
+      </div>
+
+      <div className="space-y-4">
         <Button
-          className="absolute top-4 left-4 flex items-center justify-between"
-          render={<Link to="/" />}
-          variant="ghost"
+          type="button"
+          className="relative w-full"
+          variant="outline"
+          size="lg"
+          onClick={startGoogleLogin}
         >
-          <ArrowLeft />
-          Home
+          <GoogleIcon />
+          Continue with Google
+          {lastSigninMethod === 'google' && (
+            <Badge
+              variant={'outline'}
+              className="bg-primary/20 border-primary absolute -top-2 -right-4 z-10 backdrop-blur-3xl"
+            >
+              Last used
+            </Badge>
+          )}
         </Button>
-        <div className="w-full space-y-2 md:w-sm">
-          <div className="mb-12">
-            <p className="text-3xl font-semibold">Welcome Back</p>
-            <p className="text-muted-foreground">Sign in to Continue</p>
-          </div>
 
-          <div className="space-y-4">
-            <Button
-              type="button"
-              className="relative w-full"
-              variant="outline"
-              size="lg"
-              onClick={startGoogleLogin}
+        <Button
+          type="button"
+          className="relative w-full"
+          variant="outline"
+          size="lg"
+          onClick={startGithubLogin}
+        >
+          <GithubIcon />
+          Continue with Github
+          {lastSigninMethod === 'github' && (
+            <Badge
+              variant={'outline'}
+              className="bg-primary/20 border-primary absolute -top-2 -right-4 z-10 backdrop-blur-3xl"
             >
-              <GoogleIcon />
-              Continue with Google
-              {lastSigninMethod === 'google' && (
-                <Badge
-                  variant={'outline'}
-                  className="bg-primary/20 border-primary absolute -top-2 -right-4 z-10 backdrop-blur-3xl"
-                >
-                  Last used
-                </Badge>
-              )}
-            </Button>
+              Last used
+            </Badge>
+          )}
+        </Button>
 
-            <Button
-              type="button"
-              className="relative w-full"
-              variant="outline"
-              size="lg"
-              onClick={startGithubLogin}
-            >
-              <GithubIcon />
-              Continue with Github
-              {lastSigninMethod === 'github' && (
-                <Badge
-                  variant={'outline'}
-                  className="bg-primary/20 border-primary absolute -top-2 -right-4 z-10 backdrop-blur-3xl"
-                >
-                  Last used
-                </Badge>
-              )}
-            </Button>
-
-            {/* <Button className="relative w-full" variant="outline" size="lg">
+        {/* <Button className="relative w-full" variant="outline" size="lg">
               <LockIcon />
               Continue with SSO
               <Badge
@@ -127,137 +117,118 @@ function RouteComponent() {
                 Last used
               </Badge>
             </Button> */}
-          </div>
+      </div>
 
-          <Marker variant={'separator'}>
-            <MarkerContent>or</MarkerContent>
-          </Marker>
+      <Marker variant={'separator'}>
+        <MarkerContent>or</MarkerContent>
+      </Marker>
 
-          <form
-            id="login-form"
-            autoComplete="off"
-            onSubmit={(e) => {
-              e.preventDefault()
-              form.handleSubmit()
+      <form
+        id="login-form"
+        autoComplete="off"
+        onSubmit={(e) => {
+          e.preventDefault()
+          form.handleSubmit()
+        }}
+      >
+        <FieldGroup className="flex flex-col gap-5 lg:gap-4">
+          <form.Field
+            name="email"
+            children={(field) => {
+              const isInvalid =
+                field.state.meta.isTouched && !field.state.meta.isValid
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    aria-invalid={isInvalid}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                  />
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              )
             }}
+          />
+          <form.Field
+            name="password"
+            children={(field) => {
+              const isInvalid =
+                field.state.meta.isTouched && !field.state.meta.isValid
+              return (
+                <Field data-invalid={isInvalid}>
+                  <div className="flex items-center justify-between gap-4">
+                    <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                    <Link
+                      to="/password-reset"
+                      search={{ token: undefined }}
+                      className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <InputGroup className="overflow-hidden">
+                    <InputGroupInput
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      aria-invalid={isInvalid}
+                      placeholder="Enter your password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="pr-10"
+                      autoComplete="current-password"
+                    />
+                    <InputGroupButton
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={
+                        showPassword ? 'Hide password' : 'Show password'
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOffIcon className="size-4" />
+                      ) : (
+                        <EyeIcon className="size-4" />
+                      )}
+                    </InputGroupButton>
+                  </InputGroup>
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              )
+            }}
+          />
+        </FieldGroup>
+      </form>
+
+      <Button form="login-form" type="submit" className={'w-full'}>
+        <LoadingSwap isLoading={loginPending}>Log in</LoadingSwap>
+      </Button>
+
+      <div>
+        <p className="text-muted-foreground text-center text-sm">
+          Don't have an Account?{' '}
+          <Button
+            className={'h-6 p-0 underline'}
+            variant={'link'}
+            render={<Link to="/sign-up" />}
           >
-            <FieldGroup className="flex flex-col gap-5 lg:gap-4">
-              <form.Field
-                name="email"
-                children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>Email</FieldLabel>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        aria-invalid={isInvalid}
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                      />
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
-                    </Field>
-                  )
-                }}
-              />
-              <form.Field
-                name="password"
-                children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <div className="flex items-center justify-between gap-4">
-                        <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                        <Link
-                          to="/password-reset"
-                          search={{ token: undefined }}
-                          className="text-muted-foreground hover:text-foreground text-xs transition-colors"
-                        >
-                          Forgot password?
-                        </Link>
-                      </div>
-                      <InputGroup className="overflow-hidden">
-                        <InputGroupInput
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          aria-invalid={isInvalid}
-                          placeholder="Enter your password"
-                          type={showPassword ? 'text' : 'password'}
-                          className="pr-10"
-                          autoComplete="current-password"
-                        />
-                        <InputGroupButton
-                          type="button"
-                          variant="ghost"
-                          onClick={() => setShowPassword((prev) => !prev)}
-                          aria-label={
-                            showPassword ? 'Hide password' : 'Show password'
-                          }
-                        >
-                          {showPassword ? (
-                            <EyeOffIcon className="size-4" />
-                          ) : (
-                            <EyeIcon className="size-4" />
-                          )}
-                        </InputGroupButton>
-                      </InputGroup>
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
-                    </Field>
-                  )
-                }}
-              />
-            </FieldGroup>
-          </form>
-
-          <Button form="login-form" type="submit" className={'w-full'}>
-            <LoadingSwap isLoading={loginPending}>Log in</LoadingSwap>
+            Sign Up
           </Button>
-
-          <div>
-            <p className="text-muted-foreground text-center text-sm">
-              Don't have an Account?{' '}
-              <Button
-                className={'h-6 p-0 underline'}
-                variant={'link'}
-                render={<Link to="/sign-up" />}
-              >
-                Sign Up
-              </Button>
-            </p>
-          </div>
-
-          <p className="text-muted-foreground mx-auto mt-8 max-w-[75%] text-center text-xs">
-            By continuing, I agree to Pathlens's terms, privacy policy, and
-            cookie policy.
-          </p>
-        </div>
+        </p>
       </div>
 
-      <div className="relative hidden h-screen flex-1 items-center justify-center overflow-hidden md:flex">
-        <video
-          muted
-          loop
-          autoPlay
-          className="md:h-[80dvh]"
-          playsInline
-          preload="auto"
-        >
-          <source src="/visuals_clean.webm" type="video/webm" />
-        </video>
-      </div>
+      <p className="text-muted-foreground mx-auto mt-8 max-w-[75%] text-center text-xs">
+        By continuing, I agree to Pathlens's terms, privacy policy, and cookie
+        policy.
+      </p>
     </div>
   )
 }

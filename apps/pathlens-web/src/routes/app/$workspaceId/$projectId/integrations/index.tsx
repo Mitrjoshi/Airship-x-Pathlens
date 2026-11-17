@@ -192,7 +192,7 @@ function RouteComponent() {
 
             {globalLoading ? (
               <div className="grid grid-cols-3 gap-4">
-                {[...Array(3)].map((_, index) => (
+                {[...Array(12)].map((_, index) => (
                   <Card
                     className="bg-card/30 h-full rounded-none border-2 border-dashed"
                     key={index}

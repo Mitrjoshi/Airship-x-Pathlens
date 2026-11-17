@@ -29,7 +29,7 @@ import { Route as AppentryRouteRouteImport } from './routes/app/(entry)/route'
 import { Route as AppCheckoutRouteImport } from './routes/app/checkout'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsDirectoryRouteImport } from './routes/docs/directory'
-import { Route as DocsQuickStartRouteRouteImport } from './routes/docs/quick-start/route'
+import { Route as DocsGuidesRouteRouteImport } from './routes/docs/guides/route'
 import { Route as openCareersIndexRouteImport } from './routes/(open)/careers/index'
 import { Route as openCareersJobsRouteImport } from './routes/(open)/careers/jobs'
 import { Route as openProductsIndexRouteImport } from './routes/(open)/products/index'
@@ -48,7 +48,7 @@ import { Route as AppentryNotificationsRouteImport } from './routes/app/(entry)/
 import { Route as AppentrySecurityRouteImport } from './routes/app/(entry)/security'
 import { Route as AppentrySettingsRouteImport } from './routes/app/(entry)/settings'
 import { Route as AppentryUsageRouteImport } from './routes/app/(entry)/usage'
-import { Route as DocsQuickStartIndexRouteImport } from './routes/docs/quick-start/index'
+import { Route as DocsGuidesIndexRouteImport } from './routes/docs/guides/index'
 import { Route as openProductsProductIdIndexRouteImport } from './routes/(open)/products/$productId/index'
 import { Route as openSolutionsSolutionIdIndexRouteImport } from './routes/(open)/solutions/$solutionId/index'
 import { Route as AppWorkspaceIdProjectIdIndexRouteImport } from './routes/app/$workspaceId/$projectId/index'
@@ -171,9 +171,9 @@ const DocsDirectoryRoute = DocsDirectoryRouteImport.update({
   path: '/directory',
   getParentRoute: () => DocsRouteRoute,
 } as any)
-const DocsQuickStartRouteRoute = DocsQuickStartRouteRouteImport.update({
-  id: '/quick-start',
-  path: '/quick-start',
+const DocsGuidesRouteRoute = DocsGuidesRouteRouteImport.update({
+  id: '/guides',
+  path: '/guides',
   getParentRoute: () => DocsRouteRoute,
 } as any)
 const openCareersIndexRoute = openCareersIndexRouteImport.update({
@@ -267,10 +267,10 @@ const AppentryUsageRoute = AppentryUsageRouteImport.update({
   path: '/usage',
   getParentRoute: () => AppentryRouteRoute,
 } as any)
-const DocsQuickStartIndexRoute = DocsQuickStartIndexRouteImport.update({
+const DocsGuidesIndexRoute = DocsGuidesIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => DocsQuickStartRouteRoute,
+  getParentRoute: () => DocsGuidesRouteRoute,
 } as any)
 const openProductsProductIdIndexRoute =
   openProductsProductIdIndexRouteImport.update({
@@ -427,7 +427,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppentryRouteRouteWithChildren
   '/docs': typeof DocsRouteRouteWithChildren
   '/app/$workspaceId': typeof AppWorkspaceIdRouteRouteWithChildren
-  '/docs/quick-start': typeof DocsQuickStartRouteRouteWithChildren
+  '/docs/guides': typeof DocsGuidesRouteRouteWithChildren
   '/github-callback': typeof authGithubCallbackRoute
   '/google-callback': typeof authGoogleCallbackRoute
   '/login': typeof authLoginRoute
@@ -459,7 +459,7 @@ export interface FileRoutesByFullPath {
   '/solutions/': typeof openSolutionsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
   '/app/': typeof AppentryIndexRoute
-  '/docs/quick-start/': typeof DocsQuickStartIndexRoute
+  '/docs/guides/': typeof DocsGuidesIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
   '/app/$workspaceId/$projectId/audit-logs': typeof AppWorkspaceIdProjectIdAuditLogsRoute
@@ -518,7 +518,7 @@ export interface FileRoutesByTo {
   '/products': typeof openProductsIndexRoute
   '/solutions': typeof openSolutionsIndexRoute
   '/app/$workspaceId': typeof AppWorkspaceIdIndexRoute
-  '/docs/quick-start': typeof DocsQuickStartIndexRoute
+  '/docs/guides': typeof DocsGuidesIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
   '/app/$workspaceId/$projectId/audit-logs': typeof AppWorkspaceIdProjectIdAuditLogsRoute
@@ -554,7 +554,7 @@ export interface FileRoutesById {
   '/docs': typeof DocsRouteRouteWithChildren
   '/app/$workspaceId': typeof AppWorkspaceIdRouteRouteWithChildren
   '/app/(entry)': typeof AppentryRouteRouteWithChildren
-  '/docs/quick-start': typeof DocsQuickStartRouteRouteWithChildren
+  '/docs/guides': typeof DocsGuidesRouteRouteWithChildren
   '/(auth)/github-callback': typeof authGithubCallbackRoute
   '/(auth)/google-callback': typeof authGoogleCallbackRoute
   '/(auth)/login': typeof authLoginRoute
@@ -586,7 +586,7 @@ export interface FileRoutesById {
   '/(open)/solutions/': typeof openSolutionsIndexRoute
   '/app/$workspaceId/': typeof AppWorkspaceIdIndexRoute
   '/app/(entry)/': typeof AppentryIndexRoute
-  '/docs/quick-start/': typeof DocsQuickStartIndexRoute
+  '/docs/guides/': typeof DocsGuidesIndexRoute
   '/app/$workspaceId/$projectId/ai-insights': typeof AppWorkspaceIdProjectIdAiInsightsRoute
   '/app/$workspaceId/$projectId/api-keys': typeof AppWorkspaceIdProjectIdApiKeysRoute
   '/app/$workspaceId/$projectId/audit-logs': typeof AppWorkspaceIdProjectIdAuditLogsRoute
@@ -619,7 +619,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/docs'
     | '/app/$workspaceId'
-    | '/docs/quick-start'
+    | '/docs/guides'
     | '/github-callback'
     | '/google-callback'
     | '/login'
@@ -651,7 +651,7 @@ export interface FileRouteTypes {
     | '/solutions/'
     | '/app/$workspaceId/'
     | '/app/'
-    | '/docs/quick-start/'
+    | '/docs/guides/'
     | '/app/$workspaceId/$projectId/ai-insights'
     | '/app/$workspaceId/$projectId/api-keys'
     | '/app/$workspaceId/$projectId/audit-logs'
@@ -710,7 +710,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/solutions'
     | '/app/$workspaceId'
-    | '/docs/quick-start'
+    | '/docs/guides'
     | '/app/$workspaceId/$projectId/ai-insights'
     | '/app/$workspaceId/$projectId/api-keys'
     | '/app/$workspaceId/$projectId/audit-logs'
@@ -745,7 +745,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/app/$workspaceId'
     | '/app/(entry)'
-    | '/docs/quick-start'
+    | '/docs/guides'
     | '/(auth)/github-callback'
     | '/(auth)/google-callback'
     | '/(auth)/login'
@@ -777,7 +777,7 @@ export interface FileRouteTypes {
     | '/(open)/solutions/'
     | '/app/$workspaceId/'
     | '/app/(entry)/'
-    | '/docs/quick-start/'
+    | '/docs/guides/'
     | '/app/$workspaceId/$projectId/ai-insights'
     | '/app/$workspaceId/$projectId/api-keys'
     | '/app/$workspaceId/$projectId/audit-logs'
@@ -955,11 +955,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsDirectoryRouteImport
       parentRoute: typeof DocsRouteRoute
     }
-    '/docs/quick-start': {
-      id: '/docs/quick-start'
-      path: '/quick-start'
-      fullPath: '/docs/quick-start'
-      preLoaderRoute: typeof DocsQuickStartRouteRouteImport
+    '/docs/guides': {
+      id: '/docs/guides'
+      path: '/guides'
+      fullPath: '/docs/guides'
+      preLoaderRoute: typeof DocsGuidesRouteRouteImport
       parentRoute: typeof DocsRouteRoute
     }
     '/(open)/careers/': {
@@ -1088,12 +1088,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppentryUsageRouteImport
       parentRoute: typeof AppentryRouteRoute
     }
-    '/docs/quick-start/': {
-      id: '/docs/quick-start/'
+    '/docs/guides/': {
+      id: '/docs/guides/'
       path: '/'
-      fullPath: '/docs/quick-start/'
-      preLoaderRoute: typeof DocsQuickStartIndexRouteImport
-      parentRoute: typeof DocsQuickStartRouteRoute
+      fullPath: '/docs/guides/'
+      preLoaderRoute: typeof DocsGuidesIndexRouteImport
+      parentRoute: typeof DocsGuidesRouteRoute
     }
     '/(open)/products/$productId/': {
       id: '/(open)/products/$productId/'
@@ -1454,25 +1454,26 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
   AppRouteRouteChildren,
 )
 
-interface DocsQuickStartRouteRouteChildren {
-  DocsQuickStartIndexRoute: typeof DocsQuickStartIndexRoute
+interface DocsGuidesRouteRouteChildren {
+  DocsGuidesIndexRoute: typeof DocsGuidesIndexRoute
 }
 
-const DocsQuickStartRouteRouteChildren: DocsQuickStartRouteRouteChildren = {
-  DocsQuickStartIndexRoute: DocsQuickStartIndexRoute,
+const DocsGuidesRouteRouteChildren: DocsGuidesRouteRouteChildren = {
+  DocsGuidesIndexRoute: DocsGuidesIndexRoute,
 }
 
-const DocsQuickStartRouteRouteWithChildren =
-  DocsQuickStartRouteRoute._addFileChildren(DocsQuickStartRouteRouteChildren)
+const DocsGuidesRouteRouteWithChildren = DocsGuidesRouteRoute._addFileChildren(
+  DocsGuidesRouteRouteChildren,
+)
 
 interface DocsRouteRouteChildren {
-  DocsQuickStartRouteRoute: typeof DocsQuickStartRouteRouteWithChildren
+  DocsGuidesRouteRoute: typeof DocsGuidesRouteRouteWithChildren
   DocsDirectoryRoute: typeof DocsDirectoryRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
 const DocsRouteRouteChildren: DocsRouteRouteChildren = {
-  DocsQuickStartRouteRoute: DocsQuickStartRouteRouteWithChildren,
+  DocsGuidesRouteRoute: DocsGuidesRouteRouteWithChildren,
   DocsDirectoryRoute: DocsDirectoryRoute,
   DocsIndexRoute: DocsIndexRoute,
 }

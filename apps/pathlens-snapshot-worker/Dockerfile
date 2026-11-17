@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/nodejs:22 AS build
+FROM public.ecr.aws/lambda/nodejs@sha256:6258c45169364d8d816cd7d37e5109737ab84f6c602b74c324ffa02e779aa9fd AS build
 
 WORKDIR /workspace
 
@@ -31,7 +31,7 @@ RUN test -f /out/node_modules/@workspace/contracts/dist/index.js
 RUN test ! -f /out/node_modules/@workspace/contracts/src/index.ts
 
 
-FROM public.ecr.aws/lambda/nodejs:22
+FROM public.ecr.aws/lambda/nodejs@sha256:6258c45169364d8d816cd7d37e5109737ab84f6c602b74c324ffa02e779aa9fd
 
 COPY --from=build /out/node_modules \
     ${LAMBDA_TASK_ROOT}/node_modules
