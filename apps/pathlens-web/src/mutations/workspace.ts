@@ -415,3 +415,83 @@ export const useAcceptNotification = () => {
     onError: (error) => toast.error(error.message),
   })
 }
+
+type CreatePermissionRequestPayload = {
+  permission: Permission
+  reason: string
+}
+
+type PermissionRequestResponse = {
+  success: boolean
+  data?: {
+    id: string
+    requestedPermission: Permission
+  }
+  message?: string
+}
+
+export const useCreatePermissionRequest = (workspaceId: string) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (
+      payload: CreatePermissionRequestPayload
+    ): Promise<PermissionRequestResponse> => {
+      const response = await apiClient.post(
+        `/workspaces/${workspaceId}/permission-requests`,
+        payload
+      )
+
+      return response.data
+    },
+    onSuccess: async (data, variables) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to request permission.')
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['WORKSPACE_PERMISSIONS', workspaceId],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'PERMISSION_REQUEST_STATUS',
+          workspaceId,
+          variables.permission,
+        ],
+      })
+      toast.success('Permission request sent.')
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}
+
+export const useReviewPermissionRequest = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      workspaceId,
+      requestId,
+      decision,
+    }: {
+      workspaceId: string
+      requestId: string
+      decision: 'approved' | 'denied'
+    }): Promise<PermissionRequestResponse> => {
+      const response = await apiClient.post(
+        `/workspaces/${workspaceId}/permission-requests/${requestId}/${decision}`
+      )
+
+      return response.data
+    },
+    onSuccess: async (data) => {
+      if (!data.success) {
+        throw new Error(data.message ?? 'Unable to review permission request.')
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['NOTIFICATIONS'] })
+      await queryClient.invalidateQueries({ queryKey: ['WORKSPACES'] })
+    },
+    onError: (error) => toast.error(error.message),
+  })
+}

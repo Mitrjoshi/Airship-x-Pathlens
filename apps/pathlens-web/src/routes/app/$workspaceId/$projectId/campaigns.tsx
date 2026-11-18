@@ -331,7 +331,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+            <NoPermissionView
+              workspaceId={workspaceId}
+              permission="analytics.campaigns.view"
+            />
             ) : (
               <>
                 <div className="grid grid-cols-5 gap-3">

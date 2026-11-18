@@ -600,7 +600,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="analytics.events.view"
+              />
             ) : (
               <>
                 {/* Events chart */}

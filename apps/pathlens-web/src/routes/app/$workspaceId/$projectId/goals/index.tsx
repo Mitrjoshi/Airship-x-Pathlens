@@ -408,7 +408,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="analytics.goals.view"
+              />
             ) : (
               <>
                 {/* Controls */}
@@ -971,7 +974,7 @@ function RouteComponent() {
                         </FieldGroup>
                       </form>
 
-                      <DialogFooter className="py-2">
+                      <DialogFooter className="bg-transparent">
                         <DialogClose
                           render={
                             <Button variant="outline" disabled={isPending} />
@@ -1545,7 +1548,7 @@ const GoalCard = ({
             </FieldGroup>
           </form>
 
-          <DialogFooter className="bg-transparent py-2">
+          <DialogFooter className="bg-transparent">
             <Button
               type="button"
               variant="outline"
@@ -1585,7 +1588,7 @@ const GoalCard = ({
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="bg-transparent py-2">
+          <DialogFooter className="bg-transparent">
             <Button
               type="button"
               variant="outline"

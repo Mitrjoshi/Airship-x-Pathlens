@@ -88,7 +88,6 @@ function RouteComponent() {
     useResetProjectAnalytics(projectId)
   const { mutate: resumeProject, isPending: resumeProjectPending } =
     useResumeProject(projectId)
-
   const { mutate: generateReport, isPending: generateReportPending } =
     useGenerateReport()
 
@@ -130,9 +129,9 @@ function RouteComponent() {
         return toast.error('You do not have permission to update this project.')
 
       updateProject({
-        captureErrors: project?.captureErrors!,
-        capturePerformance: project?.capturePerformance!,
-        captureReplay: project?.captureReplay!,
+        captureErrors: project?.captureErrors as boolean,
+        capturePerformance: project?.capturePerformance as boolean,
+        captureReplay: project?.captureReplay as boolean,
         description: value.description,
         name: value.name,
         domain: project?.domain ?? '',
@@ -165,7 +164,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+            <NoPermissionView
+              workspaceId={workspaceId}
+              permission="project.settings.view"
+            />
             ) : (
               <>
                 <div className="space-y-4">
@@ -374,7 +376,7 @@ function RouteComponent() {
                                   </DialogDescription>
                                 </DialogHeader>
 
-                                <DialogFooter className="bg-transparent py-2">
+                                <DialogFooter className="bg-transparent">
                                   <DialogClose
                                     render={<Button variant={'outline'} />}
                                   >
@@ -505,7 +507,7 @@ function RouteComponent() {
                                 </div>
                               </div>
 
-                              <DialogFooter className="flex-col! bg-transparent py-2">
+                              <DialogFooter className="flex-col! bg-transparent">
                                 <div className="flex items-center justify-end gap-4">
                                   <Button
                                     className={'w-full'}
@@ -643,7 +645,7 @@ function RouteComponent() {
                                 </div>
                               </div>
 
-                              <DialogFooter className="flex-col! bg-transparent py-2">
+                              <DialogFooter className="flex-col! bg-transparent">
                                 <div className="flex items-center justify-end gap-4">
                                   <Button
                                     className={'w-full'}

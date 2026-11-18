@@ -166,7 +166,10 @@ function RouteComponent() {
               !hasEditPermission ||
               !hasDeletePermission) &&
             !permissionsLoading ? (
-              <NoPermissionView />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="workspace.view"
+              />
             ) : (
               <>
                 <Card className="bg-card/30 rounded-none border-2 border-dashed">
@@ -387,7 +390,7 @@ function RouteComponent() {
                 cannot be undone.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="py-2">
+            <DialogFooter className="bg-transparent">
               <DialogClose>
                 <Button variant={'secondary'}>Cancel</Button>
               </DialogClose>
@@ -459,7 +462,7 @@ function RouteComponent() {
               </FieldGroup>
             </form>
 
-            <DialogFooter className="bg-transparent py-2">
+            <DialogFooter className="bg-transparent">
               <DialogClose render={<Button variant="secondary" />}>
                 Cancel
               </DialogClose>

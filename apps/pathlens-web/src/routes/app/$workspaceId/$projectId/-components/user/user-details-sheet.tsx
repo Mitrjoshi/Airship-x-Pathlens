@@ -157,10 +157,13 @@ export const UserDetailsSheet = ({
                     }
                   )}
                 />
-                <PermissionProfileSheet
-                  permission_id={userData.permissionProfileId!}
-                  workspace_id={workspaceId}
-                />
+
+                <div className="py-2">
+                  <PermissionProfileSheet
+                    permission_id={userData.permissionProfileId!}
+                    workspace_id={workspaceId}
+                  />
+                </div>
               </div>
               <Separator />
 
@@ -210,7 +213,7 @@ export const UserDetailsSheet = ({
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="bg-transparent">
             <DialogClose
               render={<Button variant="outline" disabled={isPending} />}
             >

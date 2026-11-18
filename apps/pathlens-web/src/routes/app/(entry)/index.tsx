@@ -22,7 +22,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -76,8 +75,11 @@ function RouteComponent() {
   const { data: workspaceData, isLoading: workspaceDataLoading } = useQuery(
     getWorkspacesOptions()
   )
-  const createWorkspace = useCreateWorkspace()
-  const deleteWorkspace = useDeleteWorkspace()
+  const { mutate: createWorkspace, isPending: createWorkspacePending } =
+    useCreateWorkspace()
+  const { mutate: deleteWorkspace, isPending: deleteWorkspacePending } =
+    useDeleteWorkspace()
+  const workspaces = workspaceData?.data
 
   const form = useForm({
     defaultValues: {
@@ -87,7 +89,7 @@ function RouteComponent() {
       onSubmit: formSchema,
     },
     onSubmit: async ({ value: { workspace_name } }) => {
-      createWorkspace.mutate(
+      createWorkspace(
         { name: workspace_name },
         {
           onSuccess: () => {
@@ -103,6 +105,53 @@ function RouteComponent() {
           },
         }
       )
+    },
+  })
+
+  const deleteWorkspaceData = workspaces?.find(
+    (workspace) => workspace.id === deleteOpen
+  )
+
+  const deleteForm = useForm({
+    defaultValues: {
+      confirmation: '',
+    },
+
+    validators: {
+      onSubmit: ({ value }) => {
+        if (!value.confirmation) {
+          return {
+            fields: {
+              confirmation: {
+                message: 'Workspace name is required.',
+              },
+            },
+          }
+        }
+
+        if (value.confirmation !== deleteWorkspaceData?.name) {
+          return {
+            fields: {
+              confirmation: {
+                message: `Please type ${deleteWorkspaceData?.name} exactly as shown.`,
+              },
+            },
+          }
+        }
+
+        return undefined
+      },
+    },
+
+    onSubmit: async () => {
+      if (!deleteOpen) return
+
+      deleteWorkspace(deleteOpen, {
+        onSuccess: () => {
+          setDeleteOpen(null)
+          setOpen(false)
+        },
+      })
     },
   })
 
@@ -192,7 +241,7 @@ function RouteComponent() {
                             </TableCell>
                           </TableRow>
                         ))
-                      : workspaceData?.data?.map((item) => (
+                      : workspaces?.map((item) => (
                           <WorkspaceCard
                             key={item.id}
                             setOpen={setOpen}
@@ -208,30 +257,72 @@ function RouteComponent() {
         </div>
 
         {deleteOpen ? (
-          <DialogContent showCloseButton={false}>
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle>Confirm Delete</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this workspace?
-              </DialogDescription>
+              <DialogTitle>Delete Workspace</DialogTitle>
             </DialogHeader>
 
-            <DialogFooter className="bg-transparent py-2">
-              <DialogClose render={<Button variant="ghost">Cancel</Button>}>
-                Close
+            <form
+              id="delete-workspace-form"
+              onSubmit={(e) => {
+                e.preventDefault()
+                deleteForm.handleSubmit()
+              }}
+            >
+              <FieldGroup>
+                <deleteForm.Field
+                  name="confirmation"
+                  children={(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && !field.state.meta.isValid
+
+                    return (
+                      <Field className="gap-2">
+                        <FieldLabel
+                          htmlFor={field.name}
+                          className="text-muted-foreground inline"
+                        >
+                          Enter{' '}
+                          <span className="text-foreground inline">
+                            {deleteWorkspaceData?.name}
+                          </span>{' '}
+                          to confirm workspace deletion
+                        </FieldLabel>
+
+                        <Input
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          aria-invalid={isInvalid}
+                          placeholder={deleteWorkspaceData?.name}
+                          autoComplete="off"
+                        />
+
+                        {isInvalid && (
+                          <FieldError errors={field.state.meta.errors} />
+                        )}
+                      </Field>
+                    )
+                  }}
+                />
+              </FieldGroup>
+            </form>
+
+            <DialogFooter className="bg-transparent">
+              <DialogClose render={<Button variant="secondary" />}>
+                Cancel
               </DialogClose>
+
               <Button
-                onClick={() => {
-                  deleteWorkspace.mutate(deleteOpen, {
-                    onSuccess: () => {
-                      setOpen(false)
-                    },
-                  })
-                }}
+                form="delete-workspace-form"
+                type="submit"
                 variant="destructive"
+                disabled={deleteWorkspacePending}
               >
-                <LoadingSwap isLoading={deleteWorkspace.isPending}>
-                  Delete
+                <LoadingSwap isLoading={deleteWorkspacePending}>
+                  Confirm
                 </LoadingSwap>
               </Button>
             </DialogFooter>
@@ -279,12 +370,12 @@ function RouteComponent() {
               </FieldGroup>
             </form>
 
-            <DialogFooter className="bg-transparent py-2">
+            <DialogFooter className="bg-transparent">
               <DialogClose render={<Button variant={'outline'} />}>
                 Cancel
               </DialogClose>
               <Button type="submit" form="new-workspace-form">
-                <LoadingSwap isLoading={createWorkspace.isPending}>
+                <LoadingSwap isLoading={createWorkspacePending}>
                   Create
                 </LoadingSwap>
               </Button>

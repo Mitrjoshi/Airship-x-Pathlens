@@ -468,6 +468,69 @@ export const workspaceMembers = pgTable(
   })
 );
 
+export const workspaceMemberPermissions = pgTable(
+  "workspace_member_permissions",
+  {
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    permission: text("permission").$type<Permission>().notNull(),
+    grantedByUserId: uuid("granted_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    primaryKey: primaryKey({
+      columns: [table.workspaceId, table.userId, table.permission],
+      name: "workspace_member_permissions_pk",
+    }),
+    workspaceUserIdx: index("workspace_member_permissions_user_idx").on(
+      table.workspaceId,
+      table.userId
+    ),
+  })
+);
+
+export const permissionRequests = pgTable(
+  "permission_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    requesterUserId: uuid("requester_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    requestedPermission: text("requested_permission")
+      .$type<Permission>()
+      .notNull(),
+    reason: text("reason").notNull(),
+    status: text("status").notNull().default("pending"),
+    reviewedByUserId: uuid("reviewed_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    pendingRequestIdx: uniqueIndex("permission_requests_pending_idx")
+      .on(table.workspaceId, table.requesterUserId, table.requestedPermission)
+      .where(sql`${table.status} = 'pending'`),
+    workspaceCreatedIdx: index("permission_requests_workspace_created_idx").on(
+      table.workspaceId,
+      table.createdAt
+    ),
+  })
+);
+
 /* -------------------------------------------------------------------------- */
 /*                                AUDIT LOGS                                  */
 /* -------------------------------------------------------------------------- */
@@ -610,6 +673,13 @@ export const notifications = pgTable(
         onDelete: "set null",
       }
     ),
+
+    permissionRequestId: uuid("permission_request_id").references(
+      () => permissionRequests.id,
+      { onDelete: "cascade" }
+    ),
+
+    payload: jsonb("payload").$type<Record<string, unknown>>(),
 
     readAt: timestamp("read_at", {
       withTimezone: true,

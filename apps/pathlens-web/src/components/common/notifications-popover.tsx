@@ -6,7 +6,10 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@workspace/ui/components/popover'
-import { useAcceptNotification } from '@/mutations/workspace'
+import {
+  useAcceptNotification,
+  useReviewPermissionRequest,
+} from '@/mutations/workspace'
 import { getNotificationsOptions } from '@/queries/workspace'
 import { useQuery } from '@tanstack/react-query'
 import { BellIcon, CheckIcon, Loader2Icon } from 'lucide-react'
@@ -15,6 +18,7 @@ import { toast } from '@/lib/toast'
 export function NotificationsPopover() {
   const { data, isPending, isError } = useQuery(getNotificationsOptions())
   const acceptNotification = useAcceptNotification()
+  const reviewPermissionRequest = useReviewPermissionRequest()
   const notifications = data?.data ?? []
   const unreadNotifications = notifications.filter(
     (notification) => !notification.readAt
@@ -28,6 +32,18 @@ export function NotificationsPopover() {
 
     if (type === 'workspace_paused') {
       return 'Your workspace has been paused because a usage limit was exceeded.'
+    }
+
+    if (type === 'permission_request') {
+      return 'A member requested view access.'
+    }
+
+    if (type === 'permission_request_approved') {
+      return 'Your view access request was approved.'
+    }
+
+    if (type === 'permission_request_denied') {
+      return 'Your view access request was denied.'
     }
 
     return null
@@ -44,6 +60,25 @@ export function NotificationsPopover() {
         toast.success('You joined the workspace.')
       },
     })
+  }
+
+  const review = (
+    workspaceId: string,
+    requestId: string,
+    decision: 'approved' | 'denied'
+  ) => {
+    reviewPermissionRequest.mutate(
+      { workspaceId, requestId, decision },
+      {
+        onSuccess: () => {
+          toast.success(
+            decision === 'approved'
+              ? 'Permission request approved.'
+              : 'Permission request denied.'
+          )
+        },
+      }
+    )
   }
 
   return (
@@ -108,10 +143,32 @@ export function NotificationsPopover() {
                         </span>{' '}
                         invited you to join a workspace.
                       </>
+                    ) : notification.type === 'permission_request' ? (
+                      <>
+                        <span className="font-medium">
+                          {notification.senderName}
+                        </span>{' '}
+                        requested access to{' '}
+                        <span className="font-medium">
+                          {notification.requestedPermission ?? 'a view'}
+                        </span>
+                        .
+                      </>
                     ) : (
                       getNotificationMessage(notification.type)
                     )}
                   </p>
+                  {notification.type === 'permission_request' &&
+                    notification.requestReason && (
+                      <p className="text-muted-foreground mt-2 text-xs">
+                        “{notification.requestReason}”
+                      </p>
+                    )}
+                  {notification.type === 'permission_request_approved' && (
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      You can now open the requested view.
+                    </p>
+                  )}
                   <p className="text-muted-foreground mt-1 text-xs">
                     {notification.workspaceName} ·{' '}
                     {notification.permissionProfileName ?? 'Permission profile'}
@@ -129,6 +186,39 @@ export function NotificationsPopover() {
                       )}
                       Accept invitation
                     </Button>
+                  )}
+                {notification.type === 'permission_request' &&
+                  notification.permissionRequestId &&
+                  notification.permissionRequestStatus === 'pending' && (
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1"
+                        disabled={reviewPermissionRequest.isPending}
+                        onClick={() =>
+                          review(
+                            notification.workspaceId,
+                            notification.permissionRequestId!,
+                            'approved'
+                          )
+                        }
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        variant="outline"
+                        disabled={reviewPermissionRequest.isPending}
+                        onClick={() =>
+                          review(
+                            notification.workspaceId,
+                            notification.permissionRequestId!,
+                            'denied'
+                          )
+                        }
+                      >
+                        Deny
+                      </Button>
+                    </div>
                   )}
               </div>
             ))}

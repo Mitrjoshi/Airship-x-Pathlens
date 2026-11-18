@@ -275,7 +275,10 @@ function RouteComponent() {
               </div>
 
               {!hasViewPermission && !permissionsLoading ? (
-                <NoPermissionView />
+                <NoPermissionView
+                  workspaceId={workspaceId}
+                  permission="workspace.permission_profiles.view"
+                />
               ) : (
                 <>
                   <div className="overflow-hidden rounded-lg border">
@@ -501,7 +504,7 @@ function PermissionProfileDialog({
           />
         </div>
 
-        <DialogFooter className="bg-transparent py-2">
+        <DialogFooter className="bg-transparent">
           <Button variant="ghost" disabled={isPending} onClick={onClose}>
             Cancel
           </Button>
@@ -703,7 +706,7 @@ function DeletePermissionProfileDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="bg-transparent py-2">
+        <DialogFooter className="bg-transparent">
           <Button
             variant="secondary"
             disabled={isPending}

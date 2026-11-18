@@ -316,7 +316,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="analytics.errors.view"
+              />
             ) : (
               <>
                 <div className="space-y-5">

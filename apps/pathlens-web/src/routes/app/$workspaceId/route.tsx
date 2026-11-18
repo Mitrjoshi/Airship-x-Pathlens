@@ -509,7 +509,7 @@ export const WorkspaceSwitcher = ({
 
   return (
     <>
-      <div className="flex items-center justify-start gap-2">
+      <div className="flex w-full items-center justify-start gap-2">
         <Link to="/app" className="flex items-center gap-2">
           <img src="/logo.svg" className="size-8" alt="Pathlens" />
         </Link>
@@ -531,7 +531,7 @@ export const WorkspaceSwitcher = ({
           {workspaceDataLoading ? (
             <Skeleton className="h-4 w-30" />
           ) : (
-            <p className="truncate">{workspace?.name}</p>
+            <p className="w-full truncate text-left">{workspace?.name}</p>
           )}
         </Button>
       </div>

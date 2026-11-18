@@ -306,7 +306,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="analytics.visitors.view"
+              />
             ) : (
               <>
                 <Card className="bg-card/30 rounded-none border-2 border-dashed p-0">

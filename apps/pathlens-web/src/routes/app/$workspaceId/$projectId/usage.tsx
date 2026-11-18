@@ -118,7 +118,10 @@ function RouteComponent() {
       ) : (
         <>
           {!hasViewPermission && !permissionsLoading ? (
-            <NoPermissionView />
+          <NoPermissionView
+            workspaceId={workspaceId}
+            permission="analytics.heatmaps.view"
+          />
           ) : (
             <>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

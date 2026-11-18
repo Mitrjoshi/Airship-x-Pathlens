@@ -4,6 +4,7 @@ import { PERMISSIONS, type Permission } from "@workspace/contracts";
 
 import {
   createPermissionProfileModel,
+  createPermissionRequestModel,
   createWorkspaceModel,
   createWorkspaceInvitationModel,
   deletePermissionProfileModel,
@@ -12,6 +13,7 @@ import {
   getPermissionProfileDetailsModel,
   getPermissionProfileUsageModel,
   getPermissionProfilesModel,
+  getPermissionRequestStatusModel,
   getWorkspaceAccessModel,
   getWorkspaceByIdModel,
   getWorkspaceMemberModel,
@@ -20,6 +22,7 @@ import {
   getWorkspacePendingInvitationRecipientIdsModel,
   getWorkspaces,
   removeWorkspaceMemberModel,
+  reviewPermissionRequestModel,
   revokeWorkspaceInvitationModel,
   hasWorkspacePermission,
   updatePermissionProfileModel,
@@ -104,6 +107,18 @@ const permissionProfileSchema = z.object({
     .refine((permissions) => new Set(permissions).size === permissions.length, {
       message: "Permissions cannot be duplicated.",
     }),
+});
+
+const permissionRequestSchema = z.object({
+  permission: permissionSchema.refine(
+    (permission) => permission.endsWith(".view"),
+    "Only view permissions can be requested."
+  ),
+  reason: z
+    .string({ error: "A reason is required." })
+    .trim()
+    .min(1, "A reason is required.")
+    .max(1000, "Reason must be 1000 characters or less."),
 });
 
 function getAuthenticatedUserId(req: AuthRequest): string | null {
@@ -835,6 +850,136 @@ export async function revokeWorkspaceInvitation(
       success: false,
       message: getErrorMessage(error),
     });
+  }
+}
+
+export async function createPermissionRequest(req: AuthRequest, res: Response) {
+  const userId = getAuthenticatedUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { workspace_id } = workspaceParamsSchema.parse(req.params);
+    const { permission, reason } = permissionRequestSchema.parse(
+      req.body ?? {}
+    );
+    const request = await createPermissionRequestModel({
+      workspaceId: workspace_id,
+      requesterUserId: userId,
+      permission,
+      reason,
+    });
+
+    await createAuditLog({
+      workspaceId: workspace_id,
+      actorUserId: userId,
+      action: "workspace.permission_requested",
+      resourceType: "permission_request",
+      resourceId: request.id,
+      metadata: { permission, reason },
+    });
+
+    return res.status(201).json({ success: true, data: request });
+  } catch (error) {
+    return res
+      .status(error instanceof ZodError ? 400 : 409)
+      .json({ success: false, message: getErrorMessage(error) });
+  }
+}
+
+export async function getPermissionRequestStatus(
+  req: AuthRequest,
+  res: Response
+) {
+  const userId = getAuthenticatedUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { workspace_id } = workspaceParamsSchema.parse(req.params);
+    const { permission } = permissionRequestSchema
+      .pick({ permission: true })
+      .parse(req.query);
+    const member = await getWorkspaceMemberModel(workspace_id, userId);
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: "Workspace not found.",
+      });
+    }
+
+    const status = await getPermissionRequestStatusModel({
+      workspaceId: workspace_id,
+      requesterUserId: userId,
+      permission,
+    });
+
+    return res.status(200).json({ success: true, data: status });
+  } catch (error) {
+    return res
+      .status(error instanceof ZodError ? 400 : 500)
+      .json({ success: false, message: getErrorMessage(error) });
+  }
+}
+
+export async function reviewPermissionRequest(req: AuthRequest, res: Response) {
+  const userId = getAuthenticatedUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized." });
+  }
+
+  try {
+    const { workspace_id, request_id, decision } = z
+      .object({
+        workspace_id: z.string().min(1),
+        request_id: z.uuid(),
+        decision: z.enum(["approved", "denied"]),
+      })
+      .parse({ ...req.params, ...req.body });
+
+    const member = await requireWorkspacePermission(
+      workspace_id,
+      userId,
+      "workspace.members.update"
+    );
+
+    if (!member) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to review access requests.",
+      });
+    }
+
+    const request = await reviewPermissionRequestModel({
+      workspaceId: workspace_id,
+      requestId: request_id,
+      reviewerUserId: userId,
+      decision,
+    });
+
+    await createAuditLog({
+      workspaceId: request.workspaceId,
+      actorUserId: userId,
+      action: `workspace.permission_request_${decision}`,
+      resourceType: "permission_request",
+      resourceId: request.id,
+      metadata: {
+        requesterUserId: request.requesterUserId,
+        permission: request.requestedPermission,
+      },
+    });
+
+    return res.status(200).json({ success: true, data: request });
+  } catch (error) {
+    return res
+      .status(error instanceof ZodError ? 400 : 409)
+      .json({ success: false, message: getErrorMessage(error) });
   }
 }
 

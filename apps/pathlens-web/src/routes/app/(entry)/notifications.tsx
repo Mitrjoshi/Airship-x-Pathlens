@@ -1,10 +1,14 @@
-import { useAcceptNotification } from '@/mutations/workspace'
+import {
+  useAcceptNotification,
+  useReviewPermissionRequest,
+} from '@/mutations/workspace'
 import { getNotificationsOptions } from '@/queries/workspace'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { toast } from '@/lib/toast'
+import { Skeleton } from '@workspace/ui/components/skeleton'
 
 export const Route = createFileRoute('/app/(entry)/notifications')({
   component: RouteComponent,
@@ -12,7 +16,10 @@ export const Route = createFileRoute('/app/(entry)/notifications')({
 
 function RouteComponent() {
   const { data, isPending, isError } = useQuery(getNotificationsOptions())
-  const acceptNotification = useAcceptNotification()
+  const { mutate: acceptNotification, isPending: acceptPending } =
+    useAcceptNotification()
+  const { mutate: reviewPermissionRequest, isPending: reviewPending } =
+    useReviewPermissionRequest()
   const notifications = data?.data ?? []
 
   const getNotificationMessage = (type: string) => {
@@ -25,11 +32,23 @@ function RouteComponent() {
       return 'Your workspace has been paused because a usage limit was exceeded.'
     }
 
+    if (type === 'permission_request') {
+      return 'A member requested view access.'
+    }
+
+    if (type === 'permission_request_approved') {
+      return 'Your view access request was approved.'
+    }
+
+    if (type === 'permission_request_denied') {
+      return 'Your view access request was denied.'
+    }
+
     return null
   }
 
   const accept = (notificationId: string) => {
-    acceptNotification.mutate(notificationId, {
+    acceptNotification(notificationId, {
       onSuccess: (response) => {
         if (!response.success) {
           toast.error(response.message ?? 'Unable to accept invitation.')
@@ -39,6 +58,24 @@ function RouteComponent() {
         toast.success('You joined the workspace.')
       },
     })
+  }
+
+  const review = (
+    workspaceId: string,
+    requestId: string,
+    decision: 'approved' | 'denied'
+  ) => {
+    reviewPermissionRequest(
+      { workspaceId, requestId, decision },
+      {
+        onSuccess: () =>
+          toast.success(
+            decision === 'approved'
+              ? 'Permission request approved.'
+              : 'Permission request denied.'
+          ),
+      }
+    )
   }
 
   return (
@@ -53,7 +90,20 @@ function RouteComponent() {
           </div>
 
           {isPending ? (
-            <div className="text-muted-foreground flex items-center justify-center gap-2 px-2 py-8 text-xs"></div>
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-muted/30 flex items-start justify-between border-2 border-dashed p-2"
+                >
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-30" />
+                    <Skeleton className="h-4 w-60" />
+                  </div>
+                  <Skeleton className="h-8 w-30" />
+                </div>
+              ))}
+            </div>
           ) : isError ? (
             <div className="flex h-60 flex-col items-center justify-center gap-2">
               <p className="text-destructive text-sm">
@@ -68,7 +118,7 @@ function RouteComponent() {
             </div>
           ) : (
             <div className="space-y-2">
-              {notifications.slice(0, 8).map((notification) => (
+              {notifications.map((notification) => (
                 <div
                   key={notification.id}
                   className="bg-muted/30 flex items-start justify-between border-2 border-dashed p-2"
@@ -82,10 +132,27 @@ function RouteComponent() {
                           </span>{' '}
                           invited you to join a workspace.
                         </>
+                      ) : notification.type === 'permission_request' ? (
+                        <>
+                          <span className="font-medium">
+                            {notification.senderName}
+                          </span>{' '}
+                          requested access to{' '}
+                          <span className="font-medium">
+                            {notification.requestedPermission ?? 'a view'}
+                          </span>
+                          .
+                        </>
                       ) : (
                         getNotificationMessage(notification.type)
                       )}
                     </p>
+                    {notification.type === 'permission_request' &&
+                      notification.requestReason && (
+                        <p className="text-muted-foreground mt-2 text-xs">
+                          “{notification.requestReason}”
+                        </p>
+                      )}
                     <p className="text-muted-foreground mt-1 text-xs">
                       {notification.workspaceName} ·{' '}
                       {notification.permissionProfileName ??
@@ -95,19 +162,51 @@ function RouteComponent() {
                   {notification.type === 'workspace_invite' && (
                     <Button
                       variant={notification.acceptedAt ? 'outline' : 'default'}
-                      disabled={
-                        acceptNotification.isPending ||
-                        !!notification.acceptedAt
-                      }
+                      disabled={acceptPending || !!notification.acceptedAt}
                       onClick={() => accept(notification.id)}
                     >
-                      <LoadingSwap isLoading={acceptNotification.isPending}>
+                      <LoadingSwap isLoading={acceptPending}>
                         {notification.acceptedAt
                           ? 'Invitation accepted'
                           : 'Accept invitation'}
                       </LoadingSwap>
                     </Button>
                   )}
+                  {notification.type === 'permission_request' &&
+                    notification.permissionRequestId &&
+                    notification.permissionRequestStatus === 'pending' && (
+                      <div className="flex gap-2">
+                        <Button
+                          disabled={reviewPending}
+                          onClick={() =>
+                            review(
+                              notification.workspaceId,
+                              notification.permissionRequestId!,
+                              'approved'
+                            )
+                          }
+                        >
+                          <LoadingSwap isLoading={reviewPending}>
+                            Approve
+                          </LoadingSwap>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          disabled={reviewPending}
+                          onClick={() =>
+                            review(
+                              notification.workspaceId,
+                              notification.permissionRequestId!,
+                              'denied'
+                            )
+                          }
+                        >
+                          <LoadingSwap isLoading={reviewPending}>
+                            Deny
+                          </LoadingSwap>
+                        </Button>
+                      </div>
+                    )}
                 </div>
               ))}
             </div>

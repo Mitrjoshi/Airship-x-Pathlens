@@ -376,7 +376,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="analytics.funnels.view"
+              />
             ) : (
               <>
                 <div className="flex items-center justify-between gap-4">

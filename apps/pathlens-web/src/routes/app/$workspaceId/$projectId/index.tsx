@@ -303,7 +303,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+            <NoPermissionView
+              workspaceId={workspaceId}
+              permission="analytics.dashboard.view"
+            />
             ) : (
               <>
                 <div className="grid grid-cols-3 gap-3">

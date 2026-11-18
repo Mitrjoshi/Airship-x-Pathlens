@@ -32,7 +32,10 @@ function RouteComponent() {
         </div>
 
         {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+          <NoPermissionView
+            workspaceId={workspaceId}
+            permission="analytics.ai_insights.view"
+          />
         ) : (
           <>
             <div className="mt-40 flex flex-col items-center justify-center text-center">

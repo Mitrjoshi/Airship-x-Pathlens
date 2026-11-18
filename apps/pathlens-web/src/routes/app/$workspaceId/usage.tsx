@@ -118,7 +118,10 @@ function RouteComponent() {
         </div>
 
         {!hasViewPermission && !permissionsLoading ? (
-          <NoPermissionView />
+          <NoPermissionView
+            workspaceId={workspaceId}
+            permission="workspace.usage.view"
+          />
         ) : (
           <>
             <div>

@@ -131,7 +131,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+            <NoPermissionView
+              workspaceId={workspaceId}
+              permission="project.api_keys.view"
+            />
             ) : (
               <>
                 {globalLoading ? (

@@ -312,14 +312,16 @@ function RouteComponent() {
                       <>
                         <CardDescription className="flex items-center justify-between">
                           {item.label}{' '}
-                          <span
-                            className="font-medium"
-                            style={{
-                              color: `hsl(${120 - Math.min(100, Math.max(0, item.percentage)) * 1.2}, 75%, 42%)`,
-                            }}
-                          >
-                            {item.percentage.toFixed(0)}%
-                          </span>
+                          {!usage?.accountLifetimeAccess && (
+                            <span
+                              className="font-medium"
+                              style={{
+                                color: `hsl(${120 - Math.min(100, Math.max(0, item.percentage)) * 1.2}, 75%, 42%)`,
+                              }}
+                            >
+                              {item.percentage.toFixed(0)}%
+                            </span>
+                          )}
                         </CardDescription>
                         <CardTitle className="text-xl">{item.value}</CardTitle>
                       </>

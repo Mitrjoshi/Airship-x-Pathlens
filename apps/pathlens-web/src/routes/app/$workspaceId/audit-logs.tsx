@@ -237,7 +237,10 @@ function RouteComponent() {
             !hasViewMembersPermission &&
             !hasViewProjectsPermission &&
             !permissionsLoading ? (
-              <NoPermissionView />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="workspace.audit_logs.view"
+              />
             ) : (
               <>
                 <div className="">
@@ -248,7 +251,7 @@ function RouteComponent() {
                           <TableHead>Action Time</TableHead>
                           <TableHead className="w-[40%]">Resource</TableHead>
                           <TableHead>Action</TableHead>
-                          <TableHead>Actor</TableHead>
+                          <TableHead className="text-center">Actor</TableHead>
                         </TableRow>
                       </TableHeader>
 

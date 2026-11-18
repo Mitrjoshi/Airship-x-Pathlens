@@ -74,24 +74,22 @@ export const ErrorScreen = ({
             <LoadingSwap isLoading={refetching}>Try again</LoadingSwap>
           </Button>
 
-          {project_id && (
-            <Sheet>
-              <SheetTrigger
-                render={
-                  <Button type="button" variant="outline">
-                    Contact Us
-                  </Button>
-                }
-              />
+          <Sheet>
+            <SheetTrigger
+              render={
+                <Button type="button" variant="outline">
+                  Contact Us
+                </Button>
+              }
+            />
 
-              <>
-                <ContactUsSheet
-                  workspace_id={workspace_id}
-                  project_id={project_id}
-                />
-              </>
-            </Sheet>
-          )}
+            <>
+              <ContactUsSheet
+                workspace_id={workspace_id}
+                project_id={project_id}
+              />
+            </>
+          </Sheet>
         </div>
       </div>
     </div>

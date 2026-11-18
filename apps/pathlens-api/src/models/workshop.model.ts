@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import {
   DEFAULT_FULL_ACCESS_PERMISSIONS,
   DEFAULT_VIEWER_PERMISSIONS,
@@ -9,10 +9,12 @@ import {
 import { db } from "../db/client";
 import {
   notifications,
+  permissionRequests,
   permissionProfiles,
   projects,
   users,
   workspaceMembers,
+  workspaceMemberPermissions,
   workspaces,
 } from "../db/schema";
 
@@ -407,12 +409,27 @@ export async function getWorkspaceAccessModel(
 
   if (!member) return null;
 
+  const directPermissions = await db
+    .select({ permission: workspaceMemberPermissions.permission })
+    .from(workspaceMemberPermissions)
+    .where(
+      and(
+        eq(workspaceMemberPermissions.workspaceId, workspaceId),
+        eq(workspaceMemberPermissions.userId, userId)
+      )
+    );
+
   return {
     ...member,
     permissions:
       member.role === "owner"
         ? [...DEFAULT_FULL_ACCESS_PERMISSIONS]
-        : normalizePermissions(member.permissions),
+        : Array.from(
+            new Set([
+              ...normalizePermissions(member.permissions),
+              ...directPermissions.map((item) => item.permission),
+            ])
+          ),
   };
 }
 
@@ -764,6 +781,211 @@ export async function createWorkspaceInvitationModel(data: {
   return notification;
 }
 
+export async function createPermissionRequestModel(data: {
+  workspaceId: string;
+  requesterUserId: string;
+  permission: Permission;
+  reason: string;
+}) {
+  return await db.transaction(async (tx) => {
+    const access = await getWorkspaceAccessModel(
+      data.workspaceId,
+      data.requesterUserId
+    );
+
+    if (!access) throw new Error("You are not a member of this workspace.");
+    if (hasWorkspacePermission(access, data.permission)) {
+      throw new Error("You already have this permission.");
+    }
+
+    const [request] = await tx
+      .insert(permissionRequests)
+      .values({
+        workspaceId: data.workspaceId,
+        requesterUserId: data.requesterUserId,
+        requestedPermission: data.permission,
+        reason: data.reason,
+      })
+      .onConflictDoNothing()
+      .returning({
+        id: permissionRequests.id,
+        workspaceId: permissionRequests.workspaceId,
+        requestedPermission: permissionRequests.requestedPermission,
+        reason: permissionRequests.reason,
+        createdAt: permissionRequests.createdAt,
+      });
+
+    if (!request) {
+      throw new Error(
+        "You already have a pending request for this permission."
+      );
+    }
+
+    const administrators = await tx
+      .select({
+        userId: workspaceMembers.userId,
+      })
+      .from(workspaceMembers)
+      .leftJoin(
+        permissionProfiles,
+        eq(permissionProfiles.id, workspaceMembers.permissionProfileId)
+      )
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, data.workspaceId),
+          sql`${workspaceMembers.userId} <> ${data.requesterUserId}`,
+          or(
+            eq(workspaceMembers.role, "owner"),
+            sql`${permissionProfiles.permissions} @> ${JSON.stringify(["workspace.members.update"])}::jsonb`,
+            sql`EXISTS (
+              SELECT 1
+              FROM ${workspaceMemberPermissions} AS direct_admin_permission
+              WHERE direct_admin_permission.workspace_id = ${workspaceMembers.workspaceId}
+                AND direct_admin_permission.user_id = ${workspaceMembers.userId}
+                AND direct_admin_permission.permission = 'workspace.members.update'
+            )`
+          )
+        )
+      );
+
+    if (administrators.length > 0) {
+      await tx.insert(notifications).values(
+        administrators.map((administrator) => ({
+          recipientUserId: administrator.userId,
+          senderUserId: data.requesterUserId,
+          workspaceId: data.workspaceId,
+          type: "permission_request",
+          role: "member",
+          permissionRequestId: request.id,
+          payload: {
+            permission: data.permission,
+            reason: data.reason,
+          },
+        }))
+      );
+    }
+
+    return request;
+  });
+}
+
+export async function getPermissionRequestStatusModel(data: {
+  workspaceId: string;
+  requesterUserId: string;
+  permission: Permission;
+}) {
+  const [request] = await db
+    .select({
+      id: permissionRequests.id,
+      status: permissionRequests.status,
+      createdAt: permissionRequests.createdAt,
+    })
+    .from(permissionRequests)
+    .where(
+      and(
+        eq(permissionRequests.workspaceId, data.workspaceId),
+        eq(permissionRequests.requesterUserId, data.requesterUserId),
+        eq(permissionRequests.requestedPermission, data.permission)
+      )
+    )
+    .orderBy(desc(permissionRequests.createdAt))
+    .limit(1);
+
+  return {
+    status: request?.status ?? "none",
+    requestId: request?.id ?? null,
+    createdAt: request?.createdAt ?? null,
+  };
+}
+
+export async function reviewPermissionRequestModel(data: {
+  workspaceId: string;
+  requestId: string;
+  reviewerUserId: string;
+  decision: "approved" | "denied";
+}) {
+  return await db.transaction(async (tx) => {
+    const [request] = await tx
+      .select()
+      .from(permissionRequests)
+      .where(
+        and(
+          eq(permissionRequests.id, data.requestId),
+          eq(permissionRequests.workspaceId, data.workspaceId)
+        )
+      );
+
+    if (!request) throw new Error("Permission request not found.");
+    if (request.status !== "pending") {
+      throw new Error("This permission request has already been reviewed.");
+    }
+
+    if (data.decision === "approved") {
+      await tx
+        .insert(workspaceMemberPermissions)
+        .values({
+          workspaceId: request.workspaceId,
+          userId: request.requesterUserId,
+          permission: request.requestedPermission,
+          grantedByUserId: data.reviewerUserId,
+        })
+        .onConflictDoNothing();
+    }
+
+    const [updatedRequest] = await tx
+      .update(permissionRequests)
+      .set({
+        status: data.decision,
+        reviewedByUserId: data.reviewerUserId,
+        reviewedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(permissionRequests.id, data.requestId),
+          eq(permissionRequests.workspaceId, data.workspaceId),
+          eq(permissionRequests.status, "pending")
+        )
+      )
+      .returning({
+        id: permissionRequests.id,
+        workspaceId: permissionRequests.workspaceId,
+        requesterUserId: permissionRequests.requesterUserId,
+        requestedPermission: permissionRequests.requestedPermission,
+        reason: permissionRequests.reason,
+        status: permissionRequests.status,
+      });
+
+    if (!updatedRequest) {
+      throw new Error("This permission request has already been reviewed.");
+    }
+
+    await tx
+      .update(notifications)
+      .set({ readAt: new Date() })
+      .where(
+        and(
+          eq(notifications.permissionRequestId, data.requestId),
+          eq(notifications.recipientUserId, data.reviewerUserId)
+        )
+      );
+
+    await tx.insert(notifications).values({
+      recipientUserId: request.requesterUserId,
+      senderUserId: data.reviewerUserId,
+      workspaceId: request.workspaceId,
+      type: `permission_request_${data.decision}`,
+      role: "member",
+      permissionRequestId: request.id,
+      payload: {
+        permission: request.requestedPermission,
+      },
+      readAt: null,
+    });
+
+    return updatedRequest;
+  });
+}
+
 export async function getUserNotificationsModel(userId: string) {
   const workspaceRows = await db
     .select({ workspaceId: notifications.workspaceId })
@@ -782,6 +1004,11 @@ export async function getUserNotificationsModel(userId: string) {
       type: notifications.type,
       role: notifications.role,
       permissionProfileId: notifications.permissionProfileId,
+      permissionRequestId: notifications.permissionRequestId,
+      payload: notifications.payload,
+      permissionRequestStatus: permissionRequests.status,
+      requestedPermission: permissionRequests.requestedPermission,
+      requestReason: permissionRequests.reason,
       permissionProfileName: permissionProfiles.name,
       workspaceId: notifications.workspaceId,
       workspaceName: workspaces.name,
@@ -797,6 +1024,10 @@ export async function getUserNotificationsModel(userId: string) {
     .leftJoin(
       permissionProfiles,
       eq(permissionProfiles.id, notifications.permissionProfileId)
+    )
+    .leftJoin(
+      permissionRequests,
+      eq(permissionRequests.id, notifications.permissionRequestId)
     )
     .where(eq(notifications.recipientUserId, userId))
     .orderBy(desc(notifications.createdAt));

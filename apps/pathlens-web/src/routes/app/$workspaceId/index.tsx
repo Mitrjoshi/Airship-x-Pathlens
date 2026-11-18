@@ -11,6 +11,7 @@ import {
 } from '@workspace/ui/components/input-group'
 import {
   AlertCircleIcon,
+  DownloadIcon,
   EllipsisIcon,
   ExternalLinkIcon,
   InfoIcon,
@@ -30,19 +31,22 @@ import { toast } from '@/lib/toast'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@workspace/ui/components/dialog'
-import React from 'react'
+import React, { useState } from 'react'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
 import { useDeleteProject } from '@/mutations/projects'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
 import { ErrorScreen } from './$projectId/-components/common/error-screen'
+import { Separator } from '@workspace/ui/components/separator'
+import { Field, FieldGroup, FieldLabel } from '@workspace/ui/components/field'
+import { Input } from '@workspace/ui/components/input'
+import { useGenerateReport } from '@/mutations/reports'
 
 export const Route = createFileRoute('/app/$workspaceId/')({
   component: RouteComponent,
@@ -52,6 +56,7 @@ function RouteComponent() {
   const { workspaceId } = Route.useParams()
   const navigate = useNavigate()
   const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
+  const [deleteConfirmName, setDeleteConfirmName] = useState<string>('')
 
   const {
     data: permissionsData,
@@ -67,7 +72,7 @@ function RouteComponent() {
   const hasDeletePermission = permissions?.includes('projects.delete')
 
   const {
-    data: projects,
+    data: projectsData,
     isPending: projectsLoading,
     isError: projectsError,
     refetch: refetchProjects,
@@ -79,13 +84,20 @@ function RouteComponent() {
     enabled: !!hasViewPermission,
   })
 
-  const deleteProject = useDeleteProject()
+  const projects = projectsData?.data
+
+  const { mutate: deleteProject, isPending: deleteProjectPending } =
+    useDeleteProject()
+  const { mutate: generateReport, isPending: generateReportPending } =
+    useGenerateReport()
 
   const globalLoading = permissionsLoading || projectsLoading
   const globalError = permissionsError || projectsError
   const globalRefetching = permissionsRefetching || projectsRefetching
 
   const refetch = () => Promise.all([refetchPermissions(), refetchProjects()])
+
+  const projectToDelete = projects?.find((project) => project.id === deleteOpen)
 
   return (
     <div>
@@ -145,13 +157,16 @@ function RouteComponent() {
                 </div>
 
                 {!hasViewPermission && !permissionsLoading ? (
-                  <NoPermissionView />
+                  <NoPermissionView
+                    workspaceId={workspaceId}
+                    permission="projects.view"
+                  />
                 ) : (
                   <>
                     <div className="space-y-2">
                       {globalLoading ? (
                         <>
-                          {[...Array(2)].map((_, i) => (
+                          {[...Array(3)].map((_, i) => (
                             <div
                               className="grid w-full grid-cols-[0.4fr_1fr] gap-4 border-2 border-dashed p-3 duration-150"
                               key={i}
@@ -174,8 +189,18 @@ function RouteComponent() {
                             </div>
                           ))}
                         </>
+                      ) : !projects?.length ? (
+                        <div className="flex items-center justify-center py-20">
+                          <p className="text-muted-foreground text-sm">
+                            No projects found. Click "
+                            <span className="text-foreground font-medium">
+                              New Project
+                            </span>
+                            " to create one.
+                          </p>
+                        </div>
                       ) : (
-                        projects?.data.map((item) => {
+                        projects?.map((item) => {
                           return (
                             <ProjectCard
                               setDeleteOpen={setDeleteOpen}
@@ -195,38 +220,108 @@ function RouteComponent() {
         </div>
 
         {deleteOpen && (
-          <DialogContent showCloseButton={false}>
-            <DialogHeader>
+          <DialogContent>
+            <DialogHeader className="">
               <DialogTitle>Confirm Delete</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete this project?
               </DialogDescription>
             </DialogHeader>
 
-            <DialogFooter className="bg-transparent py-2">
-              <DialogClose render={<Button variant="ghost">Cancel</Button>}>
-                Close
-              </DialogClose>
+            <div className="space-y-4">
+              <Separator />
+              <p className="text-muted-foreground text-sm">
+                Deleting your project will permanently remove all associated
+                analytics data, including events, session recordings, heatmaps,
+                and performance metrics. We recommend exporting your data before
+                proceeding, as it cannot be recovered once deleted.
+              </p>
+
               <Button
                 onClick={() => {
-                  deleteProject.mutate(
-                    {
-                      project_id: deleteOpen,
-                      workspace_id: workspaceId,
-                    },
-                    {
-                      onSuccess: () => {
-                        setDeleteOpen(null)
-                      },
-                    }
-                  )
+                  generateReport({
+                    workspace_id: workspaceId,
+                    project_id: deleteOpen,
+                    device: 'all',
+                    range: '90d',
+                    report_type: 'full',
+                    domain: undefined,
+                  })
                 }}
-                variant="destructive"
+                variant="outline"
+                className={'w-full'}
               >
-                <LoadingSwap isLoading={deleteProject.isPending}>
-                  Delete
+                <LoadingSwap
+                  className="flex items-center gap-2"
+                  isLoading={generateReportPending}
+                >
+                  <DownloadIcon />
+                  Export
                 </LoadingSwap>
               </Button>
+
+              <Separator />
+
+              <div className="w-full">
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel
+                      htmlFor="confirm"
+                      className="text-muted-foreground gap-1"
+                    >
+                      Type{' '}
+                      <span className="text-foreground font-medium">
+                        {projectToDelete?.name}
+                      </span>{' '}
+                      to confirm.
+                    </FieldLabel>
+                    <Input
+                      id="confirm"
+                      onChange={(e) => {
+                        setDeleteConfirmName(e.target.value)
+                      }}
+                      placeholder="Type the project name here"
+                    />
+                  </Field>
+                </FieldGroup>
+              </div>
+            </div>
+
+            <DialogFooter className="flex-col! bg-transparent">
+              <div className="flex items-center justify-end gap-4">
+                <Button
+                  className={'w-full'}
+                  disabled={deleteConfirmName !== projectToDelete?.name}
+                  onClick={() => {
+                    if (deleteConfirmName !== projectToDelete?.name) {
+                      return toast.error('Incorrect project name')
+                    }
+
+                    if (!hasDeletePermission)
+                      return toast.error(
+                        'You do not have permission to delete this project'
+                      )
+
+                    deleteProject(
+                      {
+                        project_id: deleteOpen,
+                        workspace_id: workspaceId,
+                      },
+                      {
+                        onSuccess: () => {
+                          setDeleteOpen(null)
+                          setDeleteConfirmName('')
+                        },
+                      }
+                    )
+                  }}
+                  variant="destructive"
+                >
+                  <LoadingSwap isLoading={deleteProjectPending}>
+                    I understand, delete this project
+                  </LoadingSwap>
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         )}

@@ -29,7 +29,7 @@ function GoogleCallback() {
   }, [error, navigate, token])
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="bg-background fixed top-0 left-0 z-99 flex min-h-screen w-screen items-center justify-center p-6">
       {error ? (
         <div className="flex flex-col items-center justify-center gap-2">
           <p className="text-destructive font-semibold">{error}</p>

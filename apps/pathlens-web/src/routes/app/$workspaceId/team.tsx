@@ -212,7 +212,10 @@ function RouteComponent() {
           ) : (
             <>
               {!hasViewPermission && !permissionsLoading ? (
-                <NoPermissionView />
+                <NoPermissionView
+                  workspaceId={workspaceId}
+                  permission="workspace.members.view"
+                />
               ) : (
                 <>
                   <div className="flex items-start gap-4">

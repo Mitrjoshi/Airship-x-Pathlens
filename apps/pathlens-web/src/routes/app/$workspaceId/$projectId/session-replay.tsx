@@ -287,7 +287,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+            <NoPermissionView
+              workspaceId={workspaceId}
+              permission="analytics.session_replay.view"
+            />
             ) : (
               <>
                 <div className="flex items-center justify-between gap-4">

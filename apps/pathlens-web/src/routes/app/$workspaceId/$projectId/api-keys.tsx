@@ -199,7 +199,10 @@ function RouteComponent() {
       ) : (
         <>
           {!hasViewPermission && !permissionsLoading ? (
-            <NoPermissionView />
+            <NoPermissionView
+              workspaceId={workspaceId}
+              permission="project.api_keys.view"
+            />
           ) : (
             <ApiKeysTable
               onCreate={() => {
@@ -779,7 +782,7 @@ function CreateApiKeyForm({
         </form.Field>
       </div>
 
-      <DialogFooter>
+      <DialogFooter className="bg-transparent">
         <Button
           type="button"
           variant="secondary"
@@ -985,7 +988,7 @@ function DeactivateApiKey({
         </DialogDescription>
       </DialogHeader>
 
-      <DialogFooter className="py-2">
+      <DialogFooter className="bg-transparent">
         <Button variant="secondary" disabled={isPending} onClick={onCancel}>
           Cancel
         </Button>

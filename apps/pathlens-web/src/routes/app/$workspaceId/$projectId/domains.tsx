@@ -134,7 +134,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="project.domains.view"
+              />
             ) : (
               <>
                 <div className="flex items-center justify-between gap-4">
@@ -195,7 +198,7 @@ function RouteComponent() {
                         />
                       </div>
 
-                      <DialogFooter className="bg-transparent py-2">
+                      <DialogFooter className="bg-transparent">
                         <DialogClose
                           render={
                             <Button variant="outline" disabled={isCreating} />
@@ -463,7 +466,7 @@ function EditDomainDialog({
           />
         </div>
 
-        <DialogFooter className="bg-transparent py-2">
+        <DialogFooter className="bg-transparent">
           <DialogClose
             render={<Button variant="outline" disabled={isUpdating} />}
           >
@@ -518,7 +521,7 @@ function DeleteDomainDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="bg-transparent py-2">
+        <DialogFooter className="bg-transparent">
           <DialogClose
             render={<Button variant="outline" disabled={isDeleting} />}
           >

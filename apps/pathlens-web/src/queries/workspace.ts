@@ -178,6 +178,11 @@ export type T_WorkspaceNotification = {
   role: string
   permissionProfileId: string | null
   permissionProfileName: string | null
+  permissionRequestId: string | null
+  permissionRequestStatus: 'pending' | 'approved' | 'denied' | null
+  requestedPermission: Permission | null
+  requestReason: string | null
+  payload: Record<string, unknown> | null
   workspaceId: string
   workspaceName: string
   senderName: string
@@ -200,4 +205,28 @@ export const getNotificationsOptions = () =>
 
       return response.data
     },
+  })
+
+export const getPermissionRequestStatusOptions = (
+  workspaceId: string,
+  permission: Permission
+) =>
+  queryOptions({
+    queryKey: ['PERMISSION_REQUEST_STATUS', workspaceId, permission],
+    queryFn: async (): Promise<{
+      success: boolean
+      data: {
+        status: 'none' | 'pending' | 'approved' | 'denied'
+        requestId: string | null
+        createdAt: string | null
+      }
+    }> => {
+      const response = await apiClient.get(
+        `/workspaces/${workspaceId}/permission-requests/status`,
+        { params: { permission } }
+      )
+
+      return response.data
+    },
+    enabled: Boolean(workspaceId && permission),
   })

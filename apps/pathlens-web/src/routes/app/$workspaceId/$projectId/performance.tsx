@@ -367,7 +367,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-              <NoPermissionView />
+            <NoPermissionView
+              workspaceId={workspaceId}
+              permission="analytics.performance.view"
+            />
             ) : (
               <>
                 <div>

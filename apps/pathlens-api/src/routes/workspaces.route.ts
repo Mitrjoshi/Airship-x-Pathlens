@@ -2,12 +2,14 @@ import { Router } from "express";
 
 import {
   createPermissionProfile,
+  createPermissionRequest,
   createWorkspace,
   createWorkspaceInvitation,
   deletePermissionProfile,
   deleteWorkspace,
   getPermissionProfiles,
   getPermissionProfile,
+  getPermissionRequestStatus,
   getUserWorkspacesController,
   getWorkspaceMembers,
   getWorkspaceByIdController,
@@ -15,6 +17,7 @@ import {
   getWorkspacePendingInvitations,
   getWorkspaceUsage,
   removeWorkspaceMember,
+  reviewPermissionRequest,
   revokeWorkspaceInvitation,
   updatePermissionProfile,
   updateWorkspace,
@@ -72,6 +75,15 @@ router.delete(
 router.patch("/:workspace_id/members/:user_id", updateWorkspaceMember);
 router.delete("/:workspace_id/members/:user_id", removeWorkspaceMember);
 router.post("/:workspace_id/invitations", createWorkspaceInvitation);
+router.post("/:workspace_id/permission-requests", createPermissionRequest);
+router.get(
+  "/:workspace_id/permission-requests/status",
+  getPermissionRequestStatus
+);
+router.post(
+  "/:workspace_id/permission-requests/:request_id/:decision",
+  reviewPermissionRequest
+);
 router.delete(
   "/:workspace_id/invitations/:invitation_id",
   revokeWorkspaceInvitation
