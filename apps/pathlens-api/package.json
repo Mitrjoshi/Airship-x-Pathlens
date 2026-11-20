@@ -25,6 +25,8 @@
     "test:preview-sessions": "node --experimental-test-module-mocks --import tsx --test src/routes/preview-sessions.route.test.ts",
     "test:authorization": "node --experimental-test-module-mocks --import tsx --test src/routes/heatmaps.route.test.ts src/routes/preview-sessions.route.test.ts",
     "test:events": "node --experimental-test-module-mocks --import tsx --test src/models/events.idempotency.test.ts",
+    "test:workspaces": "node --experimental-test-module-mocks --import tsx --test src/controllers/workspaces-search.test.ts",
+    "test:projects": "node --experimental-test-module-mocks --import tsx --test src/controllers/projects-search.test.ts",
     "test:password-reset": "node --experimental-test-module-mocks --import tsx --test src/controllers/password-reset.controller.test.ts",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio"

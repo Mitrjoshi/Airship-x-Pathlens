@@ -165,6 +165,7 @@ const getProjectSchema = z.object({
     error: "Please enter a workspace id.",
   }),
   project_id: z.string().optional(),
+  search: z.string().trim().max(100).optional(),
 });
 
 const updateProjectParamsSchema = z.object({
@@ -199,9 +200,11 @@ const updateProjectSchema = z.object({
 
 export async function getProjects(req: AuthRequest, res: Response) {
   try {
-    const { workspace_id, project_id } = getProjectSchema.parse(req.query);
+    const { workspace_id, project_id, search } = getProjectSchema.parse(
+      req.query
+    );
 
-    const projects = await getProjectsModel(workspace_id, project_id);
+    const projects = await getProjectsModel(workspace_id, project_id, search);
     const snapshots = await getProjectSnapshotsModel(
       projects.map((project) => project.id)
     );

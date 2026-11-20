@@ -9,6 +9,7 @@ import { Badge } from '@workspace/ui/components/badge'
 import { Button } from '@workspace/ui/components/button'
 import {
   InputGroup,
+  InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
@@ -35,7 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -70,6 +71,7 @@ import {
 import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
 import { toast } from '@/lib/toast'
 import { ErrorScreen } from './$projectId/-components/common/error-screen'
+import { useDebounce } from '@/hooks/useDebounce'
 
 export const Route = createFileRoute('/app/$workspaceId/permissions')({
   component: RouteComponent,
@@ -115,6 +117,8 @@ function RouteComponent() {
   const [sheetOpen, setSheetOpen] = useState<boolean>(false)
   const [permissionId, setPermissionId] = useState<string | null>(null)
 
+  const debouncedSearch = useDebounce(search, 500)
+
   const {
     data: permissionsData,
     isLoading: permissionsLoading,
@@ -144,7 +148,7 @@ function RouteComponent() {
     refetch: profilesRefetch,
     isRefetching: profilesRefetching,
   } = useQuery({
-    ...getWorkspacePermissionProfilesOptions(workspaceId),
+    ...getWorkspacePermissionProfilesOptions(workspaceId, debouncedSearch),
     enabled: !!hasViewPermission,
   })
 
@@ -165,19 +169,6 @@ function RouteComponent() {
 
   const profiles = profilesData?.data ?? []
   const permissionProfile = profiles?.filter((i) => i.id === permissionId)[0]
-
-  const filteredProfiles = useMemo(() => {
-    const query = search.trim().toLowerCase()
-
-    if (!query) return profiles
-
-    return profiles.filter((profile) => {
-      return (
-        profile.name.toLowerCase().includes(query) ||
-        profile.description?.toLowerCase().includes(query)
-      )
-    })
-  }, [profiles, search])
 
   const closeProfileDialog = () => {
     setProfileDialog(null)
@@ -244,16 +235,23 @@ function RouteComponent() {
           ) : (
             <>
               <div className="flex items-center justify-between gap-4">
-                <InputGroup className="w-90">
-                  <InputGroupButton>
+                <InputGroup className="max-w-80">
+                  <InputGroupAddon>
                     <SearchIcon />
-                  </InputGroupButton>
-
+                  </InputGroupAddon>
                   <InputGroupInput
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search..."
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by name..."
+                    aria-label="Search permission profiles by name"
+                    maxLength={100}
                   />
+
+                  {search && (
+                    <InputGroupButton onClick={() => setSearch('')}>
+                      <XIcon />
+                    </InputGroupButton>
+                  )}
                 </InputGroup>
 
                 <Button
@@ -304,8 +302,17 @@ function RouteComponent() {
                       <TableBody>
                         {globalLoading ? (
                           <PermissionTableSkeleton />
+                        ) : debouncedSearch.trim() && profiles.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={4}
+                              className="text-muted-foreground py-8 text-center"
+                            >
+                              No permission profiles match your search.
+                            </TableCell>
+                          </TableRow>
                         ) : (
-                          filteredProfiles.map((item) => (
+                          profiles.map((item) => (
                             <PermissionsCard
                               key={item.id}
                               item={item}

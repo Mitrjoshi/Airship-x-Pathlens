@@ -54,10 +54,13 @@ export interface ActiveProjectDomainsCountResponse {
   }
 }
 
-const getProjects = async (params: {
+type ProjectsParams = {
   workspace_id: string
   project_id?: string
-}): Promise<UsersResponse> => {
+  search?: string
+}
+
+const getProjects = async (params: ProjectsParams): Promise<UsersResponse> => {
   const res = await apiClient.get('/projects', {
     params,
   })
@@ -65,14 +68,15 @@ const getProjects = async (params: {
   return res.data
 }
 
-export const getProjectsOptions = (params: {
-  workspace_id: string
-  project_id?: string
-}) =>
-  queryOptions({
-    queryKey: ['PROJECTS', params],
-    queryFn: () => getProjects(params),
+export const getProjectsOptions = ({ search, ...params }: ProjectsParams) => {
+  const term = search?.trim()
+  const filters = term ? { ...params, search: term } : params
+
+  return queryOptions({
+    queryKey: ['PROJECTS', filters],
+    queryFn: () => getProjects(filters),
   })
+}
 
 export const getActiveProjectDomainsCount =
   async (): Promise<ActiveProjectDomainsCountResponse> => {

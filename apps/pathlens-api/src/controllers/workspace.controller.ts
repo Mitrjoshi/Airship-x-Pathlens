@@ -44,6 +44,10 @@ const workspaceParamsSchema = z.object({
   workspace_id: z.string().min(1, "Workspace id is required."),
 });
 
+const workspaceSearchQuerySchema = z.object({
+  search: z.string().trim().max(100).optional(),
+});
+
 const createWorkspaceSchema = z.object({
   name: z
     .string({ error: "Workspace name is required." })
@@ -164,8 +168,17 @@ export async function getUserWorkspacesController(
     return res.status(401).json({ success: false, message: "Unauthorized." });
   }
 
+  const query = workspaceSearchQuerySchema.safeParse(req.query);
+
+  if (!query.success) {
+    return res.status(400).json({
+      success: false,
+      message: getErrorMessage(query.error),
+    });
+  }
+
   try {
-    const workspaces = await getWorkspaces(userId);
+    const workspaces = await getWorkspaces(userId, query.data.search);
 
     return res.status(200).json({
       success: true,
@@ -411,6 +424,7 @@ export async function getWorkspaceMembers(req: AuthRequest, res: Response) {
 
   try {
     const { workspace_id } = workspaceParamsSchema.parse(req.params);
+    const { search } = workspaceSearchQuerySchema.parse(req.query);
     const member = await requireWorkspacePermission(
       workspace_id,
       userId,
@@ -424,7 +438,7 @@ export async function getWorkspaceMembers(req: AuthRequest, res: Response) {
       });
     }
 
-    const members = await getWorkspaceMembersModel(workspace_id);
+    const members = await getWorkspaceMembersModel(workspace_id, search);
 
     return res.status(200).json({
       success: true,
@@ -992,6 +1006,7 @@ export async function getPermissionProfiles(req: AuthRequest, res: Response) {
 
   try {
     const { workspace_id } = workspaceParamsSchema.parse(req.params);
+    const { search } = workspaceSearchQuerySchema.parse(req.query);
     const member = await requireWorkspacePermission(
       workspace_id,
       userId,
@@ -1008,7 +1023,7 @@ export async function getPermissionProfiles(req: AuthRequest, res: Response) {
       });
     }
 
-    const profiles = await getPermissionProfilesModel(workspace_id);
+    const profiles = await getPermissionProfilesModel(workspace_id, search);
 
     return res.status(200).json({ success: true, data: profiles });
   } catch (error) {

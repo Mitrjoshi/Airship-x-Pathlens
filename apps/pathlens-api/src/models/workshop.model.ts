@@ -1,4 +1,5 @@
-import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { z } from "zod";
 import {
   DEFAULT_FULL_ACCESS_PERMISSIONS,
   DEFAULT_VIEWER_PERMISSIONS,
@@ -246,11 +247,26 @@ export async function getDefaultWorkspace(user_id: string) {
   return workspace;
 }
 
-export async function getWorkspaces(user_id: string) {
+const workspaceIdSearchSchema = z.guid();
+
+export async function getWorkspaces(user_id: string, search?: string) {
+  const workspaceId = workspaceIdSearchSchema.safeParse(search);
+  // Escape LIKE metacharacters so search matches the literal workspace name.
+  const condition = and(
+    eq(workspaceMembers.userId, user_id),
+    search
+      ? or(
+          ilike(workspaces.name, `%${search.replace(/[\\%_]/g, "\\$&")}%`),
+          workspaceId.success ? eq(workspaces.id, workspaceId.data) : undefined
+        )
+      : undefined
+  );
+
   const memberships = await db
     .select({ workspaceId: workspaceMembers.workspaceId })
     .from(workspaceMembers)
-    .where(eq(workspaceMembers.userId, user_id));
+    .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
+    .where(condition);
 
   await Promise.all(
     memberships.map((membership) =>
@@ -283,7 +299,7 @@ export async function getWorkspaces(user_id: string) {
       permissionProfiles,
       eq(permissionProfiles.id, workspaceMembers.permissionProfileId)
     )
-    .where(eq(workspaceMembers.userId, user_id))
+    .where(condition)
     .orderBy(desc(workspaces.isDefault), desc(workspaces.createdAt));
 
   return workspacesResult.map((workspace) => ({
@@ -440,7 +456,10 @@ export function hasWorkspacePermission(
   return access.role === "owner" || access.permissions.includes(permission);
 }
 
-export async function getPermissionProfilesModel(workspaceId: string) {
+export async function getPermissionProfilesModel(
+  workspaceId: string,
+  search?: string
+) {
   await ensureWorkspacePermissionProfilesModel(workspaceId);
 
   return await db
@@ -463,7 +482,17 @@ export async function getPermissionProfilesModel(workspaceId: string) {
       ),
     })
     .from(permissionProfiles)
-    .where(eq(permissionProfiles.workspaceId, workspaceId))
+    .where(
+      and(
+        eq(permissionProfiles.workspaceId, workspaceId),
+        search
+          ? ilike(
+              permissionProfiles.name,
+              `%${search.replace(/[\\%_]/g, "\\$&")}%`
+            )
+          : undefined
+      )
+    )
     .orderBy(permissionProfiles.name);
 }
 
@@ -616,7 +645,12 @@ export async function deletePermissionProfileModel(data: {
   return profile;
 }
 
-export async function getWorkspaceMembersModel(workspaceId: string) {
+export async function getWorkspaceMembersModel(
+  workspaceId: string,
+  search?: string
+) {
+  const pattern = search ? `%${search.replace(/[\\%_]/g, "\\$&")}%` : null;
+
   return await db
     .select({
       id: users.id,
@@ -634,7 +668,14 @@ export async function getWorkspaceMembersModel(workspaceId: string) {
       permissionProfiles,
       eq(permissionProfiles.id, workspaceMembers.permissionProfileId)
     )
-    .where(eq(workspaceMembers.workspaceId, workspaceId))
+    .where(
+      and(
+        eq(workspaceMembers.workspaceId, workspaceId),
+        pattern
+          ? or(ilike(users.name, pattern), ilike(users.email, pattern))
+          : undefined
+      )
+    )
     .orderBy(desc(workspaceMembers.createdAt));
 }
 

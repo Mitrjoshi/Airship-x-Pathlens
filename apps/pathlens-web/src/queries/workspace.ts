@@ -26,17 +26,22 @@ interface WorkspacesResponse {
   data: T_Workspace[]
 }
 
-const getWorkspaces = async (): Promise<WorkspacesResponse> => {
-  const response = await apiClient.get('/workspaces')
+const getWorkspaces = async (search: string): Promise<WorkspacesResponse> => {
+  const response = await apiClient.get('/workspaces', {
+    params: search ? { search } : undefined,
+  })
 
   return response.data
 }
 
-export const getWorkspacesOptions = () =>
-  queryOptions({
-    queryKey: ['WORKSPACES'],
-    queryFn: getWorkspaces,
+export const getWorkspacesOptions = (search?: string) => {
+  const term = search?.trim() ?? ''
+
+  return queryOptions({
+    queryKey: term ? ['WORKSPACES', term] : ['WORKSPACES'],
+    queryFn: () => getWorkspaces(term),
   })
+}
 
 interface WorkspaceResponse {
   success: boolean
@@ -81,15 +86,25 @@ interface WorkspaceMembersResponse {
   data: T_WorkspaceMember[]
 }
 
-export const getWorkspaceMembersOptions = (workspaceId: string) =>
-  queryOptions({
-    queryKey: ['WORKSPACE_MEMBERS', workspaceId],
+export const getWorkspaceMembersOptions = (
+  workspaceId: string,
+  search?: string
+) => {
+  const term = search?.trim()
+  const queryKey = ['WORKSPACE_MEMBERS', workspaceId]
+
+  return queryOptions({
+    queryKey: term ? [...queryKey, term] : queryKey,
     queryFn: async (): Promise<WorkspaceMembersResponse> => {
-      const response = await apiClient.get(`/workspaces/${workspaceId}/members`)
+      const response = await apiClient.get(
+        `/workspaces/${workspaceId}/members`,
+        { params: term ? { search: term } : undefined }
+      )
 
       return response.data
     },
   })
+}
 
 export const getWorkspaceInvitationsOptions = (workspaceId: string) =>
   queryOptions({
@@ -139,17 +154,25 @@ interface PermissionProfilesResponse {
   data: T_PermissionProfile[]
 }
 
-export const getWorkspacePermissionProfilesOptions = (workspaceId: string) =>
-  queryOptions({
-    queryKey: ['WORKSPACE_PERMISSION_PROFILES', workspaceId],
+export const getWorkspacePermissionProfilesOptions = (
+  workspaceId: string,
+  search?: string
+) => {
+  const term = search?.trim()
+  const queryKey = ['WORKSPACE_PERMISSION_PROFILES', workspaceId]
+
+  return queryOptions({
+    queryKey: term ? [...queryKey, term] : queryKey,
     queryFn: async (): Promise<PermissionProfilesResponse> => {
       const response = await apiClient.get(
-        `/workspaces/${workspaceId}/permission-profiles`
+        `/workspaces/${workspaceId}/permission-profiles`,
+        { params: term ? { search: term } : undefined }
       )
 
       return response.data
     },
   })
+}
 
 export interface PermissionProfileResponse {
   success: boolean

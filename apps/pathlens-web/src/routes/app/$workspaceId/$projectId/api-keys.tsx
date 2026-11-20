@@ -512,10 +512,10 @@ function ApiKeyRow({
 function ApiKeyStatus({ revoked }: { revoked: boolean }) {
   return (
     <div className="group flex items-center gap-2" data-revoked={revoked}>
-      <span className="bg-primary group-data-[revoked=true]:bg-muted-foreground/50 size-1.5 shrink-0" />
+      <span className="bg-primary group-data-[revoked=true]:bg-destructive/50 size-1.5 shrink-0" />
 
-      <span className="text-primary group-data-[revoked=true]:text-muted-foreground">
-        {revoked ? 'Inactive' : 'Active'}
+      <span className="text-primary group-data-[revoked=true]:text-destructive/50">
+        {revoked ? 'Revoked' : 'Active'}
       </span>
     </div>
   )

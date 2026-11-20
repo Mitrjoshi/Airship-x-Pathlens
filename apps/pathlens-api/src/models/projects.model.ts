@@ -5,10 +5,13 @@ import {
   desc,
   eq,
   exists,
+  ilike,
   inArray,
   isNull,
+  or,
   sql,
 } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "../db/client";
 import {
   events,
@@ -323,20 +326,28 @@ export async function getProjectSnapshotsModel(
   return new Map(snapshots);
 }
 
+const projectIdSearchSchema = z.guid();
+
 export const getProjectsModel = async (
   workspace_id: string,
-  project_id?: string
+  project_id?: string,
+  search?: string
 ) => {
+  const searchId = search ? projectIdSearchSchema.safeParse(search) : undefined;
   const projectRows = await db
     .select()
     .from(projects)
     .where(
-      project_id
-        ? and(
-            eq(projects.workspaceId, workspace_id),
-            eq(projects.id, project_id)
-          )
-        : eq(projects.workspaceId, workspace_id)
+      and(
+        eq(projects.workspaceId, workspace_id),
+        project_id ? eq(projects.id, project_id) : undefined,
+        search
+          ? or(
+              ilike(projects.name, `%${search.replace(/[\\%_]/g, "\\$&")}%`),
+              searchId?.success ? eq(projects.id, searchId.data) : undefined
+            )
+          : undefined
+      )
     )
     .orderBy(desc(projects.createdAt));
 

@@ -12,11 +12,12 @@ import {
 } from '@workspace/ui/components/dropdown-menu'
 import {
   InputGroup,
+  InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
 import { Skeleton } from '@workspace/ui/components/skeleton'
-import { EllipsisIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import { EllipsisIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import React from 'react'
 import {
   Dialog,
@@ -48,6 +49,8 @@ import {
   TableRow,
 } from '@workspace/ui/components/table'
 import { CenterEllipsis } from '../$workspaceId/$projectId/-components/common/center-ellipsis'
+import { useDebounce } from '@/hooks/useDebounce'
+import { toast } from '@/lib/toast'
 
 const formSchema = z.object({
   workspace_name: z
@@ -71,10 +74,14 @@ function RouteComponent() {
 
   const [open, setOpen] = React.useState(create || false)
   const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
+  const [search, setSearch] = React.useState('')
 
-  const { data: workspaceData, isLoading: workspaceDataLoading } = useQuery(
-    getWorkspacesOptions()
-  )
+  const debouncedSearch = useDebounce(search, 500)
+
+  const { data: workspaceData, isLoading: workspaceDataLoading } = useQuery({
+    ...getWorkspacesOptions(debouncedSearch),
+  })
+
   const { mutate: createWorkspace, isPending: createWorkspacePending } =
     useCreateWorkspace()
   const { mutate: deleteWorkspace, isPending: deleteWorkspacePending } =
@@ -175,16 +182,31 @@ function RouteComponent() {
         }}
       >
         <div className="mx-auto w-full max-w-4xl p-6 pt-10">
-          <div className="space-y-5">
-            <p className="text-xl font-medium">Workspaces</p>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xl font-medium">Workspaces</p>
+              <p className="text-muted-foreground text-sm">
+                Manage your workspaces and collaborate with your team.
+              </p>
+            </div>
 
             <div className="space-y-5">
               <div className="flex items-center justify-between gap-2">
                 <InputGroup className="max-w-80">
-                  <InputGroupButton>
+                  <InputGroupAddon>
                     <SearchIcon />
-                  </InputGroupButton>
-                  <InputGroupInput placeholder="Search..." />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search..."
+                  />
+
+                  {search && (
+                    <InputGroupButton onClick={() => setSearch('')}>
+                      <XIcon />
+                    </InputGroupButton>
+                  )}
                 </InputGroup>
 
                 <DialogTrigger render={<Button />}>
@@ -198,70 +220,81 @@ function RouteComponent() {
                   <p className="text-sm font-medium">
                     Owned Workspaces ({ownedWorkspaces?.length || 0})
                   </p>
-                  <div className="max-h-100 overflow-auto rounded-lg border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead className="w-24 text-center">
-                            Projects
-                          </TableHead>
-                          <TableHead className="w-24 text-center">
-                            Members
-                          </TableHead>
-                          <TableHead className="w-32 text-center">
-                            Created at
-                          </TableHead>
-                          <TableHead className="w-20 text-center">
-                            Action
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
 
-                      <TableBody>
-                        {workspaceDataLoading
-                          ? [...Array(5)].map((_, index) => (
-                              <TableRow key={index}>
-                                <TableCell>
-                                  <Skeleton className="h-6 w-50" />
-                                </TableCell>
+                  {!ownedWorkspaces?.length && !workspaceDataLoading ? (
+                    <div className="flex items-center justify-center">
+                      <p className="text-muted-foreground py-5 text-sm font-medium">
+                        No workspace found.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="max-h-100 overflow-auto rounded-lg border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead className="w-24 text-center">
+                                Projects
+                              </TableHead>
+                              <TableHead className="w-24 text-center">
+                                Members
+                              </TableHead>
+                              <TableHead className="w-32 text-center">
+                                Created at
+                              </TableHead>
+                              <TableHead className="w-20 text-center">
+                                Action
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
 
-                                <TableCell>
-                                  <div className="flex justify-center">
-                                    <Skeleton className="h-6 w-12" />
-                                  </div>
-                                </TableCell>
+                          <TableBody>
+                            {workspaceDataLoading
+                              ? [...Array(5)].map((_, index) => (
+                                  <TableRow key={index}>
+                                    <TableCell>
+                                      <Skeleton className="h-6 w-50" />
+                                    </TableCell>
 
-                                <TableCell>
-                                  <div className="flex justify-center">
-                                    <Skeleton className="h-6 w-12" />
-                                  </div>
-                                </TableCell>
+                                    <TableCell>
+                                      <div className="flex justify-center">
+                                        <Skeleton className="h-6 w-12" />
+                                      </div>
+                                    </TableCell>
 
-                                <TableCell>
-                                  <div className="flex justify-center">
-                                    <Skeleton className="h-6 w-20" />
-                                  </div>
-                                </TableCell>
+                                    <TableCell>
+                                      <div className="flex justify-center">
+                                        <Skeleton className="h-6 w-12" />
+                                      </div>
+                                    </TableCell>
 
-                                <TableCell>
-                                  <div className="flex justify-center">
-                                    <Skeleton className="h-8 w-8" />
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          : ownedWorkspaces?.map((item) => (
-                              <WorkspaceCard
-                                key={item.id}
-                                setOpen={setOpen}
-                                setDeleteOpen={setDeleteOpen}
-                                item={item}
-                              />
-                            ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                                    <TableCell>
+                                      <div className="flex justify-center">
+                                        <Skeleton className="h-6 w-20" />
+                                      </div>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <div className="flex justify-center">
+                                        <Skeleton className="h-8 w-8" />
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              : ownedWorkspaces?.map((item) => (
+                                  <WorkspaceCard
+                                    key={item.id}
+                                    setOpen={setOpen}
+                                    setDeleteOpen={setDeleteOpen}
+                                    item={item}
+                                  />
+                                ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -272,7 +305,7 @@ function RouteComponent() {
                   {!sharedWorkspaces?.length && !workspaceDataLoading ? (
                     <div className="flex items-center justify-center">
                       <p className="text-muted-foreground py-5 text-sm font-medium">
-                        You haven't joined any workspaces yet.
+                        No workspace found.
                       </p>
                     </div>
                   ) : (
@@ -506,8 +539,18 @@ const WorkspaceCard = ({
       display: true,
     },
     {
+      label: 'Copy Workspace ID',
+      action: 'copy-id',
+      onClick: async () => {
+        await navigator.clipboard.writeText(item.id)
+        toast.success('Workspace ID copied to clipboard')
+      },
+      display: true,
+    },
+    {
       label: 'Settings',
       action: 'settings',
+      separatorBefore: true,
       onClick: () => {
         navigate({
           to: '/app/$workspaceId/settings',
@@ -587,7 +630,7 @@ const WorkspaceCard = ({
             <EllipsisIcon />
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent className={'w-fit'} align="end">
             {workspaceMenuItems.map(
               (menuItem) =>
                 menuItem.display && (

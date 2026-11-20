@@ -6,6 +6,7 @@ import { Button } from '@workspace/ui/components/button'
 import { navigationIcons } from '@/config/navigation-icons'
 import {
   InputGroup,
+  InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
@@ -18,6 +19,7 @@ import {
   LoaderIcon,
   PlusIcon,
   SearchIcon,
+  XIcon,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -47,6 +49,7 @@ import { Separator } from '@workspace/ui/components/separator'
 import { Field, FieldGroup, FieldLabel } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'
 import { useGenerateReport } from '@/mutations/reports'
+import { useDebounce } from '@/hooks/useDebounce'
 
 export const Route = createFileRoute('/app/$workspaceId/')({
   component: RouteComponent,
@@ -57,6 +60,9 @@ function RouteComponent() {
   const navigate = useNavigate()
   const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
   const [deleteConfirmName, setDeleteConfirmName] = useState<string>('')
+  const [search, setSearch] = React.useState('')
+
+  const debouncedSearch = useDebounce(search, 500)
 
   const {
     data: permissionsData,
@@ -80,6 +86,7 @@ function RouteComponent() {
   } = useQuery({
     ...getProjectsOptions({
       workspace_id: workspaceId,
+      search: debouncedSearch,
     }),
     enabled: !!hasViewPermission,
   })
@@ -113,7 +120,7 @@ function RouteComponent() {
           <div className="space-y-4">
             <div>
               <p className="text-xl font-medium">Projects</p>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Manage your projects, configure tracking, and monitor user
                 activity across your websites.
               </p>
@@ -128,12 +135,23 @@ function RouteComponent() {
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-4">
-                  <InputGroup>
-                    <InputGroupButton>
+                  <InputGroup className="max-w-80">
+                    <InputGroupAddon>
                       <SearchIcon />
-                    </InputGroupButton>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search by name or ID..."
+                      aria-label="Search projects by name or ID"
+                      maxLength={100}
+                    />
 
-                    <InputGroupInput placeholder="Search..." />
+                    {search && (
+                      <InputGroupButton onClick={() => setSearch('')}>
+                        <XIcon />
+                      </InputGroupButton>
+                    )}
                   </InputGroup>
 
                   <Button
@@ -192,11 +210,17 @@ function RouteComponent() {
                       ) : !projects?.length ? (
                         <div className="flex items-center justify-center py-20">
                           <p className="text-muted-foreground text-sm">
-                            No projects found. Click "
-                            <span className="text-foreground font-medium">
-                              New Project
-                            </span>
-                            " to create one.
+                            {debouncedSearch.trim() ? (
+                              'No projects match your search.'
+                            ) : (
+                              <>
+                                No projects found. Click "
+                                <span className="text-foreground font-medium">
+                                  New Project
+                                </span>
+                                " to create one.
+                              </>
+                            )}
                           </p>
                         </div>
                       ) : (

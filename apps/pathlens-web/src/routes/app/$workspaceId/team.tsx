@@ -38,6 +38,7 @@ import {
 } from '@workspace/ui/components/dropdown-menu'
 import {
   InputGroup,
+  InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
@@ -58,11 +59,12 @@ import {
   TableHeader,
   TableRow,
 } from '@workspace/ui/components/table'
-import { EllipsisIcon, SearchIcon, UserPlusIcon } from 'lucide-react'
+import { EllipsisIcon, SearchIcon, UserPlusIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { PermissionProfileSheet } from './-components/permission-profile-sheet'
 import { NoPermissionView } from './$projectId/-components/common/no-permission-view'
 import { ErrorScreen } from './$projectId/-components/common/error-screen'
+import { useDebounce } from '@/hooks/useDebounce'
 
 export const Route = createFileRoute('/app/$workspaceId/team')({
   component: RouteComponent,
@@ -87,8 +89,10 @@ function RouteComponent() {
     null
   )
   const [open, setOpen] = useState(false)
-
   const [permissionProfileId, setPermissionProfileId] = useState('')
+  const [search, setSearch] = useState('')
+
+  const debouncedSearch = useDebounce(search, 500)
 
   const {
     data: permissionsData,
@@ -108,7 +112,7 @@ function RouteComponent() {
     refetch: membersRefetch,
     isRefetching: membersRefetching,
   } = useQuery({
-    ...getWorkspaceMembersOptions(workspaceId),
+    ...getWorkspaceMembersOptions(workspaceId, debouncedSearch),
     enabled: !!hasViewPermission,
   })
   const {
@@ -197,7 +201,7 @@ function RouteComponent() {
         <div className="space-y-4">
           <div>
             <p className="text-xl font-medium">Team</p>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Manage workspace members, invitations, and their access to
               PathLens.
             </p>
@@ -221,12 +225,23 @@ function RouteComponent() {
                   <div className="flex items-start gap-4">
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center justify-between gap-4">
-                        <InputGroup>
-                          <InputGroupButton>
+                        <InputGroup className="max-w-80">
+                          <InputGroupAddon>
                             <SearchIcon />
-                          </InputGroupButton>
+                          </InputGroupAddon>
+                          <InputGroupInput
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search by name or email..."
+                            aria-label="Search team members by name or email"
+                            maxLength={100}
+                          />
 
-                          <InputGroupInput placeholder="Search..." />
+                          {search && (
+                            <InputGroupButton onClick={() => setSearch('')}>
+                              <XIcon />
+                            </InputGroupButton>
+                          )}
                         </InputGroup>
 
                         <Button
@@ -265,6 +280,18 @@ function RouteComponent() {
                           </TableHeader>
 
                           <TableBody>
+                            {!globalLoading &&
+                              debouncedSearch.trim() &&
+                              membersData?.data.length === 0 && (
+                                <TableRow>
+                                  <TableCell
+                                    colSpan={4}
+                                    className="text-muted-foreground py-8 text-center"
+                                  >
+                                    No members match your search.
+                                  </TableCell>
+                                </TableRow>
+                              )}
                             {globalLoading
                               ? [...Array(5)].map((_, index) => (
                                   <TableRow key={index}>
@@ -292,10 +319,7 @@ function RouteComponent() {
                                   </TableRow>
                                 ))
                               : membersData?.data?.map((item) => (
-                                  <TableRow
-                                    key={item.id}
-                                    className="hover:bg-card/40 cursor-pointer"
-                                  >
+                                  <TableRow key={item.id}>
                                     <TableCell>
                                       <div className="max-w-80 overflow-hidden">
                                         <div className="flex items-center gap-2 overflow-hidden">
