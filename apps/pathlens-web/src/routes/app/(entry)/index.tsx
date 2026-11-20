@@ -155,6 +155,9 @@ function RouteComponent() {
     },
   })
 
+  const ownedWorkspaces = workspaces?.filter((i) => !i.external)
+  const sharedWorkspaces = workspaces?.filter((i) => i.external)
+
   return (
     <div>
       <Dialog
@@ -176,8 +179,8 @@ function RouteComponent() {
             <p className="text-xl font-medium">Workspaces</p>
 
             <div className="space-y-5">
-              <div className="flex items-center justify-between gap-4">
-                <InputGroup>
+              <div className="flex items-center justify-between gap-2">
+                <InputGroup className="max-w-80">
                   <InputGroupButton>
                     <SearchIcon />
                   </InputGroupButton>
@@ -190,67 +193,157 @@ function RouteComponent() {
                 </DialogTrigger>
               </div>
 
-              <div className="overflow-hidden rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead className="w-24 text-center">
-                        Projects
-                      </TableHead>
-                      <TableHead className="w-24 text-center">
-                        Members
-                      </TableHead>
-                      <TableHead className="w-32 text-center">
-                        Created at
-                      </TableHead>
-                      <TableHead className="w-20 text-center">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">
+                    Owned Workspaces ({ownedWorkspaces?.length || 0})
+                  </p>
+                  <div className="max-h-100 overflow-auto rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead className="w-24 text-center">
+                            Projects
+                          </TableHead>
+                          <TableHead className="w-24 text-center">
+                            Members
+                          </TableHead>
+                          <TableHead className="w-32 text-center">
+                            Created at
+                          </TableHead>
+                          <TableHead className="w-20 text-center">
+                            Action
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
 
-                  <TableBody>
-                    {workspaceDataLoading
-                      ? [...Array(5)].map((_, index) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              <Skeleton className="h-6 w-50" />
-                            </TableCell>
+                      <TableBody>
+                        {workspaceDataLoading
+                          ? [...Array(5)].map((_, index) => (
+                              <TableRow key={index}>
+                                <TableCell>
+                                  <Skeleton className="h-6 w-50" />
+                                </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-12" />
-                              </div>
-                            </TableCell>
+                                <TableCell>
+                                  <div className="flex justify-center">
+                                    <Skeleton className="h-6 w-12" />
+                                  </div>
+                                </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-12" />
-                              </div>
-                            </TableCell>
+                                <TableCell>
+                                  <div className="flex justify-center">
+                                    <Skeleton className="h-6 w-12" />
+                                  </div>
+                                </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-6 w-20" />
-                              </div>
-                            </TableCell>
+                                <TableCell>
+                                  <div className="flex justify-center">
+                                    <Skeleton className="h-6 w-20" />
+                                  </div>
+                                </TableCell>
 
-                            <TableCell>
-                              <div className="flex justify-center">
-                                <Skeleton className="h-8 w-8" />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      : workspaces?.map((item) => (
-                          <WorkspaceCard
-                            key={item.id}
-                            setOpen={setOpen}
-                            setDeleteOpen={setDeleteOpen}
-                            item={item}
-                          />
-                        ))}
-                  </TableBody>
-                </Table>
+                                <TableCell>
+                                  <div className="flex justify-center">
+                                    <Skeleton className="h-8 w-8" />
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          : ownedWorkspaces?.map((item) => (
+                              <WorkspaceCard
+                                key={item.id}
+                                setOpen={setOpen}
+                                setDeleteOpen={setDeleteOpen}
+                                item={item}
+                              />
+                            ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">
+                    Shared Workspaces ({sharedWorkspaces?.length || 0})
+                  </p>
+
+                  {!sharedWorkspaces?.length && !workspaceDataLoading ? (
+                    <div className="flex items-center justify-center">
+                      <p className="text-muted-foreground py-5 text-sm font-medium">
+                        You haven't joined any workspaces yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="max-h-100 overflow-auto rounded-lg border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead className="w-24 text-center">
+                                Projects
+                              </TableHead>
+                              <TableHead className="w-24 text-center">
+                                Members
+                              </TableHead>
+                              <TableHead className="w-32 text-center">
+                                Created at
+                              </TableHead>
+                              <TableHead className="w-20 text-center">
+                                Action
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+
+                          <TableBody>
+                            {workspaceDataLoading
+                              ? [...Array(5)].map((_, index) => (
+                                  <TableRow key={index}>
+                                    <TableCell>
+                                      <Skeleton className="h-6 w-50" />
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <div className="flex justify-center">
+                                        <Skeleton className="h-6 w-12" />
+                                      </div>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <div className="flex justify-center">
+                                        <Skeleton className="h-6 w-12" />
+                                      </div>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <div className="flex justify-center">
+                                        <Skeleton className="h-6 w-20" />
+                                      </div>
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <div className="flex justify-center">
+                                        <Skeleton className="h-8 w-8" />
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              : sharedWorkspaces?.map((item) => (
+                                  <WorkspaceCard
+                                    key={item.id}
+                                    setOpen={setOpen}
+                                    setDeleteOpen={setDeleteOpen}
+                                    item={item}
+                                  />
+                                ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -462,16 +555,10 @@ const WorkspaceCard = ({
             <CenterEllipsis text={item.name} maxLength={50} />
           </Link>
 
-          {item.external ? (
+          {item.isDefault && (
             <Badge variant="outline" className="text-muted-foreground">
-              External
+              Default
             </Badge>
-          ) : (
-            item.isDefault && (
-              <Badge variant="outline" className="text-muted-foreground">
-                Default
-              </Badge>
-            )
           )}
         </div>
       </TableCell>

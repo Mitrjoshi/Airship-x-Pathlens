@@ -28,11 +28,6 @@ import { useEffect, useState } from 'react'
 type MenuState = 'default' | 'products' | 'solutions'
 type NavigationDirection = 1 | -1
 
-const overlayTransition = {
-  duration: 0.2,
-  ease: 'easeInOut' as const,
-}
-
 const screenTransition = {
   type: 'tween' as const,
   duration: 0.32,

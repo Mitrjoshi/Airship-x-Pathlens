@@ -31,6 +31,7 @@ import {
   TrashIcon,
   UsersIcon,
   BlocksIcon,
+  HandshakeIcon,
 } from 'lucide-react'
 
 export const navigationIcons = {
@@ -84,4 +85,7 @@ export const navigationIcons = {
   copy: CopyIcon,
   edit: EditIcon,
   integrations: BlocksIcon,
+
+  terms: HandshakeIcon,
+  privacy: KeyRoundIcon,
 } as const

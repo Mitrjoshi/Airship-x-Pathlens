@@ -49,7 +49,7 @@ export const Header = ({ showLogo = true }: { showLogo?: boolean }) => {
                 Directory
               </Button>
 
-              <Button render={<Link to="/docs/products" />} variant="ghost">
+              <Button render={<Link to="/docs" />} variant="ghost">
                 Products
               </Button>
             </div>

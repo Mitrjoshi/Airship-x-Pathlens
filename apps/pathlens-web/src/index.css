@@ -56,148 +56,149 @@
 
 :root {
   /* Base */
-  --background: #fcfcfc;
-  --foreground: #0a0a0a;
+  --background: #fafafa;
+  --foreground: #171717;
 
   /* Surfaces */
   --card: #ffffff;
-  --card-foreground: #0a0a0a;
+  --card-foreground: #171717;
 
   --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
+  --popover-foreground: #171717;
 
-  /* Brand */
-  --primary: #41ce8f;
-  --primary-foreground-2: #dcfff1;
+  /* Brand — Fresh Emerald */
+  --primary: #2fbf7a;
   --primary-foreground: #052e1e;
+  --primary-foreground-2: #e1f8eb;
 
   /* Neutral UI */
-  --secondary: #f5f5f5;
-  --secondary-foreground: #171717;
+  --secondary: #f3f3f3;
+  --secondary-foreground: #262626;
 
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
+  --muted: #f3f3f3;
+  --muted-foreground: #686868;
 
-  --accent: #f5f5f5;
+  --accent: #ebebeb;
   --accent-foreground: #171717;
 
   /* Status */
-  --destructive: #dc2626;
+  --destructive: #d92d40;
 
   /* Structure */
-  --border: #e5e5e5;
-  --input: #e5e5e5;
-  --ring: #41ce8f;
+  --border: #e4e4e4;
+  --input: #dcdcdc;
+  --ring: #218d5a;
 
-  /* Charts - Lighter Blue Shades */
-  --chart-1: #4b8eec; /* Blue */
-  --chart-2: #ebb839; /* Gold */
-  --chart-3: #e5659c; /* Pink */
-  --chart-4: #8d56e9; /* Purple */
-  --chart-5: #59c3b6; /* Teal */
+  /* Charts — Harmonized Palette */
+  --chart-1: #477fd3; /* Blue */
+  --chart-2: #c58e27; /* Amber */
+  --chart-3: #cc648b; /* Rose */
+  --chart-4: #8866ca; /* Violet */
+  --chart-5: #259e96; /* Teal */
 
-  --chart-6: #ed7d52; /* Coral */
-  --chart-7: #68b96f; /* Green */
-  --chart-8: #5bb3dc; /* Cyan */
-  --chart-9: #c26dcc; /* Orchid */
-  --chart-10: #d99a5e; /* Amber */
+  --chart-6: #d87950; /* Coral */
+  --chart-7: #2b9d68; /* Emerald */
+  --chart-8: #399cbb; /* Cyan */
+  --chart-9: #aa69b8; /* Orchid */
+  --chart-10: #a98148; /* Ochre */
 
+  /* Radius */
   --radius: 0.625rem;
 
   /* Sidebar */
-  --sidebar: #fafafa;
-  --sidebar-foreground: #0a0a0a;
+  --sidebar: #f7f7f7;
+  --sidebar-foreground: #171717;
 
-  --sidebar-primary: #41ce8f;
+  --sidebar-primary: #2fbf7a;
   --sidebar-primary-foreground: #052e1e;
 
-  --sidebar-accent: #f5f5f5;
+  --sidebar-accent: #ebebeb;
   --sidebar-accent-foreground: #171717;
 
-  --sidebar-border: #e5e5e5;
-  --sidebar-ring: #41ce8f;
+  --sidebar-border: #e4e4e4;
+  --sidebar-ring: #218d5a;
 
-  /* Logo fill — Light */
+  /* Logo Fill — Light */
   --logo-fill-start: #f5f5f5;
-  --logo-fill-mid: #e5e5e5;
+  --logo-fill-mid: #dedede;
   --logo-fill-end: #ffffff;
 
-  /* Logo stroke — Light */
+  /* Logo Stroke — Light */
   --logo-stroke-start: #737373;
   --logo-stroke-mid: #a3a3a3;
-  --logo-stroke-end: #0a0a0a;
+  --logo-stroke-end: #171717;
 }
 
 .dark {
   /* Base */
-  --background: #121212;
-  --foreground: #fafafa;
+  --background: #111111;
+  --foreground: #f5f5f5;
 
   /* Surfaces */
-  --card: #171717;
-  --card-foreground: #fafafa;
+  --card: #1b1b1b;
+  --card-foreground: #f5f5f5;
 
-  --popover: #171717;
-  --popover-foreground: #fafafa;
+  --popover: #202020;
+  --popover-foreground: #f5f5f5;
 
-  /* Brand */
-  --primary: #41ce8f;
+  /* Brand — Fresh Emerald */
+  --primary: #2fbf7a;
   --primary-foreground: #052e1e;
-  --primary-foreground-2: #052e1e;
+  --primary-foreground-2: #143e2a;
 
   /* Neutral UI */
   --secondary: #262626;
-  --secondary-foreground: #fafafa;
+  --secondary-foreground: #eeeeee;
 
   --muted: #262626;
   --muted-foreground: #a3a3a3;
 
-  --accent: #262626;
-  --accent-foreground: #fafafa;
+  --accent: #303030;
+  --accent-foreground: #f5f5f5;
 
   /* Status */
-  --destructive: #ef4444;
+  --destructive: #f06a76;
 
   /* Structure */
-  --border: #262626;
-  --input: #262626;
-  --ring: #41ce8f;
+  --border: #333333;
+  --input: #3a3a3a;
+  --ring: #43d28d;
 
-  /* Charts - PathLens */
-  --chart-1: #4f8cff; /* Blue */
-  --chart-2: #f4b740; /* Amber */
-  --chart-3: #e76f9a; /* Rose */
-  --chart-4: #8b72e8; /* Violet */
-  --chart-5: #36c5b5; /* Teal */
+  /* Charts — Adjusted for Dark Mode */
+  --chart-1: #76a5ef; /* Blue */
+  --chart-2: #e6b456; /* Amber */
+  --chart-3: #e58bab; /* Rose */
+  --chart-4: #ad90e8; /* Violet */
+  --chart-5: #54c6ba; /* Teal */
 
-  --chart-6: #f07a55; /* Coral */
-  --chart-7: #65b96b; /* Green */
-  --chart-8: #46b9d9; /* Cyan */
-  --chart-9: #b86bd5; /* Orchid */
-  --chart-10: #d99b58; /* Orange */
+  --chart-6: #ee9b75; /* Coral */
+  --chart-7: #43d28d; /* Emerald */
+  --chart-8: #73c4df; /* Cyan */
+  --chart-9: #ce93d9; /* Orchid */
+  --chart-10: #d4ae75; /* Ochre */
 
   /* Sidebar */
   --sidebar: #171717;
-  --sidebar-foreground: #fafafa;
+  --sidebar-foreground: #f5f5f5;
 
-  --sidebar-primary: #41ce8f;
+  --sidebar-primary: #2fbf7a;
   --sidebar-primary-foreground: #052e1e;
 
-  --sidebar-accent: #262626;
-  --sidebar-accent-foreground: #fafafa;
+  --sidebar-accent: #292929;
+  --sidebar-accent-foreground: #f5f5f5;
 
-  --sidebar-border: #262626;
-  --sidebar-ring: #41ce8f;
+  --sidebar-border: #333333;
+  --sidebar-ring: #43d28d;
 
-  /* Logo fill — Dark */
-  --logo-fill-start: #171717;
-  --logo-fill-mid: #262626;
-  --logo-fill-end: #121212;
+  /* Logo Fill — Dark */
+  --logo-fill-start: #1b1b1b;
+  --logo-fill-mid: #303030;
+  --logo-fill-end: #111111;
 
-  /* Logo stroke — Dark */
+  /* Logo Stroke — Dark */
   --logo-stroke-start: #737373;
   --logo-stroke-mid: #a3a3a3;
-  --logo-stroke-end: #fafafa;
+  --logo-stroke-end: #f5f5f5;
 }
 
 @layer base {
@@ -849,7 +850,7 @@ html {
   --matrix-active-1: #168a5a;
   --matrix-active-2: #219b69;
   --matrix-active-3: #2fae74;
-  --matrix-active-4: #41ce8f;
+  --matrix-active-4: #2fbf7a;
   --matrix-active-5: #178052;
   --matrix-active-6: #35b77e;
 

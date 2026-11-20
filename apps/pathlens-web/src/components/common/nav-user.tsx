@@ -9,6 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuSub,
@@ -17,19 +18,16 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { Link } from '@tanstack/react-router'
-import { ArrowUpRightIcon, CheckIcon } from 'lucide-react'
+import { ArrowUpRightIcon,  MonitorIcon, SunIcon, MoonIcon } from 'lucide-react'
 import { useTheme } from '@/components/common/theme-provider'
 import { motion, useMotionValue, useTransform, animate } from 'motion/react'
 import { useEffect } from 'react'
+import { Badge } from '@workspace/ui/components/badge';
+import type { T_User } from '@/queries/user';
 
-export interface NavUserData {
-  name: string
-  email: string
-  avatar: string | null
-  usagePercentage: number
-}
 
-export function NavUser({ user }: { user: NavUserData }) {
+
+export function NavUser({ user }: { user: T_User }) {
   const { theme, setTheme } = useTheme()
 
   const progress = useMotionValue(0)
@@ -84,10 +82,18 @@ export function NavUser({ user }: { user: NavUserData }) {
       >
         <DropdownMenuGroup>
           <div className="space-y--2 px-1 py-1.5 text-left text-sm">
-            <p className="truncate font-medium">{user?.name}</p>
-            <p className="text-muted-foreground truncate text-xs">
+            <div className='flex items-center justify-between w-full'>
+              <p className="truncate font-medium">{user?.name}</p>
+
+            <Badge variant={'outline'} >
+              {user.lifetimeAccess ? 'Premium' : 'Free'}
+            </Badge>
+            </div>
+            <p className="text-muted-foreground truncate text-xs mt-px">
               {user?.email}
             </p>
+
+            
           </div>
         </DropdownMenuGroup>
 
@@ -103,7 +109,7 @@ export function NavUser({ user }: { user: NavUserData }) {
               />
             }
           >
-            Settings
+            Account Settings
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -140,53 +146,28 @@ export function NavUser({ user }: { user: NavUserData }) {
             Subscription
           </DropdownMenuItem>
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger
-              render={<Button variant="ghost" className={'w-full'} />}
-            >
+        <DropdownMenuSeparator />
+
+
+          <DropdownMenuGroup
+           className={'flex items-center justify-between'}
+          >
+            <DropdownMenuLabel className={'text-foreground text-sm'}>
               Theme
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent className={'w-40'} sideOffset={10}>
-                <DropdownMenuItem
-                  render={
-                    <Button
-                      className={'flex w-full cursor-pointer justify-between'}
-                      variant="ghost"
-                    />
-                  }
-                  onClick={() => setTheme('light')}
-                >
-                  Light
-                  {theme === 'light' && <CheckIcon />}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  render={
-                    <Button
-                      className={'flex w-full cursor-pointer justify-between'}
-                      variant="ghost"
-                    />
-                  }
-                  onClick={() => setTheme('dark')}
-                >
-                  Dark
-                  {theme === 'dark' && <CheckIcon />}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  render={
-                    <Button
-                      className={'flex w-full cursor-pointer justify-between'}
-                      variant="ghost"
-                    />
-                  }
-                  onClick={() => setTheme('system')}
-                >
-                  System
-                  {theme === 'system' && <CheckIcon />}
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
+            </DropdownMenuLabel>
+
+            <div className='border rounded-lg p-0.5 gap-px flex items-center'>
+              <Button size='icon-sm' onClick={() => setTheme('light')} variant={theme == 'light' ? 'outline' : 'ghost'}>
+                <SunIcon   className={`${theme == 'light' ? 'text-foreground' : 'text-muted-foreground'} duration-200`} />
+              </Button>
+              <Button size='icon-sm' onClick={() => setTheme('dark')} variant={theme == 'dark' ? 'outline' : 'ghost'}>
+                <MoonIcon className={`${theme == 'dark' ? 'text-foreground' : 'text-muted-foreground'} duration-200`} />
+              </Button>
+              <Button size='icon-sm' onClick={() => setTheme('system')} variant={theme == 'system' ? 'outline' : 'ghost'}>
+                <MonitorIcon className={`${theme == 'system' ? 'text-foreground' : 'text-muted-foreground'} duration-200`} />
+              </Button>
+            </div>
+          </DropdownMenuGroup>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
@@ -196,10 +177,22 @@ export function NavUser({ user }: { user: NavUserData }) {
             <DropdownMenuSubTrigger
               render={<Button variant="ghost" className={'w-full'} />}
             >
-              Terms and Privacy
+              Resources
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent className={'w-40'} sideOffset={10}>
+                <DropdownMenuItem
+                  render={
+                    <Button
+                      className={'flex w-full cursor-pointer justify-between'}
+                      variant="ghost"
+                      render={<Link to="/docs" target="_blank" />}
+                    />
+                  }
+                >
+                  Docs
+                  <ArrowUpRightIcon />
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   render={
                     <Button

@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, ne } from "drizzle-orm";
 
 import { db } from "../db/client";
 import { passwordResetTokens, users } from "../db/schema";
@@ -57,6 +57,22 @@ export async function consumePasswordResetTokenModel(
 
     if (!claimedToken) return false;
 
+    // Old reset tokens must not turn a social-login-only account into a
+    // password account. Check eligibility atomically with the password update.
+    const [updatedUser] = await tx
+      .update(users)
+      .set({ password })
+      .where(
+        and(
+          eq(users.id, claimedToken.userId),
+          isNotNull(users.password),
+          ne(users.password, "")
+        )
+      )
+      .returning({ id: users.id });
+
+    if (!updatedUser) return false;
+
     await tx
       .update(passwordResetTokens)
       .set({ usedAt: now })
@@ -66,11 +82,6 @@ export async function consumePasswordResetTokenModel(
           isNull(passwordResetTokens.usedAt)
         )
       );
-
-    await tx
-      .update(users)
-      .set({ password })
-      .where(eq(users.id, claimedToken.userId));
 
     return true;
   });

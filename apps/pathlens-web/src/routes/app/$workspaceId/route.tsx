@@ -52,6 +52,7 @@ import { navigationIcons } from '@/config/navigation-icons'
 import { GracePeriod } from '../-components/grace-period'
 import { ProjectPaused } from './$projectId/-components/common/project-paused'
 import { NotFound } from '@/components/common/not-found'
+import { Badge } from '@workspace/ui/components/badge'
 
 export const Route = createFileRoute('/app/$workspaceId')({
   component: RouteComponent,
@@ -511,7 +512,7 @@ export const WorkspaceSwitcher = ({
     <>
       <div className="flex w-full items-center justify-start gap-2">
         <Link to="/app" className="flex items-center gap-2">
-          <img src="/logo.svg" className="size-8" alt="Pathlens" />
+          <img src="/logo.svg" className="size-8 scale-90" alt="Pathlens" />
         </Link>
         <Button
           onClick={() => {
@@ -563,7 +564,7 @@ export const WorkspaceSwitcher = ({
           <DropdownMenuGroup
             className={'h-60! overflow-auto overflow-x-hidden'}
           >
-            <DropdownMenuLabel>Owned</DropdownMenuLabel>
+            <DropdownMenuLabel>Owned Workspaces</DropdownMenuLabel>
             {workspaceData
               ?.filter((item) => !item.external)
               ?.map((item, index) => (
@@ -580,14 +581,24 @@ export const WorkspaceSwitcher = ({
                     />
                   }
                 >
-                  <p className="truncate">{item.name}</p>
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <p className="truncate">{item.name}</p>
+                    {item.isDefault && (
+                      <Badge
+                        variant="outline"
+                        className="text-muted-foreground"
+                      >
+                        Default
+                      </Badge>
+                    )}
+                  </div>
                   {activeWorkspace === item.id && <CheckIcon />}
                 </DropdownMenuItem>
               ))}
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuLabel>Member</DropdownMenuLabel>
+            <DropdownMenuLabel>Shared Workspaces</DropdownMenuLabel>
 
             {workspaceData?.filter((item) => item.external).length ? (
               workspaceData
@@ -613,7 +624,17 @@ export const WorkspaceSwitcher = ({
                       />
                     }
                   >
-                    <p className="truncate">{item.name}</p>
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <p className="truncate">{item.name}</p>
+                      {item.isDefault && (
+                        <Badge
+                          variant="outline"
+                          className="text-muted-foreground"
+                        >
+                          Default
+                        </Badge>
+                      )}
+                    </div>
                     {activeWorkspace === item.id && <CheckIcon />}
                   </DropdownMenuItem>
                 ))

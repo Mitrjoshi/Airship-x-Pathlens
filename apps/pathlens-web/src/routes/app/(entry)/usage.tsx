@@ -14,7 +14,10 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select'
@@ -213,6 +216,9 @@ function RouteComponent() {
       (usageDataLoading ||
         (projectsDataLoading && selectedProjectId !== 'all')))
 
+  const ownedWorkspaces = workspaceItems?.filter((i) => !i.external)
+  const sharedWorkspaces = workspaceItems?.filter((i) => i.external)
+
   return (
     <div>
       <div className="mx-auto w-full max-w-4xl p-6 pt-10">
@@ -241,17 +247,35 @@ function RouteComponent() {
               </SelectTrigger>
 
               <SelectContent alignItemWithTrigger={false} className="w-fit">
-                {workspaceItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
+                <SelectGroup className={'p-0!'}>
+                  <SelectLabel>
+                    Owner Workspaces ({ownedWorkspaces.length || 0})
+                  </SelectLabel>
+                  {ownedWorkspaces?.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                      {item.default && <Badge variant="outline">Default</Badge>}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
 
-                    {item.external ? (
-                      <Badge variant="secondary">External</Badge>
-                    ) : (
-                      item.default && <Badge variant="secondary">Default</Badge>
-                    )}
-                  </SelectItem>
-                ))}
+                <SelectSeparator />
+
+                <SelectGroup className={'p-0!'}>
+                  <SelectLabel>
+                    Shared Workspaces ({sharedWorkspaces.length || 0})
+                  </SelectLabel>
+                  {sharedWorkspaces &&
+                    sharedWorkspaces?.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+
+                        {item.default && (
+                          <Badge variant="outline">Default</Badge>
+                        )}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
 

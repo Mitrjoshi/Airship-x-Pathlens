@@ -20,7 +20,7 @@ import {
   SidebarTrigger,
 } from '@workspace/ui/components/sidebar'
 import { Button } from '@workspace/ui/components/button'
-import { SidebarIcon } from 'lucide-react'
+import { ArrowUpRightIcon, SidebarIcon } from 'lucide-react'
 import { SearchOverAppDialog } from '@/components/common/search-over-app-dialog'
 import { Header } from '../-components/header'
 import { Separator } from '@workspace/ui/components/separator'
@@ -58,18 +58,21 @@ export const EntrySidebar = () => {
           icon: navigationIcons.workspaces,
           to: '/app',
           isActive: pathname === '/app',
+          external: false,
         },
         {
           label: 'Usage',
           icon: navigationIcons.usage,
           to: '/app/usage',
           isActive: pathname === '/app/usage',
+          external: false,
         },
         {
           label: 'Notifications',
           icon: navigationIcons.notifications,
           to: '/app/notifications',
           isActive: pathname === '/app/notifications',
+          external: false,
         },
       ],
     },
@@ -81,18 +84,40 @@ export const EntrySidebar = () => {
           icon: navigationIcons.accountSettings,
           to: '/app/settings',
           isActive: pathname === '/app/settings',
+          external: false,
         },
         {
           label: 'Billing',
           icon: navigationIcons.billing,
           to: '/app/billing',
           isActive: pathname === '/app/billing',
+          external: false,
+        },
+      ],
+    },
+    {
+      label: 'Resources',
+      items: [
+        {
+          label: 'Docs',
+          icon: navigationIcons.documentation,
+          to: '/docs',
+          isActive: false,
+          external: true,
         },
         {
-          label: 'Sessions & Security',
-          icon: navigationIcons.security,
-          to: '/app/security',
-          isActive: pathname === '/app/security',
+          label: 'Terms of Service',
+          icon: navigationIcons.terms,
+          to: '/terms',
+          isActive: false,
+          external: true,
+        },
+        {
+          label: 'Privacy',
+          icon: navigationIcons.privacy,
+          to: '/terms',
+          isActive: false,
+          external: true,
         },
       ],
     },
@@ -103,9 +128,9 @@ export const EntrySidebar = () => {
       <Sidebar>
         <SidebarHeader className="bg-background flex h-14.25 flex-row items-center border-b py-2">
           <Link to="/app" className="flex items-center gap-2">
-            <img src="/logo.svg" className="size-8" alt="Pathlens" />
+            <img src="/logo.svg" className="size-8 scale-90" alt="Pathlens" />
 
-            <p className="text-2xl font-bold">Pathlens</p>
+            <p className="text-2xl font-semibold">Pathlens</p>
           </Link>
         </SidebarHeader>
         <SidebarContent className="bg-background">
@@ -178,12 +203,22 @@ export const EntrySidebar = () => {
                                                 ? 'secondary'
                                                 : 'ghost'
                                             }
-                                            render={<Link to={item.to} />}
+                                            render={
+                                              <Link
+                                                target={
+                                                  item.external ? '_blank' : ''
+                                                }
+                                                to={item.to}
+                                              />
+                                            }
                                           />
                                         }
                                       >
                                         <Icon />
                                         {item.label}
+                                        {item.external && (
+                                          <ArrowUpRightIcon className="text-muted-foreground ml-auto" />
+                                        )}
                                       </SidebarMenuButton>
                                     </SidebarMenuItem>
                                   </motion.div>

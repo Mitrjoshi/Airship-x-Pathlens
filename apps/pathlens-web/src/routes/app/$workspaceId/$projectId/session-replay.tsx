@@ -41,6 +41,7 @@ import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar'
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { NoPermissionView } from './-components/common/no-permission-view'
 import { ErrorScreen } from './-components/common/error-screen'
+import { toast } from '@/lib/toast'
 
 const PAGE_SIZE = 10
 
@@ -287,10 +288,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-            <NoPermissionView
-              workspaceId={workspaceId}
-              permission="analytics.session_replay.view"
-            />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="analytics.session_replay.view"
+              />
             ) : (
               <>
                 <div className="flex items-center justify-between gap-4">
@@ -391,6 +392,15 @@ function RouteComponent() {
                           : sessions?.sessions?.map((item) => (
                               <TableRow
                                 onClick={() => {
+                                  if (!item.isReplayAvailable) {
+                                    toast.add({
+                                      title: 'Replay Unavailable',
+                                      type: 'error',
+                                    })
+
+                                    return
+                                  }
+
                                   setOpen(true)
                                   setSessionId(item.id)
                                 }}

@@ -14,6 +14,7 @@ export type T_User = {
   githubAvatar: string | null
   createdAt: string
   defaultWorkspace: T_Workspace
+  lifetimeAccess: boolean
 }
 
 export interface UsersResponse {

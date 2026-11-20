@@ -41,6 +41,72 @@ export const useLogin = () => {
   })
 }
 
+interface ResetPasswordPayload {
+  email: string
+}
+
+interface ResetPasswordResponse {
+  success: boolean
+  message: string
+}
+
+const resetPassword = async (payload: ResetPasswordPayload) => {
+  const res = await apiClient.post<ResetPasswordResponse>(
+    '/auth/password-reset/request',
+    payload
+  )
+
+  if (!res.data.success) {
+    throw new Error(res.data.message)
+  }
+
+  return res.data
+}
+
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: resetPassword,
+    onSuccess: (data) => {
+      toast.success(data.message)
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
+interface ConfirmPasswordResetPayload {
+  token: string
+  password: string
+  confirmPassword: string
+}
+
+export const useConfirmPasswordReset = () => {
+  const navigate = useNavigate()
+
+  return useMutation({
+    mutationFn: async (payload: ConfirmPasswordResetPayload) => {
+      const res = await apiClient.post<ResetPasswordResponse>(
+        '/auth/password-reset/confirm',
+        payload
+      )
+
+      if (!res.data.success) {
+        throw new Error(res.data.message)
+      }
+
+      return res.data
+    },
+    onSuccess: (data) => {
+      toast.success(data.message)
+      navigate({ to: '/login', replace: true })
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
 interface SignUpPayload {
   email: string
   password: string

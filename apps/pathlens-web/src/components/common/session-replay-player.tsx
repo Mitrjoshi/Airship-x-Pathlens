@@ -188,7 +188,7 @@ export function SessionReplayPlayer({
           duration: 300,
           lineCap: 'round',
           lineWidth: 3,
-          strokeStyle: '#41ce8f',
+          strokeStyle: '#2fbf7a',
         },
       })
     } catch (error) {

@@ -6,7 +6,7 @@ import {
 } from 'rrweb'
 import type { eventWithTime, Replayer } from 'rrweb'
 
-const CURSOR_COLOR = '#41ce8f'
+const CURSOR_COLOR = '#2fbf7a'
 
 // macOS-inspired cursor.
 // The first point (2, 2) is the cursor hotspot.

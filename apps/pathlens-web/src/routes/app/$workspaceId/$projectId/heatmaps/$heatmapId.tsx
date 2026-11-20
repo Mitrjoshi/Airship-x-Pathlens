@@ -341,7 +341,7 @@ function RouteComponent() {
                 permission="analytics.heatmaps.view"
               />
             ) : (
-              <div className="grid h-[calc(100dvh-106px)] grid-cols-[1fr_350px] gap-6">
+              <div className="grid h-[calc(100dvh-256px)] grid-cols-[1fr_350px] gap-6">
                 {globalLoading ? (
                   <div className="relative flex h-full w-full items-center justify-center overflow-hidden!">
                     <p className="text-muted-foreground shimmer">
@@ -350,7 +350,7 @@ function RouteComponent() {
                   </div>
                 ) : (
                   <div
-                    className="relative h-[calc(100dvh-206px)] w-full overflow-hidden"
+                    className="relative h-[calc(100dvh-206px)] w-full flex-1 overflow-hidden"
                     data-heatmap-viewer="live"
                   >
                     <HeatmapLiveViewer
@@ -418,7 +418,7 @@ function RouteComponent() {
                   </div>
                 )}
 
-                <div className="h-full space-y-4 overflow-auto border-l px-4">
+                <div className="h-[calc(100dvh-206px)] space-y-4 overflow-auto border-l px-4">
                   <div className="space-y-3">
                     <p className="text-sm font-semibold">Analytics</p>
 
