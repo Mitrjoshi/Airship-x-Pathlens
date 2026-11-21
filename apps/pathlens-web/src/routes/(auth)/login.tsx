@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import {
@@ -25,6 +25,9 @@ import { startGoogleLogin } from '@/lib/google-auth'
 
 export const Route = createFileRoute('/(auth)/login')({
   component: RouteComponent,
+  validateSearch: z.object({
+    redirect: z.string().optional(),
+  }),
 })
 
 const formSchema = z.object({
@@ -33,6 +36,8 @@ const formSchema = z.object({
 })
 
 function RouteComponent() {
+  const { redirect } = Route.useSearch()
+
   const [showPassword, setShowPassword] = useState(false)
 
   const lastSigninMethod = localStorage.getItem(
@@ -51,7 +56,7 @@ function RouteComponent() {
     },
     onSubmit: async ({ value: { email, password } }) => {
       loginMutate(
-        { email, password },
+        { email, password, redirect },
         {
           onSuccess: () => {
             localStorage.removeItem('pathlens-last-sign-in-method')
@@ -74,7 +79,7 @@ function RouteComponent() {
           className="relative w-full"
           variant="outline"
           size="lg"
-          onClick={startGoogleLogin}
+          onClick={() => startGoogleLogin(redirect)}
         >
           <GoogleIcon />
           Continue with Google
@@ -93,7 +98,7 @@ function RouteComponent() {
           className="relative w-full"
           variant="outline"
           size="lg"
-          onClick={startGithubLogin}
+          onClick={() => startGithubLogin(redirect)}
         >
           <GithubIcon />
           Continue with Github

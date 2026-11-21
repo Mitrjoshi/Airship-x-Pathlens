@@ -14,7 +14,9 @@ import { Input } from '@workspace/ui/components/input'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@workspace/ui/components/select'
@@ -27,7 +29,13 @@ import {
   SheetTrigger,
 } from '@workspace/ui/components/sheet'
 import { Textarea } from '@workspace/ui/components/textarea'
-import { CheckIcon, CopyIcon, LoaderIcon } from 'lucide-react'
+import {
+  CheckIcon,
+  CopyIcon,
+  InfoIcon,
+  LoaderIcon,
+  SearchIcon,
+} from 'lucide-react'
 import React, { useState } from 'react'
 import { z } from 'zod'
 import {
@@ -42,6 +50,11 @@ import {
   useComboboxAnchor,
 } from '@workspace/ui/components/combobox'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@workspace/ui/components/input-group'
 
 export const ErrorScreen = ({
   refetch,
@@ -173,11 +186,18 @@ export const ContactUsSheet = ({ workspace_id, project_id }: I_Props) => {
     default: item.isDefault,
   }))
 
-  const projectItems =
-    projects?.map((item) => ({
+  const projectItems = [
+    ...(projects?.map((item) => ({
       label: item.name,
       value: String(item.id),
-    })) ?? []
+      separator: false,
+    })) ?? []),
+    {
+      label: 'No specific project',
+      value: 'no',
+      separator: true,
+    },
+  ]
 
   const selectedProject = useSelector(
     form.store,
@@ -200,6 +220,124 @@ export const ContactUsSheet = ({ workspace_id, project_id }: I_Props) => {
     'Privacy & Data Protection',
     'Billing & Subscription',
     'Other',
+  ]
+
+  const issueList = [
+    {
+      label: 'Dashboard',
+      value: 'dashboard',
+      description: 'Overview, widgets, and project summaries.',
+    },
+    {
+      label: 'Analytics',
+      value: 'analytics',
+      description: 'Website metrics, trends, and analytics data.',
+    },
+    {
+      label: 'Visitors',
+      value: 'visitors',
+      description: 'Visitor profiles, activity, and session details.',
+    },
+    {
+      label: 'Events',
+      value: 'events',
+      description: 'Event tracking, properties, and event logs.',
+    },
+    {
+      label: 'User Journeys',
+      value: 'user_journeys',
+      description: 'Visitor navigation paths and interaction flows.',
+    },
+    {
+      label: 'Session Replay',
+      value: 'session_replay',
+      description: 'Recording playback and session visualization issues.',
+    },
+    {
+      label: 'Heatmaps',
+      value: 'heatmaps',
+      description: 'Click, scroll, and interaction heatmap issues.',
+    },
+    {
+      label: 'Funnels',
+      value: 'funnels',
+      description: 'Funnel creation, conversion tracking, and drop-offs.',
+    },
+    {
+      label: 'Goals',
+      value: 'goals',
+      description: 'Goal configuration and conversion tracking.',
+    },
+    {
+      label: 'Performance',
+      value: 'performance',
+      description: 'Website speed, loading times, and performance metrics.',
+    },
+    {
+      label: 'Traffic Sources',
+      value: 'traffic_sources',
+      description: 'Referrers, campaigns, and traffic attribution.',
+    },
+    {
+      label: 'Reports',
+      value: 'reports',
+      description: 'Report generation, exports, and scheduled reports.',
+    },
+    {
+      label: 'AI Insights',
+      value: 'ai_insights',
+      description: 'AI-generated insights, summaries, and recommendations.',
+    },
+    {
+      label: 'SEO',
+      value: 'seo',
+      description: 'Search visibility, indexing, and SEO metrics.',
+    },
+    {
+      label: 'Projects',
+      value: 'projects',
+      description: 'Project creation, configuration, and management.',
+    },
+    {
+      label: 'Workspace & Team Management',
+      value: 'workspace_team_management',
+      description: 'Workspace settings, members, roles, and permissions.',
+    },
+    {
+      label: 'Integrations',
+      value: 'integrations',
+      description: 'Third-party integrations and connected services.',
+    },
+    {
+      label: 'API & Tracking Setup',
+      value: 'api_tracking_setup',
+      description: 'API access, tracking scripts, and implementation.',
+    },
+    {
+      label: 'Privacy & Data Protection',
+      value: 'privacy_data_protection',
+      description: 'Data privacy, masking, consent, and retention settings.',
+    },
+    {
+      label: 'Billing & Subscription',
+      value: 'billing_subscription',
+      description: 'Plans, payments, invoices, and subscription management.',
+    },
+    {
+      label: 'Notifications',
+      value: 'notifications',
+      description: 'Email alerts, in-app notifications, and preferences.',
+    },
+    {
+      label: 'Feedback',
+      value: 'feedback',
+      description: 'Share suggestions, report issues, or request improvements.',
+    },
+    {
+      label: 'Other',
+      value: 'other',
+      description: 'Something else not covered by the above categories.',
+    },
   ]
 
   return (
@@ -281,11 +419,28 @@ export const ContactUsSheet = ({ workspace_id, project_id }: I_Props) => {
                         </SelectTrigger>
 
                         <SelectContent alignItemWithTrigger={false}>
-                          {projectItems?.map((item) => (
-                            <SelectItem value={item.value} key={item.value}>
-                              {item.label}
-                            </SelectItem>
-                          ))}
+                          <SelectGroup>
+                            <InputGroup>
+                              <InputGroupAddon>
+                                <SearchIcon />
+                              </InputGroupAddon>
+                              <InputGroupInput
+                                autoFocus={false}
+                                placeholder="Search project..."
+                              />
+                            </InputGroup>
+                          </SelectGroup>
+                          <SelectSeparator />
+                          <SelectGroup className={'p-0'}>
+                            {projectItems?.map((item) => (
+                              <>
+                                {item.separator && <SelectSeparator />}
+                                <SelectItem value={item.value} key={item.value}>
+                                  {item.label}
+                                </SelectItem>
+                              </>
+                            ))}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
                       {isInvalid && (
@@ -293,27 +448,40 @@ export const ContactUsSheet = ({ workspace_id, project_id }: I_Props) => {
                       )}
 
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <p className="text-muted-foreground text-xs text-nowrap">
-                            Project ID:{' '}
-                          </p>
-                          <Button
-                            variant={'outline'}
-                            className={'gap-2 truncate'}
-                            size="xs"
-                            onClick={() => {
-                              handleCopy('project', selectedProject)
-                            }}
-                          >
-                            {selectedProject}
+                        {selectedProject === 'no' ? (
+                          <>
+                            <div className="flex w-full items-center gap-2 border-2 border-dashed p-2">
+                              <div className="bg-sidebar aspect-square p-3">
+                                <InfoIcon className="text-muted-foreground size-5" />
+                              </div>
+                              <p className="text-muted-foreground font-semibold">
+                                No Project has been selected
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <p className="text-muted-foreground text-xs text-nowrap">
+                              Project ID:{' '}
+                            </p>
+                            <Button
+                              variant={'outline'}
+                              className={'gap-2 truncate'}
+                              size="xs"
+                              onClick={() => {
+                                handleCopy('project', selectedProject)
+                              }}
+                            >
+                              {selectedProject}
 
-                            {copy === 'project' ? (
-                              <CheckIcon className="icon-switch" />
-                            ) : (
-                              <CopyIcon className="icon-switch" />
-                            )}
-                          </Button>
-                        </div>
+                              {copy === 'project' ? (
+                                <CheckIcon className="icon-switch" />
+                              ) : (
+                                <CopyIcon className="icon-switch" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </Field>
                   )
@@ -339,7 +507,7 @@ export const ContactUsSheet = ({ workspace_id, project_id }: I_Props) => {
                           onOpenChange={(open) => {
                             if (!open) field.handleBlur()
                           }}
-                          items={severity}
+                          items={issueList}
                         >
                           <SelectTrigger
                             id={field.name}
@@ -348,10 +516,19 @@ export const ContactUsSheet = ({ workspace_id, project_id }: I_Props) => {
                             <SelectValue placeholder="Select an issue" />
                           </SelectTrigger>
 
-                          <SelectContent alignItemWithTrigger={false}>
-                            {severity?.map((item) => (
+                          <SelectContent
+                            align="start"
+                            className={'max-h-100 w-fit'}
+                            alignItemWithTrigger={false}
+                          >
+                            {issueList?.map((item) => (
                               <SelectItem value={item.value} key={item.value}>
-                                {item.label}
+                                <div>
+                                  <p className="block!">{item.label}</p>
+                                  <p className="text-muted-foreground block text-xs">
+                                    {item.description}
+                                  </p>
+                                </div>
                               </SelectItem>
                             ))}
                           </SelectContent>

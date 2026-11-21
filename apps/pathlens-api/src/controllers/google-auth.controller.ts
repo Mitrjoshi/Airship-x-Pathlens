@@ -37,6 +37,7 @@ function getGoogleCallbackUrl(req: Request) {
 function getGoogleState(state: string) {
   const payload = jwt.verify(state, getRequiredEnv("JWT_SECRET")) as {
     value: string;
+    redirect?: string;
     purpose: string;
   };
 
@@ -47,9 +48,9 @@ function getGoogleState(state: string) {
   return payload;
 }
 
-function createGoogleState(value: string) {
+function createGoogleState(value: string, redirect?: string) {
   return jwt.sign(
-    { value, purpose: "google-oauth" },
+    { value, redirect, purpose: "google-oauth" },
     getRequiredEnv("JWT_SECRET"),
     { expiresIn: "10m" }
   );
@@ -58,11 +59,13 @@ function createGoogleState(value: string) {
 function redirectWithError(
   res: Response,
   state: string | undefined,
-  message: string
+  message: string,
+  redirect?: string
 ) {
   const url = new URL(`${getFrontendUrl()}/google-callback`);
   url.searchParams.set("error", message);
   if (state) url.searchParams.set("state", state);
+  if (redirect) url.searchParams.set("redirect", redirect);
   return res.redirect(url.toString());
 }
 
@@ -70,6 +73,8 @@ export function googleLogin(req: Request, res: Response) {
   try {
     const stateValue =
       typeof req.query.state === "string" ? req.query.state : "";
+    const redirect =
+      typeof req.query.redirect === "string" ? req.query.redirect : undefined;
 
     if (!stateValue) {
       return res.status(400).json({
@@ -83,7 +88,7 @@ export function googleLogin(req: Request, res: Response) {
     url.searchParams.set("redirect_uri", getGoogleCallbackUrl(req));
     url.searchParams.set("response_type", "code");
     url.searchParams.set("scope", "openid email profile");
-    url.searchParams.set("state", createGoogleState(stateValue));
+    url.searchParams.set("state", createGoogleState(stateValue, redirect));
     url.searchParams.set("access_type", "online");
 
     return res.redirect(url.toString());
@@ -146,7 +151,8 @@ export async function googleCallback(req: Request, res: Response) {
       return redirectWithError(
         res,
         state?.value,
-        "Google login was cancelled."
+        "Google login was cancelled.",
+        state?.redirect
       );
     }
 
@@ -202,6 +208,9 @@ export async function googleCallback(req: Request, res: Response) {
     const token = signJwt({ id: user.id, email: user.email });
     const redirectUrl = new URL(`${getFrontendUrl()}/google-callback`);
     redirectUrl.searchParams.set("state", state.value);
+    if (state.redirect) {
+      redirectUrl.searchParams.set("redirect", state.redirect);
+    }
     redirectUrl.hash = new URLSearchParams({ token }).toString();
 
     return res.redirect(redirectUrl.toString());
@@ -210,7 +219,8 @@ export async function googleCallback(req: Request, res: Response) {
     return redirectWithError(
       res,
       returnedState,
-      "Unable to sign in with Google. Please try again."
+      "Unable to sign in with Google. Please try again.",
+      undefined
     );
   }
 }

@@ -2,19 +2,14 @@ import { ModeToggle } from '@/components/common/mode-toggle'
 import { NavUser } from '@/components/common/nav-user'
 import { getUsersOptions } from '@/queries/user'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
+import { Link, useLocation } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  InputGroupText,
-} from '@workspace/ui/components/input-group'
 import { Separator } from '@workspace/ui/components/separator'
 import { Skeleton } from '@workspace/ui/components/skeleton'
-import { SearchIcon } from 'lucide-react'
 
 export const Header = ({ showLogo = true }: { showLogo?: boolean }) => {
+  const { pathname } = useLocation()
+
   const token = localStorage.getItem('pathlens-token')
 
   const { data: userData, isLoading } = useQuery({
@@ -56,35 +51,35 @@ export const Header = ({ showLogo = true }: { showLogo?: boolean }) => {
           </div>
 
           <div className="flex items-center gap-2">
-            <InputGroup className="w-70">
-              <InputGroupAddon>
-                <SearchIcon />
-              </InputGroupAddon>
-              <InputGroupInput placeholder="Search..." />
-              <InputGroupText className="mr-2">
-                <kbd>Ctrl+K</kbd>
-              </InputGroupText>
-            </InputGroup>
-
             {isLoading ? (
               <Skeleton className="aspect-square size-8 rounded-full" />
             ) : (
               <>
                 {user ? (
                   <>
-                    <Separator orientation="vertical" />
                     <Button render={<Link to="/app" />}>Dashboard</Button>
                     <NavUser user={user!} />
                   </>
                 ) : (
-                  <Button render={<Link to="/login" />}>Login</Button>
+                  <>
+                    <Button
+                      render={
+                        <Link
+                          to="/login"
+                          search={{
+                            redirect: pathname,
+                          }}
+                        />
+                      }
+                    >
+                      Login
+                    </Button>
+                    <Separator orientation="vertical" />
+                    <ModeToggle />
+                  </>
                 )}
               </>
             )}
-
-            <Separator orientation="vertical" />
-
-            <ModeToggle />
           </div>
         </div>
       </nav>

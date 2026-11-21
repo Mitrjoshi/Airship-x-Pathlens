@@ -47,6 +47,7 @@ function getGithubStateSecret() {
 function getGithubState(state: string) {
   const payload = jwt.verify(state, getGithubStateSecret()) as {
     value: string;
+    redirect?: string;
     purpose: string;
   };
 
@@ -57,20 +58,26 @@ function getGithubState(state: string) {
   return payload;
 }
 
-function createGithubState(value: string) {
-  return jwt.sign({ value, purpose: "github-oauth" }, getGithubStateSecret(), {
-    expiresIn: "10m",
-  });
+function createGithubState(value: string, redirect?: string) {
+  return jwt.sign(
+    { value, redirect, purpose: "github-oauth" },
+    getGithubStateSecret(),
+    {
+      expiresIn: "10m",
+    }
+  );
 }
 
 function redirectWithError(
   res: Response,
   state: string | undefined,
-  message: string
+  message: string,
+  redirect?: string
 ) {
   const url = new URL(`${getFrontendUrl()}/github-callback`);
   url.searchParams.set("error", message);
   if (state) url.searchParams.set("state", state);
+  if (redirect) url.searchParams.set("redirect", redirect);
   return res.redirect(url.toString());
 }
 
@@ -80,6 +87,8 @@ export function githubLogin(req: Request, res: Response) {
     const callbackUrl = getGithubCallbackUrl(req);
     const stateValue =
       typeof req.query.state === "string" ? req.query.state : "";
+    const redirect =
+      typeof req.query.redirect === "string" ? req.query.redirect : undefined;
 
     if (!stateValue) {
       return res.status(400).json({
@@ -88,7 +97,7 @@ export function githubLogin(req: Request, res: Response) {
       });
     }
 
-    const state = createGithubState(stateValue);
+    const state = createGithubState(stateValue, redirect);
     const url = new URL("https://github.com/login/oauth/authorize");
     url.searchParams.set("client_id", clientId);
     url.searchParams.set("redirect_uri", callbackUrl);
@@ -168,7 +177,8 @@ export async function githubCallback(req: Request, res: Response) {
       return redirectWithError(
         res,
         state?.value,
-        "GitHub login was cancelled."
+        "GitHub login was cancelled.",
+        state?.redirect
       );
     }
 
@@ -228,6 +238,9 @@ export async function githubCallback(req: Request, res: Response) {
     const token = signJwt({ id: user.id, email: user.email });
     const redirectUrl = new URL(`${getFrontendUrl()}/github-callback`);
     redirectUrl.searchParams.set("state", state.value);
+    if (state.redirect) {
+      redirectUrl.searchParams.set("redirect", state.redirect);
+    }
     redirectUrl.hash = new URLSearchParams({ token }).toString();
 
     return res.redirect(redirectUrl.toString());
@@ -236,7 +249,8 @@ export async function githubCallback(req: Request, res: Response) {
     return redirectWithError(
       res,
       returnedState,
-      "Unable to sign in with GitHub. Please try again."
+      "Unable to sign in with GitHub. Please try again.",
+      undefined
     );
   }
 }

@@ -1,5 +1,11 @@
 import { NotFound } from '@/components/common/not-found'
-import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { ArrowLeft } from 'lucide-react'
 
@@ -16,16 +22,27 @@ export const Route = createFileRoute('/(auth)')({
 })
 
 function RouteComponent() {
+  const { history } = useRouter()
+  const navigate = useNavigate()
+
   return (
     <div className="grid h-screen items-center md:grid-cols-[0.4fr_1fr] md:justify-center md:divide-x">
       <div className="relative flex h-screen flex-1 items-center p-8 md:justify-center">
         <Button
           className="absolute top-4 left-4 flex items-center justify-between"
-          render={<Link to="/" />}
           variant="ghost"
+          onClick={() => {
+            if (history.canGoBack()) {
+              history.back()
+            } else {
+              navigate({
+                to: '/',
+              })
+            }
+          }}
         >
           <ArrowLeft />
-          Home
+          Back
         </Button>
 
         <Outlet />

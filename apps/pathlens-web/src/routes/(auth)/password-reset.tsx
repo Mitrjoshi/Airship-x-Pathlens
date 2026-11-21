@@ -276,18 +276,28 @@ function RequestPasswordResetForm() {
           Password resets are only available for accounts with a password.
         </p>
         <div className="flex flex-col gap-2">
-          <Button type="button" variant="outline" onClick={startGoogleLogin}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              startGoogleLogin()
+            }}
+          >
             <GoogleIcon />
             Continue with Google
           </Button>
-          <Button type="button" variant="outline" onClick={startGithubLogin}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => startGithubLogin()}
+          >
             <GithubIcon />
             Continue with GitHub
           </Button>
         </div>
       </div>
 
-      <p className="text-muted-foreground text-center text-sm">
+      <p className="text-muted-foreground mt-6 text-center text-sm">
         Remember your password?{' '}
         <Button
           className="h-6 p-0 underline"

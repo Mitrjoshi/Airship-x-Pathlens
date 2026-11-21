@@ -6,6 +6,7 @@ import { toast } from '@/lib/toast'
 interface LoginPayload {
   email: string
   password: string
+  redirect?: string
 }
 
 interface LoginResponse {
@@ -27,11 +28,11 @@ export const useLogin = () => {
 
   return useMutation({
     mutationFn: (payload: LoginPayload) => login(payload),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       if (!data.success) throw new Error(data.message)
       localStorage.setItem('pathlens-token', data.data.token)
       navigate({
-        to: '/app',
+        to: variables.redirect || '/app',
         replace: true,
       })
     },

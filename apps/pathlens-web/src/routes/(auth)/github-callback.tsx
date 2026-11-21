@@ -1,6 +1,10 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { consumeGithubState, getGithubState } from '@/lib/github-auth'
+import {
+  consumeGithubRedirect,
+  consumeGithubState,
+  getGithubState,
+} from '@/lib/github-auth'
 import { Button } from '@workspace/ui/components/button'
 
 export const Route = createFileRoute('/(auth)/github-callback')({
@@ -24,8 +28,9 @@ function GithubCallback() {
     if (error || !token) return
 
     localStorage.setItem('pathlens-token', token)
+    const redirect = params.get('redirect') ?? consumeGithubRedirect()
     window.history.replaceState({}, document.title, '/github-callback')
-    navigate({ to: '/app', replace: true })
+    navigate({ to: redirect || '/app', replace: true })
   }, [error, navigate, token])
 
   return (

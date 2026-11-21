@@ -1,6 +1,10 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { consumeGoogleState, getGoogleState } from '@/lib/google-auth'
+import {
+  consumeGoogleRedirect,
+  consumeGoogleState,
+  getGoogleState,
+} from '@/lib/google-auth'
 import { Button } from '@workspace/ui/components/button'
 
 export const Route = createFileRoute('/(auth)/google-callback')({
@@ -24,8 +28,9 @@ function GoogleCallback() {
     if (error || !token) return
 
     localStorage.setItem('pathlens-token', token)
+    const redirect = params.get('redirect') ?? consumeGoogleRedirect()
     window.history.replaceState({}, document.title, '/google-callback')
-    navigate({ to: '/app', replace: true })
+    navigate({ to: redirect || '/app', replace: true })
   }, [error, navigate, token])
 
   return (

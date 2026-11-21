@@ -3,12 +3,21 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@workspace/ui/components/sidebar'
 import { Link, useLocation } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '@workspace/ui/components/input-group'
+import { SearchIcon } from 'lucide-react'
+import { ModKey } from '@/hooks/use-modifier-key'
 
 const navigation = [
   {
@@ -50,8 +59,22 @@ export const DocSidebar = () => {
   const { pathname } = useLocation()
 
   return (
-    <Sidebar>
-      <SidebarContent className="bg-background pt-14.75">
+    <Sidebar className="pt-14.75">
+      <SidebarHeader className="bg-background border-b">
+        <InputGroup className="w-full">
+          <InputGroupAddon>
+            <SearchIcon />
+          </InputGroupAddon>
+          <InputGroupInput placeholder="Search documentation..." />
+          <InputGroupText className="mr-2">
+            <kbd className="flex items-center gap-px">
+              <ModKey />
+              <span className="text-xs">+K</span>
+            </kbd>
+          </InputGroupText>
+        </InputGroup>
+      </SidebarHeader>
+      <SidebarContent className="bg-background">
         {navigation.map((group) => (
           <SidebarGroup key={group.title}>
             <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
