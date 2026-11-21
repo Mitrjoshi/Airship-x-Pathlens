@@ -10,7 +10,12 @@ import {
   type SessionReplayRange,
 } from '@/queries/session-replay'
 import { Separator } from '@workspace/ui/components/separator'
-import { formatDate, formatNumber, getPaginationItems } from '@/utils/utils'
+import {
+  formatDate,
+  formatNumber,
+  formatRelativeTime,
+  getPaginationItems,
+} from '@/utils/utils'
 import { useRelativeTime } from '@/hooks/use-relative-time'
 import { Button } from '@workspace/ui/components/button'
 import { PauseIcon, PlayIcon, RefreshCcwIcon, SearchIcon } from 'lucide-react'
@@ -454,7 +459,7 @@ function RouteComponent() {
                                 </TableCell>
 
                                 <TableCell className="w-32 text-center whitespace-nowrap">
-                                  {formatDate(item.recordedAt)}
+                                  {formatRelativeTime(item.recordedAt)}
                                 </TableCell>
 
                                 <TableCell className="w-20 text-center">

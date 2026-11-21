@@ -29,13 +29,7 @@ import {
   SheetTrigger,
 } from '@workspace/ui/components/sheet'
 import { Textarea } from '@workspace/ui/components/textarea'
-import {
-  CheckIcon,
-  CopyIcon,
-  InfoIcon,
-  LoaderIcon,
-  SearchIcon,
-} from 'lucide-react'
+import { CheckIcon, CopyIcon, LoaderIcon, SearchIcon } from 'lucide-react'
 import React, { useState } from 'react'
 import { z } from 'zod'
 import {
@@ -450,14 +444,9 @@ export const ContactUsSheet = ({ workspace_id, project_id }: I_Props) => {
                       <div className="flex items-center gap-2">
                         {selectedProject === 'no' ? (
                           <>
-                            <div className="flex w-full items-center gap-2 border-2 border-dashed p-2">
-                              <div className="bg-sidebar aspect-square p-3">
-                                <InfoIcon className="text-muted-foreground size-5" />
-                              </div>
-                              <p className="text-muted-foreground font-semibold">
-                                No Project has been selected
-                              </p>
-                            </div>
+                            <p className="text-muted-foreground font-semibold">
+                              No Project has been selected
+                            </p>
                           </>
                         ) : (
                           <div className="flex items-center gap-2 overflow-hidden">
@@ -705,40 +694,6 @@ export const ContactUsSheet = ({ workspace_id, project_id }: I_Props) => {
             </FieldGroup>
           </form>
         )}
-
-        <div className="mt-4 space-y-1 overflow-hidden">
-          <p className="text-sm">Having trouble submitting the form?</p>
-          <p className="text-muted-foreground text-xs">
-            Email us at{' '}
-            <Button
-              onClick={() => handleCopy('email', 'support@pathlens.app')}
-              size="xs"
-              variant={'link'}
-              className={'text-muted-foreground px-0'}
-            >
-              support@pathlens.app
-              {copy === 'email' ? (
-                <CheckIcon className="icon-switch" />
-              ) : (
-                <CopyIcon className="icon-switch" />
-              )}
-            </Button>{' '}
-            with details and your Project ID:{' '}
-            <Button
-              onClick={() => handleCopy('project', selectedProject)}
-              size="xs"
-              variant={'link'}
-              className={'text-muted-foreground px-0'}
-            >
-              {selectedProject}{' '}
-              {copy === 'project' ? (
-                <CheckIcon className="icon-switch" />
-              ) : (
-                <CopyIcon className="icon-switch" />
-              )}
-            </Button>
-          </p>
-        </div>
       </div>
 
       {!workspaceLoading && !projectLoading && (
