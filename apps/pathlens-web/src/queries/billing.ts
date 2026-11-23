@@ -7,6 +7,7 @@ export type BillingEntitlement = {
   lifetime_access: boolean
   stripe_customer_id: string | null
   stripe_payment_id: string | null
+  purchased_at: string | null
 }
 
 type BillingEntitlementResponse = {

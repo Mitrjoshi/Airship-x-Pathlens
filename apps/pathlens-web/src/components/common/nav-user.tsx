@@ -18,14 +18,12 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { Link } from '@tanstack/react-router'
-import { ArrowUpRightIcon,  MonitorIcon, SunIcon, MoonIcon } from 'lucide-react'
+import { ArrowUpRightIcon, MonitorIcon, SunIcon, MoonIcon } from 'lucide-react'
 import { useTheme } from '@/components/common/theme-provider'
 import { motion, useMotionValue, useTransform, animate } from 'motion/react'
 import { useEffect } from 'react'
-import { Badge } from '@workspace/ui/components/badge';
-import type { T_User } from '@/queries/user';
-
-
+import { Badge } from '@workspace/ui/components/badge'
+import type { T_User } from '@/queries/user'
 
 export function NavUser({ user }: { user: T_User }) {
   const { theme, setTheme } = useTheme()
@@ -82,18 +80,19 @@ export function NavUser({ user }: { user: T_User }) {
       >
         <DropdownMenuGroup>
           <div className="space-y--2 px-1 py-1.5 text-left text-sm">
-            <div className='flex items-center justify-between w-full'>
+            <div className="flex w-full items-center justify-between">
               <p className="truncate font-medium">{user?.name}</p>
 
-            <Badge variant={'outline'} >
-              {user.lifetimeAccess ? 'Premium' : 'Free'}
-            </Badge>
+              <Badge
+                className="scale-90"
+                variant={user.lifetimeAccess ? 'default' : 'outline'}
+              >
+                {user.lifetimeAccess ? 'Unlimited' : 'Free'}
+              </Badge>
             </div>
-            <p className="text-muted-foreground truncate text-xs mt-px">
+            <p className="text-muted-foreground mt-px truncate text-xs">
               {user?.email}
             </p>
-
-            
           </div>
         </DropdownMenuGroup>
 
@@ -146,25 +145,40 @@ export function NavUser({ user }: { user: T_User }) {
             Subscription
           </DropdownMenuItem>
 
-        <DropdownMenuSeparator />
+          <DropdownMenuSeparator />
 
-
-          <DropdownMenuGroup
-           className={'flex items-center justify-between'}
-          >
+          <DropdownMenuGroup className={'flex items-center justify-between'}>
             <DropdownMenuLabel className={'text-foreground text-sm'}>
               Theme
             </DropdownMenuLabel>
 
-            <div className='border rounded-lg p-0.5 gap-px flex items-center'>
-              <Button size='icon-sm' onClick={() => setTheme('light')} variant={theme == 'light' ? 'outline' : 'ghost'}>
-                <SunIcon   className={`${theme == 'light' ? 'text-foreground' : 'text-muted-foreground'} duration-200`} />
+            <div className="flex items-center gap-px rounded-lg border p-0.5">
+              <Button
+                size="icon-sm"
+                onClick={() => setTheme('light')}
+                variant={theme == 'light' ? 'outline' : 'ghost'}
+              >
+                <SunIcon
+                  className={`${theme == 'light' ? 'text-foreground' : 'text-muted-foreground'} duration-200`}
+                />
               </Button>
-              <Button size='icon-sm' onClick={() => setTheme('dark')} variant={theme == 'dark' ? 'outline' : 'ghost'}>
-                <MoonIcon className={`${theme == 'dark' ? 'text-foreground' : 'text-muted-foreground'} duration-200`} />
+              <Button
+                size="icon-sm"
+                onClick={() => setTheme('dark')}
+                variant={theme == 'dark' ? 'outline' : 'ghost'}
+              >
+                <MoonIcon
+                  className={`${theme == 'dark' ? 'text-foreground' : 'text-muted-foreground'} duration-200`}
+                />
               </Button>
-              <Button size='icon-sm' onClick={() => setTheme('system')} variant={theme == 'system' ? 'outline' : 'ghost'}>
-                <MonitorIcon className={`${theme == 'system' ? 'text-foreground' : 'text-muted-foreground'} duration-200`} />
+              <Button
+                size="icon-sm"
+                onClick={() => setTheme('system')}
+                variant={theme == 'system' ? 'outline' : 'ghost'}
+              >
+                <MonitorIcon
+                  className={`${theme == 'system' ? 'text-foreground' : 'text-muted-foreground'} duration-200`}
+                />
               </Button>
             </div>
           </DropdownMenuGroup>

@@ -24,6 +24,8 @@ import { useQuery } from '@tanstack/react-query'
 import { getUsersOptions, type T_User } from '@/queries/user'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { useEffect, useState } from 'react'
+import { Separator } from '@workspace/ui/components/separator'
+import { ModeToggle } from '@/components/common/mode-toggle'
 
 type MenuState = 'default' | 'products' | 'solutions'
 type NavigationDirection = 1 | -1
@@ -149,6 +151,12 @@ export const Header = () => {
                     <Link className="hidden md:block" to="/sign-up">
                       <Button>Sign up</Button>
                     </Link>
+
+                    <div className="hidden items-center gap-2 md:flex">
+                      <Separator orientation="vertical" />
+
+                      <ModeToggle />
+                    </div>
                   </>
                 )}
               </>

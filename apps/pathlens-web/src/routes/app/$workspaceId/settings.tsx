@@ -392,7 +392,7 @@ function RouteComponent() {
             </DialogHeader>
             <DialogFooter className="bg-transparent">
               <DialogClose>
-                <Button variant={'secondary'}>Cancel</Button>
+                <Button variant="outline">Cancel</Button>
               </DialogClose>
               <Button
                 onClick={() =>
@@ -463,7 +463,7 @@ function RouteComponent() {
             </form>
 
             <DialogFooter className="bg-transparent">
-              <DialogClose render={<Button variant="secondary" />}>
+              <DialogClose render={<Button variant="outline" />}>
                 Cancel
               </DialogClose>
 

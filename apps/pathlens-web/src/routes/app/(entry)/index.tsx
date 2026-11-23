@@ -229,7 +229,7 @@ function RouteComponent() {
                     </div>
                   ) : (
                     <>
-                      <div className="max-h-100 overflow-auto rounded-lg border">
+                      <div className="max-h-100 overflow-auto border">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -437,7 +437,7 @@ function RouteComponent() {
             </form>
 
             <DialogFooter className="bg-transparent">
-              <DialogClose render={<Button variant="secondary" />}>
+              <DialogClose render={<Button variant="outline" />}>
                 Cancel
               </DialogClose>
 

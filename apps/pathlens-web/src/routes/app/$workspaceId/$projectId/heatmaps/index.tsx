@@ -72,6 +72,7 @@ function RouteComponent() {
 
   const rangeLocal = localStorage.getItem('range')
   const deviceLocal = localStorage.getItem('device')
+  const liveLocal = localStorage.getItem('live')
 
   const [range, setRange] = useState<HeatmapsRange>(
     (rangeLocal || '7d') as HeatmapsRange
@@ -79,7 +80,7 @@ function RouteComponent() {
   const [device, setDevice] = useState<HeatmapDevice>(
     (deviceLocal || 'desktop') as HeatmapDevice
   )
-  const [liveMode, setLiveMode] = useState(false)
+  const [liveMode, setLiveMode] = useState(liveLocal === 'true')
   const [page, setPage] = useState(1)
   const [domain, setDomain] = useState('')
 
@@ -185,7 +186,10 @@ function RouteComponent() {
           <div className="flex items-center gap-2">
             <Button
               data-live={liveMode}
-              onClick={() => setLiveMode(!liveMode)}
+              onClick={() => {
+                setLiveMode(!liveMode)
+                localStorage.setItem('live', String(!liveMode))
+              }}
               className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
               variant="outline"
             >

@@ -140,18 +140,17 @@ export const SolutionHero = ({
         />
 
         <div className="mt-10 flex items-center gap-3">
-          <Link to="/login">
-            <Button
-              style={{
-                backgroundColor: `${solutionData.color.hex}`,
-              }}
-              className={'text-white'}
-            >
-              {solutionData.page.hero?.primaryAction}
-            </Button>
-          </Link>
+          <Button
+            style={{
+              backgroundColor: `${solutionData.color.hex}`,
+            }}
+            className={'text-white'}
+            render={<Link to="/login" />}
+          >
+            {solutionData.page.hero?.primaryAction}
+          </Button>
 
-          <Button variant="outline">
+          <Button variant="outline" render={<Link to="/login" />}>
             {solutionData.page.hero?.secondaryAction}
           </Button>
         </div>

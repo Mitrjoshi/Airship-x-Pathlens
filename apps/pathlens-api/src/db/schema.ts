@@ -17,6 +17,7 @@ import {
 import { sql } from "drizzle-orm";
 import type { IntegrationStatus, Permission } from "@workspace/contracts";
 import type { ReplayEvent } from "@workspace/contracts";
+import type { InvoiceDocument } from "../billing/invoice.types";
 
 /* -------------------------------------------------------------------------- */
 /*                                    USERS                                   */
@@ -295,6 +296,8 @@ export const users = pgTable("users", {
 
   stripePaymentId: text("stripe_payment_id"),
 
+  purchasedAt: timestamp("purchased_at", { withTimezone: true }),
+
   createdAt: timestamp("created_at", {
     withTimezone: true,
   }).defaultNow(),
@@ -303,6 +306,18 @@ export const users = pgTable("users", {
 /* -------------------------------------------------------------------------- */
 /*                          PASSWORD RESET TOKENS                            */
 /* -------------------------------------------------------------------------- */
+
+export const billingInvoices = pgTable("billing_invoices", {
+  id: uuid("id").primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  stripePaymentId: text("stripe_payment_id").notNull().unique(),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  bucket: text("bucket").notNull(),
+  storageKey: text("storage_key").notNull().unique(),
+  document: jsonb("document").$type<InvoiceDocument>().notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const passwordResetTokens = pgTable(
   "password_reset_tokens",
@@ -955,6 +970,69 @@ export const heatmapPreviewSessions = pgTable(
 /* -------------------------------------------------------------------------- */
 /*                                  FEEDBACK                                  */
 /* -------------------------------------------------------------------------- */
+
+export const supportRequests = pgTable(
+  "support_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+    issueId: text("issue_id").notNull(),
+    severity: text("severity").notNull(),
+    subject: text("subject").notNull(),
+    services: jsonb("services").$type<string[]>().notNull(),
+    message: text("message").notNull(),
+    status: text("status").notNull().default("new"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    workspaceIdx: index("support_requests_workspace_idx").on(
+      table.workspaceId,
+      table.createdAt
+    ),
+  })
+);
+
+export const supportAttachments = pgTable(
+  "support_attachments",
+  {
+    id: uuid("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "cascade",
+    }),
+    requestId: uuid("request_id").references(() => supportRequests.id, {
+      onDelete: "cascade",
+    }),
+    name: text("name").notNull(),
+    contentType: text("content_type").notNull(),
+    size: integer("size").notNull(),
+    bucket: text("bucket").notNull(),
+    storageKey: text("storage_key").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    requestIdx: index("support_attachments_request_idx").on(table.requestId),
+    expiryIdx: index("support_attachments_expiry_idx").on(table.expiresAt),
+  })
+);
 
 export const feedback = pgTable(
   "feedback",

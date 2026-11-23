@@ -106,10 +106,12 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+  const liveLocal = localStorage.getItem('live')
+
   const [range, setRange] = useState<UserJourneyRange>(
     (rangeLocal || '7d') as UserJourneyRange
   )
-  const [liveMode, setLiveMode] = useState(false)
+  const [liveMode, setLiveMode] = useState(liveLocal === 'true')
   const [domain, setDomain] = useState('')
 
   const {
@@ -224,7 +226,8 @@ function RouteComponent() {
             <Button
               data-live={liveMode}
               onClick={() => {
-                setLiveMode((current) => !current)
+                setLiveMode(!liveMode)
+                localStorage.setItem('live', String(!liveMode))
               }}
               className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
               variant="outline"
@@ -294,10 +297,10 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-            <NoPermissionView
-              workspaceId={workspaceId}
-              permission="analytics.user_journey.view"
-            />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="analytics.user_journey.view"
+              />
             ) : (
               <>
                 {/* Summary */}

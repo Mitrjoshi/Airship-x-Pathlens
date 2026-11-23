@@ -17,6 +17,7 @@ import { Button } from '@workspace/ui/components/button'
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -28,7 +29,13 @@ import {
   FieldLabel,
 } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'
-import { AlertCircleIcon, Loader2Icon, Trash2Icon } from 'lucide-react'
+import {
+  DownloadIcon,
+  EyeIcon,
+  EyeOffIcon,
+  Loader2Icon,
+  Trash2Icon,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -43,6 +50,12 @@ import { Separator } from '@workspace/ui/components/separator'
 import { getAvatarOptions, type AvatarOption } from '@/queries/avatars'
 import { capitalizeFirstLetter } from '@/utils/utils'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
+import { PasswordStrength } from '../-components/password-strength'
+import {
+  InputGroup,
+  InputGroupButton,
+  InputGroupInput,
+} from '@workspace/ui/components/input-group'
 
 export const Route = createFileRoute('/app/(entry)/settings')({
   component: RouteComponent,
@@ -65,7 +78,7 @@ const getPasswordSchema = (hasPassword: boolean) =>
       currentPassword: hasPassword
         ? z.string().min(1, 'Current password is required')
         : z.string().optional(),
-      newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+      newPassword: z.string().min(6, 'Password must be at least 6 characters'),
       confirmPassword: z.string().min(1, 'Please confirm your new password'),
     })
     .refine((values) => values.newPassword === values.confirmPassword, {
@@ -195,18 +208,13 @@ function DeleteAccountDialogContent({
         }}
       >
         <DialogHeader>
-          <div className="flex items-start gap-4">
-            <AlertCircleIcon className="text-destructive shrink-0" size={24} />
-            <div className="flex flex-col gap-2">
-              <DialogTitle className="text-destructive">
-                Delete Account?
-              </DialogTitle>
-              <DialogDescription>
-                Permanently delete your account and all associated data. This
-                cannot be undone.
-              </DialogDescription>
-            </div>
-          </div>
+          <DialogTitle className="text-destructive">
+            Delete Account?
+          </DialogTitle>
+          <DialogDescription>
+            Permanently delete your account and all associated data. This cannot
+            be undone.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -268,7 +276,7 @@ function DeleteAccountDialogContent({
 
         <DialogFooter className="bg-transparent">
           <DialogClose>
-            <Button type="button" variant="ghost">
+            <Button type="button" variant="outline">
               Cancel
             </Button>
           </DialogClose>
@@ -329,6 +337,10 @@ function RouteComponent() {
   )
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const updateProfile = useUpdateProfile()
   const changePassword = useChangePassword()
@@ -545,19 +557,35 @@ function RouteComponent() {
                             <FieldLabel htmlFor={field.name}>
                               Current Password
                             </FieldLabel>
-                            <Input
-                              id={field.name}
-                              name={field.name}
-                              type="password"
-                              placeholder="Enter your current password"
-                              value={field.state.value}
-                              onBlur={field.handleBlur}
-                              onChange={(event) =>
-                                field.handleChange(event.target.value)
-                              }
-                              aria-invalid={isInvalid}
-                              autoComplete="current-password"
-                            />
+                            <InputGroup>
+                              <InputGroupInput
+                                id={field.name}
+                                name={field.name}
+                                type={showCurrentPassword ? 'text' : 'password'}
+                                placeholder="Enter your current password"
+                                value={field.state.value}
+                                onBlur={field.handleBlur}
+                                onChange={(event) =>
+                                  field.handleChange(event.target.value)
+                                }
+                                aria-invalid={isInvalid}
+                                autoComplete="current-password"
+                              />
+
+                              <InputGroupButton
+                                key={showCurrentPassword ? 'true' : 'false'}
+                                className={'icon-switch'}
+                                onClick={() =>
+                                  setShowCurrentPassword(!showCurrentPassword)
+                                }
+                              >
+                                {showCurrentPassword ? (
+                                  <EyeIcon />
+                                ) : (
+                                  <EyeOffIcon />
+                                )}
+                              </InputGroupButton>
+                            </InputGroup>
                             {isInvalid && (
                               <FieldError errors={field.state.meta.errors} />
                             )}
@@ -577,19 +605,32 @@ function RouteComponent() {
                           <FieldLabel htmlFor={field.name}>
                             New Password
                           </FieldLabel>
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            type="password"
-                            placeholder="Enter your new password"
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
-                            }
-                            aria-invalid={isInvalid}
-                            autoComplete="new-password"
-                          />
+                          <InputGroup>
+                            <InputGroupInput
+                              id={field.name}
+                              name={field.name}
+                              type={showNewPassword ? 'text' : 'password'}
+                              placeholder="Enter your new password"
+                              value={field.state.value}
+                              onBlur={field.handleBlur}
+                              onChange={(event) =>
+                                field.handleChange(event.target.value)
+                              }
+                              aria-invalid={isInvalid}
+                              autoComplete="new-password"
+                            />
+
+                            <InputGroupButton
+                              key={showNewPassword ? 'true' : 'false'}
+                              className={'icon-switch'}
+                              onClick={() =>
+                                setShowNewPassword(!showNewPassword)
+                              }
+                            >
+                              {showNewPassword ? <EyeIcon /> : <EyeOffIcon />}
+                            </InputGroupButton>
+                          </InputGroup>
+                          <PasswordStrength password={field.state.value} />
                           {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
                           )}
@@ -608,19 +649,35 @@ function RouteComponent() {
                           <FieldLabel htmlFor={field.name}>
                             Confirm Password
                           </FieldLabel>
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            type="password"
-                            placeholder="Confirm your new password"
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
-                            }
-                            aria-invalid={isInvalid}
-                            autoComplete="new-password"
-                          />
+
+                          <InputGroup>
+                            <InputGroupInput
+                              id={field.name}
+                              name={field.name}
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              placeholder="Confirm your new password"
+                              value={field.state.value}
+                              onBlur={field.handleBlur}
+                              onChange={(event) =>
+                                field.handleChange(event.target.value)
+                              }
+                              aria-invalid={isInvalid}
+                              autoComplete="new-password"
+                            />
+                            <InputGroupButton
+                              key={showConfirmPassword ? 'true' : 'false'}
+                              className={'icon-switch'}
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                            >
+                              {showConfirmPassword ? (
+                                <EyeIcon />
+                              ) : (
+                                <EyeOffIcon />
+                              )}
+                            </InputGroupButton>
+                          </InputGroup>
                           {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
                           )}
@@ -652,21 +709,31 @@ function RouteComponent() {
             </form>
           </Card>
 
+          <Card className="bg-card/30 rounded-none border-2 border-dashed">
+            <CardHeader>
+              <CardTitle>Export Data</CardTitle>
+              <CardDescription>
+                Download a copy of your account data and associated information.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="bg-transparen justify-end gap-4">
+              <Button>
+                <DownloadIcon className="size-4" />
+                Export
+              </Button>
+            </CardFooter>
+          </Card>
+
           <Card className="bg-card/30 border-destructive/50 rounded-none border-2 border-dashed">
-            <CardContent>
-              <div className="flex items-start gap-4">
-                <AlertCircleIcon className="text-destructive" />
-                <div>
-                  <p className="text-destructive font-medium">
-                    Delete Account?
-                  </p>
-                  <p className="text-muted-foreground">
-                    Permanently delete your account and all associated data.
-                    This cannot be undone.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
+            <CardHeader>
+              <CardTitle className="text-destructive font-medium">
+                Delete Account?
+              </CardTitle>
+              <CardDescription>
+                Permanently delete your account and all associated data. This
+                cannot be undone.
+              </CardDescription>
+            </CardHeader>
             <CardFooter className="bg-transparen justify-end gap-4">
               <Dialog
                 open={deleteDialogOpen}

@@ -2,6 +2,21 @@ import { useMutation } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
 
 import apiClient from '@/lib/apiClient'
+import { billingInvoiceSchema, type BillingInvoice } from '@workspace/contracts'
+
+export function useCreateBillingInvoice() {
+  return useMutation({
+    mutationFn: async (): Promise<BillingInvoice> => {
+      const response = await apiClient.post('/billing/invoice')
+      if (!response.data.success) {
+        throw new Error(response.data.message ?? 'Unable to create the invoice.')
+      }
+      return billingInvoiceSchema.parse(response.data.data)
+    },
+    retry: false,
+    onError: (error) => toast.error(error.message),
+  })
+}
 
 type CheckoutResponse = {
   success: boolean

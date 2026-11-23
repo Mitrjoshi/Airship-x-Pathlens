@@ -114,13 +114,14 @@ function RouteComponent() {
   const { workspaceId, projectId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+  const liveLocal = localStorage.getItem('live')
 
   const [range, setRange] = useState<FunnelRange>(
     (rangeLocal || '7d') as FunnelRange
   )
 
   const [domain, setDomain] = useState('')
-  const [liveMode, setLiveMode] = useState(false)
+  const [liveMode, setLiveMode] = useState(liveLocal === 'true')
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editingFunnel, setEditingFunnel] = useState<EditableFunnel | null>(
@@ -306,7 +307,10 @@ function RouteComponent() {
           <div className="flex items-center gap-2">
             <Button
               data-live={liveMode}
-              onClick={() => setLiveMode(!liveMode)}
+              onClick={() => {
+                setLiveMode(!liveMode)
+                localStorage.setItem('live', String(!liveMode))
+              }}
               className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
               variant="outline"
             >

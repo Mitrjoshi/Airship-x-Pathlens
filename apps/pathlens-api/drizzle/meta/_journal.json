@@ -470,6 +470,27 @@
       "when": 1794983051418,
       "tag": "0066_absurd_rumiko_fujikawa",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1795421235563,
+      "tag": "0067_glorious_silhouette",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1795432861111,
+      "tag": "0068_windy_rocket_raccoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1795438495780,
+      "tag": "0069_loud_hemingway",
+      "breakpoints": true
     }
   ]
 }

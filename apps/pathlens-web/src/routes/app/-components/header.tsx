@@ -35,6 +35,7 @@ import { Avatar, AvatarImage } from '@workspace/ui/components/avatar'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { Sheet, SheetTrigger } from '@workspace/ui/components/sheet'
 import { ContactUsSheet } from '../$workspaceId/$projectId/-components/common/error-screen'
+import { SidebarTrigger } from '@workspace/ui/components/sidebar'
 
 export const Header = () => {
   const user = useRouteContext({
@@ -56,6 +57,10 @@ export const Header = () => {
   return (
     <>
       <header className="bg-background sticky top-0 z-10 flex h-14.25 shrink-0 items-center justify-between gap-2 border-b px-4 py-2 transition-[width,height] ease-linear">
+        <div className="flex items-center gap-2 md:hidden">
+          <SidebarTrigger />
+        </div>
+
         <div className="flex items-center gap-2">
           {projectId && (
             <ProjectSwitcher

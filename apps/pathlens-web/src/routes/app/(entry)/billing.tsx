@@ -4,8 +4,17 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
-import { CheckCircle2Icon } from 'lucide-react'
+import { CheckCircle2Icon, CheckIcon, DownloadIcon } from 'lucide-react'
 import { FaqQuestions } from '@/routes/(open)/-components/faq'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@workspace/ui/components/table'
+import { formatDate } from '@/utils/utils'
 
 export const Route = createFileRoute('/app/(entry)/billing')({
   component: RouteComponent,
@@ -150,25 +159,38 @@ function RouteComponent() {
               </div>
             </div>
           ) : (
-            <div className="bg-card/30 flex items-start gap-3 border-2 border-dashed p-4">
-              <div className="bg-primary/10 flex size-9 shrink-0 items-center justify-center">
-                <CheckCircle2Icon className="text-primary size-4" />
-              </div>
-
-              <div className="w-full space-y-1">
-                <div className="flex w-full items-center justify-between">
-                  <p className="leading-4 font-medium">
-                    Lifetime access enabled
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {access.stripe_payment_id}
-                  </p>
-                </div>
-
-                <p className="text-muted-foreground text-sm">
-                  You have lifetime access to Pathlens. No billing is required.
-                </p>
-              </div>
+            <div className="border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Payment ID</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Purchased At</TableHead>
+                    <TableHead>Payment Method</TableHead>
+                    <TableHead className="w-32 text-center">Invoice</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>Paid</TableCell>
+                    <TableCell>{access.stripe_payment_id}</TableCell>
+                    <TableCell>₹499</TableCell>
+                    <TableCell>
+                      {access?.purchased_at
+                        ? formatDate(access?.purchased_at)
+                        : '-'}
+                    </TableCell>
+                    <TableCell>MasterCard</TableCell>
+                    <TableCell className="w-20 text-center">
+                      <Button variant={'outline'}>
+                        <DownloadIcon />
+                        Invoice
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>

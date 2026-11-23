@@ -350,6 +350,7 @@ function RouteComponent() {
 
   const rangeLocal = localStorage.getItem('range')
   const deviceLocal = localStorage.getItem('device')
+  const liveLocal = localStorage.getItem('live')
 
   const [range, setRange] = useState<AnalyticsRange>(
     (rangeLocal || '7d') as AnalyticsRange
@@ -357,7 +358,7 @@ function RouteComponent() {
   const [device, setDevice] = useState<EventsDevice>(
     (deviceLocal || 'desktop') as EventsDevice
   )
-  const [liveMode, setLiveMode] = useState(false)
+  const [liveMode, setLiveMode] = useState(liveLocal === 'true')
   const [page, setPage] = useState(1)
   const [event, setEvent] = useState<ProjectEvent | null>(null)
   const [category, setCategory] = useState<EventsCategory>('high_signal')
@@ -525,7 +526,8 @@ function RouteComponent() {
             <Button
               data-live={liveMode}
               onClick={() => {
-                setLiveMode((current) => !current)
+                setLiveMode(!liveMode)
+                localStorage.setItem('live', String(!liveMode))
               }}
               className="data-[live=true]:border-primary! data-[live=true]:bg-primary-foreground/50! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
               variant="outline"
@@ -535,8 +537,7 @@ function RouteComponent() {
               ) : (
                 <PlayIcon className="size-4" />
               )}
-
-              {liveMode ? 'Pause Live' : 'Live Refresh'}
+              Live Refresh
             </Button>
 
             {/* Manual refresh */}

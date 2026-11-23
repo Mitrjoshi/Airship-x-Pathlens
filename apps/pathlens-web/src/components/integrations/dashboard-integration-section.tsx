@@ -63,7 +63,7 @@ export function DashboardIntegrationSection(props: Props) {
   if (available.length === 0) return null
 
   return (
-    <section className="mx-auto space-y-4 p-6">
+    <section className="mx-auto space-y-4">
       <div>
         <p className="text-xl font-medium">Connected integrations</p>
         <p className="text-muted-foreground text-sm">

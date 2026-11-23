@@ -28,6 +28,7 @@ import {
   SearchIcon,
   PlusIcon,
   CheckIcon,
+  ArrowUpRightIcon,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -100,6 +101,7 @@ const sidebarProjectsItems = [
         label: 'Dashboard',
         icon: navigationIcons.dashboard,
         to: '/app/$workspaceId/$projectId',
+        external: false,
         isActive: (
           pathname: string,
           activeWorkspace: string,
@@ -116,36 +118,42 @@ const sidebarProjectsItems = [
         label: 'Events',
         icon: navigationIcons.events,
         to: '/app/$workspaceId/$projectId/events',
+        external: false,
         isActive: (pathname: string) => pathname.includes('events'),
       },
       {
         label: 'Visitors',
         icon: navigationIcons.visitors,
         to: '/app/$workspaceId/$projectId/visitors',
+        external: false,
         isActive: (pathname: string) => pathname.includes('visitors'),
       },
       {
         label: 'Funnels',
         icon: navigationIcons.funnels,
         to: '/app/$workspaceId/$projectId/funnels',
+        external: false,
         isActive: (pathname: string) => pathname.includes('funnels'),
       },
       {
         label: 'User Journey',
         icon: navigationIcons.userJourney,
         to: '/app/$workspaceId/$projectId/user-journey',
+        external: false,
         isActive: (pathname: string) => pathname.includes('user-journey'),
       },
       {
         label: 'Goals',
         icon: navigationIcons.goals,
         to: '/app/$workspaceId/$projectId/goals',
+        external: false,
         isActive: (pathname: string) => pathname.includes('goals'),
       },
       {
         label: 'Campaigns',
         icon: navigationIcons.campaigns,
         to: '/app/$workspaceId/$projectId/campaigns',
+        external: false,
         isActive: (pathname: string) => pathname.includes('campaigns'),
       },
     ],
@@ -158,12 +166,14 @@ const sidebarProjectsItems = [
         label: 'Heatmaps',
         icon: navigationIcons.heatmaps,
         to: '/app/$workspaceId/$projectId/heatmaps',
+        external: false,
         isActive: (pathname: string) => pathname.includes('heatmaps'),
       },
       {
         label: 'Session Replay',
         icon: navigationIcons.sessionReplay,
         to: '/app/$workspaceId/$projectId/session-replay',
+        external: false,
         isActive: (pathname: string) => pathname.includes('session-replay'),
       },
     ],
@@ -176,12 +186,14 @@ const sidebarProjectsItems = [
         label: 'Performance',
         icon: navigationIcons.performance,
         to: '/app/$workspaceId/$projectId/performance',
+        external: false,
         isActive: (pathname: string) => pathname.includes('performance'),
       },
       {
         label: 'Errors',
         icon: navigationIcons.errors,
         to: '/app/$workspaceId/$projectId/errors',
+        external: false,
         isActive: (pathname: string) => pathname.includes('errors'),
       },
     ],
@@ -194,12 +206,14 @@ const sidebarProjectsItems = [
         label: 'AI Insights',
         icon: navigationIcons.aiInsights,
         to: '/app/$workspaceId/$projectId/ai-insights',
+        external: false,
         isActive: (pathname: string) => pathname.includes('ai-insights'),
       },
       {
         label: 'Reports',
         icon: navigationIcons.reports,
         to: '/app/$workspaceId/$projectId/reports',
+        external: false,
         isActive: (pathname: string) => pathname.includes('reports'),
       },
     ],
@@ -212,30 +226,35 @@ const sidebarProjectsItems = [
         label: 'Domains',
         icon: navigationIcons.domain,
         to: '/app/$workspaceId/$projectId/domains',
+        external: false,
         isActive: (pathname: string) => pathname.includes('domains'),
       },
       {
         label: 'Setup',
         icon: navigationIcons.setup,
         to: '/app/$workspaceId/$projectId/setup',
+        external: false,
         isActive: (pathname: string) => pathname.includes('setup'),
       },
       {
         label: 'Integrations',
         icon: navigationIcons.integrations,
         to: '/app/$workspaceId/$projectId/integrations',
+        external: false,
         isActive: (pathname: string) => pathname.includes('integrations'),
       },
       {
         label: 'API Keys',
         icon: navigationIcons.apiKeys,
         to: '/app/$workspaceId/$projectId/api-keys',
+        external: false,
         isActive: (pathname: string) => pathname.includes('api-keys'),
       },
       {
         label: 'Settings',
         icon: navigationIcons.settings,
         to: '/app/$workspaceId/$projectId/settings',
+        external: false,
         isActive: (pathname: string) => pathname.includes('settings'),
       },
     ],
@@ -248,13 +267,42 @@ const sidebarProjectsItems = [
         label: 'Usage',
         icon: navigationIcons.usage,
         to: '/app/$workspaceId/$projectId/usage',
+        external: false,
         isActive: (pathname: string) => pathname.includes('usage'),
       },
       {
         label: 'Audit Logs',
         icon: navigationIcons.audit,
         to: '/app/$workspaceId/$projectId/audit-logs',
+        external: false,
         isActive: (pathname: string) => pathname.includes('audit-logs'),
+      },
+    ],
+  },
+
+  {
+    label: 'Resources',
+    items: [
+      {
+        label: 'Docs',
+        icon: navigationIcons.documentation,
+        to: '/docs',
+        isActive: () => false,
+        external: true,
+      },
+      {
+        label: 'Terms of Service',
+        icon: navigationIcons.terms,
+        to: '/terms',
+        isActive: () => false,
+        external: true,
+      },
+      {
+        label: 'Privacy',
+        icon: navigationIcons.privacy,
+        to: '/terms',
+        isActive: () => false,
+        external: true,
       },
     ],
   },
@@ -268,6 +316,7 @@ const sidebarWorkspaceItems = [
         label: 'Projects',
         icon: navigationIcons.projects,
         to: '/app/$workspaceId',
+        external: false,
         isActive: (pathname: string, activeWorkspace: string) =>
           pathname === `/app/${activeWorkspace}` || pathname.includes('create'),
       },
@@ -275,6 +324,7 @@ const sidebarWorkspaceItems = [
         label: 'Team',
         icon: navigationIcons.team,
         to: '/app/$workspaceId/team',
+        external: false,
         isActive: (pathname: string) =>
           pathname.includes('team') || pathname.includes('invite'),
       },
@@ -288,12 +338,14 @@ const sidebarWorkspaceItems = [
         label: 'Permissions',
         icon: navigationIcons.permissions,
         to: '/app/$workspaceId/permissions',
+        external: false,
         isActive: (pathname: string) => pathname.includes('permissions'),
       },
       {
         label: 'Audit Logs',
         icon: navigationIcons.audit,
         to: '/app/$workspaceId/audit-logs',
+        external: false,
         isActive: (pathname: string) => pathname.includes('audit-logs'),
       },
     ],
@@ -306,13 +358,41 @@ const sidebarWorkspaceItems = [
         label: 'Usage',
         icon: navigationIcons.usage,
         to: '/app/$workspaceId/usage',
+        external: false,
         isActive: (pathname: string) => pathname.includes('usage'),
       },
       {
         label: 'Workspace Settings',
         icon: navigationIcons.workspaceSettings,
         to: '/app/$workspaceId/settings',
+        external: false,
         isActive: (pathname: string) => pathname.includes('settings'),
+      },
+    ],
+  },
+  {
+    label: 'Resources',
+    items: [
+      {
+        label: 'Docs',
+        icon: navigationIcons.documentation,
+        to: '/docs',
+        isActive: () => false,
+        external: true,
+      },
+      {
+        label: 'Terms of Service',
+        icon: navigationIcons.terms,
+        to: '/terms',
+        isActive: () => false,
+        external: true,
+      },
+      {
+        label: 'Privacy',
+        icon: navigationIcons.privacy,
+        to: '/terms',
+        isActive: () => false,
+        external: true,
       },
     ],
   },
@@ -443,6 +523,9 @@ export const AppSidebar = ({
                                     >
                                       <Icon />
                                       {item.label}
+                                      {item.external && (
+                                        <ArrowUpRightIcon className="text-muted-foreground ml-auto" />
+                                      )}
                                     </SidebarMenuButton>
                                   </SidebarMenuItem>
                                 </motion.div>

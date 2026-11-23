@@ -136,19 +136,17 @@ export const ProductHero = ({ productData }: { productData: ProductData }) => {
         />
 
         <div className="mt-10 flex items-center gap-3">
-          <Link to="/login">
-            <Button
-              style={{
-                backgroundColor: `${productData.color.hex}`,
-              }}
+          <Button
+            style={{
+              backgroundColor: `${productData.color.hex}`,
+            }}
+            render={<Link to="/login" />}
+            className={'text-white'}
+          >
+            {productData.page.hero?.primaryAction}
+          </Button>
 
-              className={'text-white'}
-            >
-              {productData.page.hero?.primaryAction}
-            </Button>
-          </Link>
-
-          <Button variant="outline">
+          <Button render={<Link to="/login" />} variant="outline">
             {productData.page.hero?.secondaryAction}
           </Button>
         </div>

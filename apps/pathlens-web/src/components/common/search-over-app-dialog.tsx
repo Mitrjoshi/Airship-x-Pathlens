@@ -10,6 +10,7 @@ import type { Permission } from '@workspace/contracts'
 import { Button } from '@workspace/ui/components/button'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -18,7 +19,7 @@ import {
 } from '@workspace/ui/components/dialog'
 import { Input } from '@workspace/ui/components/input'
 import { cn } from '@workspace/ui/lib/utils'
-import { SearchIcon } from 'lucide-react'
+import { SearchIcon, XIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
   useDeferredValue,
@@ -30,6 +31,12 @@ import {
 
 import { navigationIcons } from '@/config/navigation-icons'
 import { ModKey } from '@/hooks/use-modifier-key'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@workspace/ui/components/input-group'
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -719,22 +726,16 @@ export const SearchOverAppDialog = ({
 
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[calc(100vh-12rem)] max-w-xl! flex-col gap-0 overflow-hidden p-0"
+        className="flex max-h-[calc(100vh-12rem)] max-w-[90vw]! flex-col gap-0 overflow-hidden p-0 md:max-w-xl!"
       >
-        <DialogHeader className="sr-only">
-          <DialogTitle>Search PathLens</DialogTitle>
-
-          <DialogDescription>
-            Search pages, workspaces, and projects.
-          </DialogDescription>
-        </DialogHeader>
-
         {/* Search input */}
         <div className="border-b p-3">
-          <div className="relative">
-            <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <InputGroup className="w-full">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
 
-            <Input
+            <InputGroupInput
               ref={inputRef}
               value={search}
               onChange={(event) => {
@@ -752,7 +753,13 @@ export const SearchOverAppDialog = ({
               role="combobox"
               className="h-10 border-0 bg-transparent pl-9 shadow-none focus-visible:border-transparent focus-visible:ring-0"
             />
-          </div>
+
+            {search && (
+              <InputGroupButton onClick={() => setSearch('')}>
+                <XIcon />
+              </InputGroupButton>
+            )}
+          </InputGroup>
         </div>
 
         {/* Results */}

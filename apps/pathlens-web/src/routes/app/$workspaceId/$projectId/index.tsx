@@ -85,11 +85,12 @@ function RouteComponent() {
   const navigate = useNavigate()
 
   const rangeLocal = localStorage.getItem('range')
+  const liveLocal = localStorage.getItem('live')
 
   const [range, setRange] = useState<DashboardRange>(
     (rangeLocal || '7d') as DashboardRange
   )
-  const [liveMode, setLiveMode] = useState(false)
+  const [liveMode, setLiveMode] = useState(liveLocal === 'true')
   const [domain, setDomain] = useState('')
 
   const {
@@ -136,7 +137,10 @@ function RouteComponent() {
     refetchInterval: liveMode ? 5000 : undefined,
   })
 
-  const { data: dashboardIntegrationsData } = useQuery({
+  const {
+    data: dashboardIntegrationsData,
+    isLoading: dashboardIntegrationLoading,
+  } = useQuery({
     ...getDashboardIntegrationsOptions(workspaceId, projectId),
     enabled: !!hasViewPermission && Boolean(workspaceId && projectId),
   })
@@ -179,7 +183,11 @@ function RouteComponent() {
       }
     }) ?? []
 
-  const globalLoading = domainsLoading || dashboardLoading || permissionsLoading
+  const globalLoading =
+    domainsLoading ||
+    dashboardLoading ||
+    permissionsLoading ||
+    dashboardIntegrationLoading
   const globalError = permissionsError || domainsError || dashboardError
   const globalRefetching =
     permissionsRefetching || domainsRefetching || dashboardRefetching
@@ -239,7 +247,10 @@ function RouteComponent() {
           <div className="flex items-center gap-2">
             <Button
               data-live={liveMode}
-              onClick={() => setLiveMode(!liveMode)}
+              onClick={() => {
+                setLiveMode(!liveMode)
+                localStorage.setItem('live', String(!liveMode))
+              }}
               className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
               variant="outline"
             >
@@ -285,8 +296,8 @@ function RouteComponent() {
         <></>
       )}
 
-      <div className="mx-auto space-y-4 p-6">
-        <div>
+      <div className="mx-auto space-y-4 py-6">
+        <div className="px-6">
           <p className="text-xl font-medium">Dashboard</p>
           <p className="text-muted-foreground text-sm">
             Get a quick overview of your project activity and performance.
@@ -303,257 +314,281 @@ function RouteComponent() {
         ) : (
           <>
             {!hasViewPermission && !permissionsLoading ? (
-            <NoPermissionView
-              workspaceId={workspaceId}
-              permission="analytics.dashboard.view"
-            />
+              <NoPermissionView
+                workspaceId={workspaceId}
+                permission="analytics.dashboard.view"
+              />
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-3">
-                  <MetricCard
-                    label="Visitors"
-                    value={formatNumber(dashboard?.weeklyChange.visitors.total)}
-                    change={dashboard?.weeklyChange.visitors.value ?? 0}
-                    positive={
-                      dashboard?.weeklyChange.visitors.positive ?? false
-                    }
-                    chartData={dashboard?.visitorsChart}
-                    dataKey="value"
-                    chartConfig={visitorsChartConfig}
-                    loading={globalLoading}
-                    onViewDetails={() => {
-                      navigate({
-                        to: '/app/$workspaceId/$projectId/visitors',
-                        params: {
-                          projectId,
-                          workspaceId,
-                        },
-                      })
-                    }}
-                  />
-
-                  <MetricCard
-                    label="Sessions"
-                    value={formatNumber(dashboard?.weeklyChange.sessions.total)}
-                    change={dashboard?.weeklyChange.sessions.value ?? 0}
-                    positive={
-                      dashboard?.weeklyChange.sessions.positive ?? false
-                    }
-                    chartData={dashboard?.sessionChart}
-                    dataKey="value"
-                    chartConfig={sessionsChartConfig}
-                    loading={globalLoading}
-                    onViewDetails={() => {
-                      navigate({
-                        to: '/app/$workspaceId/$projectId/session-replay',
-                        params: {
-                          projectId,
-                          workspaceId,
-                        },
-                      })
-                    }}
-                  />
-
-                  <MetricCard
-                    label="Events"
-                    value={formatNumber(dashboard?.weeklyChange.events.total)}
-                    change={dashboard?.weeklyChange.events.value ?? 0}
-                    positive={dashboard?.weeklyChange.events.positive ?? false}
-                    chartData={dashboard?.eventsChart}
-                    dataKey="value"
-                    chartConfig={eventsChartConfig}
-                    loading={globalLoading}
-                    onViewDetails={() => {
-                      navigate({
-                        to: '/app/$workspaceId/$projectId/events',
-                        params: {
-                          projectId,
-                          workspaceId,
-                        },
-                      })
-                    }}
-                  />
-                </div>
-
-                <div className="flex h-100 w-full gap-3">
-                  <Card className="bg-card/30 aspect-square rounded-none border-2 border-dashed p-0">
-                    <CardHeader className="p-2">
-                      <CardDescription>Requests by device type</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-2 pt-0 pb-4">
-                      {globalLoading ? (
-                        <div className="mx-auto flex aspect-square w-full items-center justify-center">
-                          <LoaderIcon className="animate-spin" />
-                        </div>
-                      ) : deviceChartData.every((item) => item.value === 0) ? (
-                        <div className="mx-auto flex aspect-square w-full items-center justify-center">
-                          <p className="text-muted-foreground text-sm">
-                            No Data Available
-                          </p>
-                        </div>
-                      ) : (
-                        <ChartContainer
-                          config={deviceChartConfig}
-                          className="mx-auto aspect-square h-[85%]"
-                        >
-                          <PieChart>
-                            <ChartTooltip
-                              cursor={false}
-                              content={<ChartTooltipContent hideLabel />}
-                            />
-                            <Pie
-                              data={deviceChartData}
-                              dataKey="value"
-                              nameKey="device"
-                              innerRadius="60%"
-                              paddingAngle={3}
-                              cornerRadius={3}
-                              startAngle={270}
-                              endAngle={-90}
-                            />
-                            <ChartLegend
-                              content={<ChartLegendContent nameKey="value" />}
-                            />
-                          </PieChart>
-                        </ChartContainer>
+                <div className="space-y-4 px-6 pb-6">
+                  <div className="grid grid-cols-3 gap-3">
+                    <MetricCard
+                      label="Visitors"
+                      value={formatNumber(
+                        dashboard?.weeklyChange.visitors.total
                       )}
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-card/30 flex-1 rounded-none border-2 border-dashed p-0">
-                    <CardHeader className="p-2">
-                      <div className="flex items-center justify-between">
-                        <CardDescription>Requests by country</CardDescription>
+                      change={dashboard?.weeklyChange.visitors.value ?? 0}
+                      positive={
+                        dashboard?.weeklyChange.visitors.positive ?? false
+                      }
+                      chartData={dashboard?.visitorsChart}
+                      dataKey="value"
+                      chartConfig={visitorsChartConfig}
+                      loading={globalLoading}
+                      onViewDetails={() => {
+                        navigate({
+                          to: '/app/$workspaceId/$projectId/visitors',
+                          params: {
+                            projectId,
+                            workspaceId,
+                          },
+                        })
+                      }}
+                    />
 
-                        <Button
-                          variant="link"
-                          disabled={globalLoading}
-                          onClick={() => {
-                            navigate({
-                              to: '/app/$workspaceId/$projectId/visitors',
-                              params: {
-                                projectId,
-                                workspaceId,
-                              },
-                            })
-                          }}
-                          size="sm"
-                          className="text-muted-foreground px-0 underline-offset-2"
-                        >
-                          View full report
-                          <ArrowUpRightIcon />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="divide-border flex h-full w-full items-start divide-x-2 p-2">
-                      <div className="aspect-square h-full">
-                        <VisitorsGlobe
-                          countries={
-                            globalLoading || !dashboard?.countries
-                              ? []
-                              : dashboard?.countries
-                          }
-                        />
-                      </div>
-                      <div className="w-full space-y-4 px-4">
+                    <MetricCard
+                      label="Sessions"
+                      value={formatNumber(
+                        dashboard?.weeklyChange.sessions.total
+                      )}
+                      change={dashboard?.weeklyChange.sessions.value ?? 0}
+                      positive={
+                        dashboard?.weeklyChange.sessions.positive ?? false
+                      }
+                      chartData={dashboard?.sessionChart}
+                      dataKey="value"
+                      chartConfig={sessionsChartConfig}
+                      loading={globalLoading}
+                      onViewDetails={() => {
+                        navigate({
+                          to: '/app/$workspaceId/$projectId/session-replay',
+                          params: {
+                            projectId,
+                            workspaceId,
+                          },
+                        })
+                      }}
+                    />
+
+                    <MetricCard
+                      label="Events"
+                      value={formatNumber(dashboard?.weeklyChange.events.total)}
+                      change={dashboard?.weeklyChange.events.value ?? 0}
+                      positive={
+                        dashboard?.weeklyChange.events.positive ?? false
+                      }
+                      chartData={dashboard?.eventsChart}
+                      dataKey="value"
+                      chartConfig={eventsChartConfig}
+                      loading={globalLoading}
+                      onViewDetails={() => {
+                        navigate({
+                          to: '/app/$workspaceId/$projectId/events',
+                          params: {
+                            projectId,
+                            workspaceId,
+                          },
+                        })
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex h-100 w-full gap-3">
+                    <Card className="bg-card/30 aspect-square rounded-none border-2 border-dashed p-0">
+                      <CardHeader className="p-2">
+                        <CardDescription>
+                          Requests by device type
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-2 pt-0 pb-4">
                         {globalLoading ? (
-                          Array.from({ length: 5 }).map((_, index) => (
-                            <div
-                              key={index}
-                              className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
-                            >
-                              <div className="flex items-center gap-2">
-                                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
-                                <div className="w-full space-y-1">
-                                  <Skeleton className="h-3 w-1/3" />
-                                  <Skeleton className="h-3 w-1/6" />
-                                </div>
-                              </div>
-
-                              <Skeleton className="h-2 w-full rounded-full" />
-
-                              <Skeleton className="ml-auto h-4 w-4" />
-                            </div>
-                          ))
-                        ) : dashboard?.countries.length === 0 ? (
-                          <div className="flex w-full items-center justify-center">
+                          <div className="mx-auto flex aspect-square w-full items-center justify-center">
+                            <LoaderIcon className="animate-spin" />
+                          </div>
+                        ) : deviceChartData.every(
+                            (item) => item.value === 0
+                          ) ? (
+                          <div className="mx-auto flex aspect-square w-full items-center justify-center">
                             <p className="text-muted-foreground text-sm">
                               No Data Available
                             </p>
                           </div>
                         ) : (
-                          dashboard?.countries.map((country, index) => (
-                            <div
-                              key={index}
-                              className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
-                            >
-                              <div className="flex items-center gap-2">
-                                <Avatar>
-                                  <AvatarFallback>
-                                    {country.code}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="truncate text-sm font-medium">
-                                    {country.city}
-                                  </p>
-                                  <p className="text-muted-foreground truncate text-xs">
-                                    {country.name}
-                                  </p>
+                          <ChartContainer
+                            config={deviceChartConfig}
+                            className="mx-auto aspect-square h-[85%]"
+                          >
+                            <PieChart>
+                              <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent hideLabel />}
+                              />
+                              <Pie
+                                data={deviceChartData}
+                                dataKey="value"
+                                nameKey="device"
+                                innerRadius="60%"
+                                paddingAngle={3}
+                                cornerRadius={3}
+                                startAngle={270}
+                                endAngle={-90}
+                              />
+                              <ChartLegend
+                                content={<ChartLegendContent nameKey="value" />}
+                              />
+                            </PieChart>
+                          </ChartContainer>
+                        )}
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-card/30 flex-1 rounded-none border-2 border-dashed p-0">
+                      <CardHeader className="p-2">
+                        <div className="flex items-center justify-between">
+                          <CardDescription>Requests by country</CardDescription>
+
+                          <Button
+                            variant="link"
+                            disabled={globalLoading}
+                            onClick={() => {
+                              navigate({
+                                to: '/app/$workspaceId/$projectId/visitors',
+                                params: {
+                                  projectId,
+                                  workspaceId,
+                                },
+                              })
+                            }}
+                            size="sm"
+                            className="text-muted-foreground px-0 underline-offset-2"
+                          >
+                            View full report
+                            <ArrowUpRightIcon />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="divide-border flex h-full w-full items-start divide-x-2 p-2">
+                        <div className="aspect-square h-full">
+                          <VisitorsGlobe
+                            countries={
+                              globalLoading || !dashboard?.countries
+                                ? []
+                                : dashboard?.countries
+                            }
+                          />
+                        </div>
+                        <div className="w-full space-y-4 px-4">
+                          {globalLoading ? (
+                            Array.from({ length: 5 }).map((_, index) => (
+                              <div
+                                key={index}
+                                className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                                  <div className="w-full space-y-1">
+                                    <Skeleton className="h-3 w-1/3" />
+                                    <Skeleton className="h-3 w-1/6" />
+                                  </div>
                                 </div>
-                              </div>
 
-                              <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-                                <div
-                                  className="bg-chart-1 h-full"
-                                  style={{
-                                    width: `${Math.min(country.visitors, 100)}%`,
-                                  }}
-                                />
-                              </div>
+                                <Skeleton className="h-2 w-full rounded-full" />
 
-                              <p className="text-right text-sm font-medium">
-                                {formatNumber(country.visitors)}
+                                <Skeleton className="ml-auto h-4 w-4" />
+                              </div>
+                            ))
+                          ) : dashboard?.countries.length === 0 ? (
+                            <div className="flex w-full items-center justify-center">
+                              <p className="text-muted-foreground text-sm">
+                                No Data Available
                               </p>
                             </div>
-                          ))
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                          ) : (
+                            dashboard?.countries.map((country, index) => (
+                              <div
+                                key={index}
+                                className="grid grid-cols-[1fr_25%_5%] items-center gap-2"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Avatar>
+                                    <AvatarFallback>
+                                      {country.code}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="truncate text-sm font-medium">
+                                      {country.city}
+                                    </p>
+                                    <p className="text-muted-foreground truncate text-xs">
+                                      {country.name}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                                  <div
+                                    className="bg-chart-1 h-full"
+                                    style={{
+                                      width: `${Math.min(country.visitors, 100)}%`,
+                                    }}
+                                  />
+                                </div>
+
+                                <p className="text-right text-sm font-medium">
+                                  {formatNumber(country.visitors)}
+                                </p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-3">
+                    <ProgressListCard
+                      title="Top paths"
+                      data={dashboard?.pages}
+                      getLabel={(item) => item.page as string}
+                      getValue={(item) => item.views}
+                      loading={globalLoading}
+                      getDuration={(item) => item.duration}
+                    />
+
+                    <ProgressListCard
+                      title="Top hosts"
+                      data={dashboard?.trafficSources}
+                      getLabel={(item) => item.name}
+                      getValue={(item) => item.visitors}
+                      loading={globalLoading}
+                    />
+
+                    <ProgressListCard
+                      title="Top Browsers"
+                      data={dashboard?.topBrowsers}
+                      getLabel={(item) => item.name}
+                      getValue={(item) => item.visitors}
+                      loading={globalLoading}
+                    />
+
+                    <ProgressListCard
+                      title="Top operating systems"
+                      data={dashboard?.topOperatingSystems}
+                      getLabel={(item) => item.name}
+                      getValue={(item) => item.visitors}
+                      loading={globalLoading}
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-3">
-                  <ProgressListCard
-                    title="Top paths"
-                    data={dashboard?.pages}
-                    getLabel={(item) => item.page as string}
-                    getValue={(item) => item.views}
-                    loading={globalLoading}
-                    getDuration={(item) => item.duration}
-                  />
+                <Separator />
 
-                  <ProgressListCard
-                    title="Top hosts"
-                    data={dashboard?.trafficSources}
-                    getLabel={(item) => item.name}
-                    getValue={(item) => item.visitors}
-                    loading={globalLoading}
-                  />
-
-                  <ProgressListCard
-                    title="Top Browsers"
-                    data={dashboard?.topBrowsers}
-                    getLabel={(item) => item.name}
-                    getValue={(item) => item.visitors}
-                    loading={globalLoading}
-                  />
-
-                  <ProgressListCard
-                    title="Top operating systems"
-                    data={dashboard?.topOperatingSystems}
-                    getLabel={(item) => item.name}
-                    getValue={(item) => item.visitors}
-                    loading={globalLoading}
+                <div className="space-y-4 px-6">
+                  <DashboardIntegrationSection
+                    integrations={dashboardIntegrations}
+                    workspaceId={workspaceId}
+                    projectId={projectId}
+                    domain={activeDomain}
+                    range={range}
                   />
                 </div>
               </>
@@ -561,16 +596,6 @@ function RouteComponent() {
           </>
         )}
       </div>
-
-      <Separator />
-
-      <DashboardIntegrationSection
-        integrations={dashboardIntegrations}
-        workspaceId={workspaceId}
-        projectId={projectId}
-        domain={activeDomain}
-        range={range}
-      />
     </div>
   )
 }

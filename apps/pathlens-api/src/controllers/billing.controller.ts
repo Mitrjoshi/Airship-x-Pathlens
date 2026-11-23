@@ -97,6 +97,7 @@ export async function getEntitlement(req: AuthRequest, res: Response) {
         lifetime_access: entitlement.lifetimeAccess,
         stripe_customer_id: entitlement.stripeCustomerId,
         stripe_payment_id: entitlement.stripePaymentId,
+        purchased_at: entitlement.purchasedAt,
       },
     });
   } catch (error) {
@@ -150,6 +151,7 @@ export async function handleStripeWebhook(req: Request, res: Response) {
           userId,
           stripeCustomerId: customerId,
           stripePaymentId: paymentId,
+          purchasedAt: new Date(event.created * 1000),
         });
       }
     }

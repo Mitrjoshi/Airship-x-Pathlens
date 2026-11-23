@@ -184,12 +184,14 @@ function RouteComponent() {
   const { projectId, workspaceId } = Route.useParams()
 
   const rangeLocal = localStorage.getItem('range')
+  const liveLocal = localStorage.getItem('live')
+
   const [range, setRange] = useState<GoalRange>(
     (rangeLocal || '7d') as GoalRange
   )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [domain, setDomain] = useState('')
-  const [liveMode, setLiveMode] = useState(false)
+  const [liveMode, setLiveMode] = useState(liveLocal === 'true')
 
   const {
     data: permissionsData,
@@ -334,7 +336,10 @@ function RouteComponent() {
           <div className="flex items-center gap-2">
             <Button
               data-live={liveMode}
-              onClick={() => setLiveMode(!liveMode)}
+              onClick={() => {
+                setLiveMode(!liveMode)
+                localStorage.setItem('live', String(!liveMode))
+              }}
               className="data-[live=true]:bg-primary/20! data-[live=true]:border-primary! data-[live=true]:text-primary! duration-200 data-[live=true]:border-dashed!"
               variant="outline"
             >
