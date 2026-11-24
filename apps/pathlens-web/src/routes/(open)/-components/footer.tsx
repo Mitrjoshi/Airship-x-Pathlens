@@ -43,30 +43,26 @@ export const Footer = () => {
           <div className="flex items-center justify-between gap-4 p-4">
             <div className="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <p className="text-muted-foreground text-xs md:text-sm">
-                © {new Date().getFullYear()} Pathlens. All rights reserved.
+                © {new Date().getFullYear()} Pathlens. All rights reserved. (v
+                {__APP_VERSION__})
               </p>
 
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                {/* <Link
-                  to="/careers"
-                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                >
-                  Careers
-                </Link> */}
-
-                <Link
-                  to="/terms"
-                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                >
-                  Terms of Use
-                </Link>
-
-                <Link
-                  to="/privacy"
-                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                >
-                  Privacy
-                </Link>
+              <div className="flex flex-wrap items-center gap-y-2">
+                <Button
+                  render={<Link to="/careers">Careers</Link>}
+                  variant={'link'}
+                  className={'text-muted-foreground hover:text-foreground'}
+                />
+                <Button
+                  render={<Link to="/terms">Terms of Use</Link>}
+                  variant={'link'}
+                  className={'text-muted-foreground hover:text-foreground'}
+                />
+                <Button
+                  render={<Link to="/privacy">Privacy</Link>}
+                  variant={'link'}
+                  className={'text-muted-foreground hover:text-foreground'}
+                />
               </div>
             </div>
             <ModeToggle />

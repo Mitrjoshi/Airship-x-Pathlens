@@ -83,3 +83,6 @@ compliance are outside this endpoint; review the merchant's legal requirements.
   `500` unexpected generation/database failure. Internal provider errors aren't returned.
 - The dashboard hook is `useCreateBillingInvoice` in `src/mutations/billing.ts`.
   It returns the typed metadata/link; no billing-page UI is changed.
+- Run `pnpm --filter @pathlens/api test:invoices`. These checks exercise the real
+  PDF renderer and local URL signing with mocked Stripe, database and S3 calls;
+  they do not establish live provider access or deployed bucket permissions.

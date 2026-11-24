@@ -73,9 +73,20 @@ export const Header = () => {
     <div className="dotted-background sticky top-0 z-12 border-b-2 border-dashed">
       <nav className="bg-background z-12 mx-auto h-14.25 w-full max-w-[100rem] border-x-2 border-dashed">
         <div className="mx-auto flex h-14.25 items-center justify-between border-dashed px-5 lg:max-w-[75%] lg:border-x-2">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.svg" className="size-8" alt="Pathlens" />
-            <p className="text-2xl font-bold">Pathlens</p>
+          <Link to="/" className="flex h-12 w-40 items-center gap-2">
+            <div className="flex items-center">
+              <img
+                src="/logo-full-light.png"
+                className="block h-12 w-40 object-cover dark:hidden"
+                alt="Pathlens"
+              />
+
+              <img
+                src="/logo-full-dark.png"
+                className="hidden h-12 w-40 object-cover dark:block"
+                alt="Pathlens"
+              />
+            </div>
           </Link>
 
           {/* Desktop Navigation */}

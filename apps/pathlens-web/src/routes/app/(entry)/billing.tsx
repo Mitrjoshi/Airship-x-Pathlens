@@ -1,4 +1,7 @@
-import { useLifetimeCheckout } from '@/mutations/billing'
+import {
+  useCreateBillingInvoice,
+  useLifetimeCheckout,
+} from '@/mutations/billing'
 import { getBillingEntitlementOptions } from '@/queries/billing'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -22,6 +25,7 @@ export const Route = createFileRoute('/app/(entry)/billing')({
 
 function RouteComponent() {
   const { data, isLoading } = useQuery(getBillingEntitlementOptions())
+  const { mutate, isPending } = useCreateBillingInvoice()
 
   const access = data?.data
 
@@ -165,7 +169,7 @@ function RouteComponent() {
                   <TableRow>
                     <TableHead>Status</TableHead>
                     <TableHead>Payment ID</TableHead>
-                    <TableHead>Amount</TableHead>
+                    <TableHead>Amount (₹)</TableHead>
                     <TableHead>Purchased At</TableHead>
                     <TableHead>Payment Method</TableHead>
                     <TableHead className="w-32 text-center">Invoice</TableHead>
@@ -183,9 +187,29 @@ function RouteComponent() {
                     </TableCell>
                     <TableCell>MasterCard</TableCell>
                     <TableCell className="w-20 text-center">
-                      <Button variant={'outline'}>
-                        <DownloadIcon />
-                        Invoice
+                      <Button
+                        disabled={isPending}
+                        onClick={() => {
+                          mutate(undefined, {
+                            onSuccess: (data) => {
+                              const link = document.createElement('a')
+                              link.href = data.download_url
+                              link.download = `${data.invoice_id}.pdf`
+                              document.body.appendChild(link)
+                              link.click()
+                              link.remove()
+                            },
+                          })
+                        }}
+                        variant={'outline'}
+                      >
+                        <LoadingSwap
+                          className="flex items-center gap-2"
+                          isLoading={isPending}
+                        >
+                          <DownloadIcon />
+                          Invoice
+                        </LoadingSwap>
                       </Button>
                     </TableCell>
                   </TableRow>

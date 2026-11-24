@@ -28,6 +28,7 @@ import { Route as AppWorkspaceIdRouteRouteImport } from './routes/app/$workspace
 import { Route as AppentryRouteRouteImport } from './routes/app/(entry)/route'
 import { Route as AppCheckoutRouteImport } from './routes/app/checkout'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as DocsChangeLogRouteImport } from './routes/docs/change-log'
 import { Route as DocsDirectoryRouteImport } from './routes/docs/directory'
 import { Route as DocsGuidesRouteRouteImport } from './routes/docs/guides/route'
 import { Route as openCareersIndexRouteImport } from './routes/(open)/careers/index'
@@ -68,6 +69,7 @@ import { Route as AppWorkspaceIdProjectIdSetupRouteImport } from './routes/app/$
 import { Route as AppWorkspaceIdProjectIdUsageRouteImport } from './routes/app/$workspaceId/$projectId/usage'
 import { Route as AppWorkspaceIdProjectIdUserJourneyRouteImport } from './routes/app/$workspaceId/$projectId/user-journey'
 import { Route as AppWorkspaceIdProjectIdVisitorsRouteImport } from './routes/app/$workspaceId/$projectId/visitors'
+import { Route as AppWorkspaceIdProjectIdAbTestingIndexRouteImport } from './routes/app/$workspaceId/$projectId/ab-testing/index'
 import { Route as AppWorkspaceIdProjectIdGoalsIndexRouteImport } from './routes/app/$workspaceId/$projectId/goals/index'
 import { Route as AppWorkspaceIdProjectIdGoalsGoalIdRouteImport } from './routes/app/$workspaceId/$projectId/goals/$goalId'
 import { Route as AppWorkspaceIdProjectIdHeatmapsIndexRouteImport } from './routes/app/$workspaceId/$projectId/heatmaps/index'
@@ -164,6 +166,11 @@ const AppCheckoutRoute = AppCheckoutRouteImport.update({
 const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsChangeLogRoute = DocsChangeLogRouteImport.update({
+  id: '/change-log',
+  path: '/change-log',
   getParentRoute: () => DocsRouteRoute,
 } as any)
 const DocsDirectoryRoute = DocsDirectoryRouteImport.update({
@@ -386,6 +393,12 @@ const AppWorkspaceIdProjectIdVisitorsRoute =
     path: '/$projectId/visitors',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
+const AppWorkspaceIdProjectIdAbTestingIndexRoute =
+  AppWorkspaceIdProjectIdAbTestingIndexRouteImport.update({
+    id: '/$projectId/ab-testing/',
+    path: '/$projectId/ab-testing/',
+    getParentRoute: () => AppWorkspaceIdRouteRoute,
+  } as any)
 const AppWorkspaceIdProjectIdGoalsIndexRoute =
   AppWorkspaceIdProjectIdGoalsIndexRouteImport.update({
     id: '/$projectId/goals/',
@@ -438,6 +451,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof referencesPrivacyRoute
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
+  '/docs/change-log': typeof DocsChangeLogRoute
   '/docs/directory': typeof DocsDirectoryRoute
   '/': typeof openIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -482,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/app/$workspaceId/$projectId/goals/$goalId': typeof AppWorkspaceIdProjectIdGoalsGoalIdRoute
   '/app/$workspaceId/$projectId/heatmaps/$heatmapId': typeof AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute
   '/app/$workspaceId/$projectId/integrations/$integrationId': typeof AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute
+  '/app/$workspaceId/$projectId/ab-testing/': typeof AppWorkspaceIdProjectIdAbTestingIndexRoute
   '/app/$workspaceId/$projectId/goals/': typeof AppWorkspaceIdProjectIdGoalsIndexRoute
   '/app/$workspaceId/$projectId/heatmaps/': typeof AppWorkspaceIdProjectIdHeatmapsIndexRoute
   '/app/$workspaceId/$projectId/integrations/': typeof AppWorkspaceIdProjectIdIntegrationsIndexRoute
@@ -498,6 +513,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof referencesPrivacyRoute
   '/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
+  '/docs/change-log': typeof DocsChangeLogRoute
   '/docs/directory': typeof DocsDirectoryRoute
   '/': typeof openIndexRoute
   '/docs': typeof DocsIndexRoute
@@ -541,6 +557,7 @@ export interface FileRoutesByTo {
   '/app/$workspaceId/$projectId/goals/$goalId': typeof AppWorkspaceIdProjectIdGoalsGoalIdRoute
   '/app/$workspaceId/$projectId/heatmaps/$heatmapId': typeof AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute
   '/app/$workspaceId/$projectId/integrations/$integrationId': typeof AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute
+  '/app/$workspaceId/$projectId/ab-testing': typeof AppWorkspaceIdProjectIdAbTestingIndexRoute
   '/app/$workspaceId/$projectId/goals': typeof AppWorkspaceIdProjectIdGoalsIndexRoute
   '/app/$workspaceId/$projectId/heatmaps': typeof AppWorkspaceIdProjectIdHeatmapsIndexRoute
   '/app/$workspaceId/$projectId/integrations': typeof AppWorkspaceIdProjectIdIntegrationsIndexRoute
@@ -565,6 +582,7 @@ export interface FileRoutesById {
   '/(references)/privacy': typeof referencesPrivacyRoute
   '/(references)/terms': typeof referencesTermsRoute
   '/app/checkout': typeof AppCheckoutRoute
+  '/docs/change-log': typeof DocsChangeLogRoute
   '/docs/directory': typeof DocsDirectoryRoute
   '/(open)/': typeof openIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -609,6 +627,7 @@ export interface FileRoutesById {
   '/app/$workspaceId/$projectId/goals/$goalId': typeof AppWorkspaceIdProjectIdGoalsGoalIdRoute
   '/app/$workspaceId/$projectId/heatmaps/$heatmapId': typeof AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute
   '/app/$workspaceId/$projectId/integrations/$integrationId': typeof AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute
+  '/app/$workspaceId/$projectId/ab-testing/': typeof AppWorkspaceIdProjectIdAbTestingIndexRoute
   '/app/$workspaceId/$projectId/goals/': typeof AppWorkspaceIdProjectIdGoalsIndexRoute
   '/app/$workspaceId/$projectId/heatmaps/': typeof AppWorkspaceIdProjectIdHeatmapsIndexRoute
   '/app/$workspaceId/$projectId/integrations/': typeof AppWorkspaceIdProjectIdIntegrationsIndexRoute
@@ -630,6 +649,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/app/checkout'
+    | '/docs/change-log'
     | '/docs/directory'
     | '/'
     | '/docs/'
@@ -674,6 +694,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/goals/$goalId'
     | '/app/$workspaceId/$projectId/heatmaps/$heatmapId'
     | '/app/$workspaceId/$projectId/integrations/$integrationId'
+    | '/app/$workspaceId/$projectId/ab-testing/'
     | '/app/$workspaceId/$projectId/goals/'
     | '/app/$workspaceId/$projectId/heatmaps/'
     | '/app/$workspaceId/$projectId/integrations/'
@@ -690,6 +711,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/app/checkout'
+    | '/docs/change-log'
     | '/docs/directory'
     | '/'
     | '/docs'
@@ -733,6 +755,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/goals/$goalId'
     | '/app/$workspaceId/$projectId/heatmaps/$heatmapId'
     | '/app/$workspaceId/$projectId/integrations/$integrationId'
+    | '/app/$workspaceId/$projectId/ab-testing'
     | '/app/$workspaceId/$projectId/goals'
     | '/app/$workspaceId/$projectId/heatmaps'
     | '/app/$workspaceId/$projectId/integrations'
@@ -756,6 +779,7 @@ export interface FileRouteTypes {
     | '/(references)/privacy'
     | '/(references)/terms'
     | '/app/checkout'
+    | '/docs/change-log'
     | '/docs/directory'
     | '/(open)/'
     | '/docs/'
@@ -800,6 +824,7 @@ export interface FileRouteTypes {
     | '/app/$workspaceId/$projectId/goals/$goalId'
     | '/app/$workspaceId/$projectId/heatmaps/$heatmapId'
     | '/app/$workspaceId/$projectId/integrations/$integrationId'
+    | '/app/$workspaceId/$projectId/ab-testing/'
     | '/app/$workspaceId/$projectId/goals/'
     | '/app/$workspaceId/$projectId/heatmaps/'
     | '/app/$workspaceId/$projectId/integrations/'
@@ -946,6 +971,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/docs/'
       preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/docs/change-log': {
+      id: '/docs/change-log'
+      path: '/change-log'
+      fullPath: '/docs/change-log'
+      preLoaderRoute: typeof DocsChangeLogRouteImport
       parentRoute: typeof DocsRouteRoute
     }
     '/docs/directory': {
@@ -1228,6 +1260,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdVisitorsRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
+    '/app/$workspaceId/$projectId/ab-testing/': {
+      id: '/app/$workspaceId/$projectId/ab-testing/'
+      path: '/$projectId/ab-testing'
+      fullPath: '/app/$workspaceId/$projectId/ab-testing/'
+      preLoaderRoute: typeof AppWorkspaceIdProjectIdAbTestingIndexRouteImport
+      parentRoute: typeof AppWorkspaceIdRouteRoute
+    }
     '/app/$workspaceId/$projectId/goals/': {
       id: '/app/$workspaceId/$projectId/goals/'
       path: '/$projectId/goals'
@@ -1364,6 +1403,7 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdProjectIdGoalsGoalIdRoute: typeof AppWorkspaceIdProjectIdGoalsGoalIdRoute
   AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute: typeof AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute
   AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute: typeof AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute
+  AppWorkspaceIdProjectIdAbTestingIndexRoute: typeof AppWorkspaceIdProjectIdAbTestingIndexRoute
   AppWorkspaceIdProjectIdGoalsIndexRoute: typeof AppWorkspaceIdProjectIdGoalsIndexRoute
   AppWorkspaceIdProjectIdHeatmapsIndexRoute: typeof AppWorkspaceIdProjectIdHeatmapsIndexRoute
   AppWorkspaceIdProjectIdIntegrationsIndexRoute: typeof AppWorkspaceIdProjectIdIntegrationsIndexRoute
@@ -1405,6 +1445,8 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
     AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute,
   AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute:
     AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute,
+  AppWorkspaceIdProjectIdAbTestingIndexRoute:
+    AppWorkspaceIdProjectIdAbTestingIndexRoute,
   AppWorkspaceIdProjectIdGoalsIndexRoute:
     AppWorkspaceIdProjectIdGoalsIndexRoute,
   AppWorkspaceIdProjectIdHeatmapsIndexRoute:
@@ -1468,12 +1510,14 @@ const DocsGuidesRouteRouteWithChildren = DocsGuidesRouteRoute._addFileChildren(
 
 interface DocsRouteRouteChildren {
   DocsGuidesRouteRoute: typeof DocsGuidesRouteRouteWithChildren
+  DocsChangeLogRoute: typeof DocsChangeLogRoute
   DocsDirectoryRoute: typeof DocsDirectoryRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
 const DocsRouteRouteChildren: DocsRouteRouteChildren = {
   DocsGuidesRouteRoute: DocsGuidesRouteRouteWithChildren,
+  DocsChangeLogRoute: DocsChangeLogRoute,
   DocsDirectoryRoute: DocsDirectoryRoute,
   DocsIndexRoute: DocsIndexRoute,
 }

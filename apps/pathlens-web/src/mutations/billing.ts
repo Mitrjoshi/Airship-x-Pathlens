@@ -9,7 +9,9 @@ export function useCreateBillingInvoice() {
     mutationFn: async (): Promise<BillingInvoice> => {
       const response = await apiClient.post('/billing/invoice')
       if (!response.data.success) {
-        throw new Error(response.data.message ?? 'Unable to create the invoice.')
+        throw new Error(
+          response.data.message ?? 'Unable to create the invoice.'
+        )
       }
       return billingInvoiceSchema.parse(response.data.data)
     },

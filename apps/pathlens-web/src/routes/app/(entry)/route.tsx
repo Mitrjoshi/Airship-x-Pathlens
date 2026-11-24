@@ -127,10 +127,22 @@ export const EntrySidebar = () => {
     <>
       <Sidebar>
         <SidebarHeader className="bg-background flex h-14.25 flex-row items-center border-b py-2">
-          <Link to="/app" className="flex items-center gap-2">
-            <img src="/logo.svg" className="size-8 scale-90" alt="Pathlens" />
+          <Link to="/app" className="flex h-12 w-40 items-center gap-2">
+            <div className="">
+              <img
+                src="/logo-full-light.png"
+                className="block h-12 w-40 object-cover dark:hidden"
+                alt="Pathlens"
+              />
 
-            <p className="text-2xl font-semibold">Pathlens</p>
+              <img
+                src="/logo-full-dark.png"
+                className="hidden h-12 w-40 object-cover dark:block"
+                alt="Pathlens"
+              />
+            </div>
+
+            {/* <p className="text-2xl font-semibold">Pathlens</p> */}
           </Link>
         </SidebarHeader>
         <SidebarContent className="bg-background">

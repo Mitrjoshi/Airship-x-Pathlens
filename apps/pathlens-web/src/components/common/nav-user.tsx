@@ -254,6 +254,14 @@ export function NavUser({ user }: { user: T_User }) {
         >
           Log out
         </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <div className="p-1">
+          <p className="text-muted-foreground text-xs font-medium">
+            Pathlens v{__APP_VERSION__}
+          </p>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )

@@ -304,20 +304,28 @@ export const users = pgTable("users", {
 });
 
 /* -------------------------------------------------------------------------- */
-/*                          PASSWORD RESET TOKENS                            */
+/*                             BILLING INVOICES                              */
 /* -------------------------------------------------------------------------- */
 
 export const billingInvoices = pgTable("billing_invoices", {
   id: uuid("id").primaryKey(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   stripePaymentId: text("stripe_payment_id").notNull().unique(),
   invoiceNumber: text("invoice_number").notNull().unique(),
   bucket: text("bucket").notNull(),
   storageKey: text("storage_key").notNull().unique(),
   document: jsonb("document").$type<InvoiceDocument>().notNull(),
   status: text("status").notNull().default("pending"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
+
+/* -------------------------------------------------------------------------- */
+/*                          PASSWORD RESET TOKENS                            */
+/* -------------------------------------------------------------------------- */
 
 export const passwordResetTokens = pgTable(
   "password_reset_tokens",

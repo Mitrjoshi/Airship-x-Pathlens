@@ -23,29 +23,40 @@ export const Header = ({ showLogo = true }: { showLogo?: boolean }) => {
     <div className="sticky top-0 z-12 flex h-14.25 items-center border-b-2 border-dashed">
       <nav className="bg-background z-12 flex h-full w-full items-center px-5">
         <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
             {showLogo && (
               <>
-                <Link to="/docs" className="flex items-center gap-2">
-                  <img src="/logo.svg" className="size-8" alt="Pathlens" />
+                <Link to="/docs" className="flex h-12 items-center gap-0.5">
+                  <div className="flex items-center">
+                    <img
+                      src="/logo-full-light.png"
+                      className="block h-12 w-40 object-cover dark:hidden"
+                      alt="Pathlens"
+                    />
 
-                  <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold duration-200">Pathlens</p>
-                    <Button size="xs" className={'mt-0.75'} variant={'outline'}>
-                      DOCS
-                    </Button>
+                    <img
+                      src="/logo-full-dark.png"
+                      className="hidden h-12 w-40 object-cover dark:block"
+                      alt="Pathlens"
+                    />
                   </div>
+
+                  <Button size="xs" className={'mt-1'} variant={'outline'}>
+                    DOCS
+                  </Button>
                 </Link>
               </>
             )}
+
+            <Separator className={'my-auto h-8'} orientation="vertical" />
 
             <div className="flex items-center">
               <Button render={<Link to="/docs/directory" />} variant="ghost">
                 Directory
               </Button>
 
-              <Button render={<Link to="/docs" />} variant="ghost">
-                Products
+              <Button render={<Link to="/docs/change-log" />} variant="ghost">
+                Changelog
               </Button>
             </div>
           </div>

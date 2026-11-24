@@ -180,6 +180,19 @@ const sidebarProjectsItems = [
   },
 
   {
+    label: 'Optimization',
+    items: [
+      {
+        label: 'A/B Testing',
+        icon: navigationIcons.abTesting,
+        to: '/app/$workspaceId/$projectId/ab-testing',
+        external: false,
+        isActive: (pathname: string) => pathname.includes('ab-testing'),
+      },
+    ],
+  },
+
+  {
     label: 'Monitoring',
     items: [
       {
@@ -517,7 +530,14 @@ export const AppSidebar = ({
                                           variant={
                                             active ? 'secondary' : 'ghost'
                                           }
-                                          render={<Link to={item.to} />}
+                                          render={
+                                            <Link
+                                              target={
+                                                item.external ? '_blank' : ''
+                                              }
+                                              to={item.to}
+                                            />
+                                          }
                                         />
                                       }
                                     >
@@ -593,9 +613,9 @@ export const WorkspaceSwitcher = ({
 
   return (
     <>
-      <div className="flex w-full items-center justify-start gap-2">
-        <Link to="/app" className="flex items-center gap-2">
-          <img src="/logo.svg" className="size-8 scale-90" alt="Pathlens" />
+      <div className="flex w-full items-center justify-start gap-1">
+        <Link to="/app" className="ml-1">
+          <img src="/logo.svg" className="size-[37px]" alt="Pathlens" />
         </Link>
         <Button
           onClick={() => {

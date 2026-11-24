@@ -32,6 +32,7 @@ import {
   UsersIcon,
   BlocksIcon,
   HandshakeIcon,
+  FlaskConicalIcon,
 } from 'lucide-react'
 
 export const navigationIcons = {
@@ -88,4 +89,6 @@ export const navigationIcons = {
 
   terms: HandshakeIcon,
   privacy: KeyRoundIcon,
+
+  abTesting: FlaskConicalIcon,
 } as const

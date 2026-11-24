@@ -30,6 +30,7 @@
     "test:password-reset": "node --experimental-test-module-mocks --import tsx --test src/controllers/password-reset.controller.test.ts",
     "test:support": "node --experimental-test-module-mocks --import tsx --test src/support/*.test.ts src/models/support.model.test.ts src/routes/support.route.test.ts",
     "test:billing": "node --experimental-test-module-mocks --import tsx --test src/controllers/billing.controller.test.ts src/models/billing.model.test.ts",
+    "test:invoices": "node --experimental-test-module-mocks --import tsx --test src/billing/invoice-*.test.ts src/models/billing-invoice.model.test.ts src/routes/billing-invoice.route.test.ts",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio"
   },

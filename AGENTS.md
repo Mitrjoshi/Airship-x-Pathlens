@@ -1,13 +1,16 @@
 <!-- intent-skills:start -->
+
 ## Skill Loading
 
 Use the repository’s installed Intent. If it is unavailable, report the missing dependency instead of downloading a replacement.
 Before editing files for a substantial task:
+
 - Run `pnpm exec intent list` from the workspace root to see available local skills.
 - If a listed skill matches the task, run `pnpm exec intent load <package>#<skill>` before changing files.
 - Use the loaded `SKILL.md` guidance while making the change.
 - Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
 - Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
+
 <!-- intent-skills:end -->
 
 # Repository Guide
@@ -39,3 +42,18 @@ Before editing files for a substantial task:
 - In `apps/pathlens-api/src/routes/index.ts`, ingestion/replay/tracking-config, billing, OAuth login/callbacks, integration callbacks, and internal heatmap validation intentionally precede `ApiKeyMiddleware`; preserve their own authentication. Routes after it require `x-api-key` equal to `INTERNAL_API_SECRET`.
 - Snapshot local execution needs PostgreSQL, AWS values, a private S3 bucket, LocalStack SQS on `4566`, and Chromium. Follow `apps/pathlens-snapshot-worker/README.md`; create the queue, run `pnpm --filter @pathlens/snapshot-worker install-browser`, then `pnpm --filter @pathlens/snapshot-worker local` (not `dev`) to consume it.
 - Root `deploy:heatmap-proxy`, `deploy:snapshot-worker`, and `deploy:pathlens-api` scripts build Linux/amd64 containers, push to ECR, and immediately update existing Lambda code; they are not build-only commands. They use the active AWS identity and `AWS_REGION` (default `ap-south-1`).
+
+## Application Versioning
+
+Always read and follow `VERSIONING.md` before implementing
+any changes to Pathlens.
+
+Automatically increment the application version based on
+the nature of the completed changes.
+
+Update the application package.json, relevant lockfile
+metadata, and changelog without requiring explicit
+instructions from the user.
+
+Increment the version only once per completed task.
+Versioning is a mandatory part of implementation.
