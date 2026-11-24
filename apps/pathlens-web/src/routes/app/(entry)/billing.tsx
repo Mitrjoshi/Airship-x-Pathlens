@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@workspace/ui/components/button'
 import { LoadingSwap } from '@workspace/ui/components/loading-swap'
-import { CheckCircle2Icon, CheckIcon, DownloadIcon } from 'lucide-react'
+import { DownloadIcon } from 'lucide-react'
 import { FaqQuestions } from '@/routes/(open)/-components/faq'
 import {
   Table,

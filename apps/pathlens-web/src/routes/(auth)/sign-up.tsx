@@ -80,7 +80,7 @@ function RouteComponent() {
           className="relative w-full"
           variant="outline"
           size="lg"
-          onClick={startGoogleLogin}
+          onClick={() => startGoogleLogin()}
         >
           <GoogleIcon />
           Continue with Google
@@ -99,7 +99,7 @@ function RouteComponent() {
           className="relative w-full"
           variant="outline"
           size="lg"
-          onClick={startGithubLogin}
+          onClick={() => startGithubLogin()}
         >
           <GithubIcon />
           Continue with Github

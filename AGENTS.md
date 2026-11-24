@@ -18,7 +18,7 @@ Before editing files for a substantial task:
 ## Workspace and commands
 
 - Use pnpm 11 (`pnpm@11.22.0`) from the repository root; focus commands with `pnpm --filter <package> <script>`.
-- The workspace contains `apps/pathlens-web` (Vite/TanStack Router dashboard), `apps/pathlens-api` (Express/PostgreSQL API), `apps/pathlens-tracker` (browser IIFE), `apps/pathlens-heatmap-proxy` plus its fixture app, and `apps/pathlens-snapshot-worker` (SQS/Lambda). The root README's Airship apps are stale; neither exists in this checkout.
+- The workspace contains `apps/pathlens-web` (Vite/TanStack Router dashboard), `apps/pathlens-api` (Express/PostgreSQL API), `apps/pathlens-tracker` (browser IIFE), `apps/pathlens-heatmap-proxy` plus `apps/pathlens-heatmap-proxy-fixtures`, and `apps/pathlens-snapshot-worker` (SQS/Lambda). The root README's Airship apps are stale; neither exists in this checkout.
 - `pnpm verify` runs `turbo run lint typecheck build` with task dependencies; it does not run tests or formatting checks. Only `@pathlens/web` currently defines lint.
 - Use `pnpm format:check` for non-mutating formatting checks and `pnpm secrets:scan` for the repository secret scanner.
 - Web `typecheck` is only `tsc --noEmit`; use `pnpm --filter @pathlens/web build` (`tsc -b && vite build`) for the full referenced-project check.
@@ -32,7 +32,7 @@ Before editing files for a substantial task:
 - Add web routes under `apps/pathlens-web/src/routes`; TanStack generates `src/routeTree.gen.ts`—do not edit it.
 - Shared shadcn primitives belong in `packages/ui`: `pnpm --filter @workspace/ui exec shadcn add <component>`, imported via `@workspace/ui/components/*`. This uses Base UI (`@base-ui/react`, `base-nova`), not Radix. Keep product-specific features in the app.
 - Tracker `dev` only serves files; it does not rebuild. Run `pnpm --filter @pathlens/tracker build` to produce `apps/pathlens-tracker/dist/tracker.global.js`. `API_URL` / `REPLAY_API_URL` (or `BASE_API_URL`) are baked in at build time; unset values target a deployed API, not localhost.
-- Formatting differs: root/web use single quotes without semicolons; API/tracker use double quotes with semicolons; UI uses double quotes without semicolons.
+- Formatting differs: root defaults (including proxy/snapshot) and web use single quotes without semicolons; API/tracker use double quotes with semicolons; UI uses double quotes without semicolons.
 
 ## API, database, and environment
 
@@ -45,15 +45,4 @@ Before editing files for a substantial task:
 
 ## Application Versioning
 
-Always read and follow `VERSIONING.md` before implementing
-any changes to Pathlens.
-
-Automatically increment the application version based on
-the nature of the completed changes.
-
-Update the application package.json, relevant lockfile
-metadata, and changelog without requiring explicit
-instructions from the user.
-
-Increment the version only once per completed task.
-Versioning is a mandatory part of implementation.
+- Read `VERSIONING.md` before implementation. For qualifying product changes, bump `apps/pathlens-web/package.json` exactly once per task and update relevant lockfile metadata and the app changelog; internal documentation-only work does not get a version bump.

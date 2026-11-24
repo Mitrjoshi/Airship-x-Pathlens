@@ -125,6 +125,8 @@ export const DomainSwitcher = ({
             render={
               <Button
                 render={
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                  // @ts-ignore
                   <Link
                     to="/app/$workspaceId/$projectId/domains"
                     search={{ create: true }}

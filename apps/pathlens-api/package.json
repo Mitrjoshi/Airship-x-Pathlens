@@ -30,7 +30,8 @@
     "test:password-reset": "node --experimental-test-module-mocks --import tsx --test src/controllers/password-reset.controller.test.ts",
     "test:support": "node --experimental-test-module-mocks --import tsx --test src/support/*.test.ts src/models/support.model.test.ts src/routes/support.route.test.ts",
     "test:billing": "node --experimental-test-module-mocks --import tsx --test src/controllers/billing.controller.test.ts src/models/billing.model.test.ts",
-    "test:invoices": "node --experimental-test-module-mocks --import tsx --test src/billing/invoice-*.test.ts src/models/billing-invoice.model.test.ts src/routes/billing-invoice.route.test.ts",
+    "test:invoices": "node --experimental-test-module-mocks --import tsx --test src/billing/invoice-*.test.ts src/models/billing-invoice.model.test.ts src/routes/billing-invoice.route.test.ts && pnpm test:invoice-module-compatibility",
+    "test:invoice-module-compatibility": "pnpm build && node --no-experimental-require-module -e \"require('./dist/billing/invoice-pdf.js')\"",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio"
   },
@@ -51,7 +52,7 @@
     "express": "^5.2.1",
     "geoip-lite": "^2.0.3",
     "jsonwebtoken": "^9.0.3",
-    "pdfkit": "^0.21.0",
+    "pdfkit": "0.20.2",
     "pg": "^8.22.0",
     "stripe": "^22.6.2",
     "xss": "^1.0.15",

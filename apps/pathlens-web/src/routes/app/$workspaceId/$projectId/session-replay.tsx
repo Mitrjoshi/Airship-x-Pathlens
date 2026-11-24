@@ -11,7 +11,6 @@ import {
 } from '@/queries/session-replay'
 import { Separator } from '@workspace/ui/components/separator'
 import {
-  formatDate,
   formatNumber,
   formatRelativeTime,
   getPaginationItems,

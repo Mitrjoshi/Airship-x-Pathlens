@@ -10,14 +10,9 @@ import type { Permission } from '@workspace/contracts'
 import { Button } from '@workspace/ui/components/button'
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from '@workspace/ui/components/dialog'
-import { Input } from '@workspace/ui/components/input'
 import { cn } from '@workspace/ui/lib/utils'
 import { SearchIcon, XIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
