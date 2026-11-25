@@ -1,10 +1,12 @@
 import { getWorkspacePermissionsOptions } from '@/queries/workspace'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Skeleton } from '@workspace/ui/components/skeleton'
 import { DomainSwitcher } from '../-components/common/domain-switcher'
 import { getProjectDomainsOptions } from '@/queries/domains'
 import { useState } from 'react'
+import { Button } from '@workspace/ui/components/button'
+import { PlusIcon } from 'lucide-react'
 
 export const Route = createFileRoute(
   '/app/$workspaceId/$projectId/ab-testing/'
@@ -82,7 +84,16 @@ function RouteComponent() {
               best.
             </p>
           </div>
+
+          <Button
+            render={<Link to="/app/$workspaceId/$projectId/ab-testing/new" />}
+          >
+            <PlusIcon />
+            Create Version
+          </Button>
         </div>
+
+        <div></div>
       </div>
     </div>
   )

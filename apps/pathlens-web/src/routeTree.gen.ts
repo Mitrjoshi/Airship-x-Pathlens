@@ -70,6 +70,7 @@ import { Route as AppWorkspaceIdProjectIdUsageRouteImport } from './routes/app/$
 import { Route as AppWorkspaceIdProjectIdUserJourneyRouteImport } from './routes/app/$workspaceId/$projectId/user-journey'
 import { Route as AppWorkspaceIdProjectIdVisitorsRouteImport } from './routes/app/$workspaceId/$projectId/visitors'
 import { Route as AppWorkspaceIdProjectIdAbTestingIndexRouteImport } from './routes/app/$workspaceId/$projectId/ab-testing/index'
+import { Route as AppWorkspaceIdProjectIdAbTestingNewRouteImport } from './routes/app/$workspaceId/$projectId/ab-testing/new'
 import { Route as AppWorkspaceIdProjectIdGoalsIndexRouteImport } from './routes/app/$workspaceId/$projectId/goals/index'
 import { Route as AppWorkspaceIdProjectIdGoalsGoalIdRouteImport } from './routes/app/$workspaceId/$projectId/goals/$goalId'
 import { Route as AppWorkspaceIdProjectIdHeatmapsIndexRouteImport } from './routes/app/$workspaceId/$projectId/heatmaps/index'
@@ -399,6 +400,12 @@ const AppWorkspaceIdProjectIdAbTestingIndexRoute =
     path: '/$projectId/ab-testing/',
     getParentRoute: () => AppWorkspaceIdRouteRoute,
   } as any)
+const AppWorkspaceIdProjectIdAbTestingNewRoute =
+  AppWorkspaceIdProjectIdAbTestingNewRouteImport.update({
+    id: '/$projectId/ab-testing/new',
+    path: '/$projectId/ab-testing/new',
+    getParentRoute: () => AppWorkspaceIdRouteRoute,
+  } as any)
 const AppWorkspaceIdProjectIdGoalsIndexRoute =
   AppWorkspaceIdProjectIdGoalsIndexRouteImport.update({
     id: '/$projectId/goals/',
@@ -493,6 +500,7 @@ export interface FileRoutesByFullPath {
   '/products/$productId/': typeof openProductsProductIdIndexRoute
   '/solutions/$solutionId/': typeof openSolutionsSolutionIdIndexRoute
   '/app/$workspaceId/$projectId/': typeof AppWorkspaceIdProjectIdIndexRoute
+  '/app/$workspaceId/$projectId/ab-testing/new': typeof AppWorkspaceIdProjectIdAbTestingNewRoute
   '/app/$workspaceId/$projectId/goals/$goalId': typeof AppWorkspaceIdProjectIdGoalsGoalIdRoute
   '/app/$workspaceId/$projectId/heatmaps/$heatmapId': typeof AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute
   '/app/$workspaceId/$projectId/integrations/$integrationId': typeof AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute
@@ -554,6 +562,7 @@ export interface FileRoutesByTo {
   '/products/$productId': typeof openProductsProductIdIndexRoute
   '/solutions/$solutionId': typeof openSolutionsSolutionIdIndexRoute
   '/app/$workspaceId/$projectId': typeof AppWorkspaceIdProjectIdIndexRoute
+  '/app/$workspaceId/$projectId/ab-testing/new': typeof AppWorkspaceIdProjectIdAbTestingNewRoute
   '/app/$workspaceId/$projectId/goals/$goalId': typeof AppWorkspaceIdProjectIdGoalsGoalIdRoute
   '/app/$workspaceId/$projectId/heatmaps/$heatmapId': typeof AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute
   '/app/$workspaceId/$projectId/integrations/$integrationId': typeof AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute
@@ -624,6 +633,7 @@ export interface FileRoutesById {
   '/(open)/products/$productId/': typeof openProductsProductIdIndexRoute
   '/(open)/solutions/$solutionId/': typeof openSolutionsSolutionIdIndexRoute
   '/app/$workspaceId/$projectId/': typeof AppWorkspaceIdProjectIdIndexRoute
+  '/app/$workspaceId/$projectId/ab-testing/new': typeof AppWorkspaceIdProjectIdAbTestingNewRoute
   '/app/$workspaceId/$projectId/goals/$goalId': typeof AppWorkspaceIdProjectIdGoalsGoalIdRoute
   '/app/$workspaceId/$projectId/heatmaps/$heatmapId': typeof AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute
   '/app/$workspaceId/$projectId/integrations/$integrationId': typeof AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute
@@ -691,6 +701,7 @@ export interface FileRouteTypes {
     | '/products/$productId/'
     | '/solutions/$solutionId/'
     | '/app/$workspaceId/$projectId/'
+    | '/app/$workspaceId/$projectId/ab-testing/new'
     | '/app/$workspaceId/$projectId/goals/$goalId'
     | '/app/$workspaceId/$projectId/heatmaps/$heatmapId'
     | '/app/$workspaceId/$projectId/integrations/$integrationId'
@@ -752,6 +763,7 @@ export interface FileRouteTypes {
     | '/products/$productId'
     | '/solutions/$solutionId'
     | '/app/$workspaceId/$projectId'
+    | '/app/$workspaceId/$projectId/ab-testing/new'
     | '/app/$workspaceId/$projectId/goals/$goalId'
     | '/app/$workspaceId/$projectId/heatmaps/$heatmapId'
     | '/app/$workspaceId/$projectId/integrations/$integrationId'
@@ -821,6 +833,7 @@ export interface FileRouteTypes {
     | '/(open)/products/$productId/'
     | '/(open)/solutions/$solutionId/'
     | '/app/$workspaceId/$projectId/'
+    | '/app/$workspaceId/$projectId/ab-testing/new'
     | '/app/$workspaceId/$projectId/goals/$goalId'
     | '/app/$workspaceId/$projectId/heatmaps/$heatmapId'
     | '/app/$workspaceId/$projectId/integrations/$integrationId'
@@ -1267,6 +1280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceIdProjectIdAbTestingIndexRouteImport
       parentRoute: typeof AppWorkspaceIdRouteRoute
     }
+    '/app/$workspaceId/$projectId/ab-testing/new': {
+      id: '/app/$workspaceId/$projectId/ab-testing/new'
+      path: '/$projectId/ab-testing/new'
+      fullPath: '/app/$workspaceId/$projectId/ab-testing/new'
+      preLoaderRoute: typeof AppWorkspaceIdProjectIdAbTestingNewRouteImport
+      parentRoute: typeof AppWorkspaceIdRouteRoute
+    }
     '/app/$workspaceId/$projectId/goals/': {
       id: '/app/$workspaceId/$projectId/goals/'
       path: '/$projectId/goals'
@@ -1400,6 +1420,7 @@ interface AppWorkspaceIdRouteRouteChildren {
   AppWorkspaceIdProjectIdUserJourneyRoute: typeof AppWorkspaceIdProjectIdUserJourneyRoute
   AppWorkspaceIdProjectIdVisitorsRoute: typeof AppWorkspaceIdProjectIdVisitorsRoute
   AppWorkspaceIdProjectIdIndexRoute: typeof AppWorkspaceIdProjectIdIndexRoute
+  AppWorkspaceIdProjectIdAbTestingNewRoute: typeof AppWorkspaceIdProjectIdAbTestingNewRoute
   AppWorkspaceIdProjectIdGoalsGoalIdRoute: typeof AppWorkspaceIdProjectIdGoalsGoalIdRoute
   AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute: typeof AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute
   AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute: typeof AppWorkspaceIdProjectIdIntegrationsIntegrationIdRoute
@@ -1439,6 +1460,8 @@ const AppWorkspaceIdRouteRouteChildren: AppWorkspaceIdRouteRouteChildren = {
     AppWorkspaceIdProjectIdUserJourneyRoute,
   AppWorkspaceIdProjectIdVisitorsRoute: AppWorkspaceIdProjectIdVisitorsRoute,
   AppWorkspaceIdProjectIdIndexRoute: AppWorkspaceIdProjectIdIndexRoute,
+  AppWorkspaceIdProjectIdAbTestingNewRoute:
+    AppWorkspaceIdProjectIdAbTestingNewRoute,
   AppWorkspaceIdProjectIdGoalsGoalIdRoute:
     AppWorkspaceIdProjectIdGoalsGoalIdRoute,
   AppWorkspaceIdProjectIdHeatmapsHeatmapIdRoute:
