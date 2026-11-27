@@ -73,6 +73,26 @@ export const Header = () => {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          {/* <Dialog>
+            <DialogTrigger
+              render={
+                <Button variant={'outline'}>
+                  <CalendarPlus2Icon />
+                  What's new
+                </Button>
+              }
+            />
+
+            <DialogContent></DialogContent>
+          </Dialog>
+
+          <Button variant={'outline'} aria-controls="ask-sidebar">
+            <SparklesIcon />
+            Ask
+          </Button> 
+
+          <Separator orientation="vertical" />*/}
+
           <FeedbackPopover />
 
           <Sheet>

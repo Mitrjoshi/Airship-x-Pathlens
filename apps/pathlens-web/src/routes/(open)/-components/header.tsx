@@ -238,9 +238,20 @@ export const MobileMenu = ({
     <div className="bg-background fixed inset-0 z-20 flex h-dvh w-full flex-col overflow-hidden border-x-2 border-dashed lg:hidden">
       {/* Fixed Header */}
       <div className="flex h-14.75 shrink-0 items-center justify-between border-b-2 border-dashed px-5">
-        <Link to="/" onClick={closeMenu} className="flex items-center gap-2">
-          <img src="/logo.svg" className="size-8" alt="Pathlens" />
-          <p className="text-2xl font-bold">Pathlens</p>
+        <Link to="/" className="flex h-12 w-40 items-center gap-2">
+          <div className="flex items-center">
+            <img
+              src="/logo-full-light.png"
+              className="block h-12 w-40 object-cover dark:hidden"
+              alt="Pathlens"
+            />
+
+            <img
+              src="/logo-full-dark.png"
+              className="hidden h-12 w-40 object-cover dark:block"
+              alt="Pathlens"
+            />
+          </div>
         </Link>
 
         <Button
@@ -307,6 +318,7 @@ export const MobileMenu = ({
                 </button>
 
                 <Link
+                  target="_blank"
                   to="/docs"
                   onClick={closeMenu}
                   className="group flex w-full cursor-pointer items-center justify-between border-b py-5"
@@ -317,6 +329,7 @@ export const MobileMenu = ({
                 </Link>
 
                 <Link
+                  target="_blank"
                   to="/pricing"
                   onClick={closeMenu}
                   className="group flex w-full cursor-pointer items-center justify-between py-5"

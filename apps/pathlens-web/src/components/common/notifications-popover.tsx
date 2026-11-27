@@ -108,7 +108,7 @@ export function NotificationsPopover() {
         </span>
       </PopoverTrigger>
 
-      <PopoverContent sideOffset={8} align="end" className="w-80">
+      <PopoverContent sideOffset={8} align="end" className="max-h-[80vh] w-80">
         <PopoverHeader className="px-1 py-0.5">
           <PopoverTitle>Notifications</PopoverTitle>
         </PopoverHeader>
